@@ -1,231 +1,209 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, MessageCircle, Share2, MoreVertical, Play, Pause, Volume2, VolumeX, Maximize, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Settings, Play, Video, Bookmark, Compass, ChevronRight, Globe, MoreHorizontal, ThumbsUp, MessageCircle, Share2 } from 'lucide-react';
 
 export default function WatchVideo() {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const [showControls, setShowControls] = useState(true);
 
   // Mock video data
-  const video = {
-    id: id,
-    title: 'Hướng dẫn React Hooks từ cơ bản đến nâng cao',
-    description:
-      'Video này sẽ hướng dẫn chi tiết về React Hooks, từ useState, useEffect đến các custom hooks phức tạp. Phù hợp cho những ai muốn nắm vững React Hooks.',
-    author: {
-      name: 'Nguyễn Văn A',
-      avatar: 'NA',
-      color: '#1877F2',
-      subscribers: 125000,
-    },
-    views: 1250000,
-    likes: 45000,
-    comments: 1200,
-    shares: 890,
-    uploadDate: '2 ngày trước',
-    duration: '15:30',
-  };
-
-  const relatedVideos = [
-    { id: 2, title: 'React Performance Optimization', thumbnail: '🎥', views: '890K', author: 'Tech Channel' },
-    { id: 3, title: 'JavaScript ES6+ Features', thumbnail: '📺', views: '1.2M', author: 'Code Master' },
-    { id: 4, title: 'TypeScript Tutorial', thumbnail: '💻', views: '650K', author: 'Dev Academy' },
-  ];
-
-  const comments = [
+  const featuredVideos = [
     {
       id: 1,
-      author: { name: 'User 1', avatar: 'U1', color: '#1877F2' },
-      content: 'Video rất hay, cảm ơn bạn!',
-      time: '1 giờ trước',
-      likes: 125,
+      title: 'Video mới của Marvel Studios và những người khác.',
+      thumbnail: '🎬',
+      author: { name: 'Marvel Studios', avatar: 'MS', verified: true },
+      time: '19 phút trước',
     },
     {
       id: 2,
-      author: { name: 'User 2', avatar: 'U2', color: '#42B72A' },
-      content: 'Giải thích rất dễ hiểu, đang chờ phần 2',
-      time: '3 giờ trước',
-      likes: 89,
+      title: 'Trinh Diễn và những người khác đã chia sẻ video.',
+      thumbnail: '📺',
+      author: { name: 'Trinh Diễn', avatar: 'TD' },
+      time: '1 ngày trước',
     },
   ];
 
+  const videoFeed = [
+    {
+      id: 3,
+      author: { name: 'BiliBili Philippines', avatar: 'BP', verified: true },
+      time: 'Hôm qua lúc 14:00',
+      description: "Yuji's big bro 🤣...",
+      thumbnail: '🎭',
+      views: '2.5M',
+      likes: '125K',
+      comments: '3.2K',
+    },
+    {
+      id: 4,
+      author: { name: 'Tech Review', avatar: 'TR', verified: false },
+      time: '2 ngày trước',
+      description: 'Đánh giá chi tiết iPhone 15 Pro Max',
+      thumbnail: '📱',
+      views: '1.8M',
+      likes: '89K',
+      comments: '2.1K',
+    },
+    {
+      id: 5,
+      author: { name: 'Cooking Master', avatar: 'CM', verified: true },
+      time: '3 ngày trước',
+      description: 'Cách làm món phở bò chính gốc Hà Nội',
+      thumbnail: '🍜',
+      views: '950K',
+      likes: '45K',
+      comments: '1.5K',
+    },
+  ];
+
+  const sidebarItems = [
+    { icon: Video, label: 'Trang chủ' },
+    { icon: Play, label: 'Trực tiếp' },
+    { icon: Video, label: 'Reels' },
+    { icon: Compass, label: 'Khám phá' },
+    { icon: Bookmark, label: 'Video đã lưu' },
+  ];
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="flex flex-col lg:flex-row">
-        {/* Main Video */}
-        <div className="flex-1">
-          {/* Header */}
-          <div className="h-16 px-6 flex items-center justify-between bg-black/50 backdrop-blur-sm">
-            <button
-              onClick={() => navigate('/home')}
-              className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6" />
+    <div className="min-h-screen bg-[#f0f2f5] text-gray-900">
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-300 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl font-bold text-gray-900">Video</h1>
+            <button className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors">
+              <Settings className="w-5 h-5 text-gray-700" />
             </button>
-            <h1 className="text-lg font-semibold">Watch</h1>
-            <div className="w-10"></div>
           </div>
+          {/* Search */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm video"
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
 
-          {/* Video Player */}
-          <div className="relative aspect-video bg-gray-900">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-9xl mb-4">🎬</div>
-                <p className="text-2xl font-semibold mb-2">{video.title}</p>
-                <p className="text-gray-400">{video.duration}</p>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto py-8 px-6">
+        {/* Featured Section */}
+        <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-semibold text-gray-900">Video mới dành cho bạn</h2>
+                <button className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-[15px] font-medium">
+                  Xem tất cả
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
-            </div>
-
-            {/* Video Controls */}
-            {showControls && (
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
-                <div className="mb-4">
-                  <div className="w-full h-1 bg-white/30 rounded-full mb-2">
-                    <div className="h-full bg-red-500 rounded-full" style={{ width: '35%' }}></div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>10:45 / {video.duration}</span>
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => setIsMuted(!isMuted)}
-                        className="w-8 h-8 flex items-center justify-center"
-                      >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                      </button>
-                      <button className="w-8 h-8 flex items-center justify-center">
-                        <Settings className="w-5 h-5" />
-                      </button>
-                      <button className="w-8 h-8 flex items-center justify-center">
-                        <Maximize className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              <div className="grid grid-cols-2 gap-3">
+                {featuredVideos.map((video) => (
+                  <div
+                    key={video.id}
+                    className="bg-white rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
                   >
-                    {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Video Info */}
-          <div className="p-6 space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-3">{video.title}</h2>
-              <div className="flex items-center gap-6 text-gray-400">
-                <span>{video.views.toLocaleString()} lượt xem</span>
-                <span>•</span>
-                <span>{video.uploadDate}</span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsLiked(!isLiked)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-colors ${
-                  isLiked
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white/10 hover:bg-white/20 text-white'
-                }`}
-              >
-                <ThumbsUp className="w-5 h-5" />
-                {video.likes.toLocaleString()}
-              </button>
-              <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors">
-                <MessageCircle className="w-5 h-5" />
-                {video.comments.toLocaleString()}
-              </button>
-              <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors">
-                <Share2 className="w-5 h-5" />
-                Chia sẻ
-              </button>
-              <button className="ml-auto w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-                <MoreVertical className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Author */}
-            <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
-                style={{ backgroundColor: video.author.color }}
-              >
-                {video.author.avatar}
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-lg">{video.author.name}</p>
-                <p className="text-gray-400 text-sm">{video.author.subscribers.toLocaleString()} người đăng ký</p>
-              </div>
-              <button className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full transition-colors">
-                Đăng ký
-              </button>
-            </div>
-
-            {/* Description */}
-            <div className="p-4 bg-white/5 rounded-xl">
-              <p className="text-base leading-relaxed whitespace-pre-line">{video.description}</p>
-            </div>
-
-            {/* Comments */}
-            <div>
-              <h3 className="text-xl font-bold mb-4">{video.comments.toLocaleString()} bình luận</h3>
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex items-start gap-4">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                      style={{ backgroundColor: comment.author.color }}
-                    >
-                      {comment.author.avatar}
+                    <div className="aspect-video bg-gray-100 flex items-center justify-center text-6xl relative group">
+                      {video.thumbnail}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <Play className="w-8 h-8 ml-1 text-white" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="mb-1">
-                        <span className="font-semibold mr-2">{comment.author.name}</span>
-                        <span className="text-gray-400 text-sm">{comment.time}</span>
+                    <div className="p-3">
+                      <div className="flex items-start gap-2 mb-1">
+                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                          {video.author.avatar}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[13px] font-semibold text-gray-900">{video.author.name}</span>
+                            {video.author.verified && (
+                              <Globe className="w-3 h-3 text-blue-500" />
+                            )}
+                          </div>
+                          <span className="text-[12px] text-gray-500">{video.time}</span>
+                        </div>
                       </div>
-                      <p className="mb-2">{comment.content}</p>
-                      <div className="flex items-center gap-4">
-                        <button className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-                          <ThumbsUp className="w-4 h-4" />
-                          <span className="text-sm">{comment.likes}</span>
-                        </button>
-                        <button className="text-gray-400 hover:text-white transition-colors text-sm">Phản hồi</button>
-                      </div>
+                      <p className="text-[15px] line-clamp-2 text-gray-800 mt-1">{video.title}</p>
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Sidebar - Related Videos */}
-        <div className="w-full lg:w-80 bg-black/50 backdrop-blur-sm border-l border-white/10 p-6">
-          <h3 className="text-lg font-semibold mb-4">Video liên quan</h3>
-          <div className="space-y-4">
-            {relatedVideos.map((related) => (
-              <div key={related.id} className="flex gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
-                <div className="w-40 h-24 bg-gray-800 rounded-lg flex items-center justify-center text-4xl flex-shrink-0">
-                  {related.thumbnail}
+        {/* Video Feed */}
+        <div className="space-y-4">
+              {videoFeed.map((video) => (
+                <div key={video.id} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  {/* Post Header */}
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold text-white">
+                        {video.author.avatar}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">{video.author.name}</span>
+                          {video.author.verified && (
+                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                              <Globe className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <span>{video.time}</span>
+                          <span>•</span>
+                          <Globe className="w-3 h-3" />
+                        </div>
+                      </div>
+                    </div>
+                    <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+                      <MoreHorizontal className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
+
+                  {/* Description */}
+                  <div className="px-4 pb-3">
+                    <p className="text-[15px] text-gray-900">
+                      {video.description}{' '}
+                      <button className="text-gray-600 hover:text-gray-800 font-medium">Xem thêm</button>
+                    </p>
+                  </div>
+
+                  {/* Video Player */}
+                  <div className="relative aspect-video bg-black group cursor-pointer">
+                    <div className="absolute inset-0 flex items-center justify-center text-8xl">
+                      {video.thumbnail}
+                    </div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <Play className="w-10 h-10 ml-1 text-white" />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-4 left-4 text-sm font-semibold text-white">
+                      {video.views} lượt xem
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="p-2 flex items-center justify-around border-t border-gray-200">
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                      <ThumbsUp className="w-5 h-5 text-gray-600" />
+                      <span className="text-sm font-semibold text-gray-700">{video.likes}</span>
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                      <MessageCircle className="w-5 h-5 text-gray-600" />
+                      <span className="text-sm font-semibold text-gray-700">{video.comments}</span>
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                      <Share2 className="w-5 h-5 text-gray-600" />
+                      <span className="text-sm font-semibold text-gray-700">Chia sẻ</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-sm mb-1 line-clamp-2">{related.title}</h4>
-                  <p className="text-gray-400 text-xs mb-1">{related.author}</p>
-                  <p className="text-gray-500 text-xs">{related.views} lượt xem</p>
-                </div>
-              </div>
             ))}
-          </div>
         </div>
       </div>
     </div>
