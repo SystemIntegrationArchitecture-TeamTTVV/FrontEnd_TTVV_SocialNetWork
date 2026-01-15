@@ -1,21 +1,33 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Plus, Bell, Share2 } from 'lucide-react';
 import { useState } from 'react';
+import { PlaneIcon, CameraIcon, GamepadIcon, BookIcon, ChefHatIcon } from '../../common/icons/IconComponents';
 
 export default function Groups() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('your');
 
   const groupsManaged = [
-    { id: 1, name: 'Travel Enthusiasts', members: '2.5k', avatar: '✈️', color: '#1877F2', hasNotification: true },
-    { id: 2, name: 'Photography Club', members: '1.8k', avatar: '📷', color: '#42B72A', hasNotification: false },
+    { id: 1, name: 'Travel Enthusiasts', members: '2.5k', avatar: 'plane', color: '#1877F2', hasNotification: true },
+    { id: 2, name: 'Photography Club', members: '1.8k', avatar: 'camera', color: '#42B72A', hasNotification: false },
   ];
 
   const groupsJoined = [
-    { id: 3, name: 'Gaming Việt Nam', members: '45.2k', avatar: '🎮', color: '#FF6B6B' },
-    { id: 4, name: 'Book Lovers', members: '3.2k', avatar: '📚', color: '#4ECDC4' },
-    { id: 5, name: 'Food & Cooking', members: '8.9k', avatar: '🍳', color: '#FFD93D' },
+    { id: 3, name: 'Gaming Việt Nam', members: '45.2k', avatar: 'gamepad', color: '#FF6B6B' },
+    { id: 4, name: 'Book Lovers', members: '3.2k', avatar: 'book', color: '#4ECDC4' },
+    { id: 5, name: 'Food & Cooking', members: '8.9k', avatar: 'chef', color: '#FFD93D' },
   ];
+
+  const getAvatarIcon = (avatarType: string) => {
+    switch (avatarType) {
+      case 'plane': return <PlaneIcon className="w-6 h-6" />;
+      case 'camera': return <CameraIcon className="w-6 h-6" />;
+      case 'gamepad': return <GamepadIcon className="w-6 h-6" />;
+      case 'book': return <BookIcon className="w-6 h-6" />;
+      case 'chef': return <ChefHatIcon className="w-6 h-6" />;
+      default: return null;
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6 pb-6">
@@ -84,10 +96,10 @@ export default function Groups() {
                 className="bg-white rounded-xl p-4 flex items-center gap-4 hover:shadow-md transition-all border border-gray-100 group"
               >
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-105 transition-transform"
-                  style={{ backgroundColor: `${group.color}20` }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform"
+                  style={{ backgroundColor: `${group.color}20`, color: group.color }}
                 >
-                  {group.avatar}
+                  {getAvatarIcon(group.avatar)}
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900 mb-1">{group.name}</p>
@@ -115,10 +127,10 @@ export default function Groups() {
               className="bg-white rounded-xl p-5 hover:shadow-lg transition-all border border-gray-100 group"
             >
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl mb-4 mx-auto shadow-md group-hover:scale-110 transition-transform"
-                style={{ backgroundColor: `${group.color}20` }}
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-md group-hover:scale-110 transition-transform"
+                style={{ backgroundColor: `${group.color}20`, color: group.color }}
               >
-                {group.avatar}
+                {getAvatarIcon(group.avatar)}
               </div>
               <h3 className="font-semibold text-gray-900 text-center mb-1">{group.name}</h3>
               <p className="text-sm text-gray-600 text-center">{group.members} members</p>

@@ -1,9 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User, Search } from 'lucide-react';
+import { useState } from 'react';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Navbar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b border-gray-100 z-50 shadow-sm">
@@ -71,13 +74,16 @@ export default function Navbar() {
           >
             <MessageCircle className="w-6 h-6 text-gray-700" />
           </Link>
-          <Link
-            to="/notifications"
-            className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-          >
-            <Bell className="w-6 h-6 text-gray-700" />
-            <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-          </Link>
+          <div className="relative">
+            <button
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+            >
+              <Bell className="w-6 h-6 text-gray-700" />
+              <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            <NotificationDropdown isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
+          </div>
           <Link
             to="/profile/1"
             className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center hover:shadow-md transition-shadow"

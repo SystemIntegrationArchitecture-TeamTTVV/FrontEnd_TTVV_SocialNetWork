@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send } from 'lucide-react';
 import { useState } from 'react';
+import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon, LaptopIcon } from '../../common/icons/IconComponents';
 
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
@@ -11,13 +12,13 @@ export default function Newsfeed() {
       id: 1,
       author: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
       time: '2h',
-      location: '🌍',
-      content: 'Just finished an amazing hike! The view was breathtaking 🏔️',
-      image: '🏔️',
+      location: 'location',
+      content: 'Just finished an amazing hike! The view was breathtaking',
+      image: 'mountain',
       likes: 124,
       comments: 3,
       shares: 12,
-      reactions: ['❤️', '👍', '😊'],
+      reactions: ['heart', 'thumbsup', 'smile'],
       commentsList: [
         {
           id: 1,
@@ -29,7 +30,7 @@ export default function Newsfeed() {
         {
           id: 2,
           author: { name: 'David Kim', avatar: 'DK', color: '#FF6B6B' },
-          content: 'Looks beautiful! 😍',
+          content: 'Looks beautiful!',
           time: '2 giờ trước',
           likes: 3,
         },
@@ -47,12 +48,12 @@ export default function Newsfeed() {
       author: { name: 'Mike Chen', avatar: 'MC', color: '#FF6B6B' },
       time: '5h',
       location: '',
-      content: 'Working on a new project. Excited to share it soon! 💻',
+      content: 'Working on a new project. Excited to share it soon!',
       image: '',
       likes: 89,
       comments: 2,
       shares: 5,
-      reactions: ['👍', '😊'],
+      reactions: ['thumbsup', 'smile'],
       commentsList: [
         {
           id: 1,
@@ -64,7 +65,7 @@ export default function Newsfeed() {
         {
           id: 2,
           author: { name: 'Alex Park', avatar: 'AP', color: '#FFD93D' },
-          content: 'Looking forward! 👏',
+          content: 'Looking forward!',
           time: '5 giờ trước',
           likes: 1,
         },
@@ -203,7 +204,10 @@ export default function Newsfeed() {
                       {post.location && (
                         <>
                           <span>·</span>
-                          <span>{post.location}</span>
+                          <div className="flex items-center gap-1">
+                            <LocationIcon className="w-4 h-4" />
+                            <span>Location</span>
+                          </div>
                         </>
                       )}
                     </div>
@@ -218,18 +222,21 @@ export default function Newsfeed() {
               <div className="px-6 lg:px-8 pb-6">
                 <p className="text-gray-900 mb-5 leading-relaxed text-lg">{post.content}</p>
                 {post.image && (
-                  <div className="w-full aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mb-5 overflow-hidden">
-                    <span className="text-9xl">{post.image}</span>
+                  <div className="w-full aspect-video rounded-3xl mb-5 overflow-hidden">
+                    {post.image === 'mountain' && <LargeMountainPlaceholder className="w-full h-full" />}
                   </div>
                 )}
 
                 {/* Post Stats - Simplified */}
                 <div className="flex items-center justify-between text-base text-gray-500 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center -space-x-1">
-                      {post.reactions.slice(0, 3).map((reaction, idx) => (
-                        <span key={idx} className="text-2xl">{reaction}</span>
-                      ))}
+                    <div className="flex items-center gap-1">
+                      {post.reactions.slice(0, 3).map((reaction, idx) => {
+                        if (reaction === 'heart') return <HeartIcon key={idx} className="w-5 h-5 text-red-500 fill-red-500" />;
+                        if (reaction === 'thumbsup') return <ThumbsUpIcon key={idx} className="w-5 h-5 text-blue-500 fill-blue-500" />;
+                        if (reaction === 'smile') return <SmileIcon key={idx} className="w-5 h-5 text-yellow-500 fill-yellow-500" />;
+                        return null;
+                      })}
                     </div>
                     <span className="font-semibold text-lg">{post.likes}</span>
                   </div>
