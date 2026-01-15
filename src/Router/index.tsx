@@ -96,6 +96,9 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Stories Viewer - Fullscreen (outside MainLayout)
+  { path: '/stories/:id', element: <StoriesViewer /> },
+
   // Main App Routes
   {
     path: '/',
@@ -117,7 +120,6 @@ export const router = createBrowserRouter([
       { path: 'photo/:id', element: <PhotoViewer /> },
       { path: 'album/:id', element: <AlbumView /> },
       { path: 'album/create', element: <CreateAlbum /> },
-      { path: 'stories/:id', element: <StoriesViewer /> },
       { path: 'friends', element: <Friends /> },
       { path: 'friends/requests', element: <FriendRequests /> },
 

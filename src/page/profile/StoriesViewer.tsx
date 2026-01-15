@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, ArrowLeft, ArrowRight, MoreVertical, Pause, Play } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { X, ArrowLeft, ArrowRight, Pause, Play, Heart, MessageCircle, Share2, Send, Waves } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ImagePlaceholderIcon, CameraIcon, SunIcon } from '../../common/icons/IconComponents';
 
 export default function StoriesViewer() {
   const { id } = useParams();
@@ -9,29 +10,52 @@ export default function StoriesViewer() {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [showReactions, setShowReactions] = useState(false);
+  const [showReply, setShowReply] = useState(false);
+  const [replyMessage, setReplyMessage] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Mock stories data
+  // Mock stories data - matching Newsfeed stories
   const stories = [
     {
       id: 1,
-      author: { name: 'Nguyễn Văn A', avatar: 'NA', color: '#1877F2' },
+      author: { name: 'Sarah', avatar: 'SJ', color: '#42B72A' },
+      time: '2 giờ trước',
       media: [
-        { type: 'image', content: '🖼️', duration: 5000 },
-        { type: 'image', content: '📷', duration: 5000 },
+        { type: 'image', content: 'image', duration: 5000 },
+        { type: 'image', content: 'camera', duration: 5000 },
       ],
     },
     {
       id: 2,
-      author: { name: 'Trần Thị B', avatar: 'TB', color: '#42B72A' },
+      author: { name: 'Mike', avatar: 'MC', color: '#FF6B6B' },
+      time: '5 giờ trước',
       media: [
-        { type: 'image', content: '🏞️', duration: 5000 },
-        { type: 'image', content: '🌅', duration: 5000 },
+        { type: 'image', content: 'sunset', duration: 5000 },
+        { type: 'image', content: 'beach', duration: 5000 },
+      ],
+    },
+    {
+      id: 3,
+      author: { name: 'Emma', avatar: 'ED', color: '#4ECDC4' },
+      time: '1 ngày trước',
+      media: [
+        { type: 'image', content: 'image', duration: 5000 },
+      ],
+    },
+    {
+      id: 4,
+      author: { name: 'Alex', avatar: 'AP', color: '#FFD93D' },
+      time: '2 ngày trước',
+      media: [
+        { type: 'image', content: 'camera', duration: 5000 },
       ],
     },
   ];
 
   const currentStory = stories[currentStoryIndex];
   const currentMedia = currentStory?.media[currentMediaIndex];
+  const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
   useEffect(() => {
     if (!isPlaying || !currentMedia) return;
@@ -48,6 +72,16 @@ export default function StoriesViewer() {
 
     return () => clearInterval(interval);
   }, [isPlaying, currentMediaIndex, currentStoryIndex]);
+
+  useEffect(() => {
+    const storyId = id ? parseInt(id) : 1;
+    const index = stories.findIndex(s => s.id === storyId);
+    if (index !== -1) {
+      setCurrentStoryIndex(index);
+      setCurrentMediaIndex(0);
+      setProgress(0);
+    }
+  }, [id]);
 
   const nextMedia = () => {
     if (currentMediaIndex < currentStory.media.length - 1) {
@@ -72,6 +106,7 @@ export default function StoriesViewer() {
       setCurrentStoryIndex(currentStoryIndex + 1);
       setCurrentMediaIndex(0);
       setProgress(0);
+      navigate(`/stories/${stories[currentStoryIndex + 1].id}`, { replace: true });
     } else {
       navigate('/home');
     }
@@ -82,6 +117,38 @@ export default function StoriesViewer() {
       setCurrentStoryIndex(currentStoryIndex - 1);
       setCurrentMediaIndex(stories[currentStoryIndex - 1].media.length - 1);
       setProgress(0);
+      navigate(`/stories/${stories[currentStoryIndex - 1].id}`, { replace: true });
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    
+    if (clickX < width / 3) {
+      prevMedia();
+    } else if (clickX > (width * 2) / 3) {
+      nextMedia();
+    } else {
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const getMediaContent = (content: string) => {
+    switch (content) {
+      case 'image':
+        return <ImagePlaceholderIcon className="w-32 h-32 text-white/80" />;
+      case 'camera':
+        return <CameraIcon className="w-32 h-32 text-white/80" />;
+      case 'sunset':
+        return <SunIcon className="w-32 h-32 text-yellow-300" />;
+      case 'beach':
+        return <Waves className="w-32 h-32 text-blue-300" />;
+      default:
+        return <ImagePlaceholderIcon className="w-32 h-32 text-white/80" />;
     }
   };
 
@@ -90,14 +157,18 @@ export default function StoriesViewer() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50">
+    <div 
+      ref={containerRef}
+      className="fixed inset-0 bg-black z-50 cursor-pointer"
+      onClick={handleClick}
+    >
       {/* Progress Bars */}
       <div className="absolute top-4 left-4 right-4 z-10">
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {currentStory.media.map((_, index) => (
-            <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+            <div key={index} className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
               <div
-                className="h-full bg-white transition-all"
+                className="h-full bg-white transition-all duration-75"
                 style={{
                   width:
                     index < currentMediaIndex
@@ -113,32 +184,35 @@ export default function StoriesViewer() {
       </div>
 
       {/* Header */}
-      <div className="absolute top-16 left-4 right-4 z-10 flex items-center justify-between">
+      <div className="absolute top-12 left-4 right-4 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-lg"
             style={{ backgroundColor: currentStory.author.color }}
           >
             {currentStory.author.avatar}
           </div>
           <div>
-            <p className="text-white font-semibold">{currentStory.author.name}</p>
-            <p className="text-white/70 text-sm">2 giờ trước</p>
+            <p className="text-white font-semibold text-sm">{currentStory.author.name}</p>
+            <p className="text-white/70 text-xs">{currentStory.time}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPlaying(!isPlaying);
+            }}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
           >
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-          </button>
-          <button className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors text-white">
-            <MoreVertical className="w-5 h-5" />
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           <button
-            onClick={() => navigate('/home')}
-            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/home');
+            }}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -146,42 +220,155 @@ export default function StoriesViewer() {
       </div>
 
       {/* Media Display */}
-      <div className="h-full flex items-center justify-center">
-        <div className="text-9xl">{currentMedia.content}</div>
+      <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        <div className="flex items-center justify-center">
+          {getMediaContent(currentMedia.content)}
+        </div>
       </div>
 
-      {/* Navigation */}
-      <div className="absolute inset-0 flex items-center">
+      {/* Bottom Actions */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+        {/* Reply Input */}
+        {showReply && (
+          <div className="mb-4 flex items-center gap-2">
+            <input
+              type="text"
+              value={replyMessage}
+              onChange={(e) => {
+                e.stopPropagation();
+                setReplyMessage(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && replyMessage.trim()) {
+                  e.stopPropagation();
+                  console.log('Send reply:', replyMessage);
+                  setReplyMessage('');
+                  setShowReply(false);
+                }
+              }}
+              placeholder="Send a message..."
+              className="flex-1 h-11 px-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 text-sm"
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (replyMessage.trim()) {
+                  console.log('Send reply:', replyMessage);
+                  setReplyMessage('');
+                  setShowReply(false);
+                }
+              }}
+              disabled={!replyMessage.trim()}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+                replyMessage.trim()
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                  : 'bg-white/10 text-white/40 cursor-not-allowed'
+              }`}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {!showReply && (
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowReactions(!showReactions);
+              }}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
+            >
+              <Heart className="w-5 h-5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowReply(true);
+              }}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Share story');
+              }}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Quick Reactions */}
+        {showReactions && (
+          <div 
+            className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {quickReactions.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('React:', emoji);
+                  setShowReactions(false);
+                }}
+                className="w-10 h-10 rounded-full hover:bg-white/20 flex items-center justify-center text-xl transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Hints */}
+      <div className="absolute left-0 top-0 bottom-0 w-1/3 flex items-center justify-start pl-4 opacity-0 hover:opacity-100 transition-opacity">
         <button
-          onClick={prevMedia}
-          className="absolute left-4 w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            prevMedia();
+          }}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="w-5 h-5" />
         </button>
+      </div>
+      <div className="absolute right-0 top-0 bottom-0 w-1/3 flex items-center justify-end pr-4 opacity-0 hover:opacity-100 transition-opacity">
         <button
-          onClick={nextMedia}
-          className="absolute right-4 w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            nextMedia();
+          }}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors text-white"
         >
-          <ArrowRight className="w-6 h-6" />
+          <ArrowRight className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Story Navigation */}
+      {/* Story Navigation - Swipe areas */}
       {currentStoryIndex > 0 && (
-        <button
-          onClick={prevStory}
-          className="absolute left-0 top-0 bottom-0 w-20 flex items-center justify-start pl-4 text-white opacity-0 hover:opacity-100 transition-opacity"
-        >
-          <ArrowLeft className="w-8 h-8" />
-        </button>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            prevStory();
+          }}
+          className="absolute left-0 top-0 bottom-0 w-20 cursor-pointer"
+        />
       )}
       {currentStoryIndex < stories.length - 1 && (
-        <button
-          onClick={nextStory}
-          className="absolute right-0 top-0 bottom-0 w-20 flex items-center justify-end pr-4 text-white opacity-0 hover:opacity-100 transition-opacity"
-        >
-          <ArrowRight className="w-8 h-8" />
-        </button>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            nextStory();
+          }}
+          className="absolute right-0 top-0 bottom-0 w-20 cursor-pointer"
+        />
       )}
     </div>
   );

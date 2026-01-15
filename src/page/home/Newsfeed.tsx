@@ -128,7 +128,11 @@ export default function Newsfeed() {
 
           {/* Friends Stories */}
           {stories.map((story, index) => (
-            <div key={index} className="shrink-0 w-32 cursor-pointer group">
+            <Link
+              key={index}
+              to={`/stories/${index + 1}`}
+              className="shrink-0 w-32 cursor-pointer group"
+            >
               <div className={`w-32 h-48 rounded-3xl bg-gradient-to-b ${story.gradient} p-0.5 group-hover:scale-105 transition-transform`}>
                 <div className="w-full h-full bg-white rounded-3xl flex items-center justify-center">
                   <div className="w-16 h-16 rounded-full bg-blue-500 border-4 border-white flex items-center justify-center">
@@ -137,7 +141,7 @@ export default function Newsfeed() {
                 </div>
               </div>
               <p className="text-base text-gray-600 text-center mt-4 font-semibold truncate">{story.name}</p>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
