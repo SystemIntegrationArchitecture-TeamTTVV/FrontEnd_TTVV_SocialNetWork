@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Check, Bell, Share2, MoreVertical, Image as ImageIcon, Smile } from 'lucide-react';
+import { Search, Check, Bell, Share2, MoreVertical, Image as ImageIcon, Smile } from 'lucide-react';
 import { useState } from 'react';
 
 export default function GroupDetail() {

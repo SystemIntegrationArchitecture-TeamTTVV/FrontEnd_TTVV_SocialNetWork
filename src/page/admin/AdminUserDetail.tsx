@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Calendar, FileText, Users, Shield, Ban, CheckCircle2, Edit } from 'lucide-react';
+import { Mail, Calendar, FileText, Users, Shield, Ban, CheckCircle2, Edit } from 'lucide-react';
 
 export default function AdminUserDetail() {
   const { id } = useParams();
@@ -28,14 +28,6 @@ export default function AdminUserDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <Link
-        to="/admin/users"
-        className="inline-flex items-center gap-2 text-base text-gray-600 hover:text-gray-900 font-semibold"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        Quay lại danh sách
-      </Link>
 
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm p-8">

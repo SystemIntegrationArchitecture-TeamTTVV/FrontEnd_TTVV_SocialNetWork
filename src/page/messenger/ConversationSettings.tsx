@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Bell, BellOff, Volume2, VolumeX, Image, Video, Users, Lock, Trash2, Search } from 'lucide-react';
+import { Bell, BellOff, Volume2, VolumeX, Image, Video, Users, Lock, Trash2, Search } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 export default function ConversationSettings() {
@@ -27,17 +27,9 @@ export default function ConversationSettings() {
     <div className="h-screen bg-white flex flex-col">
       {/* Header */}
       <div className="h-20 border-b border-gray-200 px-6 flex items-center justify-between bg-white">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/messenger')}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cài đặt cuộc trò chuyện</h1>
-            <p className="text-sm text-gray-600">Quản lý cài đặt cho cuộc trò chuyện này</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Cài đặt cuộc trò chuyện</h1>
+          <p className="text-sm text-gray-600">Quản lý cài đặt cho cuộc trò chuyện này</p>
         </div>
       </div>
 

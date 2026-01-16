@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send } from 'lucide-react';
-import { useState } from 'react';
-import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon, LaptopIcon } from '../../common/icons/IconComponents';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
 
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const [posts] = useState([
     {
@@ -108,22 +110,52 @@ export default function Newsfeed() {
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      let clickedInsideAnyMenu = false;
+      
+      Object.values(menuRefs.current).forEach((ref) => {
+        if (ref && ref.contains(target)) {
+          clickedInsideAnyMenu = true;
+        }
+      });
+
+      if (!clickedInsideAnyMenu && openMenuId !== null) {
+        setOpenMenuId(null);
+      }
+    };
+
+    if (openMenuId !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
+
+  const handlePostAction = (postId: number, action: string) => {
+    console.log(`Post action ${action} for post ${postId}`);
+    setOpenMenuId(null);
+  };
+
   return (
-    <div className="space-y-8 pb-10">
-      {/* Stories Section - Simplified */}
-      <div className="bg-white rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100">
-        <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-2">
+    <div className="space-y-6 pb-8">
+      {/* Stories Section */}
+      <div className="bg-white rounded-2xl p-5 border border-gray-200">
+        <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
           {/* Your Story */}
           <div className="shrink-0 w-32">
-            <div className="w-32 h-48 rounded-3xl bg-gray-100 flex flex-col items-center justify-center cursor-pointer hover:opacity-95 transition-all group">
-              <div className="w-16 h-16 rounded-full bg-blue-500 border-4 border-white flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                <span className="text-white font-bold text-lg">JD</span>
+            <div className="w-32 h-48 rounded-2xl bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group">
+              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2">
+                <span className="text-white font-semibold text-base">JD</span>
               </div>
-              <div className="w-9 h-9 rounded-full bg-green-500 border-4 border-white flex items-center justify-center -mt-3">
+              <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white flex items-center justify-center -mt-3">
                 <Plus className="w-5 h-5 text-white" />
               </div>
             </div>
-            <p className="text-base text-gray-600 text-center mt-4 font-semibold">Your story</p>
+            <p className="text-base text-gray-600 text-center mt-3 font-medium">Your story</p>
           </div>
 
           {/* Friends Stories */}
@@ -133,77 +165,77 @@ export default function Newsfeed() {
               to={`/stories/${index + 1}`}
               className="shrink-0 w-32 cursor-pointer group"
             >
-              <div className={`w-32 h-48 rounded-3xl bg-gradient-to-b ${story.gradient} p-0.5 group-hover:scale-105 transition-transform`}>
-                <div className="w-full h-full bg-white rounded-3xl flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-blue-500 border-4 border-white flex items-center justify-center">
-                    <span className="text-white text-base font-bold">{story.avatar}</span>
+              <div className={`w-32 h-48 rounded-2xl bg-gradient-to-b ${story.gradient} p-[2px] group-hover:opacity-90 transition-opacity`}>
+                <div className="w-full h-full bg-white rounded-2xl flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
+                    <span className="text-white text-base font-semibold">{story.avatar}</span>
                   </div>
                 </div>
               </div>
-              <p className="text-base text-gray-600 text-center mt-4 font-semibold truncate">{story.name}</p>
+              <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">{story.name}</p>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Create Post - Cleaner */}
-      <div className="bg-white rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-lg">JD</span>
+      {/* Create Post */}
+      <div className="bg-white rounded-2xl p-5 border border-gray-200">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-semibold text-base">JD</span>
           </div>
           <Link
             to="/post/create"
-            className="flex-1 h-16 px-6 rounded-full bg-gray-50 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all text-left flex items-center text-gray-500 hover:text-gray-700 cursor-pointer text-lg font-medium"
+            className="flex-1 h-14 px-5 rounded-xl bg-gray-50 hover:bg-gray-100 text-left flex items-center text-gray-600 hover:text-gray-900 cursor-pointer text-base font-medium transition-colors"
           >
             What's on your mind, John?
           </Link>
         </div>
-        <div className="flex items-center justify-between mt-5 pt-5 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
           <Link
             to="/post/create"
-            className="flex-1 flex items-center justify-center gap-4 py-4 rounded-xl hover:bg-gray-50 transition-colors group"
+            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <Image className="w-7 h-7 text-green-500 group-hover:scale-110 transition-transform" />
-            <span className="text-lg text-gray-600 font-semibold">Photo</span>
+            <Image className="w-6 h-6 text-green-600" />
+            <span className="text-base text-gray-700 font-medium">Photo</span>
           </Link>
           <Link
             to="/post/create"
-            className="flex-1 flex items-center justify-center gap-4 py-4 rounded-xl hover:bg-gray-50 transition-colors group"
+            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <Smile className="w-7 h-7 text-yellow-500 group-hover:scale-110 transition-transform" />
-            <span className="text-lg text-gray-600 font-semibold">Feeling</span>
+            <Smile className="w-6 h-6 text-yellow-600" />
+            <span className="text-base text-gray-700 font-medium">Feeling</span>
           </Link>
           <Link
             to="/post/create"
-            className="flex-1 flex items-center justify-center gap-4 py-4 rounded-xl hover:bg-gray-50 transition-colors group"
+            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <Activity className="w-7 h-7 text-red-500 group-hover:scale-110 transition-transform" />
-            <span className="text-lg text-gray-600 font-semibold">Activity</span>
+            <Activity className="w-6 h-6 text-red-600" />
+            <span className="text-base text-gray-700 font-medium">Activity</span>
           </Link>
         </div>
       </div>
 
-      {/* Posts Feed - Modern */}
-      <div className="space-y-8">
+      {/* Posts Feed */}
+      <div className="space-y-6">
         {posts.map((post) => {
           const isCommentsExpanded = expandedComments.has(post.id);
           const commentInput = commentInputs[post.id] || '';
 
           return (
-            <div key={post.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-200">
+            <div key={post.id} className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors">
               {/* Post Header */}
-              <div className="p-6 lg:p-8 flex items-center justify-between">
-                <div className="flex items-center gap-5">
+              <div className="p-5 flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
                   <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm"
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-base flex-shrink-0"
                     style={{ backgroundColor: post.author.color }}
                   >
                     {post.author.avatar}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 text-lg">{post.author.name}</p>
-                    <div className="flex items-center gap-3 text-base text-gray-500">
+                    <p className="font-semibold text-gray-900 text-base">{post.author.name}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span>{post.time}</span>
                       {post.location && (
                         <>
@@ -217,23 +249,89 @@ export default function Newsfeed() {
                     </div>
                   </div>
                 </div>
-                <button className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
-                  <MoreHorizontal className="w-6 h-6 text-gray-600" />
-                </button>
+                <div className="relative" ref={(el) => {
+                  if (el) menuRefs.current[post.id] = el;
+                }}>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === post.id ? null : post.id);
+                    }}
+                    className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                  >
+                    <MoreHorizontal className="w-6 h-6 text-gray-600" />
+                  </button>
+                  
+                  {openMenuId === post.id && (
+                    <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-[100] min-w-[200px]">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePostAction(post.id, 'save');
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Bookmark className="w-4 h-4" />
+                        <span>Lưu bài viết</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePostAction(post.id, 'edit');
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span>Chỉnh sửa</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePostAction(post.id, 'hide');
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <EyeOff className="w-4 h-4" />
+                        <span>Ẩn bài viết</span>
+                      </button>
+                      <div className="border-t border-gray-200 my-1"></div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePostAction(post.id, 'delete');
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Xóa bài viết</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePostAction(post.id, 'report');
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Flag className="w-4 h-4" />
+                        <span>Báo cáo</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Post Content */}
-              <div className="px-6 lg:px-8 pb-6">
-                <p className="text-gray-900 mb-5 leading-relaxed text-lg">{post.content}</p>
+              <div className="px-5 pb-5 overflow-hidden">
+                <p className="text-gray-900 mb-5 leading-relaxed text-base">{post.content}</p>
                 {post.image && (
-                  <div className="w-full aspect-video rounded-3xl mb-5 overflow-hidden">
+                  <div className="w-full aspect-video rounded-xl mb-4 overflow-hidden">
                     {post.image === 'mountain' && <LargeMountainPlaceholder className="w-full h-full" />}
                   </div>
                 )}
 
-                {/* Post Stats - Simplified */}
-                <div className="flex items-center justify-between text-base text-gray-500 mb-4">
-                  <div className="flex items-center gap-3">
+                {/* Post Stats */}
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                  <div className="flex items-center gap-2.5">
                     <div className="flex items-center gap-1">
                       {post.reactions.slice(0, 3).map((reaction, idx) => {
                         if (reaction === 'heart') return <HeartIcon key={idx} className="w-5 h-5 text-red-500 fill-red-500" />;
@@ -242,7 +340,7 @@ export default function Newsfeed() {
                         return null;
                       })}
                     </div>
-                    <span className="font-semibold text-lg">{post.likes}</span>
+                    <span className="font-semibold">{post.likes}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-medium">{post.comments} comments</span>
@@ -251,59 +349,55 @@ export default function Newsfeed() {
                   </div>
                 </div>
 
-                {/* Post Actions - Cleaner */}
-                <div className="border-t border-gray-100 pt-4 mt-4 flex items-center">
-                  <button className="flex-1 flex items-center justify-center gap-4 py-4 rounded-xl hover:bg-gray-50 transition-colors group">
-                    <Heart className="w-7 h-7 text-gray-500 group-hover:text-red-500 group-hover:fill-red-500 transition-all" />
-                    <span className="text-lg text-gray-600 font-semibold group-hover:text-red-500">Like</span>
+                {/* Post Actions */}
+                <div className="border-t border-gray-200 pt-3 flex items-center">
+                  <button className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                    <Heart className="w-6 h-6 text-gray-500 group-hover:text-red-500 group-hover:fill-red-500 transition-colors" />
+                    <span className="text-base text-gray-700 font-medium group-hover:text-red-500">Like</span>
                   </button>
                   <button
                     onClick={() => toggleComments(post.id)}
-                    className={`flex-1 flex items-center justify-center gap-4 py-4 rounded-xl hover:bg-gray-50 transition-colors group ${
-                      isCommentsExpanded ? 'bg-blue-50' : ''
+                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${
+                      isCommentsExpanded 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'hover:bg-gray-50 text-gray-700'
                     }`}
                   >
-                    <MessageCircle className={`w-7 h-7 transition-all ${
-                      isCommentsExpanded ? 'text-blue-500' : 'text-gray-500 group-hover:text-blue-500'
-                    }`} />
-                    <span className={`text-lg font-semibold transition-all ${
-                      isCommentsExpanded ? 'text-blue-500' : 'text-gray-600 group-hover:text-blue-500'
-                    }`}>
-                      Comment
-                    </span>
+                    <MessageCircle className={`w-6 h-6 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
+                    <span className="text-base font-medium">Comment</span>
                   </button>
                   <Link
                     to={`/post/${post.id}/share`}
-                    className="flex-1 flex items-center justify-center gap-4 py-4 rounded-xl hover:bg-gray-50 transition-colors group"
+                    className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg hover:bg-gray-50 transition-colors group"
                   >
-                    <Share2 className="w-7 h-7 text-gray-500 group-hover:text-green-500 transition-all" />
-                    <span className="text-lg text-gray-600 font-semibold group-hover:text-green-500">Share</span>
+                    <Share2 className="w-6 h-6 text-gray-500 group-hover:text-green-600 transition-colors" />
+                    <span className="text-base text-gray-700 font-medium group-hover:text-green-600">Share</span>
                   </Link>
                 </div>
 
                 {/* Comments Section */}
                 {isCommentsExpanded && (
-                  <div className="border-t border-gray-100 pt-6 mt-4 space-y-4">
+                  <div className="border-t border-gray-200 pt-5 mt-3 space-y-4">
                     {/* Comments List */}
                     {post.commentsList && post.commentsList.length > 0 && (
                       <div className="space-y-4">
                         {post.commentsList.map((comment) => (
                           <div key={comment.id} className="flex items-start gap-4">
                             <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0"
+                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
                               style={{ backgroundColor: comment.author.color }}
                             >
                               {comment.author.avatar}
                             </div>
-                            <div className="flex-1">
-                              <div className="bg-gray-50 rounded-xl p-4 mb-2">
-                                <p className="font-bold text-base text-gray-900 mb-1">{comment.author.name}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="bg-gray-50 rounded-lg p-4 mb-2">
+                                <p className="font-semibold text-sm text-gray-900 mb-1">{comment.author.name}</p>
                                 <p className="text-base text-gray-900">{comment.content}</p>
                               </div>
                               <div className="flex items-center gap-4">
                                 <button className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors">
                                   <Heart className="w-4 h-4" />
-                                  <span className="text-sm font-semibold">{comment.likes}</span>
+                                  <span className="text-sm font-medium">{comment.likes}</span>
                                 </button>
                                 <button className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
                                   Phản hồi
@@ -317,8 +411,8 @@ export default function Newsfeed() {
                     )}
 
                     {/* Comment Input */}
-                    <div className="flex items-center gap-4 pt-4">
-                      <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+                    <div className="flex items-center gap-4 pt-2">
+                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                         JD
                       </div>
                       <div className="flex-1 relative">
@@ -328,14 +422,14 @@ export default function Newsfeed() {
                           onChange={(e) => handleCommentChange(post.id, e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleSendComment(post.id)}
                           placeholder="Viết bình luận..."
-                          className="w-full h-14 px-5 pr-14 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
+                          className="w-full h-12 px-4 pr-14 rounded-lg bg-gray-50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
                         />
                         <button
                           onClick={() => handleSendComment(post.id)}
                           disabled={!commentInput.trim()}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
                             commentInput.trim()
-                              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
                               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           }`}
                         >

@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { Search, Settings, Play, Video, Bookmark, Compass, ChevronRight, Globe, MoreHorizontal, ThumbsUp, MessageCircle, Share2 } from 'lucide-react';
+import { Search, Settings, Play, Video, Bookmark, Compass, ChevronRight, Globe, MoreHorizontal, ThumbsUp, MessageCircle, Share2, Save, Flag, EyeOff } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function WatchVideo() {
   const navigate = useNavigate();
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Mock video data
   const featuredVideos = [
@@ -62,6 +65,24 @@ export default function WatchVideo() {
     { icon: Compass, label: 'Khám phá' },
     { icon: Bookmark, label: 'Video đã lưu' },
   ];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      Object.entries(menuRefs.current).forEach(([videoId, ref]) => {
+        if (ref && !ref.contains(event.target as Node)) {
+          setOpenMenuId(null);
+        }
+      });
+    };
+
+    if (openMenuId !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] text-gray-900">
@@ -159,9 +180,41 @@ export default function WatchVideo() {
                         </div>
                       </div>
                     </div>
-                    <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
-                      <MoreHorizontal className="w-5 h-5 text-gray-600" />
-                    </button>
+                    <div className="relative" ref={(el) => (menuRefs.current[video.id] = el)}>
+                      <button 
+                        onClick={() => setOpenMenuId(openMenuId === video.id ? null : video.id)}
+                        className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                      >
+                        <MoreHorizontal className="w-5 h-5 text-gray-600" />
+                      </button>
+                      
+                      {openMenuId === video.id && (
+                        <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 min-w-[200px]">
+                          <button
+                            onClick={() => { console.log('Save video', video.id); setOpenMenuId(null); }}
+                            className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <Save className="w-4 h-4" />
+                            <span>Lưu video</span>
+                          </button>
+                          <button
+                            onClick={() => { console.log('Hide video', video.id); setOpenMenuId(null); }}
+                            className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <EyeOff className="w-4 h-4" />
+                            <span>Ẩn video</span>
+                          </button>
+                          <div className="border-t border-gray-200 my-1"></div>
+                          <button
+                            onClick={() => { console.log('Report video', video.id); setOpenMenuId(null); }}
+                            className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <Flag className="w-4 h-4" />
+                            <span>Báo cáo</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Description */}

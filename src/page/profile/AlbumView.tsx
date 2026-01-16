@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Download, Share2, Trash2, Edit, Plus } from 'lucide-react';
+import { MoreVertical, Download, Share2, Trash2, Edit, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AlbumView() {
@@ -27,17 +27,9 @@ export default function AlbumView() {
     <div className="max-w-6xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/profile/1"
-            className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{album.name}</h1>
-            <p className="text-base text-gray-600 mt-1">{album.photoCount} ảnh • {album.createdDate}</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{album.name}</h1>
+          <p className="text-base text-gray-600 mt-1">{album.photoCount} ảnh • {album.createdDate}</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">

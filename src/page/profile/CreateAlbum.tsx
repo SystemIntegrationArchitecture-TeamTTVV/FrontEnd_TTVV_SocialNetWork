@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Upload, Image as ImageIcon, X, Save } from 'lucide-react';
+import { Upload, Image as ImageIcon, X, Save } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function CreateAlbum() {
@@ -34,17 +34,9 @@ export default function CreateAlbum() {
   return (
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          to="/profile/1"
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tạo album mới</h1>
-          <p className="text-base text-gray-600 mt-1">Tạo album để tổ chức ảnh của bạn</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Tạo album mới</h1>
+        <p className="text-base text-gray-600 mt-1">Tạo album để tổ chức ảnh của bạn</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

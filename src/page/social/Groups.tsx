@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Plus, Bell, Share2 } from 'lucide-react';
+import { Search, Plus, Bell, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import { PlaneIcon, CameraIcon, GamepadIcon, BookIcon, ChefHatIcon } from '../../common/icons/IconComponents';
 
@@ -32,34 +32,28 @@ export default function Groups() {
   return (
     <div className="max-w-7xl mx-auto p-6 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate('/home')}
-          className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
-        </button>
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Groups</h1>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl p-1.5 mb-6 flex gap-2 border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-2xl p-1.5 mb-6 flex gap-1.5 border border-gray-200">
         <button
           onClick={() => setActiveTab('your')}
-          className={`flex-1 h-10 rounded-lg font-semibold transition-all ${
+          className={`flex-1 h-12 rounded-xl font-medium text-base transition-all duration-200 ${
             activeTab === 'your'
-              ? 'bg-blue-50 text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           Your Groups
         </button>
         <button
           onClick={() => setActiveTab('discover')}
-          className={`flex-1 h-10 rounded-lg font-semibold transition-all ${
+          className={`flex-1 h-12 rounded-xl font-medium text-base transition-all duration-200 ${
             activeTab === 'discover'
-              ? 'bg-blue-50 text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           Discover

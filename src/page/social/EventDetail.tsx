@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Users, Clock, Share2, Bell, Edit } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Share2, Bell, Edit } from 'lucide-react';
 import { useState } from 'react';
 
 export default function EventDetail() {
@@ -28,13 +28,7 @@ export default function EventDetail() {
   return (
     <div className="max-w-5xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate('/events')}
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </button>
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Chi tiết sự kiện</h1>
       </div>
 

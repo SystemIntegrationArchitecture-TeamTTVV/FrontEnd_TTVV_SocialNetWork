@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, ShoppingCart, MapPin, Store, Star, MessageCircle } from 'lucide-react';
+import { Heart, Share2, ShoppingCart, MapPin, Store, Star, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ProductDetail() {
@@ -35,13 +35,7 @@ export default function ProductDetail() {
   return (
     <div className="max-w-6xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate('/marketplace')}
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </button>
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Chi tiết sản phẩm</h1>
       </div>
 

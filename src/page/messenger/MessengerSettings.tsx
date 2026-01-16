@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, Lock, Palette, Download, Shield, Globe, Moon, Sun } from 'lucide-react';
+import { Bell, Lock, Palette, Download, Shield, Globe, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -26,17 +26,9 @@ export default function MessengerSettings() {
     <div className="h-screen bg-white flex flex-col">
       {/* Header */}
       <div className="h-20 border-b border-gray-200 px-6 flex items-center justify-between bg-white">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/messenger')}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cài đặt Messenger</h1>
-            <p className="text-sm text-gray-600">Quản lý cài đặt tin nhắn của bạn</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Cài đặt Messenger</h1>
+          <p className="text-sm text-gray-600">Quản lý cài đặt tin nhắn của bạn</p>
         </div>
       </div>
 

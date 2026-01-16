@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Globe, Users, Lock, Eye, EyeOff, Shield, UserMinus, UserPlus } from 'lucide-react';
+import { Globe, Users, Lock, Eye, EyeOff, Shield, UserMinus, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function PrivacySettings() {
@@ -30,17 +30,9 @@ export default function PrivacySettings() {
   return (
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          to="/settings"
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cài đặt quyền riêng tư</h1>
-          <p className="text-base text-gray-600 mt-1">Quản lý ai có thể xem thông tin của bạn</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Cài đặt quyền riêng tư</h1>
+        <p className="text-base text-gray-600 mt-1">Quản lý ai có thể xem thông tin của bạn</p>
       </div>
 
       <div className="space-y-6">

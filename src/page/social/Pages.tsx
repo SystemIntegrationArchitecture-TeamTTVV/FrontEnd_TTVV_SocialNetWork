@@ -81,23 +81,23 @@ export default function Pages() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl shadow-sm p-2 mb-6 flex gap-2">
+      <div className="bg-white rounded-2xl p-1.5 mb-6 flex gap-1.5 border border-gray-200">
         <button
           onClick={() => setActiveTab('liked')}
-          className={`flex-1 h-12 rounded-xl font-semibold text-base transition-all ${
+          className={`flex-1 h-12 rounded-xl font-medium text-base transition-all duration-200 ${
             activeTab === 'liked'
-              ? 'bg-blue-50 text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           Đã thích
         </button>
         <button
           onClick={() => setActiveTab('discover')}
-          className={`flex-1 h-12 rounded-xl font-semibold text-base transition-all ${
+          className={`flex-1 h-12 rounded-xl font-medium text-base transition-all duration-200 ${
             activeTab === 'discover'
-              ? 'bg-blue-50 text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           Khám phá

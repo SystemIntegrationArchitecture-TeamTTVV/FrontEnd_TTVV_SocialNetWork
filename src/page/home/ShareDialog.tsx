@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { X, Globe, UserCheck, Lock, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
+import Newsfeed from './Newsfeed';
 
 export default function ShareDialog() {
   const navigate = useNavigate();
@@ -10,16 +11,21 @@ export default function ShareDialog() {
 
   const handleShare = () => {
     console.log('Share post:', id, content, privacy);
-    navigate('/home');
+    navigate(-1);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-[500px] max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Background - same as Newsfeed page */}
+      <Newsfeed />
+      
+      {/* Modal Overlay */}
+      <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-[500px] max-h-[90vh] overflow-y-auto pointer-events-auto">
         <div className="p-4 border-b border-[#E4E6EB] flex items-center justify-between">
           <h2 className="text-xl font-bold text-[#050505]">Share Post</h2>
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full hover:bg-[#F0F2F5] flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5 text-[#050505]" />
@@ -84,6 +90,7 @@ export default function ShareDialog() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

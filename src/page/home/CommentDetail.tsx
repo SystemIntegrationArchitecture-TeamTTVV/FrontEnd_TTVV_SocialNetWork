@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Heart, MessageCircle } from 'lucide-react';
+import { Send, Heart, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function CommentDetail() {
@@ -41,13 +41,7 @@ export default function CommentDetail() {
   return (
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate('/home')}
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </button>
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Bình luận</h1>
       </div>
 

@@ -1,12 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, X, Download, Share2, Heart, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, ArrowRight, X, Download, Share2, Heart, MoreVertical, Edit, Trash2, Flag, Copy } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function PhotoViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Mock photos data
   const photos = [
@@ -49,6 +51,22 @@ export default function PhotoViewer() {
     setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
@@ -84,9 +102,48 @@ export default function PhotoViewer() {
           <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white">
             <Share2 className="w-6 h-6" />
           </button>
-          <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white">
-            <MoreVertical className="w-6 h-6" />
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button 
+              onClick={() => setShowMenu(!showMenu)}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
+            >
+              <MoreVertical className="w-6 h-6" />
+            </button>
+            
+            {showMenu && (
+              <div className="absolute right-0 top-14 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 py-2 z-50 min-w-[200px]">
+                <button
+                  onClick={() => { console.log('Copy link'); setShowMenu(false); }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-sm text-white hover:bg-white/20 transition-colors"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Sao chép liên kết</span>
+                </button>
+                <button
+                  onClick={() => { console.log('Edit'); setShowMenu(false); }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-sm text-white hover:bg-white/20 transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Chỉnh sửa</span>
+                </button>
+                <div className="border-t border-white/20 my-1"></div>
+                <button
+                  onClick={() => { console.log('Delete'); setShowMenu(false); }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-500/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Xóa ảnh</span>
+                </button>
+                <button
+                  onClick={() => { console.log('Report'); setShowMenu(false); }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-sm text-white hover:bg-white/20 transition-colors"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span>Báo cáo</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

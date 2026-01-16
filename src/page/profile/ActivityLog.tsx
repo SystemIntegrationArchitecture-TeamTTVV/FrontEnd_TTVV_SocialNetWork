@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Filter, Calendar, FileText, Heart, MessageCircle, UserPlus, Share2, Image as ImageIcon } from 'lucide-react';
+import { Filter, Calendar, FileText, Heart, MessageCircle, UserPlus, Share2, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ActivityLog() {
@@ -79,17 +79,9 @@ export default function ActivityLog() {
   return (
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          to="/profile/1"
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Nhật ký hoạt động</h1>
-          <p className="text-base text-gray-600 mt-1">Xem lại tất cả hoạt động của bạn</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Nhật ký hoạt động</h1>
+        <p className="text-base text-gray-600 mt-1">Xem lại tất cả hoạt động của bạn</p>
       </div>
 
       {/* Filters */}

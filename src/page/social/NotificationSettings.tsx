@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, Mail, Smartphone, Globe, Users, MessageSquare, Heart, Share2, UserPlus } from 'lucide-react';
+import { Bell, Mail, Smartphone, Globe, Users, MessageSquare, Heart, Share2, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function NotificationSettings() {
@@ -56,17 +56,9 @@ export default function NotificationSettings() {
   return (
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          to="/settings"
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cài đặt thông báo</h1>
-          <p className="text-base text-gray-600 mt-1">Quản lý cách bạn nhận thông báo</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Cài đặt thông báo</h1>
+        <p className="text-base text-gray-600 mt-1">Quản lý cách bạn nhận thông báo</p>
       </div>
 
       <div className="space-y-6">
