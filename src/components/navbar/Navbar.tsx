@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import UserDropdown from './UserDropdown';
 import { authApi } from '../../apis/auth';
+import { useSocket } from '../../contexts/SocketContext';
 import logo from '../../assets/logo-favicon.png';
 
 export default function Navbar() {
@@ -11,6 +12,7 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { isConnected: socketConnected } = useSocket();
   const [currentUser] = useState<{
     id: string;
     username: string;
@@ -106,6 +108,13 @@ export default function Navbar() {
               <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             <NotificationDropdown isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
+          </div>
+          {/* Socket Connection Status Indicator */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
+            <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={socketConnected ? 'Socket Connected' : 'Socket Disconnected'}></div>
+            <span className="text-xs text-gray-600 font-medium hidden lg:inline">
+              {socketConnected ? 'Online' : 'Offline'}
+            </span>
           </div>
           <div className="relative">
             <button
