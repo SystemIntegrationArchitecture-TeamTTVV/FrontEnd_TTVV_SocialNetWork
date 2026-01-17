@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, Store, Video, Clock, Bookmark, ChevronDown } from 'lucide-react';
+import { User, Users, Store, Video, Clock, Bookmark, UserPlus, ChevronDown } from 'lucide-react';
 import { authApi } from '../../apis/auth';
 
 export default function LeftSidebar() {
@@ -20,6 +20,7 @@ export default function LeftSidebar() {
   
   const menuItems = [
     { icon: User, label: userDisplayName, path: userProfilePath, isUser: true },
+    { icon: UserPlus, label: 'Find People', path: '/find-people' },
     { icon: Users, label: 'Friends', path: '/friends' },
     { icon: Users, label: 'Groups', path: '/groups' },
     { icon: Store, label: 'Marketplace', path: '/marketplace' },

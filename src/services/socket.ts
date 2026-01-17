@@ -39,8 +39,10 @@ class SocketService {
       return;
     }
 
-    console.log('🔌 Connecting to WebSocket at http://localhost:8081/ws...');
-    const socket = new SockJS('http://localhost:8081/ws');
+    // Connect through API Gateway
+    const socketUrl = 'http://localhost:8080/api/common/ws';
+    console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
+    const socket = new SockJS(socketUrl);
     this.client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
@@ -98,17 +100,33 @@ class SocketService {
     }
 
     // Subscribe to user-specific notifications
+    // IMPORTANT: Spring WebSocket uses username (principal name) for /user/{username}/queue/notifications
+    // NOT userId! The principal name is set from JWT token's username field
+    const username = user.username || user.id; // Fallback to id if username not available
+    const notificationPath = `/user/${username}/queue/notifications`;
+    console.log(`🔔 Subscribing to notifications at: ${notificationPath} (user.id=${user.id}, username=${username})`);
+    
     const notificationSub = this.client.subscribe(
-      `/user/${user.id}/queue/notifications`,
+      notificationPath,
       (message: StompMessage) => {
-        const event: SocketEvent = JSON.parse(message.body);
-        console.log('📨 Received notification via socket:', event);
-        this.handleEvent('NOTIFICATION', event);
-        this.handleEvent('*', event); // Wildcard handler
+        try {
+          const event: SocketEvent = JSON.parse(message.body);
+          console.log('📨 Received notification via socket:', event);
+          console.log('📨 Event details:', {
+            type: event.type,
+            userId: event.userId,
+            data: event.data,
+            timestamp: event.timestamp
+          });
+          this.handleEvent('NOTIFICATION', event);
+          this.handleEvent('*', event); // Wildcard handler
+        } catch (error) {
+          console.error('❌ Error parsing notification message:', error, message.body);
+        }
       }
     );
     this.subscriptions.set('notifications', notificationSub);
-    console.log(`✅ Subscribed to notifications: /user/${user.id}/queue/notifications`);
+    console.log(`✅ Subscribed to notifications: ${notificationPath}`);
 
     // Subscribe to public events (posts, reactions, etc.)
     const publicSub = this.client.subscribe(

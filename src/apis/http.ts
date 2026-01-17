@@ -30,6 +30,9 @@ class HttpClient {
       const token = localStorage.getItem('token');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('🔑 [HTTP] Token found, adding Authorization header');
+      } else {
+        console.warn('⚠️ [HTTP] No token found in localStorage');
       }
     }
 
@@ -65,10 +68,15 @@ class HttpClient {
       ? `${API_CONFIG.BASE_URL}${url}`
       : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
 
+    const headers = this.getHeaders(includeAuth);
+    console.log('📤 [HTTP] GET', fullUrl, 'Headers:', { ...headers, Authorization: headers['Authorization'] ? 'Bearer ***' : 'none' });
+
     const response = await fetch(fullUrl, {
       method: 'GET',
-      headers: this.getHeaders(includeAuth),
+      headers,
     });
+
+    console.log('📥 [HTTP] Response:', response.status, response.statusText);
 
     return this.handleResponse<T>(response);
   }

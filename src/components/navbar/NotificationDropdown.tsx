@@ -1,73 +1,131 @@
 import { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, UserPlus, Tag, Clock, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
-interface Notification {
-  id: number;
-  type: string;
-  user: { name: string; avatar: string; color: string } | null;
-  action: string;
-  time: string;
-  read: boolean;
-  icon: any;
-}
+import { Heart, MessageCircle, Share2, UserPlus, Tag, Clock, X, Check } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { notificationsApi, type Notification as NotificationData } from '../../apis/notifications';
+import { authApi } from '../../apis/auth';
+import { useSocket } from '../../contexts/SocketContext';
+import { friendRequestsApi } from '../../apis/friendRequests';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  onNotificationRead?: () => void;
 }
 
-export default function NotificationDropdown({ isOpen, onClose }: NotificationDropdownProps) {
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [notifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: 'like',
-      user: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
-      action: 'liked your post.',
-      time: '2m ago',
-      read: false,
-      icon: Heart,
-    },
-    {
-      id: 2,
-      type: 'comment',
-      user: { name: 'Mike Chen', avatar: 'MC', color: '#FF6B6B' },
-      action: 'commented: "Awesome photo!"',
-      time: '15m ago',
-      read: false,
-      icon: MessageCircle,
-    },
-    {
-      id: 3,
-      type: 'share',
-      user: { name: 'Emma Davis', avatar: 'ED', color: '#4ECDC4' },
-      action: 'shared your post.',
-      time: '1h ago',
-      read: false,
-      icon: Share2,
-    },
-    {
-      id: 4,
-      type: 'friend_request',
-      user: { name: 'Alex Rodriguez', avatar: 'AR', color: '#FFD93D' },
-      action: 'sent you a friend request.',
-      time: '3h ago',
-      read: true,
-      icon: UserPlus,
-    },
-    {
-      id: 5,
-      type: 'reaction',
-      user: { name: 'Lisa Wang', avatar: 'LW', color: '#A8E6CF' },
-      action: 'reacted to your comment.',
-      time: '5h ago',
-      read: true,
-      icon: Heart,
-    },
-  ]);
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case 'FRIEND_REQUEST':
+    case 'FRIEND_ACCEPTED':
+      return UserPlus;
+    case 'LIKE_POST':
+    case 'LIKE_COMMENT':
+      return Heart;
+    case 'COMMENT_POST':
+      return MessageCircle;
+    case 'SHARE_POST':
+      return Share2;
+    default:
+      return Tag;
+  }
+};
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  return `${Math.floor(diffInSeconds / 86400)}d ago`;
+};
+
+const generateColor = (str: string): string => {
+  const colors = ['#42B72A', '#FF6B6B', '#4ECDC4', '#FFD93D', '#A8E6CF', '#FF9F66', '#6C5CE7'];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const getInitials = (name: string): string => {
+  if (!name) return 'U';
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
+export default function NotificationDropdown({ isOpen, onClose, onNotificationRead }: NotificationDropdownProps) {
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const currentUser = authApi.getCurrentUser();
+  const { subscribe } = useSocket();
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load notifications when dropdown opens
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (!currentUser?.id) return;
+
+      try {
+        setLoading(true);
+        const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+        
+        // Load friend requests để check status
+        const friendRequests = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
+        const sentFriendRequests = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
+        const allFriendRequests = [...friendRequests, ...sentFriendRequests];
+        
+        // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
+        const filteredData = data.filter(notification => {
+          if (notification.type === 'FRIEND_REQUEST' && notification.relatedId) {
+            // Check xem friend request có status ACTIVE không
+            const friendRequest = allFriendRequests.find(fr => fr.id === notification.relatedId);
+            if (friendRequest && friendRequest.status === 'ACTIVE') {
+              return false; // Ẩn notification này
+            }
+          }
+          return true; // Giữ lại notification
+        });
+        
+        setNotifications(filteredData);
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      loadNotifications();
+    }
+  }, [isOpen, currentUser?.id]);
+
+  // Subscribe to socket for real-time notifications
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const unsubscribe = subscribe('NOTIFICATION', (event) => {
+      if (event.type === 'NOTIFICATION' && event.data) {
+        const notification = event.data as NotificationData;
+        console.log('🔔 New notification received in dropdown:', notification);
+        
+        // Add new notification to the top of the list
+        setNotifications((prev) => {
+          // Avoid duplicates
+          const exists = prev.some(n => n.id === notification.id);
+          if (exists) return prev;
+          return [notification, ...prev];
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [currentUser?.id, subscribe]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -86,6 +144,111 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
     };
   }, [isOpen, onClose]);
 
+  const handleMarkAllRead = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      await notificationsApi.markAllAsRead(currentUser.id);
+      setNotifications((prev) => prev.map(n => ({ ...n, isRead: true })));
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const handleAcceptFriendRequest = async (notification: NotificationData) => {
+    if (!notification.relatedId) {
+      console.warn('⚠️ Cannot accept friend request: relatedId is missing');
+      return;
+    }
+    
+    try {
+      await friendRequestsApi.acceptFriendRequest(notification.relatedId);
+      // Xóa notification FRIEND_REQUEST khỏi UI ngay lập tức
+      setNotifications((prev) => prev.filter(n => n.id !== notification.id));
+      // Update unread count
+      onNotificationRead?.();
+      
+      // Reload notifications để đảm bảo đồng bộ (backend đã xóa notification)
+      if (currentUser?.id) {
+        try {
+          const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+          // Load friend requests để filter notifications đã ACTIVE
+          const friendRequests = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
+          const sentFriendRequests = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
+          const allFriendRequests = [...friendRequests, ...sentFriendRequests];
+          
+          // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
+          const filteredData = data.filter(n => {
+            if (n.type === 'FRIEND_REQUEST' && n.relatedId) {
+              const fr = allFriendRequests.find(f => f.id === n.relatedId);
+              if (fr && fr.status === 'ACTIVE') {
+                return false;
+              }
+            }
+            return true;
+          });
+          
+          setNotifications(filteredData);
+        } catch (reloadError) {
+          console.error('Failed to reload notifications:', reloadError);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to accept friend request:', error);
+      // Nếu friend request không tồn tại (404), chỉ xóa notification khỏi UI
+      if (error?.message?.includes('Not Found') || error?.message?.includes('not found')) {
+        setNotifications((prev) => prev.filter(n => n.id !== notification.id));
+      } else {
+        alert('Failed to accept friend request');
+      }
+    }
+  };
+
+  const handleRejectFriendRequest = async (notification: NotificationData) => {
+    if (!notification.relatedId) {
+      console.warn('⚠️ Cannot reject friend request: relatedId is missing');
+      return;
+    }
+    
+    try {
+      await friendRequestsApi.rejectFriendRequest(notification.relatedId);
+      // Reload notifications
+      if (currentUser?.id) {
+        const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+        setNotifications(data);
+      }
+    } catch (error: any) {
+      console.error('Failed to reject friend request:', error);
+      // Nếu friend request không tồn tại (404), chỉ xóa notification khỏi UI
+      if (error?.message?.includes('Not Found') || error?.message?.includes('not found')) {
+        setNotifications((prev) => prev.filter(n => n.id !== notification.id));
+      } else {
+        alert('Failed to reject friend request');
+      }
+    }
+  };
+
+  const handleNotificationClick = (notification: NotificationData) => {
+    // Mark as read if not read
+    if (!notification.isRead) {
+      notificationsApi.markAsRead(notification.id).then(() => {
+        setNotifications((prev) => 
+          prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+        );
+        // Notify parent to update unread count
+        onNotificationRead?.();
+      });
+    }
+
+    // Navigate based on notification type
+    if (notification.type === 'FRIEND_REQUEST' && notification.actorId) {
+      navigate(`/profile/${notification.actorId}`);
+      onClose();
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
   if (!isOpen) return null;
 
   return (
@@ -98,7 +261,10 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
         <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors">
+            <button 
+              onClick={handleMarkAllRead}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+            >
               Mark all read
             </button>
           )}
@@ -113,63 +279,78 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
 
       {/* Notifications List */}
       <div className="overflow-y-auto flex-1">
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div className="p-10 text-center text-gray-400">
+            <p className="text-base">Loading...</p>
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="p-10 text-center text-gray-400">
             <p className="text-base">No notifications</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
             {notifications.map((notification) => {
-              const Icon = notification.icon;
+              const Icon = getNotificationIcon(notification.type);
+              const actorName = notification.actorName || 'Someone';
+              const actorAvatar = notification.actorAvatar;
+              const avatarColor = generateColor(notification.actorId || '');
+              const initials = getInitials(actorName);
+              
               return (
                 <div
                   key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
                   className={`p-4 hover:bg-gray-50/50 transition-colors cursor-pointer ${
-                    !notification.read ? 'bg-blue-50/30' : ''
+                    !notification.isRead ? 'bg-blue-50/30' : ''
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    {notification.user ? (
-                      <div className="relative shrink-0">
+                    <div className="relative shrink-0">
+                      {actorAvatar ? (
+                        <img
+                          src={actorAvatar}
+                          alt={actorName}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      ) : (
                         <div
                           className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                          style={{ backgroundColor: notification.user.color }}
+                          style={{ backgroundColor: avatarColor }}
                         >
-                          {notification.user.avatar}
+                          {initials}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border-2 border-white flex items-center justify-center shadow-sm">
-                          <Icon className="w-3 h-3 text-gray-600" />
-                        </div>
+                      )}
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border-2 border-white flex items-center justify-center shadow-sm">
+                        <Icon className="w-3 h-3 text-gray-600" />
                       </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-gray-500" />
-                      </div>
-                    )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-base text-gray-900 leading-relaxed">
-                        {notification.user ? (
-                          <>
-                            <span className="font-semibold">{notification.user.name}</span>{' '}
-                            <span className="text-gray-600">{notification.action}</span>
-                          </>
-                        ) : (
-                          <span className="text-gray-600">{notification.action}</span>
-                        )}
+                        <span className="font-semibold">{actorName}</span>{' '}
+                        <span className="text-gray-600">{notification.content}</span>
                       </p>
-                      <p className="text-sm text-gray-400 mt-1">{notification.time}</p>
-                      {notification.type === 'friend_request' && (
-                        <div className="flex gap-2 mt-3">
-                          <button className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors">
-                            Confirm
+                      <p className="text-sm text-gray-400 mt-1">
+                        {formatTimeAgo(notification.createdAt)}
+                      </p>
+                      {notification.type === 'FRIEND_REQUEST' && !notification.isRead && notification.relatedId && (
+                        <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleAcceptFriendRequest(notification)}
+                            className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" />
+                            Accept
                           </button>
-                          <button className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors">
+                          <button
+                            onClick={() => handleRejectFriendRequest(notification)}
+                            className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+                          >
                             Delete
                           </button>
                         </div>
                       )}
                     </div>
-                    {!notification.read && (
+                    {!notification.isRead && (
                       <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2"></div>
                     )}
                   </div>
@@ -193,4 +374,3 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
     </div>
   );
 }
-

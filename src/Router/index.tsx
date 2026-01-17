@@ -53,6 +53,7 @@ import ThemeCustomization from '../page/messenger/features/ThemeCustomization';
 
 // Social Pages
 import FriendRequests from '../page/social/FriendRequests';
+import FindPeople from '../page/social/FindPeople';
 import Groups from '../page/social/Groups';
 import GroupDetail from '../page/social/GroupDetail';
 import Events from '../page/social/Events';
@@ -146,6 +147,8 @@ export const router = createBrowserRouter([
       { path: 'messenger/theme', element: <ThemeCustomization /> },
 
       // Social
+      { path: 'find-people', element: <FindPeople /> },
+      { path: 'friends', element: <FriendRequests /> },
       { path: 'groups', element: <Groups /> },
       { path: 'groups/:id', element: <GroupDetail /> },
       { path: 'events', element: <Events /> },
