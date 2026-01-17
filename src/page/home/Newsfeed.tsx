@@ -2,12 +2,20 @@ import { Link } from 'react-router-dom';
 import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
+import { authApi } from '../../apis/auth';
 
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [currentUser] = useState<{
+    id: string;
+    username: string;
+    fullName: string;
+    avatar: string;
+    role: string;
+  } | null>(() => authApi.getCurrentUser());
 
   const [posts] = useState([
     {
@@ -148,8 +156,39 @@ export default function Newsfeed() {
           {/* Your Story */}
           <div className="shrink-0 w-32">
             <div className="w-32 h-48 rounded-2xl bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group">
-              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2">
-                <span className="text-white font-semibold text-base">JD</span>
+              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2 overflow-hidden">
+                {currentUser?.avatar ? (
+                  <img 
+                    src={currentUser.avatar} 
+                    alt={currentUser.fullName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent && currentUser) {
+                        const initials = currentUser.fullName
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2);
+                        parent.innerHTML = `<span class="text-white font-semibold text-base">${initials}</span>`;
+                      }
+                    }}
+                  />
+                ) : currentUser?.fullName ? (
+                  <span className="text-white font-semibold text-base">
+                    {currentUser.fullName
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </span>
+                ) : (
+                  <span className="text-white font-semibold text-base">JD</span>
+                )}
               </div>
               <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white flex items-center justify-center -mt-3">
                 <Plus className="w-5 h-5 text-white" />
@@ -181,14 +220,45 @@ export default function Newsfeed() {
       {/* Create Post */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-semibold text-base">JD</span>
+          <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {currentUser?.avatar ? (
+              <img 
+                src={currentUser.avatar} 
+                alt={currentUser.fullName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent && currentUser) {
+                    const initials = currentUser.fullName
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    parent.innerHTML = `<span class="text-white font-semibold text-base">${initials}</span>`;
+                  }
+                }}
+              />
+            ) : currentUser?.fullName ? (
+              <span className="text-white font-semibold text-base">
+                {currentUser.fullName
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </span>
+            ) : (
+              <span className="text-white font-semibold text-base">JD</span>
+            )}
           </div>
           <Link
             to="/post/create"
             className="flex-1 h-14 px-5 rounded-xl bg-gray-50 hover:bg-gray-100 text-left flex items-center text-gray-600 hover:text-gray-900 cursor-pointer text-base font-medium transition-colors"
           >
-            What's on your mind, John?
+            What's on your mind, {currentUser?.fullName?.split(' ')[0] || 'John'}?
           </Link>
         </div>
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">

@@ -1,16 +1,36 @@
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { HttpError } from '../../apis/http';
+import logo from '../../assets/logo-favicon.png';
 
 interface LoginForm {
-  email: string;
+  username: string;
   password: string;
 }
 
 export default function Login() {
-  const { register, handleSubmit } = useForm<LoginForm>();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  const { login, isLoading } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit = (data: LoginForm) => {
-    console.log('Login:', data);
+  const onSubmit = async (data: LoginForm) => {
+    try {
+      setError(null);
+      setIsSubmitting(true);
+      await login(data.username, data.password);
+    } catch (err: unknown) {
+      if (err instanceof HttpError) {
+        setError(err.message || 'Invalid username or password');
+      } else {
+        setError('An error occurred. Please try again.');
+      }
+      console.error('Login error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -18,8 +38,12 @@ export default function Login() {
       <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         {/* Left Section - Branding */}
         <div className="hidden lg:flex flex-col items-center justify-center text-center">
-          <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-8 shadow-2xl">
-            <span className="text-white font-bold text-7xl">S</span>
+          <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-2xl border border-gray-100 overflow-hidden">
+            <img 
+              src={logo} 
+              alt="TTVV Logo" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <h1 className="text-6xl font-bold text-gray-900 mb-6">TTVV</h1>
           <p className="text-2xl text-gray-600 leading-relaxed max-w-lg">
@@ -33,27 +57,56 @@ export default function Login() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <input
-                  {...register('email', { required: true })}
+                  {...register('username', { 
+                    required: 'Username is required',
+                    minLength: {
+                      value: 3,
+                      message: 'Username must be at least 3 characters'
+                    }
+                  })}
                   type="text"
-                  placeholder="Email or phone number"
-                  className="w-full h-16 px-6 rounded-2xl border-2 border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all"
+                  placeholder="Username"
+                  className={`w-full h-16 px-6 rounded-2xl border-2 ${
+                    errors.username ? 'border-red-300' : 'border-gray-200'
+                  } focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all`}
                 />
+                {errors.username && (
+                  <p className="mt-2 text-sm text-red-600">{errors.username.message as string}</p>
+                )}
               </div>
 
               <div>
                 <input
-                  {...register('password', { required: true })}
+                  {...register('password', { 
+                    required: 'Password is required',
+                    minLength: {
+                      value: 3,
+                      message: 'Password must be at least 3 characters'
+                    }
+                  })}
                   type="password"
                   placeholder="Password"
-                  className="w-full h-16 px-6 rounded-2xl border-2 border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all"
+                  className={`w-full h-16 px-6 rounded-2xl border-2 ${
+                    errors.password ? 'border-red-300' : 'border-gray-200'
+                  } focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all`}
                 />
+                {errors.password && (
+                  <p className="mt-2 text-sm text-red-600">{errors.password.message as string}</p>
+                )}
               </div>
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
 
               <button
                 type="submit"
-                className="w-full h-16 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xl rounded-2xl hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                disabled={isSubmitting || isLoading}
+                className="w-full h-16 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xl rounded-2xl hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Log In
+                {isSubmitting || isLoading ? 'Logging in...' : 'Log In'}
               </button>
 
               <div className="text-center pt-2">

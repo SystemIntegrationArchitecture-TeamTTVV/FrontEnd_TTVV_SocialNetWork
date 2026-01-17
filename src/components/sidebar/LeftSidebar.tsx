@@ -1,11 +1,25 @@
 import { Link, useLocation } from 'react-router-dom';
 import { User, Users, Store, Video, Clock, Bookmark, ChevronDown } from 'lucide-react';
+import { authApi } from '../../apis/auth';
 
 export default function LeftSidebar() {
   const location = useLocation();
+  const currentUser = authApi.getCurrentUser();
+  
+  const userDisplayName = currentUser?.fullName || 'John Doe';
+  const userProfilePath = currentUser ? `/profile/${currentUser.id}` : '/profile/1';
+  const userAvatar = currentUser?.avatar || null;
+  const userInitials = currentUser?.fullName
+    ? currentUser.fullName
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'JD';
   
   const menuItems = [
-    { icon: User, label: 'John Doe', path: '/profile/1', isUser: true },
+    { icon: User, label: userDisplayName, path: userProfilePath, isUser: true },
     { icon: Users, label: 'Friends', path: '/friends' },
     { icon: Users, label: 'Groups', path: '/groups' },
     { icon: Store, label: 'Marketplace', path: '/marketplace' },
@@ -32,12 +46,28 @@ export default function LeftSidebar() {
               }`}
             >
               {item.isUser ? (
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${
                   isActive 
                     ? 'bg-blue-500' 
                     : 'bg-blue-500'
                 }`}>
-                  <span className="text-white font-semibold text-sm">JD</span>
+                  {userAvatar ? (
+                    <img 
+                      src={userAvatar} 
+                      alt={userDisplayName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<span class="text-white font-semibold text-sm">${userInitials}</span>`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white font-semibold text-sm">{userInitials}</span>
+                  )}
                 </div>
               ) : (
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${

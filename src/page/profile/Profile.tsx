@@ -1,10 +1,24 @@
 import { Link, useParams } from 'react-router-dom';
 import { Camera, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { authApi } from '../../apis/auth';
 
 export default function Profile() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('posts');
+  const currentUser = authApi.getCurrentUser();
+  
+  // Get user info - use current user if profile is own profile
+  const displayUser = currentUser && currentUser.id === id ? currentUser : currentUser;
+  
+  const displayName = displayUser?.fullName || 'John Doe';
+  const displayAvatar = displayUser?.avatar || null;
+  const displayInitials = displayName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="space-y-4 pb-8">
@@ -21,15 +35,33 @@ export default function Profile() {
         <div className="flex items-end justify-between mb-4 pt-12">
           <div className="flex items-end gap-4">
             <div className="relative">
-              <div className="w-28 h-28 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
-                <span className="text-white font-semibold text-2xl">JD</span>
+              <div className="w-28 h-28 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center overflow-hidden">
+                {displayAvatar ? (
+                  <img 
+                    src={displayAvatar} 
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `<span class="text-white font-semibold text-2xl">${displayInitials}</span>`;
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-white font-semibold text-2xl">{displayInitials}</span>
+                )}
               </div>
-              <button className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-white border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center shadow-sm transition-colors">
-                <Camera className="w-4 h-4 text-gray-700" />
-              </button>
+              {currentUser && currentUser.id === id && (
+                <button className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-white border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center shadow-sm transition-colors">
+                  <Camera className="w-4 h-4 text-gray-700" />
+                </button>
+              )}
             </div>
             <div className="pb-1">
-              <h1 className="text-2xl font-semibold text-gray-900 mb-1">John Doe</h1>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-1">{displayName}</h1>
               <p className="text-sm text-gray-600">1,234 friends</p>
             </div>
           </div>

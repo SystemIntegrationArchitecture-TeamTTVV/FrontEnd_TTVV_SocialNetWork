@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../components/layouts/MainLayout';
 import AuthLayout from '../components/layouts/AuthLayout';
 import AdminLayout from '../components/layouts/AdminLayout';
+import RootRedirect from '../components/RootRedirect';
 
 // Auth Pages
 import Login from '../page/auth/Login';
@@ -104,8 +105,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <MainLayout />,
     children: [
-      { index: true, element: <Navigate to="/home" replace /> },
-      
+      { index: true, element: <RootRedirect /> },
       // Home
       { path: 'home', element: <Newsfeed /> },
       { path: 'post/create', element: <CreatePost /> },

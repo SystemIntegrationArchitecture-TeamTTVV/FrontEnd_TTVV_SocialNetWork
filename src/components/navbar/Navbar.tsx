@@ -1,12 +1,31 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NotificationDropdown from './NotificationDropdown';
+import UserDropdown from './UserDropdown';
+import { authApi } from '../../apis/auth';
+import logo from '../../assets/logo-favicon.png';
 
 export default function Navbar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [currentUser] = useState<{
+    id: string;
+    username: string;
+    fullName: string;
+    avatar: string;
+    role: string;
+  } | null>(() => authApi.getCurrentUser());
+
+  // Reload user when route changes (in case user logs in/out)
+  useEffect(() => {
+    const user = authApi.getCurrentUser();
+    if (user?.id !== currentUser?.id) {
+      window.location.reload(); // Simple reload to sync state
+    }
+  }, [location.pathname, currentUser?.id]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b border-gray-100 z-50 shadow-sm">
@@ -14,8 +33,12 @@ export default function Navbar() {
         {/* Logo & Search */}
         <div className="flex items-center gap-5">
           <Link to="/home" className="flex items-center">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
-              <span className="text-white font-bold text-xl">S</span>
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
+              <img 
+                src={logo} 
+                alt="TTVV Logo" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </Link>
           <div className="hidden md:block relative">
@@ -84,12 +107,52 @@ export default function Navbar() {
             </button>
             <NotificationDropdown isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
           </div>
-          <Link
-            to="/profile/1"
-            className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center hover:shadow-md transition-shadow"
-          >
-            <User className="w-6 h-6 text-white" />
-          </Link>
+          <div className="relative">
+            <button
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center hover:shadow-md transition-shadow overflow-hidden"
+              title={currentUser?.fullName || 'Profile'}
+            >
+              {currentUser?.avatar ? (
+                <img 
+                  src={currentUser.avatar} 
+                  alt={currentUser.fullName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to initials if image fails
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent && currentUser) {
+                      const initials = currentUser.fullName
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+                      parent.innerHTML = `<span class="text-white font-semibold text-sm">${initials}</span>`;
+                    }
+                  }}
+                />
+              ) : currentUser?.fullName ? (
+                <span className="text-white font-semibold text-sm">
+                  {currentUser.fullName
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </span>
+              ) : (
+                <User className="w-6 h-6 text-white" />
+              )}
+            </button>
+            <UserDropdown 
+              isOpen={isUserMenuOpen} 
+              onClose={() => setIsUserMenuOpen(false)}
+              user={currentUser}
+            />
+          </div>
         </div>
       </div>
     </nav>
