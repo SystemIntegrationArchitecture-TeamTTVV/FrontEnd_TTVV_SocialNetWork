@@ -237,13 +237,17 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               {/* Attachments */}
               {msg.attachments && msg.attachments.length > 0 && (
                 <div className="mb-2 space-y-2">
-                  {msg.attachments.map((attachment, idx) => (
+                  {msg.attachments.map((attachment, idx) => {
+                    console.log(`🎨 Rendering attachment ${idx}:`, attachment);
+                    return (
                     <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-xs">
                       {attachment.type === 'image' && (
                         <img 
                           src={attachment.url} 
                           alt={attachment.fileName} 
                           className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                          onError={(e) => console.log('❌ Image failed to load:', attachment.url, e)}
+                          onLoad={() => console.log('✅ Image loaded:', attachment.url)}
                         />
                       )}
                       {attachment.type === 'video' && (
@@ -251,6 +255,8 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
                           src={attachment.url} 
                           controls 
                           className="w-full h-auto rounded-xl cursor-pointer"
+                          onError={(e) => console.log('❌ Video failed to load:', attachment.url, e)}
+                          onLoadedMetadata={() => console.log('✅ Video loaded:', attachment.url)}
                         />
                       )}
                       {attachment.type === 'file' && (
@@ -263,7 +269,8 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
                         </a>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               

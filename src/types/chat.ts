@@ -13,5 +13,11 @@ export interface ChatMessage {
   content: string;
   isMe: boolean;
   time: string;
+  attachments?: Array<{
+    type: string; // 'image' | 'video' | 'file' | 'audio'
+    url: string;
+    fileName?: string;
+    fileSize?: number;
+  }>;
 }
 

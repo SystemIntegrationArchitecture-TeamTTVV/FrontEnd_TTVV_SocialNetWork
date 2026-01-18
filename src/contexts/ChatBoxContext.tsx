@@ -47,6 +47,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         content: displayMsg.content,
         isMe: displayMsg.isMe,
         time: displayMsg.time,
+        attachments: displayMsg.attachments,
       };
     });
     return acc;

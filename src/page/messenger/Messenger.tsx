@@ -919,13 +919,17 @@ export default function Messenger() {
                   {/* Attachments */}
                   {msg.attachments && msg.attachments.length > 0 && (
                     <div className="mb-2 space-y-2">
-                      {msg.attachments.map((attachment, idx) => (
+                      {msg.attachments.map((attachment, idx) => {
+                        console.log(`🎨 Rendering attachment in Messenger ${idx}:`, attachment);
+                        return (
                         <div key={idx} className="rounded-2xl overflow-hidden shadow-sm max-w-sm">
                           {attachment.type === 'image' && (
                             <img 
                               src={attachment.url} 
                               alt={attachment.fileName} 
                               className="w-full h-auto rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                              onError={(e) => console.log('❌ Image failed to load:', attachment.url, e)}
+                              onLoad={() => console.log('✅ Image loaded:', attachment.url)}
                             />
                           )}
                           {attachment.type === 'video' && (
@@ -933,6 +937,8 @@ export default function Messenger() {
                               src={attachment.url} 
                               controls 
                               className="w-full h-auto rounded-2xl cursor-pointer"
+                              onError={(e) => console.log('❌ Video failed to load:', attachment.url, e)}
+                              onLoadedMetadata={() => console.log('✅ Video loaded:', attachment.url)}
                             />
                           )}
                           {attachment.type === 'file' && (
@@ -945,7 +951,8 @@ export default function Messenger() {
                             </a>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
