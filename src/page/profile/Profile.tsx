@@ -1,10 +1,11 @@
 import { Link, useParams } from 'react-router-dom';
-import { Camera, Plus, UserPlus, Check, X, Loader2 } from 'lucide-react';
+import { Camera, Plus, UserPlus, Check, X, Loader2, MessageCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { authApi } from '../../apis/auth';
 import { usersApi, type User } from '../../apis/users';
 import { friendRequestsApi, type FriendRequest } from '../../apis/friendRequests';
 import { useSocket } from '../../contexts/SocketContext';
+import { useChatBox } from '../../contexts/ChatBoxContext';
 
 export default function Profile() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function Profile() {
   const [loadingFriendRequest, setLoadingFriendRequest] = useState(false);
   const currentUser = authApi.getCurrentUser();
   const { subscribe } = useSocket();
+  const { openChatBoxByUserId } = useChatBox();
   
   // Load user profile data
   useEffect(() => {
@@ -178,6 +180,15 @@ export default function Profile() {
       setLoadingFriendRequest(false);
     }
   };
+
+  const handleMessageClick = async () => {
+    if (!displayUser) return;
+    try {
+      await openChatBoxByUserId(displayUser.id, displayUser.fullName);
+    } catch (error) {
+      console.error('Failed to open chatbox:', error);
+    }
+  };
   
   const displayUser = profileUser;
   const displayName = displayUser?.fullName || 'Loading...';
@@ -256,8 +267,11 @@ export default function Profile() {
             
             return (
               <div className="flex gap-2 pb-1">
-                <button className="h-10 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm">
-                  <Plus className="w-4 h-4" />
+                <button 
+                  onClick={handleMessageClick}
+                  className="h-10 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
                   <span>Message</span>
                 </button>
                 

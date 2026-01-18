@@ -128,6 +128,26 @@ class SocketService {
     this.subscriptions.set('notifications', notificationSub);
     console.log(`✅ Subscribed to notifications: ${notificationPath}`);
 
+    // Subscribe to WebRTC signaling events
+    const webrtcPath = `/user/${username}/queue/webrtc`;
+    console.log(`📞 Subscribing to WebRTC at: ${webrtcPath}`);
+    
+    const webrtcSub = this.client.subscribe(
+      webrtcPath,
+      (message: StompMessage) => {
+        try {
+          const event: SocketEvent = JSON.parse(message.body);
+          console.log('📞 Received WebRTC event via socket:', event.type, event);
+          this.handleEvent(event.type, event);
+          this.handleEvent('*', event); // Wildcard handler
+        } catch (error) {
+          console.error('❌ Error parsing WebRTC message:', error, message.body);
+        }
+      }
+    );
+    this.subscriptions.set('webrtc', webrtcSub);
+    console.log(`✅ Subscribed to WebRTC: ${webrtcPath}`);
+
     // Subscribe to public events (posts, reactions, etc.)
     const publicSub = this.client.subscribe(
       '/topic/public',

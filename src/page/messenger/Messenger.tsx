@@ -1,7 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Smile, Paperclip, Send, Mic, Image as ImageIcon, FileText, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, PartyPopper, Sun, Waves, Heart, ThumbsUp, Reply, Forward, Trash2, Copy, Pin, Star, Clock, MessageSquare, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Smile, Paperclip, Send, Mic, Image as ImageIcon, FileText, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
+import { useMessages } from '../../hooks/useMessages';
+import { useAuth } from '../../contexts/AuthContext';
+import { useCall } from '../../contexts/CallContext';
+import type { Conversation } from '../../apis/conversations';
 
 interface Message {
   id: number;
@@ -20,13 +24,25 @@ interface Message {
 
 export default function Messenger() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { startCall } = useCall();
+  const {
+    conversations,
+    messages: apiMessages,
+    loading,
+    loadConversations,
+    loadMessages,
+    sendMessage: sendMessageAPI,
+    formatMessageForDisplay,
+  } = useMessages();
+
   const [message, setMessage] = useState('');
-  const [activeChat, setActiveChat] = useState(1);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<number | null>(null);
-  const [replyTo, setReplyTo] = useState<{ id: number; content: string; sender: string } | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; content: string; sender: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -36,7 +52,78 @@ export default function Messenger() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const conversations = [
+  // Load conversations on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadConversations();
+    }
+  }, [user?.id, loadConversations]);
+
+  // Load messages when active chat changes
+  useEffect(() => {
+    if (activeChat) {
+      loadMessages(activeChat);
+    }
+  }, [activeChat, loadMessages]);
+
+  // Get current messages for active chat
+  const messages = activeChat ? (apiMessages[activeChat] || []).map(formatMessageForDisplay) : [];
+
+  // Format conversation for display
+  const formatConversation = (conv: Conversation) => {
+    if (!user?.id) return null;
+    
+    // For direct conversations, find the other participant
+    const otherParticipantId = conv.participantIds.find(id => id !== user.id);
+    const otherParticipantIndex = conv.participantIds.findIndex(id => id !== user.id);
+    
+    const name = conv.isGroup 
+      ? conv.groupName || 'Group Chat'
+      : conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
+    
+    const avatar = conv.isGroup
+      ? conv.groupAvatar || 'GC'
+      : conv.participantAvatars?.[otherParticipantIndex] || name.charAt(0).toUpperCase();
+    
+    // Get initials for avatar
+    const initials = conv.isGroup 
+      ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+      : name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+    // Format last message time
+    const formatTime = (dateStr?: string) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(hours / 24);
+      
+      if (days === 0) {
+        if (hours === 0) return 'Vừa xong';
+        return `${hours}h`;
+      } else if (days === 1) return 'Hôm qua';
+      else if (days < 7) return `${days} ngày`;
+      else return date.toLocaleDateString('vi-VN');
+    };
+
+    return {
+      id: conv.id,
+      name,
+      avatar: initials,
+      color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+      online: false, // TODO: Implement online status
+      lastMessage: conv.lastMessagePreview || '',
+      time: formatTime(conv.lastMessageAt),
+      unread: 0, // TODO: Implement unread count
+      isGroup: conv.isGroup,
+    };
+  };
+
+  const formattedConversations = conversations.map(formatConversation).filter(Boolean) as any[];
+
+  // Legacy dummy conversations for backward compatibility (will be removed later)
+  const legacyConversations = [
     {
       id: 1,
       name: 'Sarah Johnson',
@@ -100,7 +187,7 @@ export default function Messenger() {
     },
   ];
 
-  const [messages, setMessages] = useState<Message[]>([
+  const [legacyMessages, setLegacyMessages] = useState<Message[]>([
     {
       id: 1,
       sender: 'Sarah Johnson',
@@ -162,43 +249,99 @@ export default function Messenger() {
     },
   ]);
 
-  const activeConversation = conversations.find((c) => c.id === activeChat);
-  const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
-
-  const handleSendMessage = () => {
-    if (!message.trim() && !replyTo) return;
-
-    const newMessage: Message = {
-      id: messages.length + 1,
-      sender: 'Me',
-      senderId: 0,
-      content: message,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-      status: 'sent',
-      replyTo: replyTo || undefined,
+  const activeConversation = activeChat 
+    ? formattedConversations.find((c) => c.id === activeChat)
+    : null;
+  
+  // Get the other participant info for direct calls
+  const getCallRecipient = () => {
+    if (!activeChat || !user?.id) {
+      console.log('❌ getCallRecipient: No active chat or user');
+      return null;
+    }
+    
+    const conv = conversations.find(c => c.id === activeChat);
+    console.log('🔍 getCallRecipient: Found conversation:', conv);
+    
+    if (!conv) {
+      console.log('❌ getCallRecipient: Conversation not found for activeChat:', activeChat);
+      return null;
+    }
+    
+    if (conv.isGroup) {
+      console.log('❌ getCallRecipient: Cannot call in group chat');
+      return null;
+    }
+    
+    console.log('👥 getCallRecipient: Participant IDs:', conv.participantIds);
+    console.log('👤 getCallRecipient: Current user ID:', user.id);
+    
+    const otherParticipantId = conv.participantIds.find(id => id !== user.id);
+    const otherParticipantIndex = conv.participantIds.findIndex(id => id !== user.id);
+    const otherParticipantName = conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
+    
+    console.log('🎯 getCallRecipient: Returning recipient:', {
+      id: otherParticipantId,
+      name: otherParticipantName,
+      conversationId: activeChat
+    });
+    
+    if (!otherParticipantId) {
+      console.error('❌ getCallRecipient: No other participant found!');
+      return null;
+    }
+    
+    return {
+      id: otherParticipantId,
+      name: otherParticipantName,
     };
-
-    setMessages([...messages, newMessage]);
-    setMessage('');
-    setReplyTo(null);
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
   };
 
-  const handleReaction = (messageId: number, emoji: string) => {
-    setMessages(messages.map(msg => {
-      if (msg.id === messageId) {
+  const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  const handleSendMessage = async () => {
+    if (!message.trim() && !replyTo) return;
+    if (!activeChat) return;
+
+    try {
+      await sendMessageAPI(activeChat, message);
+      setMessage('');
+      setReplyTo(null);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Error is already handled in useMessages hook
+    }
+  };
+
+  const handleReaction = (messageId: string, emoji: string) => {
+    // TODO: Implement reaction API call
+    console.log('Reaction:', messageId, emoji);
+    // For now, update local state - will implement API later
+    setLegacyMessages(prevMessages => prevMessages.map(msg => {
+      if (msg.id.toString() === messageId) {
         const existingReaction = msg.reactions?.find(r => r.emoji === emoji);
         if (existingReaction) {
           if (existingReaction.users.includes('Me')) {
-            existingReaction.users = existingReaction.users.filter(u => u !== 'Me');
-            if (existingReaction.users.length === 0) {
+            const updatedUsers = existingReaction.users.filter(u => u !== 'Me');
+            if (updatedUsers.length === 0) {
               return { ...msg, reactions: msg.reactions?.filter(r => r.emoji !== emoji) };
             }
+            return {
+              ...msg,
+              reactions: msg.reactions?.map(r => 
+                r.emoji === emoji ? { ...r, users: updatedUsers } : r
+              )
+            };
           } else {
-            existingReaction.users.push('Me');
+            return {
+              ...msg,
+              reactions: msg.reactions?.map(r => 
+                r.emoji === emoji ? { ...r, users: [...r.users, 'Me'] } : r
+              )
+            };
           }
         } else {
           return {
@@ -206,13 +349,12 @@ export default function Messenger() {
             reactions: [...(msg.reactions || []), { emoji, users: ['Me'] }]
           };
         }
-        return { ...msg };
       }
       return msg;
     }));
   };
 
-  const handleMessageAction = (action: string, messageId: number) => {
+  const handleMessageAction = (action: string, messageId: string) => {
     const message = messages.find(m => m.id === messageId);
     if (!message) return;
 
@@ -222,24 +364,28 @@ export default function Messenger() {
         break;
       case 'forward':
         console.log('Forward message:', messageId);
+        // TODO: Implement forward API
         break;
       case 'copy':
         navigator.clipboard.writeText(message.content);
         break;
       case 'pin':
-        setMessages(messages.map(m => m.id === messageId ? { ...m, pinned: !m.pinned } : m));
+        // TODO: Implement pin API
+        console.log('Pin message:', messageId);
         break;
       case 'star':
-        setMessages(messages.map(m => m.id === messageId ? { ...m, starred: !m.starred } : m));
+        // TODO: Implement star API
+        console.log('Star message:', messageId);
         break;
       case 'delete':
         if (confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
-          setMessages(messages.filter(m => m.id !== messageId));
+          // TODO: Call delete message API
+          console.log('Delete message:', messageId);
         }
         break;
       case 'edit':
         setMessage(message.content);
-        setMessages(messages.filter(m => m.id !== messageId));
+        // TODO: Call update message API when sending
         break;
     }
     setSelectedMessage(null);
@@ -324,7 +470,10 @@ export default function Messenger() {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
+          {loading && formattedConversations.length === 0 && (
+            <div className="p-4 text-center text-gray-500">Loading conversations...</div>
+          )}
+          {formattedConversations.map((conv) => (
             <div
               key={conv.id}
               onClick={() => setActiveChat(conv.id)}
@@ -456,10 +605,34 @@ export default function Messenger() {
               >
                 <SearchIcon className="w-5 h-5" />
               </button>
-              <button className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors" title="Call">
+              <button 
+                onClick={() => {
+                  const recipient = getCallRecipient();
+                  if (recipient?.id && recipient?.name) {
+                    startCall(recipient.id, recipient.name, 'voice');
+                  } else {
+                    alert('Không thể gọi điện trong nhóm chat hoặc cuộc trò chuyện không hợp lệ');
+                  }
+                }}
+                disabled={!activeChat}
+                className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                title="Call"
+              >
                 <Phone className="w-5 h-5 text-gray-700" />
               </button>
-              <button className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors" title="Video call">
+              <button 
+                onClick={() => {
+                  const recipient = getCallRecipient();
+                  if (recipient?.id && recipient?.name) {
+                    startCall(recipient.id, recipient.name, 'video');
+                  } else {
+                    alert('Không thể gọi video trong nhóm chat hoặc cuộc trò chuyện không hợp lệ');
+                  }
+                }}
+                disabled={!activeChat}
+                className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                title="Video call"
+              >
                 <Video className="w-5 h-5 text-gray-700" />
               </button>
               <button 

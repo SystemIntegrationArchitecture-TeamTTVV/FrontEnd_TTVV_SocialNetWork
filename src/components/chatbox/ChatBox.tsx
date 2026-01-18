@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Minimize2, Maximize2, Smile, Paperclip, Send } from 'lucide-react';
+import { X, Minimize2, Maximize2, Smile, Paperclip, Send, Phone, Video } from 'lucide-react';
 import { useChatBox } from '../../contexts/ChatBoxContext';
+import { useCall } from '../../contexts/CallContext';
 import type { ChatContact, ChatMessage } from '../../types/chat';
 
 interface ChatBoxProps {
@@ -9,8 +10,10 @@ interface ChatBoxProps {
 }
 
 export default function ChatBox({ contact, index }: ChatBoxProps) {
-  const { closeChatBox, toggleMinimize, minimizedBoxes, messages, addMessage } = useChatBox();
+  const { closeChatBox, toggleMinimize, minimizedBoxes, messages, sendMessage } = useChatBox();
+  const { startCall } = useCall();
   const [messageInput, setMessageInput] = useState('');
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMinimized = minimizedBoxes.has(contact.id);
   const contactMessages = messages[contact.id] || [];
@@ -25,38 +28,21 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     }
   }, [contactMessages, isMinimized]);
 
-  const handleSend = () => {
-    if (!messageInput.trim()) return;
+  const handleSend = async () => {
+    if (!messageInput.trim() || sending) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: messageInput,
-      isMe: true,
-      time: 'Vừa xong',
-    };
-
-    addMessage(contact.id, newMessage);
-    setMessageInput('');
-
-    // Auto reply sau 1 giây (giả lập)
-    setTimeout(() => {
-      const replies = [
-        'Cảm ơn bạn đã nhắn tin! 😊',
-        'Tôi sẽ trả lời bạn sớm nhất có thể.',
-        'Đã nhận được tin nhắn của bạn!',
-        'OK, mình hiểu rồi! 👍',
-      ];
-      const randomReply = replies[Math.floor(Math.random() * replies.length)];
-
-      const replyMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: randomReply,
-        isMe: false,
-        time: 'Vừa xong',
-      };
-
-      addMessage(contact.id, replyMessage);
-    }, 1000);
+    try {
+      setSending(true);
+      await sendMessage(contact.id, messageInput);
+      setMessageInput('');
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -139,6 +125,20 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => startCall(contact.userId, contact.name, 'voice')}
+            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
+            title="Gọi thoại"
+          >
+            <Phone className="w-3.5 h-3.5 text-gray-600" />
+          </button>
+          <button
+            onClick={() => startCall(contact.userId, contact.name, 'video')}
+            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
+            title="Gọi video"
+          >
+            <Video className="w-3.5 h-3.5 text-gray-600" />
+          </button>
           <button
             onClick={() => toggleMinimize(contact.id)}
             className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"

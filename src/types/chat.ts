@@ -1,6 +1,7 @@
 // Chat types
 export interface ChatContact {
-  id: string;
+  id: string; // conversationId for message routing
+  userId: string; // actual userId for calls
   name: string;
   avatar: string;
   color: string;

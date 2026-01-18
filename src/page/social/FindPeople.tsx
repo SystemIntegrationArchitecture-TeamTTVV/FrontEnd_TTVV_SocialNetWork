@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, UserPlus, Check, X, User as UserIcon, Loader2 } from 'lucide-react';
+import { Search, UserPlus, Check, X, User as UserIcon, Loader2, MessageCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usersApi, type User } from '../../apis/users';
 import { friendRequestsApi, type FriendRequest } from '../../apis/friendRequests';
 import { authApi } from '../../apis/auth';
 import { useSocket } from '../../contexts/SocketContext';
+import { useChatBox } from '../../contexts/ChatBoxContext';
 
 export default function FindPeople() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,6 +17,7 @@ export default function FindPeople() {
   const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
   const currentUser = authApi.getCurrentUser();
   const { subscribe } = useSocket();
+  const { openChatBoxByUserId } = useChatBox();
   const navigate = useNavigate();
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -255,6 +257,16 @@ export default function FindPeople() {
     return request?.id || null;
   };
 
+  const handleMessage = async (user: User) => {
+    if (!currentUser?.id || user.id === currentUser.id) return;
+
+    try {
+      await openChatBoxByUserId(user.id, user.fullName || user.username, user.avatar);
+    } catch (error) {
+      console.error('Failed to open chat:', error);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
@@ -395,8 +407,21 @@ export default function FindPeople() {
                       )}
                     </div>
 
-                    {/* Action Button */}
-                    <div className="flex-shrink-0">
+                    {/* Action Buttons */}
+                    <div className="flex-shrink-0 flex items-center gap-2">
+                      {/* Message Button - Show for all statuses except none */}
+                      {(status === 'sent' || status === 'received' || status === 'accepted') && (
+                        <button
+                          onClick={() => handleMessage(user)}
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                          title="Nhắn tin"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span className="hidden sm:inline">Message</span>
+                        </button>
+                      )}
+
+                      {/* Friend Request Button */}
                       {status === 'none' && (
                         <button
                           onClick={() => handleSendFriendRequest(user.id)}
@@ -412,7 +437,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium"
                         >
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Pending
+                          <span className="hidden sm:inline">Pending</span>
                         </button>
                       )}
                       {status === 'received' && requestId && (
@@ -439,7 +464,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg cursor-not-allowed text-sm font-medium"
                         >
                           <Check className="w-4 h-4" />
-                          Friends
+                          <span className="hidden sm:inline">Friends</span>
                         </button>
                       )}
                     </div>

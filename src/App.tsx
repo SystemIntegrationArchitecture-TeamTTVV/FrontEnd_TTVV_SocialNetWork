@@ -3,14 +3,17 @@ import { router } from './Router';
 import { ChatBoxProvider } from './contexts/ChatBoxContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { CallProvider } from './contexts/CallContext';
 
 function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <ChatBoxProvider>
-          <RouterProvider router={router} />
-        </ChatBoxProvider>
+        <CallProvider>
+          <ChatBoxProvider>
+            <RouterProvider router={router} />
+          </ChatBoxProvider>
+        </CallProvider>
       </SocketProvider>
     </AuthProvider>
   );
