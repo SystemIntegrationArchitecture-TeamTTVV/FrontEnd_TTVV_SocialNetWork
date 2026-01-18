@@ -60,7 +60,9 @@ export function useMessages() {
     content: string,
     attachments?: Message['attachments']
   ) => {
-    if (!user?.id || !content.trim()) return null;
+    if (!user?.id) return null;
+    // Allow empty content if there are attachments
+    if (!content.trim() && (!attachments || attachments.length === 0)) return null;
 
     try {
       const messageData: CreateMessageDTO = {
@@ -84,7 +86,7 @@ export function useMessages() {
       setConversations(prev => 
         prev.map(conv => 
           conv.id === conversationId 
-            ? { ...conv, lastMessagePreview: content, lastMessageAt: newMessage.createdAt }
+            ? { ...conv, lastMessagePreview: content || '📎 Attachment', lastMessageAt: newMessage.createdAt }
             : conv
         )
       );

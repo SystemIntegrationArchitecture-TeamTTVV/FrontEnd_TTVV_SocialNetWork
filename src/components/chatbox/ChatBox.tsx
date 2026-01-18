@@ -53,15 +53,58 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
   };
 
   const handleFileSelect = async (file: File) => {
-    console.log('File selected:', file.name, file.type, file.size);
-    // TODO: Implement file upload API
-    alert(`Đang phát triển tính năng upload ${file.type.startsWith('image/') ? 'ảnh' : file.type.startsWith('video/') ? 'video' : 'file'}: ${file.name}`);
+    try {
+      setSending(true);
+      console.log('📤 Uploading file:', file.name, file.type, file.size);
+      
+      // Upload file to server
+      const { uploadApi } = await import('../../apis/upload');
+      const uploadResult = await uploadApi.uploadFile(file);
+      console.log('✅ File uploaded successfully:', uploadResult);
+
+      // Send message with file info
+      const messageContent = file.type.startsWith('image/') ? '📷 Đã gửi ảnh' : 
+                            file.type.startsWith('video/') ? '🎥 Đã gửi video' : 
+                            `📎 ${file.name}`;
+      
+      await sendMessage(contact.id, `${messageContent}\n${uploadResult.url}`);
+      
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } catch (error) {
+      console.error('❌ Failed to upload file:', error);
+      alert('Lỗi khi upload file. Vui lòng thử lại!');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleVoiceRecording = async (blob: Blob) => {
-    console.log('Voice recording completed:', blob.size, 'bytes');
-    // TODO: Implement voice message upload
-    alert('Đang phát triển tính năng gửi tin nhắn thoại');
+    try {
+      setSending(true);
+      console.log('🎤 Uploading voice message:', blob.size, 'bytes');
+
+      // Convert blob to file
+      const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+      
+      // Upload voice file
+      const { uploadApi } = await import('../../apis/upload');
+      const uploadResult = await uploadApi.uploadFile(voiceFile);
+      console.log('✅ Voice message uploaded successfully:', uploadResult);
+
+      // Send message with voice file
+      await sendMessage(contact.id, `🎤 Tin nhắn thoại\n${uploadResult.url}`);
+      
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } catch (error) {
+      console.error('❌ Failed to upload voice message:', error);
+      alert('Lỗi khi gửi tin nhắn thoại. Vui lòng thử lại!');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -191,6 +234,40 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               </div>
             )}
             <div className={`max-w-[75%] ${msg.isMe ? 'text-right' : ''}`}>
+              {/* Attachments */}
+              {msg.attachments && msg.attachments.length > 0 && (
+                <div className="mb-2 space-y-2">
+                  {msg.attachments.map((attachment, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-xs">
+                      {attachment.type === 'image' && (
+                        <img 
+                          src={attachment.url} 
+                          alt={attachment.fileName} 
+                          className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                        />
+                      )}
+                      {attachment.type === 'video' && (
+                        <video 
+                          src={attachment.url} 
+                          controls 
+                          className="w-full h-auto rounded-xl cursor-pointer"
+                        />
+                      )}
+                      {attachment.type === 'file' && (
+                        <a 
+                          href={attachment.url} 
+                          download 
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          <span>📎 {attachment.fileName}</span>
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Message Content */}
               <div
                 className={`rounded-xl px-3 py-2 mb-1 shadow-sm ${
                   msg.isMe

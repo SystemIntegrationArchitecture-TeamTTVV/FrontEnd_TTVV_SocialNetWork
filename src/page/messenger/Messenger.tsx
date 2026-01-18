@@ -9,6 +9,8 @@ import EmojiPicker from '../../components/chat/EmojiPicker';
 import { ImageUpload, VideoUpload } from '../../components/chat/FileUpload';
 import VoiceRecorder from '../../components/chat/VoiceRecorder';
 import type { Conversation } from '../../apis/conversations';
+import { uploadApi } from '../../apis/upload';
+import type { MessageAttachment } from '../../apis/messages';
 
 interface Message {
   id: number;
@@ -50,6 +52,8 @@ export default function Messenger() {
   const [showSearch, setShowSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [filePreview, setFilePreview] = useState<{ file: File; preview: string } | null>(null);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -303,11 +307,43 @@ export default function Messenger() {
   const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
   const handleSendMessage = async () => {
-    if (!message.trim() && !replyTo) return;
+    if (!message.trim() && !replyTo && !filePreview) return;
     if (!activeChat) return;
 
     try {
-      await sendMessageAPI(activeChat, message);
+      let attachments: MessageAttachment[] = [];
+      
+      // If there's a file preview (image), upload and send with caption
+      if (filePreview) {
+        const uploadResult = await uploadApi.uploadFile(filePreview.file);
+        
+        attachments = [{
+          type: 'image',
+          url: uploadResult.url,
+          fileName: uploadResult.fileName,
+          fileSize: uploadResult.fileSize,
+        }];
+        
+        // Clear preview
+        URL.revokeObjectURL(filePreview.preview);
+        setFilePreview(null);
+        setUploadedFiles([]);
+      }
+
+      // Send message (can have empty content if attachments exist)
+      const messageContent = message.trim();
+      
+      console.log('📨 Sending message:', {
+        conversationId: activeChat,
+        content: messageContent,
+        attachmentsCount: attachments.length,
+        attachments: attachments,
+      });
+      
+      if (messageContent || attachments.length > 0) {
+        await sendMessageAPI(activeChat, messageContent, attachments.length > 0 ? attachments : undefined);
+      }
+      
       setMessage('');
       setReplyTo(null);
       setTimeout(() => {
@@ -315,7 +351,7 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Error is already handled in useMessages hook
+      alert('Lỗi khi gửi tin nhắn. Vui lòng thử lại!');
     }
   };
 
@@ -324,15 +360,107 @@ export default function Messenger() {
   };
 
   const handleFileSelect = async (file: File) => {
-    console.log('File selected:', file.name, file.type, file.size);
-    // TODO: Implement file upload API
-    alert(`Đang phát triển tính năng upload ${file.type.startsWith('image/') ? 'ảnh' : file.type.startsWith('video/') ? 'video' : 'file'}: ${file.name}`);
+    if (!activeChat) {
+      alert('Vui lòng chọn một cuộc trò chuyện trước');
+      return;
+    }
+
+    try {
+      setUploadingFiles(true);
+      
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const preview = URL.createObjectURL(file);
+        setFilePreview({ file, preview });
+      }
+
+      console.log('📤 Uploading file:', file.name, file.type, file.size);
+      
+      // Upload file to server
+      const uploadResult = await uploadApi.uploadFile(file);
+      console.log('✅ File uploaded successfully:', uploadResult);
+
+      // Add to uploaded files list (for preview before send)
+      setUploadedFiles([...uploadedFiles, file]);
+      
+      // Optionally focus message input for caption
+      if (file.type.startsWith('image/')) {
+        // For images, keep preview for user to add caption
+        console.log('🖼️ Image preview ready, user can add caption before sending');
+      } else {
+        // For videos and files, auto-send
+        const attachment: MessageAttachment = {
+          type: file.type.startsWith('video/') ? 'video' : 'file',
+          url: uploadResult.url,
+          fileName: uploadResult.fileName,
+          fileSize: uploadResult.fileSize,
+        };
+
+        const messageContent = file.type.startsWith('video/') ? '🎥 Video' : `📎 ${file.name}`;
+        await sendMessageAPI(activeChat, messageContent, [attachment]);
+        
+        console.log('✅ Message sent with attachment');
+        
+        // Clear preview
+        setFilePreview(null);
+        setUploadedFiles([]);
+
+        // Scroll to bottom
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } catch (error) {
+      console.error('❌ Failed to upload file:', error);
+      alert('Lỗi khi upload file. Vui lòng thử lại!');
+      
+      // Clear preview on error
+      setFilePreview(null);
+      setUploadedFiles([]);
+    } finally {
+      setUploadingFiles(false);
+    }
   };
 
   const handleVoiceRecording = async (blob: Blob) => {
-    console.log('Voice recording completed:', blob.size, 'bytes');
-    // TODO: Implement voice message upload
-    alert('Đang phát triển tính năng gửi tin nhắn thoại');
+    if (!activeChat) {
+      alert('Vui lòng chọn một cuộc trò chuyện trước');
+      return;
+    }
+
+    try {
+      setUploadingFiles(true);
+      console.log('🎤 Uploading voice message:', blob.size, 'bytes');
+
+      // Convert blob to file
+      const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+      
+      // Upload voice file
+      const uploadResult = await uploadApi.uploadFile(voiceFile);
+      console.log('✅ Voice message uploaded:', uploadResult);
+
+      // Create attachment object
+      const attachment: MessageAttachment = {
+        type: 'audio',
+        url: uploadResult.url,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize,
+      };
+
+      // Send message with voice attachment
+      await sendMessageAPI(activeChat, '🎤 Tin nhắn thoại', [attachment]);
+      console.log('✅ Voice message sent');
+
+      // Scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (error) {
+      console.error('❌ Failed to upload voice message:', error);
+      alert('Lỗi khi gửi tin nhắn thoại. Vui lòng thử lại!');
+    } finally {
+      setUploadingFiles(false);
+    }
   };
 
   const handleReaction = (messageId: string, emoji: string) => {
@@ -727,11 +855,101 @@ export default function Messenger() {
                     </div>
                   )}
 
+                  {/* Attachments */}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="mb-2 space-y-2">
+                      {msg.attachments.map((attachment, idx) => (
+                        <div key={idx}>
+                          {attachment.type === 'image' && (
+                            <div className="max-w-xs rounded-xl overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                              <img 
+                                src={attachment.url} 
+                                alt={attachment.fileName || 'Image'}
+                                className="w-full h-auto"
+                                onClick={() => window.open(attachment.url, '_blank')}
+                              />
+                            </div>
+                          )}
+                          {attachment.type === 'video' && (
+                            <div className="max-w-xs rounded-xl overflow-hidden shadow-sm">
+                              <video 
+                                src={attachment.url} 
+                                controls
+                                className="w-full h-auto"
+                              />
+                            </div>
+                          )}
+                          {attachment.type === 'audio' && (
+                            <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-xl max-w-xs">
+                              <Mic className="w-5 h-5 text-blue-500" />
+                              <audio src={attachment.url} controls className="flex-1" />
+                            </div>
+                          )}
+                          {attachment.type === 'file' && (
+                            <a
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 bg-gray-100 rounded-xl max-w-xs hover:bg-gray-200 transition-colors"
+                            >
+                              <FileText className="w-6 h-6 text-gray-600" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {attachment.fileName || 'File'}
+                                </p>
+                                {attachment.fileSize && (
+                                  <p className="text-xs text-gray-500">
+                                    {(attachment.fileSize / 1024).toFixed(1)} KB
+                                  </p>
+                                )}
+                              </div>
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {msg.image ? (
-                    <div className="w-[320px] h-[240px] rounded-2xl mb-2 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                    <div className="max-w-xs rounded-2xl mb-2 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
                       {msg.image === 'beach' && <LargeBeachPlaceholder className="w-full h-full" />}
                     </div>
-                  ) : (
+                  ) : null}
+
+                  {/* Attachments */}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="mb-2 space-y-2">
+                      {msg.attachments.map((attachment, idx) => (
+                        <div key={idx} className="rounded-2xl overflow-hidden shadow-sm max-w-sm">
+                          {attachment.type === 'image' && (
+                            <img 
+                              src={attachment.url} 
+                              alt={attachment.fileName} 
+                              className="w-full h-auto rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                            />
+                          )}
+                          {attachment.type === 'video' && (
+                            <video 
+                              src={attachment.url} 
+                              controls 
+                              className="w-full h-auto rounded-2xl cursor-pointer"
+                            />
+                          )}
+                          {attachment.type === 'file' && (
+                            <a 
+                              href={attachment.url} 
+                              download 
+                              className="inline-flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors"
+                            >
+                              <span>📎 {attachment.fileName}</span>
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {msg.content && (
                     <div
                       className={`rounded-2xl px-5 py-3.5 mb-1 shadow-sm relative ${
                         msg.isMe
@@ -741,19 +959,21 @@ export default function Messenger() {
                       onDoubleClick={() => handleReaction(msg.id, '❤️')}
                     >
                       <p className="whitespace-pre-line text-base leading-relaxed">{msg.content}</p>
+                    </div>
+                  )}
+
+                  {/* Message Options */}
+                  <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                    <div className="relative">
+                      <button
+                        onClick={() => setSelectedMessage(isSelected ? null : msg.id)}
+                        className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-600" />
+                      </button>
                       
-                      {/* Message Options */}
-                      <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity`}>
-                        <div className="relative">
-                          <button
-                            onClick={() => setSelectedMessage(isSelected ? null : msg.id)}
-                            className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                          >
-                            <MoreVertical className="w-4 h-4 text-gray-600" />
-                          </button>
-                          
-                          {isSelected && (
-                            <div className={`absolute ${msg.isMe ? 'left-full' : 'right-full'} top-0 ml-2 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[180px]`}>
+                      {isSelected && (
+                        <div className={`absolute ${msg.isMe ? 'left-full' : 'right-full'} top-0 ml-2 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[180px]`}>
                               <button
                                 onClick={() => handleMessageAction('reply', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
@@ -810,8 +1030,6 @@ export default function Messenger() {
                           )}
                         </div>
                       </div>
-                    </div>
-                  )}
 
                   {/* Reactions */}
                   {msg.reactions && msg.reactions.length > 0 && (
@@ -916,6 +1134,34 @@ export default function Messenger() {
 
         {/* Message Input */}
         <div className="p-3 md:p-4 lg:p-5 border-t border-gray-100 bg-white">
+          {/* Loading Indicator */}
+          {uploadingFiles && (
+            <div className="mb-3 flex items-center gap-2 text-sm text-blue-600">
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span>Đang upload file...</span>
+            </div>
+          )}
+
+          {/* File Preview */}
+          {filePreview && (
+            <div className="mb-3 relative inline-block">
+              <img 
+                src={filePreview.preview} 
+                alt="Preview" 
+                className="max-w-xs max-h-40 rounded-lg shadow-sm"
+              />
+              <button
+                onClick={() => {
+                  URL.revokeObjectURL(filePreview.preview);
+                  setFilePreview(null);
+                }}
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           {/* Uploaded Files Preview */}
           {uploadedFiles.length > 0 && (
             <div className="mb-2 md:mb-3 flex gap-2 overflow-x-auto pb-2">
@@ -1034,13 +1280,15 @@ export default function Messenger() {
                 showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
               title="Emoji"
+              disabled={uploadingFiles}
             >
               <Smile className="w-4 h-4 md:w-5 md:h-5" />
             </button>
-            {message.trim() || replyTo ? (
+            {message.trim() || replyTo || filePreview ? (
               <button
                 onClick={handleSendMessage}
-                className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all shrink-0 shadow-md"
+                disabled={uploadingFiles}
+                className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all shrink-0 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Send"
               >
                 <Send className="w-4 h-4 md:w-5 md:h-5" />
