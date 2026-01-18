@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Minimize2, Maximize2, Smile, Paperclip, Send, Phone, Video } from 'lucide-react';
+import { X, Minimize2, Send, Phone, Video } from 'lucide-react';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useCall } from '../../contexts/CallContext';
+import EmojiPicker from '../chat/EmojiPicker';
+import { ImageUpload, VideoUpload } from '../chat/FileUpload';
+import VoiceRecorder from '../chat/VoiceRecorder';
 import type { ChatContact, ChatMessage } from '../../types/chat';
 
 interface ChatBoxProps {
@@ -43,6 +46,22 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageInput(prev => prev + emoji);
+  };
+
+  const handleFileSelect = async (file: File) => {
+    console.log('File selected:', file.name, file.type, file.size);
+    // TODO: Implement file upload API
+    alert(`Đang phát triển tính năng upload ${file.type.startsWith('image/') ? 'ảnh' : file.type.startsWith('video/') ? 'video' : 'file'}: ${file.name}`);
+  };
+
+  const handleVoiceRecording = async (blob: Blob) => {
+    console.log('Voice recording completed:', blob.size, 'bytes');
+    // TODO: Implement voice message upload
+    alert('Đang phát triển tính năng gửi tin nhắn thoại');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -188,33 +207,35 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Input Area */}
       <div className="p-3 border-t border-gray-200 bg-white rounded-b-xl">
         <div className="flex items-end gap-2">
-          <div className="flex-1 relative">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1">
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+            <ImageUpload onFileSelect={handleFileSelect} />
+            <VideoUpload onFileSelect={handleFileSelect} />
+            <VoiceRecorder onRecordingComplete={handleVoiceRecording} />
+          </div>
+
+          {/* Message Input */}
+          <div className="flex-1">
             <textarea
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Nhắn tin..."
-              className="w-full min-h-[40px] max-h-28 px-3 py-2.5 pr-10 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+              className="w-full px-3 py-2 bg-gray-100 rounded-full resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-24 text-sm"
               rows={1}
+              disabled={sending}
             />
-            <button className="absolute right-2 bottom-2 w-7 h-7 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <Smile className="w-4 h-4 text-gray-500" />
-            </button>
           </div>
-          <button className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-            <Paperclip className="w-4 h-4 text-gray-500" />
-          </button>
+
+          {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!messageInput.trim()}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-              messageInput.trim()
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
+            disabled={!messageInput.trim() || sending}
+            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
           </button>

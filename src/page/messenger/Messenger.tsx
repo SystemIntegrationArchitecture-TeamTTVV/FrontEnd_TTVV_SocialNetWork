@@ -1,10 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Smile, Paperclip, Send, Mic, Image as ImageIcon, FileText, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
+import EmojiPicker from '../../components/chat/EmojiPicker';
+import { ImageUpload, VideoUpload } from '../../components/chat/FileUpload';
+import VoiceRecorder from '../../components/chat/VoiceRecorder';
 import type { Conversation } from '../../apis/conversations';
 
 interface Message {
@@ -314,6 +317,22 @@ export default function Messenger() {
       console.error('Failed to send message:', error);
       // Error is already handled in useMessages hook
     }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage(prev => prev + emoji);
+  };
+
+  const handleFileSelect = async (file: File) => {
+    console.log('File selected:', file.name, file.type, file.size);
+    // TODO: Implement file upload API
+    alert(`Đang phát triển tính năng upload ${file.type.startsWith('image/') ? 'ảnh' : file.type.startsWith('video/') ? 'video' : 'file'}: ${file.name}`);
+  };
+
+  const handleVoiceRecording = async (blob: Blob) => {
+    console.log('Voice recording completed:', blob.size, 'bytes');
+    // TODO: Implement voice message upload
+    alert('Đang phát triển tính năng gửi tin nhắn thoại');
   };
 
   const handleReaction = (messageId: string, emoji: string) => {
@@ -977,22 +996,9 @@ export default function Messenger() {
 
           {/* Emoji Picker */}
           {showEmojiPicker && (
-            <div className="mb-2 md:mb-3 p-3 md:p-4 bg-white rounded-xl border border-gray-200 shadow-lg">
-              <div className="grid grid-cols-6 md:grid-cols-8 gap-1.5 md:gap-2">
-                {quickReactions.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => {
-                      setMessage(message + emoji);
-                      setShowEmojiPicker(false);
-                    }}
-                    className="w-9 h-9 md:w-10 md:h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center text-lg md:text-xl transition-colors"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <EmojiPicker
+              onEmojiSelect={handleEmojiSelect}
+            />
           )}
 
           <div className="flex items-center gap-1.5 md:gap-2">
@@ -1005,9 +1011,8 @@ export default function Messenger() {
             >
               <Plus className="w-4 h-4 md:w-5 md:h-5" />
             </button>
-            <button className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0" title="Attach file">
-              <Paperclip className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-            </button>
+            <ImageUpload onFileSelect={handleFileSelect} />
+            <VideoUpload onFileSelect={handleFileSelect} />
             <input
               type="text"
               value={message}
@@ -1041,15 +1046,7 @@ export default function Messenger() {
                 <Send className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             ) : (
-              <button
-                onClick={handleVoiceRecord}
-                className={`w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                  isRecording ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                }`}
-                title="Voice message"
-              >
-                <Mic className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
+              <VoiceRecorder onRecordingComplete={handleVoiceRecording} />
             )}
           </div>
         </div>
