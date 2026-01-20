@@ -11,20 +11,48 @@ export default function MainLayout() {
   const isMessengerPage = location.pathname.startsWith('/messenger');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex pt-20">
-        {!isMessengerPage && <LeftSidebar />}
-        <main className={`flex-1 mx-auto min-w-0 w-full transition-all duration-300 ${
+      
+      <div className="flex flex-1 overflow-hidden pt-20">
+        {/* LEFT SIDEBAR - Scroll riêng */}
+        {!isMessengerPage && (
+          <aside className="w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white border-r border-gray-200">
+            <LeftSidebar />
+          </aside>
+        )}
+        
+        {/* MAIN CONTENT - Scroll riêng */}
+        <main className={`flex-1 h-full overflow-y-auto scrollbar-hide ${
           isMessengerPage 
             ? 'px-0 max-w-full' 
-            : 'px-8 lg:px-10 py-10 max-w-[900px] lg:max-w-[1000px] xl:max-w-[1100px]'
+            : 'px-8 lg:px-10 py-10'
         }`}>
-          <Outlet />
+          <div className={isMessengerPage ? 'w-full' : 'mx-auto max-w-[900px] lg:max-w-[1000px] xl:max-w-[1100px]'}>
+            <Outlet />
+          </div>
         </main>
-        {!isMessengerPage && <RightSidebar />}
+        
+        {/* RIGHT SIDEBAR - Scroll riêng */}
+        {!isMessengerPage && (
+          <aside className="w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white border-l border-gray-200">
+            <RightSidebar />
+          </aside>
+        )}
       </div>
+      
       <ChatBoxManager />
+      
+      {/* CSS để ẩn scrollbar */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
