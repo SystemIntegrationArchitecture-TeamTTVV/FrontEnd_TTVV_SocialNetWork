@@ -188,15 +188,17 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => startCall(contact.userId, contact.name, 'voice')}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
+            onClick={() => contact.userId && startCall(contact.userId, contact.name, 'voice')}
+            disabled={!contact.userId}
+            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Gọi thoại"
           >
             <Phone className="w-3.5 h-3.5 text-gray-600" />
           </button>
           <button
-            onClick={() => startCall(contact.userId, contact.name, 'video')}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
+            onClick={() => contact.userId && startCall(contact.userId, contact.name, 'video')}
+            disabled={!contact.userId}
+            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Gọi video"
           >
             <Video className="w-3.5 h-3.5 text-gray-600" />
@@ -234,6 +236,13 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               </div>
             )}
             <div className={`max-w-[75%] ${msg.isMe ? 'text-right' : ''}`}>
+              {/* Luôn hiển thị tên người gửi trên mỗi tin nhắn trong chatbox ngoài
+                 (cả group lẫn chat riêng) để dễ nhìn như Messenger */}
+              {msg.sender && (
+                <p className="text-[11px] font-semibold text-gray-600 mb-0.5">
+                  {msg.sender}
+                </p>
+              )}
               {/* Attachments */}
               {msg.attachments && msg.attachments.length > 0 && (
                 <div className="mb-2 space-y-2">

@@ -7,6 +7,7 @@ import { authApi } from '../../apis/auth';
 import { useSocket } from '../../contexts/SocketContext';
 import { usersApi, type User } from '../../apis/users';
 import { notificationsApi } from '../../apis/notifications';
+import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
 
 export default function Navbar() {
@@ -19,6 +20,7 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
   const { isConnected: socketConnected, subscribe } = useSocket();
   const [currentUser] = useState<{
     id: string;
@@ -37,20 +39,36 @@ export default function Navbar() {
     }
   }, [location.pathname, currentUser?.id]);
 
-  // Load unread notification count
+  // Load unread notification count and pending join requests
   useEffect(() => {
-    const loadUnreadCount = async () => {
+    const loadCounts = async () => {
       if (!currentUser?.id) return;
       
       try {
         const count = await notificationsApi.getUnreadNotificationCount(currentUser.id);
         setUnreadNotificationCount(count);
+
+        // Load pending join requests count
+        const conversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        let joinRequestCount = 0;
+        for (const conv of conversations) {
+          if (
+            conv.isGroup &&
+            conv.approvalsRequired &&
+            conv.pendingJoinIds &&
+            conv.pendingJoinIds.length > 0 &&
+            (conv.ownerId === currentUser.id || conv.adminIds?.includes(currentUser.id))
+          ) {
+            joinRequestCount += conv.pendingJoinIds.length;
+          }
+        }
+        setPendingJoinRequestCount(joinRequestCount);
       } catch (error) {
-        console.error('Failed to load unread notification count:', error);
+        console.error('Failed to load counts:', error);
       }
     };
 
-    loadUnreadCount();
+    loadCounts();
   }, [currentUser?.id]);
 
   // Subscribe to socket for real-time unread count updates
@@ -61,6 +79,26 @@ export default function Navbar() {
       if (event.type === 'NOTIFICATION' && event.data) {
         // Increment unread count when new notification arrives
         setUnreadNotificationCount((prev) => prev + 1);
+      }
+
+      // Handle join request events
+      if ((event.type === 'JOIN_REQUEST_CREATED' || event.type === 'JOIN_REQUEST_UPDATED') && event.data) {
+        // Reload conversations to get updated count
+        conversationsApi.getConversationsByUserId(currentUser.id).then((conversations) => {
+          let joinRequestCount = 0;
+          for (const conv of conversations) {
+            if (
+              conv.isGroup &&
+              conv.approvalsRequired &&
+              conv.pendingJoinIds &&
+              conv.pendingJoinIds.length > 0 &&
+              (conv.ownerId === currentUser.id || conv.adminIds?.includes(currentUser.id))
+            ) {
+              joinRequestCount += conv.pendingJoinIds.length;
+            }
+          }
+          setPendingJoinRequestCount(joinRequestCount);
+        }).catch(console.error);
       }
     });
 
@@ -252,7 +290,7 @@ export default function Navbar() {
               className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
             >
               <Bell className="w-6 h-6 text-gray-700" />
-              {unreadNotificationCount > 0 && (
+              {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
                 <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
               )}
             </button>
