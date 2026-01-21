@@ -37,6 +37,8 @@ export default function Messenger() {
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; sender: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -199,47 +201,55 @@ export default function Messenger() {
     ? formattedConversations.find((c) => c.id === activeChat)
     : null;
   
-  // Get the other participant info for direct calls
-  const getCallRecipient = () => {
+  // Get call info - supports both direct and group calls
+  const getCallInfo = () => {
     if (!activeChat || !user?.id) {
-      console.log('❌ getCallRecipient: No active chat or user');
+      console.log('❌ getCallInfo: No active chat or user');
       return null;
     }
     
     const conv = conversations.find(c => c.id === activeChat);
-    console.log('🔍 getCallRecipient: Found conversation:', conv);
+    console.log('🔍 getCallInfo: Found conversation:', conv);
     
     if (!conv) {
-      console.log('❌ getCallRecipient: Conversation not found for activeChat:', activeChat);
+      console.log('❌ getCallInfo: Conversation not found for activeChat:', activeChat);
       return null;
     }
     
+    // For group calls: use conversationId as the "recipient" ID
     if (conv.isGroup) {
-      console.log('❌ getCallRecipient: Cannot call in group chat');
-      return null;
+      console.log('📞 getCallInfo: Group call - conversationId:', activeChat);
+      return {
+        id: activeChat, // Use conversationId for group calls
+        name: conv.groupName || 'Group Chat',
+        isGroup: true,
+      };
     }
     
-    console.log('👥 getCallRecipient: Participant IDs:', conv.participantIds);
-    console.log('👤 getCallRecipient: Current user ID:', user.id);
+    // For direct calls: return other participant info
+    console.log('👥 getCallInfo: Direct call - Participant IDs:', conv.participantIds);
+    console.log('👤 getCallInfo: Current user ID:', user.id);
     
     const otherParticipantId = conv.participantIds.find(id => id !== user.id);
     const otherParticipantIndex = conv.participantIds.findIndex(id => id !== user.id);
     const otherParticipantName = conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
     
-    console.log('🎯 getCallRecipient: Returning recipient:', {
+    console.log('🎯 getCallInfo: Returning recipient:', {
       id: otherParticipantId,
       name: otherParticipantName,
-      conversationId: activeChat
+      conversationId: activeChat,
+      isGroup: false,
     });
     
     if (!otherParticipantId) {
-      console.error('❌ getCallRecipient: No other participant found!');
+      console.error('❌ getCallInfo: No other participant found!');
       return null;
     }
     
     return {
       id: otherParticipantId,
       name: otherParticipantName,
+      isGroup: false,
     };
   };
 
@@ -647,6 +657,7 @@ export default function Messenger() {
         break;
     }
     setSelectedMessage(null);
+    setMenuPosition(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -667,6 +678,23 @@ export default function Messenger() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!selectedMessage) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if click is outside menu and button
+      if (!target.closest('[data-message-menu]') && !target.closest('.group')) {
+        setSelectedMessage(null);
+        setMenuPosition(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectedMessage]);
 
   return (
     <div className="h-[calc(100vh-5rem)] bg-gray-50 flex relative overflow-hidden">
@@ -872,31 +900,39 @@ export default function Messenger() {
               </button>
               <button 
                 onClick={() => {
-                  const recipient = getCallRecipient();
-                  if (recipient?.id && recipient?.name) {
-                    startCall(recipient.id, recipient.name, 'voice');
+                  const callInfo = getCallInfo();
+                  if (callInfo?.id && callInfo?.name) {
+                    // For group calls: pass conversationId and isGroup=true
+                    // For direct calls: pass userId and isGroup=false
+                    const conversationId = callInfo.isGroup ? callInfo.id : undefined;
+                    const isGroup = callInfo.isGroup || false;
+                    startCall(callInfo.id, callInfo.name, 'voice', conversationId, isGroup);
                   } else {
-                    alert('Không thể gọi điện trong nhóm chat hoặc cuộc trò chuyện không hợp lệ');
+                    alert('Không thể bắt đầu cuộc gọi. Vui lòng thử lại.');
                   }
                 }}
                 disabled={!activeChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title="Call"
+                title={isGroupChat ? "Group call" : "Call"}
               >
                 <Phone className="w-5 h-5 text-gray-700" />
               </button>
               <button 
                 onClick={() => {
-                  const recipient = getCallRecipient();
-                  if (recipient?.id && recipient?.name) {
-                    startCall(recipient.id, recipient.name, 'video');
+                  const callInfo = getCallInfo();
+                  if (callInfo?.id && callInfo?.name) {
+                    // For group calls: pass conversationId and isGroup=true
+                    // For direct calls: pass userId and isGroup=false
+                    const conversationId = callInfo.isGroup ? callInfo.id : undefined;
+                    const isGroup = callInfo.isGroup || false;
+                    startCall(callInfo.id, callInfo.name, 'video', conversationId, isGroup);
                   } else {
-                    alert('Không thể gọi video trong nhóm chat hoặc cuộc trò chuyện không hợp lệ');
+                    alert('Không thể bắt đầu cuộc gọi video. Vui lòng thử lại.');
                   }
                 }}
                 disabled={!activeChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title="Video call"
+                title={isGroupChat ? "Group video call" : "Video call"}
               >
                 <Video className="w-5 h-5 text-gray-700" />
               </button>
@@ -1094,17 +1130,43 @@ export default function Messenger() {
                   )}
 
                   {/* Message Options */}
-                  <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                  <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
                     <div className="relative">
                       <button
-                        onClick={() => setSelectedMessage(isSelected ? null : msg.id)}
-                        className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                        ref={isSelected ? menuButtonRef : null}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isSelected) {
+                            const buttonRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            if (msg.isMe) {
+                              setMenuPosition({ 
+                                top: buttonRect.top, 
+                                right: window.innerWidth - buttonRect.left + 8 
+                              });
+                            } else {
+                              setMenuPosition({ 
+                                top: buttonRect.top, 
+                                left: buttonRect.right + 8 
+                              });
+                            }
+                            setSelectedMessage(msg.id);
+                          } else {
+                            setSelectedMessage(null);
+                            setMenuPosition(null);
+                          }
+                        }}
+                        className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-20"
                       >
                         <MoreVertical className="w-4 h-4 text-gray-600" />
                       </button>
                       
-                      {isSelected && (
-                        <div className={`absolute ${msg.isMe ? 'left-full' : 'right-full'} top-0 ml-2 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[180px]`}>
+                      {isSelected && selectedMessage === msg.id && menuPosition && (
+                        <div 
+                          data-message-menu
+                          className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999] min-w-[180px]"
+                          style={menuPosition}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                               <button
                                 onClick={() => handleMessageAction('reply', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
@@ -1569,25 +1631,30 @@ export default function Messenger() {
               )}
 
               {canManageGroup && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Thêm thành viên (nhập userId, cách nhau bằng dấu phẩy)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={groupMemberInput}
-                      onChange={(e) => setGroupMemberInput(e.target.value)}
-                      className="flex-1 h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="user1, user2"
-                      disabled={updatingGroup}
-                    />
-                    <button
-                      onClick={handleAddMembers}
-                      disabled={updatingGroup}
-                      className="px-4 h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-                    >
-                      {updatingGroup ? 'Đang xử lý...' : 'Thêm'}
-                    </button>
-                  </div>
+                <div className="space-y-2 pt-2 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      // TODO: Mở modal chọn bạn bè để thêm vào nhóm (tương tự NewMessage.tsx)
+                      // Tạm thời giữ input text cho đến khi có modal
+                      const input = prompt('Nhập userId của thành viên muốn thêm (cách nhau bằng dấu phẩy):');
+                      if (input && input.trim()) {
+                        setGroupMemberInput(input.trim());
+                        handleAddMembers();
+                      }
+                    }}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>{updatingGroup ? 'Đang xử lý...' : 'Thêm thành viên'}</span>
+                  </button>
+                  {/* Hidden input for backward compatibility */}
+                  <input
+                    type="text"
+                    value={groupMemberInput}
+                    onChange={(e) => setGroupMemberInput(e.target.value)}
+                    className="hidden"
+                  />
                 </div>
               )}
 
@@ -1599,40 +1666,32 @@ export default function Messenger() {
                     const isMemberOwner = pid === activeConversationRaw.ownerId;
                     const isMemberAdmin = activeConversationRaw.adminIds?.includes(pid);
                     const isSelf = pid === user?.id;
+                    
+                    // Permission logic:
+                    // - Owner can kick anyone (except themselves, but they can leave)
+                    // - Admin can only kick regular members (not owner, not other admins)
+                    // - Regular members can only leave themselves
                     const canKick = isSelf || (
-                      canManageGroup &&
-                      !isMemberOwner &&
-                      (isOwner || (!isMemberAdmin && !isOwner))
+                      isOwner && !isMemberOwner // Owner can kick anyone except themselves
+                    ) || (
+                      isAdmin && !isOwner && !isMemberOwner && !isMemberAdmin // Admin can only kick regular members
                     );
 
                     return (
                       <div key={pid} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50">
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{name}</p>
-                          <p className="text-xs text-gray-600">{pid}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {isMemberOwner && <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">Owner</span>}
+                          {isMemberOwner && <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">Owner</span>}
                           {isMemberAdmin && !isMemberOwner && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">Admin</span>
-                          )}
-                          {!isMemberOwner && isOwner && (
-                            <label className="flex items-center gap-1 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={adminDraft.includes(pid)}
-                                onChange={() => handleAdminToggle(pid)}
-                                className="rounded border-gray-300"
-                                disabled={updatingGroup}
-                              />
-                              Admin
-                            </label>
+                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">Admin</span>
                           )}
                           {canKick && (
                             <button
                               onClick={() => handleRemoveMember(pid)}
                               disabled={updatingGroup}
-                              className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60"
+                              className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60 font-medium"
                             >
                               {isSelf ? 'Rời' : 'Xóa'}
                             </button>
@@ -1644,44 +1703,80 @@ export default function Messenger() {
                 </div>
               </div>
 
+              {/* Role Management & Delete Group - Owner Only */}
               {isOwner && (
-                <div className="space-y-2">
-                  <h5 className="text-sm font-semibold text-gray-800">Chuyển chủ phòng / lưu quyền</h5>
-                  <select
-                    value={newOwnerId}
-                    onChange={(e) => setNewOwnerId(e.target.value)}
-                    className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    disabled={updatingGroup}
-                  >
-                    {activeConversationRaw.participantIds.map((pid, idx) => {
-                      const name = activeConversationRaw.participantNames?.[idx] || pid;
-                      return (
-                        <option key={pid} value={pid}>
-                          {name} {pid === activeConversationRaw.ownerId ? '(Owner hiện tại)' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <button
-                    onClick={handleUpdateRoles}
-                    disabled={updatingGroup}
-                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-                  >
-                    {updatingGroup ? 'Đang lưu...' : 'Lưu vai trò'}
-                  </button>
-                </div>
-              )}
+                <>
+                  <div className="space-y-3 pt-3 border-t border-gray-200">
+                    <h5 className="text-sm font-semibold text-gray-800 mb-2">Quản lý vai trò</h5>
+                    
+                    {/* Transfer Ownership */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Chuyển chủ phòng</label>
+                      <select
+                        value={newOwnerId}
+                        onChange={(e) => setNewOwnerId(e.target.value)}
+                        className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        disabled={updatingGroup}
+                      >
+                        {activeConversationRaw.participantIds.map((pid, idx) => {
+                          const name = activeConversationRaw.participantNames?.[idx] || pid;
+                          return (
+                            <option key={pid} value={pid}>
+                              {name} {pid === activeConversationRaw.ownerId ? '(Owner hiện tại)' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
 
-              {isOwner && (
-                <div className="pt-2">
-                  <button
-                    onClick={handleDeleteGroup}
-                    disabled={updatingGroup}
-                    className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
-                  >
-                    {updatingGroup ? 'Đang xử lý...' : 'Giải tán nhóm'}
-                  </button>
-                </div>
+                    {/* Manage Admins */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Phân quyền Admin</label>
+                      <p className="text-xs text-gray-500 mb-2">Chọn thành viên để cấp quyền Admin (không bao gồm Owner)</p>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+                        {activeConversationRaw.participantIds
+                          .filter(pid => pid !== activeConversationRaw.ownerId)
+                          .map((pid) => {
+                            const name = activeConversationRaw.participantNames?.[activeConversationRaw.participantIds.indexOf(pid)] || pid;
+                            const isMemberAdmin = activeConversationRaw.adminIds?.includes(pid);
+                            return (
+                              <label key={pid} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={adminDraft.includes(pid)}
+                                  onChange={() => handleAdminToggle(pid)}
+                                  className="rounded border-gray-300"
+                                  disabled={updatingGroup}
+                                />
+                                <span className="text-sm text-gray-700 flex-1">{name}</span>
+                                {isMemberAdmin && !adminDraft.includes(pid) && (
+                                  <span className="text-xs text-gray-400">(Đang là Admin)</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleUpdateRoles}
+                      disabled={updatingGroup}
+                      className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                    >
+                      {updatingGroup ? 'Đang lưu...' : 'Lưu vai trò'}
+                    </button>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-200">
+                    <button
+                      onClick={handleDeleteGroup}
+                      disabled={updatingGroup}
+                      className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
+                    >
+                      {updatingGroup ? 'Đang xử lý...' : 'Giải tán nhóm'}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}
