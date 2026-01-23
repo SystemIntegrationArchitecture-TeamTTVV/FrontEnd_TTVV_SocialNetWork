@@ -1649,10 +1649,10 @@ export default function Messenger() {
                     <span>{updatingGroup ? 'Đang xử lý...' : 'Thêm thành viên'}</span>
                   </button>
                   {/* Hidden input for backward compatibility */}
-                  <input
-                    type="text"
-                    value={groupMemberInput}
-                    onChange={(e) => setGroupMemberInput(e.target.value)}
+                    <input
+                      type="text"
+                      value={groupMemberInput}
+                      onChange={(e) => setGroupMemberInput(e.target.value)}
                     className="hidden"
                   />
                 </div>
@@ -1710,23 +1710,23 @@ export default function Messenger() {
                     <h5 className="text-sm font-semibold text-gray-800 mb-2">Quản lý vai trò</h5>
                     
                     {/* Transfer Ownership */}
-                    <div className="space-y-2">
+                <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Chuyển chủ phòng</label>
-                      <select
-                        value={newOwnerId}
-                        onChange={(e) => setNewOwnerId(e.target.value)}
-                        className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        disabled={updatingGroup}
-                      >
-                        {activeConversationRaw.participantIds.map((pid, idx) => {
-                          const name = activeConversationRaw.participantNames?.[idx] || pid;
-                          return (
-                            <option key={pid} value={pid}>
-                              {name} {pid === activeConversationRaw.ownerId ? '(Owner hiện tại)' : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
+                  <select
+                    value={newOwnerId}
+                    onChange={(e) => setNewOwnerId(e.target.value)}
+                    className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    disabled={updatingGroup}
+                  >
+                    {activeConversationRaw.participantIds.map((pid, idx) => {
+                      const name = activeConversationRaw.participantNames?.[idx] || pid;
+                      return (
+                        <option key={pid} value={pid}>
+                          {name} {pid === activeConversationRaw.ownerId ? '(Owner hiện tại)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
                     </div>
 
                     {/* Manage Admins */}
@@ -1758,24 +1758,24 @@ export default function Messenger() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={handleUpdateRoles}
-                      disabled={updatingGroup}
-                      className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-                    >
-                      {updatingGroup ? 'Đang lưu...' : 'Lưu vai trò'}
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleUpdateRoles}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  >
+                    {updatingGroup ? 'Đang lưu...' : 'Lưu vai trò'}
+                  </button>
+                </div>
 
                   <div className="pt-3 border-t border-gray-200">
-                    <button
-                      onClick={handleDeleteGroup}
-                      disabled={updatingGroup}
-                      className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
-                    >
-                      {updatingGroup ? 'Đang xử lý...' : 'Giải tán nhóm'}
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleDeleteGroup}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
+                  >
+                    {updatingGroup ? 'Đang xử lý...' : 'Giải tán nhóm'}
+                  </button>
+                </div>
                 </>
               )}
             </div>
