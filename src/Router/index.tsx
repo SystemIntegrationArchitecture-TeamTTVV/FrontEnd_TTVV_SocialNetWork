@@ -11,6 +11,7 @@ import ForgotPassword from '../page/auth/ForgotPassword';
 import ResetPasswordVerification from '../page/auth/ResetPasswordVerification';
 import ResetPasswordNew from '../page/auth/ResetPasswordNew';
 import PasswordResetSuccess from '../page/auth/PasswordResetSuccess';
+import ResetPassword from '../page/auth/ResetPassword';
 
 // Home Pages
 import Newsfeed from '../page/home/Newsfeed';
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
       { path: 'forgot-password', element: <ForgotPassword /> },
+      { path: 'reset-password', element: <ResetPassword /> },
       { path: 'reset-verification', element: <ResetPasswordVerification /> },
       { path: 'reset-new-password', element: <ResetPasswordNew /> },
       { path: 'reset-success', element: <PasswordResetSuccess /> },
