@@ -6,12 +6,15 @@ import { authApi } from '../../apis/auth';
 import AddStoryCard from '../../components/story/AddStoryCard';
 import StoryViewer from '../../components/story/StoryViewer';
 import type { Story } from '../../types/story';
+import CreateStoryModal from '../../components/story/CreateStoryModal';
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
+
+  const [showCreateStory, setShowCreateStory] = useState(false);
 
   const [currentUser] = useState<{
     id: string;
@@ -87,39 +90,72 @@ export default function Newsfeed() {
     },
   ]);
 
-  const stories: Story[] = [
-    {
-      id: '1',
-      user: {
-        name: 'Sarah',
-        avatar: 'https://i.pravatar.cc/150?img=1',
-      },
-      contentType: 'text',
-      content: 'Lovely day 🌸',
-      background: 'bg-gradient-to-br from-pink-500 to-purple-500',
+const [stories, setStories] = useState<Story[]>([
+  {
+    id: '1',
+    user: {
+      id: 2,
+      name: 'Sarah',
+      avatar: 'https://i.pravatar.cc/150?img=1',
     },
-    {
-      id: '2',
-      user: {
-        name: 'Mike',
-        avatar: 'https://i.pravatar.cc/150?img=2',
-      },
-      contentType: 'image',
-      content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
+    contentType: 'text',
+    content: 'Lovely day 🌸',
+    background: 'bg-gradient-to-br from-pink-500 to-purple-500',
+    duration: 5,
+    createdAt: '2026-01-25T08:30:00Z',
+    expiresAt: '2026-01-26T08:30:00Z',
+    isViewed: false,
+    viewCount: 12,
+    isActive: true,
+  },
+  {
+    id: '2',
+    user: {
+      id: 3,
+      name: 'Mike',
+      avatar: 'https://i.pravatar.cc/150?img=2',
     },
-    {
-      id: '3',
-      user: {
-        name: 'Emma',
-        avatar: 'https://i.pravatar.cc/150?img=3',
-      },
-      contentType: 'text',
-      content: 'Weekend vibes ✨',
-      background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
+    contentType: 'image',
+    content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
+    duration: 5,
+    createdAt: '2026-01-25T09:00:00Z',
+    expiresAt: '2026-01-26T09:00:00Z',
+    isViewed: false,
+    viewCount: 30,
+    isActive: true,
+  },
+  {
+    id: '3',
+    user: {
+      id: 4,
+      name: 'Emma',
+      avatar: 'https://i.pravatar.cc/150?img=3',
     },
-  ];
+    contentType: 'text',
+    content: 'Weekend vibes ✨',
+    background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
+    duration: 5,
+    createdAt: '2026-01-25T10:15:00Z',
+    expiresAt: '2026-01-26T10:15:00Z',
+    isViewed: true,
+    viewCount: 8,
+    isActive: true,
+  },
+]);
 
 
+
+  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc, story) => {
+    const userId = story.user.id;
+
+    if (!acc[userId]) {
+      acc[userId] = [];
+    }
+
+    acc[userId].push(story);
+    return acc;
+  }, {});
+  const storyGroups = Object.values(storiesByUser);
   const toggleComments = (postId: number) => {
     setExpandedComments((prev) => {
       const newSet = new Set(prev);
@@ -189,30 +225,76 @@ export default function Newsfeed() {
           {currentUser && (
             <AddStoryCard
               avatar={currentUser.avatar}
-              onClick={() => console.log('Open create story modal')}
+              onClick={() => setShowCreateStory(true)}
             />
           )}
 
           {/* Friends Stories */}
-          {stories.map((story, index) => (
-            <button
-              key={story.id}
-              onClick={() => setViewerIndex(index)}
-              className="shrink-0 w-32 cursor-pointer group text-left"
-            >
-              <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-blue-500 to-purple-500 p-[2px] group-hover:opacity-90 transition-opacity">
-                <div className="w-full h-full bg-white rounded-2xl flex items-center justify-center">
-                  <img
-                    src={story.user.avatar}
-                    className="w-14 h-14 rounded-full border-2 border-white"
-                  />
+          {storyGroups.map((group, index) => {
+            const firstStory = group[0];
+
+            return (
+              <button
+                key={firstStory.user.id}
+                onClick={() => setViewerUserIndex(index)}
+                className="shrink-0 w-32 text-left"
+              >
+                <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-blue-500 to-purple-500 p-[2px] relative overflow-hidden">
+                  {/* Story Content Background */}
+                  <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                    {/* Story preview */}
+                    {firstStory.contentType === 'image' && (
+                      <img
+                        src={firstStory.content}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
+                    {firstStory.contentType === 'text' && (
+                      <div
+                        className={`w-full h-full ${firstStory.background} flex items-center justify-center p-3`}
+                      >
+                        <p className="text-white text-sm font-semibold text-center line-clamp-4">
+                          {firstStory.content}
+                        </p>
+                      </div>
+                    )}
+
+                    {firstStory.contentType === 'video' && (
+                      <video
+                        src={firstStory.content}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.currentTime = 0;
+                        }}
+                      />
+                    )}
+
+
+                    {/* Gradient overlay for better avatar visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
+
+                    {/* User Avatar */}
+                    <div className="absolute top-3 left-3">
+                      <img
+                        src={firstStory.user.avatar}
+                        alt={firstStory.user.name}
+                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">
-                {story.user.name}
-              </p>
-            </button>
-          ))}
+
+                <p className="text-center mt-3 font-medium truncate text-sm">
+                  {firstStory.user.name}
+                </p>
+              </button>
+            );
+          })}
+
 
         </div>
       </div>
@@ -513,11 +595,20 @@ export default function Newsfeed() {
           );
         })}
       </div>
-      {viewerIndex !== null && (
+      {viewerUserIndex !== null && (
         <StoryViewer
-          stories={stories}
-          initialIndex={viewerIndex}
-          onClose={() => setViewerIndex(null)}
+          storyGroups={storyGroups}
+          initialUserIndex={viewerUserIndex}
+          onClose={() => setViewerUserIndex(null)}
+        />
+      )}
+      {showCreateStory && (
+        <CreateStoryModal
+          onClose={() => setShowCreateStory(false)}
+          onCreate={(story) => {
+            setStories([story, ...stories]);
+            setShowCreateStory(false);
+          }}
         />
       )}
     </div>
