@@ -314,7 +314,7 @@ export default function Navbar() {
             <NotificationDropdown 
               isOpen={isNotificationOpen} 
               onClose={() => setIsNotificationOpen(false)}
-              onNotificationRead={() => setUnreadNotificationCount((prev) => Math.max(0, prev - 1))}
+              onNotificationRead={loadUnreadCount}
             />
           </div>
           

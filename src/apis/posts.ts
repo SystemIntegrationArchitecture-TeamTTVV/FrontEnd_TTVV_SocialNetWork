@@ -24,6 +24,7 @@ export interface PostData {
 }
 
 export interface CreatePostRequest {
+  authorId?: string;
   content: string;
   images?: string[];
   videos?: string[];
@@ -48,7 +49,7 @@ export interface UpdatePostRequest {
 }
 
 class PostsApi {
-  private baseUrl = '/api/common/api/posts';
+  private baseUrl = '/api/common/posts';
 
   /**
    * Get all posts (newsfeed)
@@ -165,6 +166,29 @@ class PostsApi {
       console.log('✅ [Posts API] Successfully deleted post');
     } catch (error) {
       console.error(`❌ [Posts API] Failed to delete post ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Share a post
+   */
+  async sharePost(postId: string, userId: string, content?: string, visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME'): Promise<PostData> {
+    try {
+      console.log(`📡 [Posts API] Sharing post ${postId}...`);
+      const shareData: CreatePostRequest = {
+        authorId: userId,
+        content: content || '',
+        visibility: visibility || 'PUBLIC',
+        allowComments: true,
+        allowSharing: true,
+      };
+      
+      const response = await httpClient.post<PostData>(`${this.baseUrl}/${postId}/share`, shareData);
+      console.log('✅ [Posts API] Successfully shared post:', response);
+      return response;
+    } catch (error) {
+      console.error(`❌ [Posts API] Failed to share post ${postId}:`, error);
       throw error;
     }
   }

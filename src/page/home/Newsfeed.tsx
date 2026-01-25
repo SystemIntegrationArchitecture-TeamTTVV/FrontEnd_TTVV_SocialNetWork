@@ -3,23 +3,28 @@ import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, P
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
-import AddStoryCard from '../../components/story/AddStoryCard';
-import StoryViewer from '../../components/story/StoryViewer';
-import type { Story } from '../../types/story';
-import CreateStoryModal from '../../components/story/CreateStoryModal';
-import { storiesApi } from '../../apis/storiesApi';
-import { API_CONFIG } from '../../apis/config';
+import { postsApi } from '../../apis/posts';
+import type { PostData } from '../../apis/posts';
+import { reactionsApi } from '../../apis/reactions';
+import { commentsApi, type CommentData } from '../../apis/comments';
+import { useSocket } from '../../contexts/SocketContext';
+import { storiesApi, type StoryData } from '../../apis/stories';
+import CreateStory from './CreateStory';
+import StoryViewer from './StoryViewer';
+
 export default function Newsfeed() {
-  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
-  const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
-  const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
-
-  const [showCreateStory, setShowCreateStory] = useState(false);
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loadingStories, setLoadingStories] = useState(false);
-
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+  const [postComments, setPostComments] = useState<Record<string, CommentData[]>>({});
+  const [commentReplies, setCommentReplies] = useState<Record<string, CommentData[]>>({});
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
+  const { subscribe } = useSocket();
   const [currentUser] = useState<{
     id: string;
     username: string;
@@ -30,157 +35,201 @@ export default function Newsfeed() {
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    setLoadingStories(true);
+  const [posts, setPosts] = useState<PostData[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stories, setStories] = useState<StoryData[]>([]);
+  const [isLoadingStories, setIsLoadingStories] = useState(true);
+  const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
 
-    storiesApi
-      .getStoryFeed(currentUser.id)
-      .then((data) => {
-        setStories(data);
-      })
-      .catch((err) => {
-        console.error('Failed to load stories', err);
-      })
-      .finally(() => {
-        setLoadingStories(false);
-      });
+  // Load posts from API
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        setIsLoadingPosts(true);
+        setError(null);
+        const data = await postsApi.getAllPosts();
+        setPosts(data);
+        console.log('✅ Loaded posts:', data.length);
+
+        // Load user's reactions to mark liked posts
+        if (currentUser?.id) {
+          try {
+            const userReactions = await reactionsApi.getReactionsByUserId(currentUser.id);
+            const likedPostIds = new Set(
+              userReactions
+                .filter(r => r.postId) // Only post reactions
+                .map(r => r.postId!)
+            );
+            setLikedPosts(likedPostIds);
+            
+            const likedCommentIds = new Set(
+              userReactions
+                .filter(r => r.commentId) // Only comment reactions
+                .map(r => r.commentId!)
+            );
+            setLikedComments(likedCommentIds);
+            console.log('✅ Loaded user reactions:', likedPostIds.size, 'posts,', likedCommentIds.size, 'comments');
+          } catch (err) {
+            console.error('Failed to load user reactions:', err);
+          }
+        }
+      } catch (err: any) {
+        console.error('❌ Failed to load posts:', err);
+        
+        // MOCK DATA for testing without authentication
+        console.log('⚠️ Using mock data for testing...');
+        setPosts([
+          {
+            id: 'mock-1',
+            authorId: 'user-1',
+            authorName: 'Sarah Johnson',
+            authorAvatar: '',
+            content: 'Just finished an amazing hike! The view was breathtaking 🏔️',
+            images: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4'],
+            location: 'Swiss Alps',
+            visibility: 'PUBLIC',
+            allowComments: true,
+            allowSharing: true,
+            likeCount: 124,
+            commentCount: 8,
+            shareCount: 12,
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: 'mock-2',
+            authorId: 'user-2',
+            authorName: 'Mike Chen',
+            authorAvatar: '',
+            content: 'Working on a new project. Excited to share it soon! 💻✨',
+            visibility: 'PUBLIC',
+            allowComments: true,
+            allowSharing: true,
+            likeCount: 89,
+            commentCount: 5,
+            shareCount: 3,
+            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: 'mock-3',
+            authorId: 'user-3',
+            authorName: 'Emma Davis',
+            authorAvatar: '',
+            content: 'Beautiful sunset today 🌅 Nature never fails to amaze me!',
+            images: ['https://images.unsplash.com/photo-1495616811223-4d98c6e9c869'],
+            visibility: 'PUBLIC',
+            allowComments: true,
+            allowSharing: true,
+            likeCount: 256,
+            commentCount: 15,
+            shareCount: 8,
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          },
+        ]);
+        setError(null); // Clear error when using mock data
+      } finally {
+        setIsLoadingPosts(false);
+      }
+    };
+
+    loadPosts();
   }, [currentUser?.id]);
 
-  stories.forEach((story, index) => {
-  console.log(`Story ${index}:`, story);
-});
-  const [posts] = useState([
-    {
-      id: 1,
-      author: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
-      time: '2h',
-      location: 'location',
-      content: 'Just finished an amazing hike! The view was breathtaking',
-      image: 'mountain',
-      likes: 124,
-      comments: 3,
-      shares: 12,
-      reactions: ['heart', 'thumbsup', 'smile'],
-      commentsList: [
-        {
-          id: 1,
-          author: { name: 'Mike Chen', avatar: 'MC', color: '#1877F2' },
-          content: 'Amazing view! Where is this?',
-          time: '1 giờ trước',
-          likes: 5,
-        },
-        {
-          id: 2,
-          author: { name: 'David Kim', avatar: 'DK', color: '#FF6B6B' },
-          content: 'Looks beautiful!',
-          time: '2 giờ trước',
-          likes: 3,
-        },
-        {
-          id: 3,
-          author: { name: 'Emma Davis', avatar: 'ED', color: '#4ECDC4' },
-          content: 'I want to visit this place too!',
-          time: '3 giờ trước',
-          likes: 8,
-        },
-      ],
-    },
-    {
-      id: 2,
-      author: { name: 'Mike Chen', avatar: 'MC', color: '#FF6B6B' },
-      time: '5h',
-      location: '',
-      content: 'Working on a new project. Excited to share it soon!',
-      image: '',
-      likes: 89,
-      comments: 2,
-      shares: 5,
-      reactions: ['thumbsup', 'smile'],
-      commentsList: [
-        {
-          id: 1,
-          author: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
-          content: 'Can\'t wait to see it!',
-          time: '4 giờ trước',
-          likes: 2,
-        },
-        {
-          id: 2,
-          author: { name: 'Alex Park', avatar: 'AP', color: '#FFD93D' },
-          content: 'Looking forward!',
-          time: '5 giờ trước',
-          likes: 1,
-        },
-      ],
-    },
-  ]);
+  // Load stories from API
+  useEffect(() => {
+    console.log('🚀 [Newsfeed] useEffect for stories TRIGGERED');
+    const loadStories = async () => {
+      try {
+        console.log('📡 [Newsfeed] Loading stories... storiesApi:', storiesApi);
+        setIsLoadingStories(true);
+        const data = await storiesApi.getAllActiveStories();
+        console.log('📦 [Newsfeed] Raw response:', data);
+        console.log('📦 [Newsfeed] Is array?', Array.isArray(data));
+        console.log('📦 [Newsfeed] Data length:', data?.length);
+        console.log('📦 [Newsfeed] Before setStories, current stories:', stories);
+        setStories(Array.isArray(data) ? data : []);
+        console.log('✅ Loaded stories:', Array.isArray(data) ? data.length : 0, data);
+      } catch (err) {
+        console.error('❌ Failed to load stories:', err);
+        console.error('❌ Error details:', err instanceof Error ? err.message : String(err));
+        setStories([]);
+      } finally {
+        setIsLoadingStories(false);
+      }
+    };
 
-  // const [stories, setStories] = useState<Story[]>([
-  //   {
-  //     id: '1',
-  //     user: {
-  //       id: 2,
-  //       name: 'Sarah',
-  //       avatar: 'https://i.pravatar.cc/150?img=1',
-  //     },
-  //     contentType: 'text',
-  //     content: 'Lovely day 🌸',
-  //     background: 'bg-gradient-to-br from-pink-500 to-purple-500',
-  //     duration: 5,
-  //     createdAt: '2026-01-25T08:30:00Z',
-  //     expiresAt: '2026-01-26T08:30:00Z',
-  //     isViewed: false,
-  //     viewCount: 12,
-  //     isActive: true,
-  //   },
-  //   {
-  //     id: '2',
-  //     user: {
-  //       id: 3,
-  //       name: 'Mike',
-  //       avatar: 'https://i.pravatar.cc/150?img=2',
-  //     },
-  //     contentType: 'image',
-  //     content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
-  //     duration: 5,
-  //     createdAt: '2026-01-25T09:00:00Z',
-  //     expiresAt: '2026-01-26T09:00:00Z',
-  //     isViewed: false,
-  //     viewCount: 30,
-  //     isActive: true,
-  //   },
-  //   {
-  //     id: '3',
-  //     user: {
-  //       id: 4,
-  //       name: 'Emma',
-  //       avatar: 'https://i.pravatar.cc/150?img=3',
-  //     },
-  //     contentType: 'text',
-  //     content: 'Weekend vibes ✨',
-  //     background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
-  //     duration: 5,
-  //     createdAt: '2026-01-25T10:15:00Z',
-  //     expiresAt: '2026-01-26T10:15:00Z',
-  //     isViewed: true,
-  //     viewCount: 8,
-  //     isActive: true,
-  //   },
-  // ]);
+    loadStories();
+  }, []);
 
+  // Subscribe to socket events for real-time updates
+  useEffect(() => {
+    if (!currentUser?.id) return;
 
+    const unsubscribers = [
+      // Listen for reaction events
+      subscribe('REACTION_ADDED', (event) => {
+        if (event.data?.postId) {
+          // Reload the specific post to get updated like count
+          postsApi.getPostById(event.data.postId).then(updatedPost => {
+            setPosts(prev => prev.map(p => p.id === event.data.postId ? updatedPost : p));
+          }).catch(console.error);
+        }
+      }),
 
-  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc, story) => {
-    const userId = story.user.id;
+      // Listen for comment events  
+      subscribe('COMMENT_CREATED', (event) => {
+        if (event.data?.postId) {
+          // Reload the specific post to get updated comment count
+          postsApi.getPostById(event.data.postId).then(updatedPost => {
+            setPosts(prev => prev.map(p => p.id === event.data.postId ? updatedPost : p));
+          }).catch(console.error);
+        }
+      }),
 
-    if (!acc[userId]) {
-      acc[userId] = [];
+      // Listen for new posts (including shares)
+      subscribe('POST_CREATED', (event) => {
+        if (event.data) {
+          // Add new post to the top of the feed
+          setPosts(prev => [event.data, ...prev]);
+        }
+      }),
+    ];
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [currentUser?.id, subscribe]);
+
+  const getInitials = (name: string): string => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
+    return name.substring(0, 2).toUpperCase();
+  };
 
-    acc[userId].push(story);
-    return acc;
-  }, {});
-  const storyGroups = Object.values(storiesByUser);
-  const toggleComments = (postId: number) => {
+  const handleViewStory = (storyId: string) => {
+    setSelectedStoryId(storyId);
+    setIsStoryViewerOpen(true);
+  };
+
+  const handleStoryCreated = async () => {
+    // Reload stories after creating new one
+    try {
+      const data = await storiesApi.getAllActiveStories();
+      setStories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to reload stories:', err);
+      setStories([]);
+    }
+  };
+
+  const toggleComments = async (postId: string) => {
+    const isExpanding = !expandedComments.has(postId);
+    
     setExpandedComments((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
@@ -190,20 +239,220 @@ export default function Newsfeed() {
       }
       return newSet;
     });
+
+    // Load comments when expanding
+    if (isExpanding && !postComments[postId]) {
+      try {
+        const comments = await commentsApi.getCommentsByPostId(postId);
+        setPostComments(prev => ({ ...prev, [postId]: comments }));
+      } catch (error) {
+        console.error('Failed to load comments:', error);
+      }
+    }
   };
 
   const handleCommentChange = (postId: string, value: string) => {
     setCommentInputs((prev) => ({ ...prev, [postId]: value }));
   };
 
-  const handleSendComment = (postId: string) => {
+  const handleSendComment = async (postId: string) => {
     const comment = commentInputs[postId];
-    if (comment?.trim()) {
-      console.log('Send comment for post', postId, ':', comment);
+    if (!comment?.trim() || !currentUser) return;
+
+    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
+
+    try {
+      const newComment = await commentsApi.createComment(postId, currentUser.id, comment.trim());
+      
+      // Add comment to state
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), newComment]
+      }));
+
+      // Update post comment count
+      setPosts(prev => prev.map(p => 
+        p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p
+      ));
+
+      // Clear input
       setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+
       // Expand comments if not already expanded
       if (!expandedComments.has(postId)) {
         toggleComments(postId);
+      }
+    } catch (error) {
+      console.error('Failed to send comment:', error);
+    } finally {
+      setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleLikePost = async (postId: string) => {
+    if (!currentUser) return;
+
+    const isLiked = likedPosts.has(postId);
+
+    // Optimistic update
+    setLikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+
+    setPosts(prev => prev.map(p => 
+      p.id === postId 
+        ? { ...p, likeCount: (p.likeCount || 0) + (isLiked ? -1 : 1) }
+        : p
+    ));
+
+    try {
+      await reactionsApi.togglePostReaction(postId, currentUser.id, 'LIKE');
+    } catch (error) {
+      console.error('Failed to toggle post reaction:', error);
+      // Revert on error
+      setLikedPosts(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(postId);
+        } else {
+          newSet.delete(postId);
+        }
+        return newSet;
+      });
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, likeCount: (p.likeCount || 0) + (isLiked ? 1 : -1) }
+          : p
+      ));
+    }
+  };
+
+  const handleLikeComment = async (commentId: string, postId: string) => {
+    if (!currentUser) return;
+
+    const isLiked = likedComments.has(commentId);
+
+    // Optimistic update
+    setLikedComments(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+
+    setPostComments(prev => ({
+      ...prev,
+      [postId]: prev[postId]?.map(c => 
+        c.id === commentId 
+          ? { ...c, likeCount: (c.likeCount || 0) + (isLiked ? -1 : 1) }
+          : c
+      ) || []
+    }));
+
+    try {
+      await reactionsApi.toggleCommentReaction(commentId, currentUser.id, 'LIKE');
+    } catch (error) {
+      console.error('Failed to toggle comment reaction:', error);
+      // Revert on error
+      setLikedComments(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(commentId);
+        } else {
+          newSet.delete(commentId);
+        }
+        return newSet;
+      });
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: prev[postId]?.map(c => 
+          c.id === commentId 
+            ? { ...c, likeCount: (c.likeCount || 0) + (isLiked ? 1 : -1) }
+            : c
+        ) || []
+      }));
+    }
+  };
+
+  const handleReplyToComment = (commentId: string, postId: string) => {
+    setReplyingTo(commentId);
+    setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
+  };
+
+  const handleSendReply = async (parentCommentId: string, postId: string) => {
+    const replyText = commentInputs[`reply-${parentCommentId}`];
+    if (!replyText?.trim() || !currentUser) return;
+
+    setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
+
+    try {
+      const newReply = await commentsApi.createComment(
+        postId, 
+        currentUser.id, 
+        replyText.trim(), 
+        parentCommentId
+      );
+
+      // Add reply to state
+      setCommentReplies(prev => ({
+        ...prev,
+        [parentCommentId]: [...(prev[parentCommentId] || []), newReply]
+      }));
+
+      // Update parent comment reply count
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: prev[postId]?.map(c => 
+          c.id === parentCommentId 
+            ? { ...c, replyCount: (c.replyCount || 0) + 1 }
+            : c
+        ) || []
+      }));
+
+      // Clear input and close reply mode
+      setCommentInputs(prev => ({ ...prev, [`reply-${parentCommentId}`]: '' }));
+      setReplyingTo(null);
+
+      // Expand replies if not already expanded
+      if (!expandedReplies.has(parentCommentId)) {
+        setExpandedReplies(prev => new Set(prev).add(parentCommentId));
+      }
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+    } finally {
+      setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false }));
+    }
+  };
+
+  const toggleReplies = async (commentId: string) => {
+    const isExpanding = !expandedReplies.has(commentId);
+    
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+
+    // Load replies when expanding
+    if (isExpanding && !commentReplies[commentId]) {
+      try {
+        const replies = await commentsApi.getRepliesByCommentId(commentId);
+        setCommentReplies(prev => ({ ...prev, [commentId]: replies }));
+      } catch (error) {
+        console.error('Failed to load replies:', error);
       }
     }
   };
@@ -269,6 +518,33 @@ export default function Newsfeed() {
       {/* Stories Section */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
+          {/* Create Your Story */}
+          <div className="shrink-0 w-32">
+            <div 
+              onClick={() => setIsCreateStoryOpen(true)}
+              className="w-32 h-48 rounded-2xl bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group"
+            >
+              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2 overflow-hidden">
+                {currentUser?.avatar ? (
+                  <img 
+                    src={currentUser.avatar} 
+                    alt={currentUser.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : currentUser?.fullName ? (
+                  <span className="text-white font-semibold text-base">
+                    {getInitials(currentUser.fullName)}
+                  </span>
+                ) : (
+                  <span className="text-white font-semibold text-base">U</span>
+                )}
+              </div>
+              <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center -mt-3">
+                <Plus className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-base text-gray-600 text-center mt-3 font-medium">Create story</p>
+          </div>
 
           {/* Add Story (Facebook Web style) */}
           {currentUser && (
@@ -283,72 +559,59 @@ export default function Newsfeed() {
             </div>
           )}
           {/* Friends Stories */}
-          {storyGroups.map((group, index) => {
-            const firstStory = group[0];
-
-            return (
-              <button
-                key={firstStory.user.id}
-                onClick={() => setViewerUserIndex(index)}
-                className="shrink-0 w-32 text-left"
+          {(() => {
+            console.log('🎨 [Newsfeed RENDER] isLoadingStories:', isLoadingStories);
+            console.log('🎨 [Newsfeed RENDER] stories:', stories);
+            console.log('🎨 [Newsfeed RENDER] stories.length:', stories?.length);
+            console.log('🎨 [Newsfeed RENDER] Array.isArray(stories):', Array.isArray(stories));
+            return null;
+          })()}
+          {isLoadingStories ? (
+            <div className="flex items-center justify-center py-12 text-gray-500">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              Loading stories...
+            </div>
+          ) : Array.isArray(stories) && stories.length > 0 ? (
+            stories.map((story) => (
+              <div
+                key={story.id}
+                onClick={() => handleViewStory(story.id)}
+                className="shrink-0 w-32 cursor-pointer group"
               >
-                <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-blue-500 to-purple-500 p-[2px] relative overflow-hidden">
-                  {/* Story Content Background */}
-                  <div className="w-full h-full rounded-2xl overflow-hidden relative">
-                    {/* Story preview */}
-                    {firstStory.contentType === 'image' && (
-                      <img
-                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-
-                    {firstStory.contentType === 'text' && (
-                      <div
-                        className={`w-full h-full ${firstStory.background} flex items-center justify-center p-3`}
-                      >
-                        <p className="text-white text-sm font-semibold text-center line-clamp-4">
-                          {firstStory.content}
-                        </p>
+                <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-purple-500 to-pink-500 p-[3px] group-hover:opacity-90 transition-opacity">
+                  <div 
+                    className="w-full h-full rounded-2xl overflow-hidden relative"
+                    style={{
+                      background: story.mediaUrl ? `url(${story.mediaUrl}) center/cover` : story.backgroundColor || '#6366f1',
+                    }}
+                  >
+                    {/* Author avatar in top-left corner */}
+                    <div className="absolute top-2 left-2">
+                      {story.authorAvatar ? (
+                        <img
+                          src={story.authorAvatar}
+                          alt={story.authorName}
+                          className="w-10 h-10 rounded-full border-2 border-white"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
+                          <span className="text-white text-xs font-semibold">{getInitials(story.authorName)}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Text overlay for text-only stories */}
+                    {story.text && (
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <p className="text-white text-center font-bold text-sm line-clamp-6">{story.text}</p>
                       </div>
                     )}
-
-                    {firstStory.contentType === 'video' && (
-                      <video
-                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                        onLoadedMetadata={(e) => {
-                          e.currentTarget.currentTime = 0;
-                        }}
-                      />
-                    )}
-
-
-                    {/* Gradient overlay for better avatar visibility */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
-
-                    {/* User Avatar */}
-                    <div className="absolute top-3 left-3">
-                      <img
-                        src={firstStory.user.avatar}
-                        alt={firstStory.user.name}
-                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg"
-                      />
-                    </div>
                   </div>
                 </div>
-
-                <p className="text-center mt-3 font-medium truncate text-sm">
-                  {firstStory.user.name}
-                </p>
-              </button>
-            );
-          })}
-
-
+                <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">{story.authorName}</p>
+              </div>
+            ))
+          ) : null}
         </div>
       </div>
 
@@ -643,9 +906,22 @@ export default function Newsfeed() {
 
                 {/* Post Actions */}
                 <div className="border-t border-gray-200 pt-3 flex items-center">
-                  <button className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg hover:bg-gray-50 transition-colors group">
-                    <Heart className="w-6 h-6 text-gray-500 group-hover:text-red-500 group-hover:fill-red-500 transition-colors" />
-                    <span className="text-base text-gray-700 font-medium group-hover:text-red-500">Like</span>
+                  <button 
+                    onClick={() => handleLikePost(post.id!)}
+                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors group ${
+                      likedPosts.has(post.id!) ? 'text-red-500' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <Heart className={`w-6 h-6 transition-colors ${
+                      likedPosts.has(post.id!) 
+                        ? 'text-red-500 fill-red-500' 
+                        : 'text-gray-500 group-hover:text-red-500 group-hover:fill-red-500'
+                    }`} />
+                    <span className={`text-base font-medium ${
+                      likedPosts.has(post.id!) ? 'text-red-500' : 'text-gray-700 group-hover:text-red-500'
+                    }`}>
+                      {likedPosts.has(post.id!) ? 'Liked' : 'Like'}
+                    </span>
                   </button>
                   <button
                     onClick={() => toggleComments(post.id)}
@@ -679,9 +955,10 @@ export default function Newsfeed() {
                           type="text"
                           value={commentInput}
                           onChange={(e) => handleCommentChange(post.id!, e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendComment(post.id!)}
+                          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment(post.id!)}
                           placeholder="Viết bình luận..."
-                          className="w-full h-12 px-4 pr-14 rounded-lg bg-gray-50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
+                          disabled={isSubmittingComment[post.id!]}
+                          className="w-full h-12 px-4 pr-14 rounded-lg bg-gray-50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all disabled:opacity-50"
                         />
                         <button
                           onClick={() => handleSendComment(post.id!)}
@@ -691,10 +968,151 @@ export default function Newsfeed() {
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
                         >
-                          <Send className="w-5 h-5" />
+                          {isSubmittingComment[post.id!] ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Send className="w-5 h-5" />
+                          )}
                         </button>
                       </div>
                     </div>
+
+                    {/* Comments List */}
+                    {postComments[post.id!] && postComments[post.id!].length > 0 && (
+                      <div className="space-y-3 mt-4">
+                        {postComments[post.id!].map((comment) => (
+                          <div key={comment.id} className="flex flex-col gap-2">
+                            {/* Main Comment */}
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                                {comment.userName?.charAt(0) || 'U'}
+                              </div>
+                              <div className="flex-1">
+                                <div className="bg-gray-100 rounded-2xl px-4 py-2.5">
+                                  <p className="font-semibold text-sm text-gray-900">{comment.userName || 'Unknown'}</p>
+                                  <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
+                                </div>
+                                <div className="flex items-center gap-4 mt-1.5 px-3">
+                                  <button 
+                                    onClick={() => handleLikeComment(comment.id!, post.id!)}
+                                    className={`text-xs font-semibold transition-colors ${
+                                      likedComments.has(comment.id!) 
+                                        ? 'text-red-600' 
+                                        : 'text-gray-600 hover:text-blue-600'
+                                    }`}
+                                  >
+                                    {likedComments.has(comment.id!) ? 'Liked' : 'Like'}
+                                    {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
+                                  </button>
+                                  <button 
+                                    onClick={() => handleReplyToComment(comment.id!, post.id!)}
+                                    className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
+                                  >
+                                    Reply
+                                  </button>
+                                  {comment.replyCount && comment.replyCount > 0 && (
+                                    <button
+                                      onClick={() => toggleReplies(comment.id!)}
+                                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                                    >
+                                      {expandedReplies.has(comment.id!) ? 'Hide' : 'View'} {comment.replyCount} {comment.replyCount === 1 ? 'reply' : 'replies'}
+                                    </button>
+                                  )}
+                                  <span className="text-xs text-gray-500">
+                                    {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Just now'}
+                                  </span>
+                                </div>
+
+                                {/* Reply Input */}
+                                {replyingTo === comment.id && (
+                                  <div className="flex items-center gap-2 mt-3 ml-0">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                                      {currentUser?.fullName?.charAt(0) || 'U'}
+                                    </div>
+                                    <div className="flex-1 relative">
+                                      <input
+                                        type="text"
+                                        value={commentInputs[`reply-${comment.id}`] || ''}
+                                        onChange={(e) => setCommentInputs(prev => ({ ...prev, [`reply-${comment.id}`]: e.target.value }))}
+                                        onKeyPress={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendReply(comment.id!, post.id!);
+                                          }
+                                        }}
+                                        placeholder={`Reply to ${comment.userName}...`}
+                                        disabled={isSubmittingComment[`reply-${comment.id}`]}
+                                        className="w-full h-9 px-3 pr-10 rounded-full bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                        autoFocus
+                                      />
+                                      <button
+                                        onClick={() => handleSendReply(comment.id!, post.id!)}
+                                        disabled={!commentInputs[`reply-${comment.id}`]?.trim() || isSubmittingComment[`reply-${comment.id}`]}
+                                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ${
+                                          commentInputs[`reply-${comment.id}`]?.trim() 
+                                            ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
+                                      >
+                                        {isSubmittingComment[`reply-${comment.id}`] ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Send className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        setReplyingTo(null);
+                                        setCommentInputs(prev => ({ ...prev, [`reply-${comment.id}`]: '' }));
+                                      }}
+                                      className="text-xs text-gray-500 hover:text-gray-700"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Replies List */}
+                                {expandedReplies.has(comment.id!) && commentReplies[comment.id!] && commentReplies[comment.id!].length > 0 && (
+                                  <div className="ml-6 mt-3 space-y-3 border-l-2 border-gray-200 pl-4">
+                                    {commentReplies[comment.id!].map((reply) => (
+                                      <div key={reply.id} className="flex items-start gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                                          {reply.userName?.charAt(0) || 'U'}
+                                        </div>
+                                        <div className="flex-1">
+                                          <div className="bg-gray-50 rounded-2xl px-3 py-2">
+                                            <p className="font-semibold text-sm text-gray-900">{reply.userName || 'Unknown'}</p>
+                                            <p className="text-gray-700 text-sm mt-0.5">{reply.content}</p>
+                                          </div>
+                                          <div className="flex items-center gap-3 mt-1 px-2">
+                                            <button 
+                                              onClick={() => handleLikeComment(reply.id!, post.id!)}
+                                              className={`text-xs font-semibold transition-colors ${
+                                                likedComments.has(reply.id!) 
+                                                  ? 'text-red-600' 
+                                                  : 'text-gray-600 hover:text-blue-600'
+                                              }`}
+                                            >
+                                              {likedComments.has(reply.id!) ? 'Liked' : 'Like'}
+                                              {reply.likeCount && reply.likeCount > 0 && ` (${reply.likeCount})`}
+                                            </button>
+                                            <span className="text-xs text-gray-500">
+                                              {reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Just now'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
