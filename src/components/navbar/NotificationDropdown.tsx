@@ -150,6 +150,8 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
     try {
       await notificationsApi.markAllAsRead(currentUser.id);
       setNotifications((prev) => prev.map(n => ({ ...n, isRead: true })));
+      // Trigger parent to reload unread count
+      onNotificationRead?.();
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }

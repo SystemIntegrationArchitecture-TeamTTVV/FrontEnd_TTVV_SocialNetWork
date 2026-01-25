@@ -1,9 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
-import { Camera, Plus, UserPlus, Check, X, Loader2, MessageCircle } from 'lucide-react';
+import { Camera, Plus, UserPlus, Check, X, Loader2, MessageCircle, Heart, Share2, MoreHorizontal, Send } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { authApi } from '../../apis/auth';
 import { usersApi, type User } from '../../apis/users';
 import { friendRequestsApi, type FriendRequest } from '../../apis/friendRequests';
+import { postsApi, type PostData } from '../../apis/posts';
+import { reactionsApi } from '../../apis/reactions';
+import { commentsApi, type CommentData } from '../../apis/comments';
 import { useSocket } from '../../contexts/SocketContext';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 
@@ -13,6 +16,17 @@ export default function Profile() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [loadingFriendRequest, setLoadingFriendRequest] = useState(false);
+  const [posts, setPosts] = useState<PostData[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [postComments, setPostComments] = useState<Record<string, CommentData[]>>({});
+  const [commentReplies, setCommentReplies] = useState<Record<string, CommentData[]>>({});
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const currentUser = authApi.getCurrentUser();
   const { subscribe } = useSocket();
   const { openChatBoxByUserId } = useChatBox();
@@ -100,6 +114,311 @@ export default function Profile() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, profileUser?.id]);
+
+  // Load user posts
+  useEffect(() => {
+    const loadUserPosts = async () => {
+      if (!id) return;
+
+      setIsLoadingPosts(true);
+      try {
+        console.log('📡 Loading posts for user:', id);
+        const userPosts = await postsApi.getPostsByUserId(id);
+        console.log('✅ Loaded user posts:', userPosts.length);
+        setPosts(userPosts);
+
+        // Load current user's reactions to mark liked posts
+        if (currentUser?.id) {
+          try {
+            const userReactions = await reactionsApi.getReactionsByUserId(currentUser.id);
+            const likedPostIds = new Set(
+              userReactions
+                .filter(r => r.postId)
+                .map(r => r.postId!)
+            );
+            setLikedPosts(likedPostIds);
+            
+            const likedCommentIds = new Set(
+              userReactions
+                .filter(r => r.commentId)
+                .map(r => r.commentId!)
+            );
+            setLikedComments(likedCommentIds);
+            console.log('✅ Loaded user reactions:', likedPostIds.size, 'posts,', likedCommentIds.size, 'comments');
+          } catch (err) {
+            console.error('Failed to load user reactions:', err);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Failed to load user posts:', error);
+        setPosts([]);
+      } finally {
+        setIsLoadingPosts(false);
+      }
+    };
+
+    if (activeTab === 'posts') {
+      loadUserPosts();
+    }
+  }, [id, activeTab, currentUser?.id]);
+
+  // Subscribe to socket events for real-time updates
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const unsubscribers = [
+      // Listen for reaction events
+      subscribe('REACTION_ADDED', (event) => {
+        if (event.data?.postId) {
+          // Reload the specific post to get updated like count
+          postsApi.getPostById(event.data.postId).then(updatedPost => {
+            setPosts(prev => prev.map(p => p.id === event.data.postId ? updatedPost : p));
+          }).catch(console.error);
+        }
+      }),
+
+      // Listen for comment events  
+      subscribe('COMMENT_CREATED', (event) => {
+        if (event.data?.postId) {
+          // Reload the specific post to get updated comment count
+          postsApi.getPostById(event.data.postId).then(updatedPost => {
+            setPosts(prev => prev.map(p => p.id === event.data.postId ? updatedPost : p));
+          }).catch(console.error);
+        }
+      }),
+    ];
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [currentUser?.id, subscribe]);
+
+  const toggleComments = async (postId: string) => {
+    const isExpanding = !expandedComments.has(postId);
+    
+    setExpandedComments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+
+    if (isExpanding && !postComments[postId]) {
+      try {
+        const comments = await commentsApi.getCommentsByPostId(postId);
+        setPostComments(prev => ({ ...prev, [postId]: comments }));
+      } catch (error) {
+        console.error('Failed to load comments:', error);
+      }
+    }
+  };
+
+  const handleLikePost = async (postId: string) => {
+    if (!currentUser) return;
+
+    const isLiked = likedPosts.has(postId);
+
+    setLikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+
+    setPosts(prev => prev.map(p => 
+      p.id === postId 
+        ? { ...p, likeCount: (p.likeCount || 0) + (isLiked ? -1 : 1) }
+        : p
+    ));
+
+    try {
+      await reactionsApi.togglePostReaction(postId, currentUser.id, 'LIKE');
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+      setLikedPosts(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(postId);
+        } else {
+          newSet.delete(postId);
+        }
+        return newSet;
+      });
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, likeCount: (p.likeCount || 0) + (isLiked ? 1 : -1) }
+          : p
+      ));
+    }
+  };
+
+  const handleSendComment = async (postId: string) => {
+    const comment = commentInputs[postId];
+    if (!comment?.trim() || !currentUser) return;
+
+    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
+
+    try {
+      const newComment = await commentsApi.createComment(postId, currentUser.id, comment.trim());
+      
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), newComment]
+      }));
+
+      setPosts(prev => prev.map(p => 
+        p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p
+      ));
+
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+
+      if (!expandedComments.has(postId)) {
+        toggleComments(postId);
+      }
+    } catch (error) {
+      console.error('Failed to send comment:', error);
+    } finally {
+      setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleLikeComment = async (commentId: string, postId: string) => {
+    if (!currentUser) return;
+
+    const isLiked = likedComments.has(commentId);
+
+    setLikedComments(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+
+    setPostComments(prev => ({
+      ...prev,
+      [postId]: prev[postId]?.map(c => 
+        c.id === commentId 
+          ? { ...c, likeCount: (c.likeCount || 0) + (isLiked ? -1 : 1) }
+          : c
+      ) || []
+    }));
+
+    try {
+      await reactionsApi.toggleCommentReaction(commentId, currentUser.id, 'LIKE');
+    } catch (error) {
+      console.error('Failed to toggle comment like:', error);
+      setLikedComments(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(commentId);
+        } else {
+          newSet.delete(commentId);
+        }
+        return newSet;
+      });
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: prev[postId]?.map(c => 
+          c.id === commentId 
+            ? { ...c, likeCount: (c.likeCount || 0) + (isLiked ? 1 : -1) }
+            : c
+        ) || []
+      }));
+    }
+  };
+
+  const handleReplyToComment = (commentId: string, postId: string) => {
+    setReplyingTo(commentId);
+    setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
+  };
+
+  const handleSendReply = async (parentCommentId: string, postId: string) => {
+    const replyText = commentInputs[`reply-${parentCommentId}`];
+    if (!replyText?.trim() || !currentUser) return;
+
+    setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
+
+    try {
+      const newReply = await commentsApi.createComment(
+        postId, 
+        currentUser.id, 
+        replyText.trim(), 
+        parentCommentId
+      );
+
+      setCommentReplies(prev => ({
+        ...prev,
+        [parentCommentId]: [...(prev[parentCommentId] || []), newReply]
+      }));
+
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: prev[postId]?.map(c => 
+          c.id === parentCommentId 
+            ? { ...c, replyCount: (c.replyCount || 0) + 1 }
+            : c
+        ) || []
+      }));
+
+      setCommentInputs(prev => ({ ...prev, [`reply-${parentCommentId}`]: '' }));
+      setReplyingTo(null);
+
+      if (!expandedReplies.has(parentCommentId)) {
+        setExpandedReplies(prev => new Set(prev).add(parentCommentId));
+      }
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+    } finally {
+      setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false }));
+    }
+  };
+
+  const toggleReplies = async (commentId: string) => {
+    const isExpanding = !expandedReplies.has(commentId);
+    
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+
+    if (isExpanding && !commentReplies[commentId]) {
+      try {
+        const replies = await commentsApi.getRepliesByCommentId(commentId);
+        setCommentReplies(prev => ({ ...prev, [commentId]: replies }));
+      } catch (error) {
+        console.error('Failed to load replies:', error);
+      }
+    }
+  };
+
+  const getTimeAgo = (dateString?: string) => {
+    if (!dateString) return 'Just now';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
+  };
 
   const getFriendRequestStatus = (userId: string): 'none' | 'pending' | 'sent' | 'received' | 'accepted' => {
     if (!currentUser?.id) return 'none';
@@ -365,10 +684,297 @@ export default function Profile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Post Card Example */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-200">
-            <p className="text-sm text-gray-500 text-center py-6">No posts to show</p>
-          </div>
+          {activeTab === 'posts' && (
+            <>
+              {isLoadingPosts ? (
+                <div className="bg-white rounded-2xl p-12 border border-gray-200 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 border border-gray-200">
+                  <p className="text-sm text-gray-500 text-center">No posts yet</p>
+                </div>
+              ) : (
+                posts.map((post) => {
+                  const isCommentsExpanded = expandedComments.has(post.id!);
+                  const commentInput = commentInputs[post.id!] || '';
+
+                  return (
+                    <div key={post.id} className="bg-white rounded-2xl border border-gray-200">
+                      {/* Post Header */}
+                      <div className="p-5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm">
+                            {post.authorAvatar ? (
+                              <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                              post.authorName?.charAt(0) || 'U'
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{post.authorName || 'Unknown User'}</p>
+                            <p className="text-sm text-gray-500">{getTimeAgo(post.createdAt)}</p>
+                          </div>
+                        </div>
+                        <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                          <MoreHorizontal className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </div>
+
+                      {/* Post Content */}
+                      <div className="px-5 pb-4">
+                        <p className="text-gray-900 text-base leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                      </div>
+
+                      {/* Post Images */}
+                      {post.images && post.images.length > 0 && (
+                        <div className="mb-4">
+                          {post.images.length === 1 ? (
+                            <img src={post.images[0]} alt="Post" className="w-full max-h-[600px] object-cover" />
+                          ) : (
+                            <div className="grid grid-cols-2 gap-1">
+                              {post.images.map((img, idx) => (
+                                <img key={idx} src={img} alt={`Post ${idx + 1}`} className="w-full h-[250px] object-cover" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Post Videos */}
+                      {post.videos && post.videos.length > 0 && (
+                        <div className="mb-4">
+                          {post.videos.map((video, idx) => (
+                            <video key={idx} src={video} controls className="w-full max-h-[600px] bg-black" />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Post Stats */}
+                      <div className="px-5 pb-3">
+                        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                          <span className="font-semibold">{post.likeCount || 0} likes</span>
+                          <div className="flex items-center gap-4">
+                            <span>{post.commentCount || 0} comments</span>
+                            <span>·</span>
+                            <span>{post.shareCount || 0} shares</span>
+                          </div>
+                        </div>
+
+                        {/* Post Actions */}
+                        <div className="border-t border-gray-200 pt-3 flex items-center">
+                          <button
+                            onClick={() => handleLikePost(post.id!)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
+                              likedPosts.has(post.id!) ? 'text-red-500' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <Heart className={`w-5 h-5 ${
+                              likedPosts.has(post.id!) ? 'text-red-500 fill-red-500' : 'text-gray-500'
+                            }`} />
+                            <span className="text-sm font-medium">
+                              {likedPosts.has(post.id!) ? 'Liked' : 'Like'}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => toggleComments(post.id!)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors ${
+                              isCommentsExpanded ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <MessageCircle className={`w-5 h-5 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
+                            <span className="text-sm font-medium">Comment</span>
+                          </button>
+                          <Link
+                            to={`/post/${post.id}/share`}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <Share2 className="w-5 h-5 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-700">Share</span>
+                          </Link>
+                        </div>
+
+                        {/* Comments Section */}
+                        {isCommentsExpanded && (
+                          <div className="border-t border-gray-200 pt-4 mt-3 space-y-3">
+                            {/* Comment Input */}
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs">
+                                {currentUser?.fullName?.charAt(0) || 'U'}
+                              </div>
+                              <div className="flex-1 relative">
+                                <input
+                                  type="text"
+                                  value={commentInput}
+                                  onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id!]: e.target.value }))}
+                                  onKeyPress={(e) => e.key === 'Enter' && handleSendComment(post.id!)}
+                                  placeholder="Write a comment..."
+                                  disabled={isSubmittingComment[post.id!]}
+                                  className="w-full h-10 px-4 pr-12 rounded-full bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                />
+                                <button
+                                  onClick={() => handleSendComment(post.id!)}
+                                  disabled={!commentInput.trim() || isSubmittingComment[post.id!]}
+                                  className={`absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center ${
+                                    commentInput.trim() ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {isSubmittingComment[post.id!] ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Send className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Comments List */}
+                            {postComments[post.id!] && postComments[post.id!].length > 0 && (
+                              <div className="space-y-3">
+                                {postComments[post.id!].map((comment) => (
+                                  <div key={comment.id} className="flex flex-col gap-2">
+                                    {/* Main Comment */}
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs">
+                                        {comment.userName?.charAt(0) || 'U'}
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="bg-gray-100 rounded-2xl px-3 py-2">
+                                          <p className="font-semibold text-sm text-gray-900">{comment.userName || 'Unknown'}</p>
+                                          <p className="text-gray-700 text-sm">{comment.content}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-1 px-3">
+                                          <button 
+                                            onClick={() => handleLikeComment(comment.id!, post.id!)}
+                                            className={`text-xs font-semibold transition-colors ${
+                                              likedComments.has(comment.id!) 
+                                                ? 'text-red-600' 
+                                                : 'text-gray-600 hover:text-blue-600'
+                                            }`}
+                                          >
+                                            {likedComments.has(comment.id!) ? 'Liked' : 'Like'}
+                                            {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
+                                          </button>
+                                          <button 
+                                            onClick={() => handleReplyToComment(comment.id!, post.id!)}
+                                            className="text-xs font-semibold text-gray-600 hover:text-blue-600"
+                                          >
+                                            Reply
+                                          </button>
+                                          {comment.replyCount && comment.replyCount > 0 && (
+                                            <button
+                                              onClick={() => toggleReplies(comment.id!)}
+                                              className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                                            >
+                                              {expandedReplies.has(comment.id!) ? 'Hide' : 'View'} {comment.replyCount} {comment.replyCount === 1 ? 'reply' : 'replies'}
+                                            </button>
+                                          )}
+                                          <span className="text-xs text-gray-500">{getTimeAgo(comment.createdAt)}</span>
+                                        </div>
+
+                                        {/* Reply Input */}
+                                        {replyingTo === comment.id && (
+                                          <div className="flex items-center gap-2 mt-2">
+                                            <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                                              {currentUser?.fullName?.charAt(0) || 'U'}
+                                            </div>
+                                            <div className="flex-1 relative">
+                                              <input
+                                                type="text"
+                                                value={commentInputs[`reply-${comment.id}`] || ''}
+                                                onChange={(e) => setCommentInputs(prev => ({ ...prev, [`reply-${comment.id}`]: e.target.value }))}
+                                                onKeyPress={(e) => {
+                                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleSendReply(comment.id!, post.id!);
+                                                  }
+                                                }}
+                                                placeholder={`Reply to ${comment.userName}...`}
+                                                disabled={isSubmittingComment[`reply-${comment.id}`]}
+                                                className="w-full h-8 px-3 pr-9 rounded-full bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                autoFocus
+                                              />
+                                              <button
+                                                onClick={() => handleSendReply(comment.id!, post.id!)}
+                                                disabled={!commentInputs[`reply-${comment.id}`]?.trim() || isSubmittingComment[`reply-${comment.id}`]}
+                                                className={`absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ${
+                                                  commentInputs[`reply-${comment.id}`]?.trim() 
+                                                    ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                }`}
+                                              >
+                                                {isSubmittingComment[`reply-${comment.id}`] ? (
+                                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : (
+                                                  <Send className="w-3 h-3" />
+                                                )}
+                                              </button>
+                                            </div>
+                                            <button
+                                              onClick={() => {
+                                                setReplyingTo(null);
+                                                setCommentInputs(prev => ({ ...prev, [`reply-${comment.id}`]: '' }));
+                                              }}
+                                              className="text-xs text-gray-500 hover:text-gray-700"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        )}
+
+                                        {/* Replies List */}
+                                        {expandedReplies.has(comment.id!) && commentReplies[comment.id!] && commentReplies[comment.id!].length > 0 && (
+                                          <div className="ml-4 mt-2 space-y-2 border-l-2 border-gray-200 pl-3">
+                                            {commentReplies[comment.id!].map((reply) => (
+                                              <div key={reply.id} className="flex items-start gap-2">
+                                                <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                                                  {reply.userName?.charAt(0) || 'U'}
+                                                </div>
+                                                <div className="flex-1">
+                                                  <div className="bg-gray-50 rounded-2xl px-3 py-1.5">
+                                                    <p className="font-semibold text-sm text-gray-900">{reply.userName || 'Unknown'}</p>
+                                                    <p className="text-gray-700 text-sm">{reply.content}</p>
+                                                  </div>
+                                                  <div className="flex items-center gap-2 mt-1 px-2">
+                                                    <button 
+                                                      onClick={() => handleLikeComment(reply.id!, post.id!)}
+                                                      className={`text-xs font-semibold transition-colors ${
+                                                        likedComments.has(reply.id!) 
+                                                          ? 'text-red-600' 
+                                                          : 'text-gray-600 hover:text-blue-600'
+                                                      }`}
+                                                    >
+                                                      {likedComments.has(reply.id!) ? 'Liked' : 'Like'}
+                                                      {reply.likeCount && reply.likeCount > 0 && ` (${reply.likeCount})`}
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">{getTimeAgo(reply.createdAt)}</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </>
+          )}
+
+          {activeTab !== 'posts' && (
+            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+              <p className="text-sm text-gray-500 text-center py-6">Content for {activeTab} tab</p>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}

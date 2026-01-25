@@ -1,60 +1,114 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { X, Globe, UserCheck, Lock, Image as ImageIcon } from 'lucide-react';
-import { useState } from 'react';
-import Newsfeed from './Newsfeed';
+import { X, Globe, UserCheck, Lock, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { postsApi, type PostData } from '../../apis/posts';
+import { authApi } from '../../apis/auth';
 
 export default function ShareDialog() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [content, setContent] = useState('');
-  const [privacy, setPrivacy] = useState('public');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'ONLY_ME'>('PUBLIC');
+  const [originalPost, setOriginalPost] = useState<PostData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
+  const currentUser = authApi.getCurrentUser();
 
-  const handleShare = () => {
-    console.log('Share post:', id, content, privacy);
-    navigate(-1);
+  useEffect(() => {
+    const loadOriginalPost = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const post = await postsApi.getPostById(id);
+        setOriginalPost(post);
+      } catch (error) {
+        console.error('Failed to load post:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadOriginalPost();
+  }, [id]);
+
+  const handleShare = async () => {
+    if (!id || !currentUser) return;
+
+    setIsSharing(true);
+    try {
+      await postsApi.sharePost(id, currentUser.id, content, visibility);
+      console.log('✅ Post shared successfully');
+      navigate('/home');
+    } catch (error) {
+      console.error('Failed to share post:', error);
+      alert('Failed to share post. Please try again.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const cycleVisibility = () => {
+    if (visibility === 'PUBLIC') setVisibility('FRIENDS');
+    else if (visibility === 'FRIENDS') setVisibility('ONLY_ME');
+    else setVisibility('PUBLIC');
+  };
+
+  const getVisibilityIcon = () => {
+    if (visibility === 'PUBLIC') return <Globe className="w-4 h-4" />;
+    if (visibility === 'FRIENDS') return <UserCheck className="w-4 h-4" />;
+    return <Lock className="w-4 h-4" />;
+  };
+
+  const getVisibilityText = () => {
+    if (visibility === 'PUBLIC') return 'Public';
+    if (visibility === 'FRIENDS') return 'Friends';
+    return 'Only Me';
+  };
+
+  const getTimeAgo = (dateString?: string) => {
+    if (!dateString) return 'Just now';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
   };
 
   return (
-    <>
-      {/* Background - same as Newsfeed page */}
-      <Newsfeed />
-      
-      {/* Modal Overlay */}
-      <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-[500px] max-h-[90vh] overflow-y-auto pointer-events-auto">
-        <div className="p-4 border-b border-[#E4E6EB] flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[#050505]">Share Post</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[540px] max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+          <h2 className="text-xl font-bold text-gray-900">Share Post</h2>
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full hover:bg-[#F0F2F5] flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
           >
-            <X className="w-5 h-5 text-[#050505]" />
+            <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
 
         <div className="p-4 space-y-4">
           {/* User Info */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center text-white font-semibold">
-              JD
+            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+              {currentUser?.fullName?.charAt(0) || 'U'}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-[#050505]">John Doe</p>
+              <p className="font-semibold text-gray-900">{currentUser?.fullName || 'Unknown'}</p>
               <button
-                onClick={() => setPrivacy(privacy === 'public' ? 'friends' : 'public')}
-                className="flex items-center gap-1 text-sm text-[#65676B] hover:text-[#050505] transition-colors"
+                onClick={cycleVisibility}
+                className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
-                {privacy === 'public' ? (
-                  <>
-                    <Globe className="w-4 h-4" />
-                    <span>Public</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-4 h-4" />
-                    <span>Friends</span>
-                  </>
-                )}
+                {getVisibilityIcon()}
+                <span>{getVisibilityText()}</span>
               </button>
             </div>
           </div>
@@ -63,34 +117,62 @@ export default function ShareDialog() {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Write something..."
-            className="w-full min-h-[100px] p-2 border border-[#E4E6EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+            placeholder="Say something about this..."
+            className="w-full min-h-[100px] p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900"
+            disabled={isSharing}
           />
 
           {/* Original Post Preview */}
-          <div className="bg-[#F0F2F5] rounded-lg p-4 border-l-4 border-[#1877F2]">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-[#42B72A] flex items-center justify-center text-white text-xs font-semibold">
-                SJ
-              </div>
-              <div>
-                <p className="font-semibold text-sm text-[#050505]">Sarah Johnson</p>
-                <p className="text-xs text-[#65676B]">2 hours ago</p>
-              </div>
+          {isLoading ? (
+            <div className="bg-gray-50 rounded-lg p-8 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
             </div>
-            <p className="text-sm text-[#050505]">Just finished an amazing hike! The view was breathtaking 🏔️</p>
-          </div>
+          ) : originalPost ? (
+            <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-semibold">
+                  {originalPost.authorName?.charAt(0) || 'U'}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900">{originalPost.authorName || 'Unknown User'}</p>
+                  <p className="text-xs text-gray-500">{getTimeAgo(originalPost.createdAt)}</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{originalPost.content}</p>
+              {originalPost.images && originalPost.images.length > 0 && (
+                <div className="mt-3 rounded-lg overflow-hidden">
+                  <img 
+                    src={originalPost.images[0]} 
+                    alt="Post" 
+                    className="w-full max-h-[300px] object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-red-50 rounded-lg p-4 text-center text-red-600">
+              Failed to load original post
+            </div>
+          )}
 
+          {/* Share Button */}
           <button
             onClick={handleShare}
-            className="w-full h-11 bg-[#1877F2] text-white font-semibold rounded-md hover:bg-[#166FE5] transition-colors"
+            disabled={isSharing || isLoading || !originalPost}
+            className="w-full h-11 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Share Now
+            {isSharing ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Sharing...</span>
+              </>
+            ) : (
+              'Share Now'
+            )}
           </button>
         </div>
       </div>
     </div>
-    </>
   );
 }
 

@@ -38,18 +38,18 @@ export default function Navbar() {
   }, [location.pathname, currentUser?.id]);
 
   // Load unread notification count
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      if (!currentUser?.id) return;
-      
-      try {
-        const count = await notificationsApi.getUnreadNotificationCount(currentUser.id);
-        setUnreadNotificationCount(count);
-      } catch (error) {
-        console.error('Failed to load unread notification count:', error);
-      }
-    };
+  const loadUnreadCount = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const count = await notificationsApi.getUnreadNotificationCount(currentUser.id);
+      setUnreadNotificationCount(count);
+    } catch (error) {
+      console.error('Failed to load unread notification count:', error);
+    }
+  };
 
+  useEffect(() => {
     loadUnreadCount();
   }, [currentUser?.id]);
 
@@ -253,13 +253,15 @@ export default function Navbar() {
             >
               <Bell className="w-6 h-6 text-gray-700" />
               {unreadNotificationCount > 0 && (
-                <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 border-2 border-white">
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                </span>
               )}
             </button>
             <NotificationDropdown 
               isOpen={isNotificationOpen} 
               onClose={() => setIsNotificationOpen(false)}
-              onNotificationRead={() => setUnreadNotificationCount((prev) => Math.max(0, prev - 1))}
+              onNotificationRead={loadUnreadCount}
             />
           </div>
           {/* Socket Connection Status Indicator */}

@@ -42,20 +42,32 @@ class HttpClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     const contentType = response.headers.get('content-type');
     const isJson = contentType?.includes('application/json');
+    console.log('🔍 [HTTP] Content-Type:', contentType, 'isJson:', isJson);
 
     let data: any;
     try {
       data = isJson ? await response.json() : await response.text();
+      console.log('📦 [HTTP] Parsed data:', data);
     } catch (error) {
+      console.error('❌ [HTTP] Failed to parse response:', error);
       data = null;
     }
 
     if (!response.ok) {
+      // Handle 401 Unauthorized (expired token)
+      if (response.status === 401) {
+        console.warn('🔒 [HTTP] Token expired or invalid, logging out...');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth/login';
+      }
+
       const errorMessage =
         data?.message || data?.error || `HTTP error! status: ${response.status}`;
       throw new HttpError(response.status, errorMessage, data);
     }
 
+    console.log('✅ [HTTP] Returning data:', data);
     return data as T;
   }
 
