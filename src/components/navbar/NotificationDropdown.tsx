@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, UserPlus, Tag, Clock, X, Check } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Heart, MessageCircle, Share2, UserPlus, Tag, X, Check, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { notificationsApi, type Notification as NotificationData } from '../../apis/notifications';
 import { authApi } from '../../apis/auth';
 import { useSocket } from '../../contexts/SocketContext';
 import { friendRequestsApi } from '../../apis/friendRequests';
+import { conversationsApi } from '../../apis/conversations';
+import { usersApi } from '../../apis/users';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -58,21 +60,35 @@ const getInitials = (name: string): string => {
   return name.substring(0, 2).toUpperCase();
 };
 
+interface JoinRequestItem {
+  id: string; // conversationId-requesterId
+  type: 'JOIN_REQUEST';
+  conversationId: string;
+  conversationName: string;
+  requesterId: string;
+  requesterName: string;
+  requesterAvatar?: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
 export default function NotificationDropdown({ isOpen, onClose, onNotificationRead }: NotificationDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const currentUser = authApi.getCurrentUser();
   const { subscribe } = useSocket();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load notifications when dropdown opens
+  // Load notifications and join requests when dropdown opens
   useEffect(() => {
-    const loadNotifications = async () => {
+    const loadData = async () => {
       if (!currentUser?.id) return;
 
       try {
         setLoading(true);
+        // Load regular notifications
         const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
         
         // Load friend requests để check status
@@ -83,48 +99,139 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
         // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
         const filteredData = data.filter(notification => {
           if (notification.type === 'FRIEND_REQUEST' && notification.relatedId) {
-            // Check xem friend request có status ACTIVE không
             const friendRequest = allFriendRequests.find(fr => fr.id === notification.relatedId);
             if (friendRequest && friendRequest.status === 'ACTIVE') {
-              return false; // Ẩn notification này
+              return false;
             }
           }
-          return true; // Giữ lại notification
+          return true;
         });
         
         setNotifications(filteredData);
+
+        // Load conversations để lấy join requests
+        const conversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const joinRequestsList: JoinRequestItem[] = [];
+        
+        for (const conv of conversations) {
+          if (
+            conv.isGroup &&
+            conv.approvalsRequired &&
+            conv.pendingJoinIds &&
+            conv.pendingJoinIds.length > 0 &&
+            (conv.ownerId === currentUser.id || conv.adminIds?.includes(currentUser.id))
+          ) {
+            // Fetch user info for each requester
+            for (const requesterId of conv.pendingJoinIds) {
+              try {
+                const requester = await usersApi.getUserById(requesterId);
+                joinRequestsList.push({
+                  id: `${conv.id}-${requesterId}`,
+                  type: 'JOIN_REQUEST',
+                  conversationId: conv.id,
+                  conversationName: conv.groupName || 'Group Chat',
+                  requesterId,
+                  requesterName: requester.fullName || requester.username || requesterId,
+                  requesterAvatar: requester.avatar,
+                  createdAt: new Date().toISOString(), // Use current time as approximation
+                  isRead: false,
+                });
+              } catch (err) {
+                console.error(`Failed to fetch user ${requesterId}:`, err);
+                // Still add with fallback data
+                joinRequestsList.push({
+                  id: `${conv.id}-${requesterId}`,
+                  type: 'JOIN_REQUEST',
+                  conversationId: conv.id,
+                  conversationName: conv.groupName || 'Group Chat',
+                  requesterId,
+                  requesterName: requesterId,
+                  createdAt: new Date().toISOString(),
+                  isRead: false,
+                });
+              }
+            }
+          }
+        }
+        
+        setJoinRequests(joinRequestsList);
       } catch (error) {
-        console.error('Failed to load notifications:', error);
+        console.error('Failed to load notifications/join requests:', error);
       } finally {
         setLoading(false);
       }
     };
 
     if (isOpen) {
-      loadNotifications();
+      loadData();
     }
   }, [isOpen, currentUser?.id]);
 
-  // Subscribe to socket for real-time notifications
+  // Subscribe to socket for real-time notifications and join requests
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    const unsubscribe = subscribe('NOTIFICATION', (event) => {
+    const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
       if (event.type === 'NOTIFICATION' && event.data) {
         const notification = event.data as NotificationData;
         console.log('🔔 New notification received in dropdown:', notification);
         
-        // Add new notification to the top of the list
         setNotifications((prev) => {
-          // Avoid duplicates
           const exists = prev.some(n => n.id === notification.id);
           if (exists) return prev;
           return [notification, ...prev];
         });
       }
+
+      // Handle JOIN_REQUEST_CREATED events
+      if (event.type === 'JOIN_REQUEST_CREATED' && event.data) {
+        const { conversationId, requesterId } = event.data as { conversationId: string; requesterId: string };
+        console.log('👥 JOIN_REQUEST_CREATED received:', conversationId, requesterId);
+        
+        // Load conversation and user info to add to joinRequests
+        Promise.all([
+          conversationsApi.getConversationById(conversationId),
+          usersApi.getUserById(requesterId).catch(() => null),
+        ]).then(([conv, requester]) => {
+          if (conv && conv.isGroup && conv.approvalsRequired) {
+            const conversationName = conv.groupName || 'Group Chat';
+            const requesterName = requester?.fullName || requester?.username || requesterId;
+            const requesterAvatar = requester?.avatar;
+            
+            setJoinRequests((prev) => {
+              const exists = prev.some(jr => jr.id === `${conversationId}-${requesterId}`);
+              if (exists) return prev;
+              return [
+                {
+                  id: `${conversationId}-${requesterId}`,
+                  type: 'JOIN_REQUEST',
+                  conversationId,
+                  conversationName,
+                  requesterId,
+                  requesterName,
+                  requesterAvatar,
+                  createdAt: new Date().toISOString(),
+                  isRead: false,
+                },
+                ...prev,
+              ];
+            });
+          }
+        }).catch((err) => {
+          console.error('Failed to load join request details:', err);
+        });
+      }
+
+      // Handle JOIN_REQUEST_UPDATED (remove from list if rejected, or just mark handled if approved)
+      if (event.type === 'JOIN_REQUEST_UPDATED' && event.data) {
+        const { conversationId, requesterId } = event.data as { conversationId: string; requesterId: string };
+        console.log('👥 JOIN_REQUEST_UPDATED received:', conversationId, requesterId);
+        
+        setJoinRequests((prev) => prev.filter(jr => jr.id !== `${conversationId}-${requesterId}`));
+      }
     });
 
-    return unsubscribe;
+    return unsubscribeNotification;
   }, [currentUser?.id, subscribe]);
 
   // Close dropdown when clicking outside
@@ -150,10 +257,43 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
     try {
       await notificationsApi.markAllAsRead(currentUser.id);
       setNotifications((prev) => prev.map(n => ({ ...n, isRead: true })));
-      // Trigger parent to reload unread count
-      onNotificationRead?.();
+      setJoinRequests((prev) => prev.map(jr => ({ ...jr, isRead: true })));
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const handleAcceptJoinRequest = async (joinRequest: JoinRequestItem) => {
+    if (!currentUser?.id) return;
+
+    try {
+      await conversationsApi.handleJoinRequest(joinRequest.conversationId, {
+        requesterId: joinRequest.requesterId,
+        approverId: currentUser.id,
+        approved: true,
+      });
+      setJoinRequests((prev) => prev.filter(jr => jr.id !== joinRequest.id));
+      onNotificationRead?.();
+    } catch (error) {
+      console.error('Failed to accept join request:', error);
+      alert('Không thể chấp nhận yêu cầu tham gia');
+    }
+  };
+
+  const handleRejectJoinRequest = async (joinRequest: JoinRequestItem) => {
+    if (!currentUser?.id) return;
+
+    try {
+      await conversationsApi.handleJoinRequest(joinRequest.conversationId, {
+        requesterId: joinRequest.requesterId,
+        approverId: currentUser.id,
+        approved: false,
+      });
+      setJoinRequests((prev) => prev.filter(jr => jr.id !== joinRequest.id));
+      onNotificationRead?.();
+    } catch (error) {
+      console.error('Failed to reject join request:', error);
+      alert('Không thể từ chối yêu cầu tham gia');
     }
   };
 
@@ -195,10 +335,11 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
           console.error('Failed to reload notifications:', reloadError);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to accept friend request:', error);
       // Nếu friend request không tồn tại (404), chỉ xóa notification khỏi UI
-      if (error?.message?.includes('Not Found') || error?.message?.includes('not found')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Not Found') || errorMessage.includes('not found')) {
         setNotifications((prev) => prev.filter(n => n.id !== notification.id));
       } else {
         alert('Failed to accept friend request');
@@ -219,10 +360,11 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
         const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
         setNotifications(data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to reject friend request:', error);
       // Nếu friend request không tồn tại (404), chỉ xóa notification khỏi UI
-      if (error?.message?.includes('Not Found') || error?.message?.includes('not found')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Not Found') || errorMessage.includes('not found')) {
         setNotifications((prev) => prev.filter(n => n.id !== notification.id));
       } else {
         alert('Failed to reject friend request');
@@ -249,7 +391,25 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  // Merge join requests with notifications and sort by createdAt
+  const allItems = useMemo(() => {
+    const combined: Array<NotificationData | JoinRequestItem> = [
+      ...notifications,
+      ...joinRequests,
+    ];
+    return combined.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime; // Newest first
+    });
+  }, [notifications, joinRequests]);
+
+  const unreadCount = useMemo(() => {
+    return (
+      notifications.filter((n) => !n.isRead).length +
+      joinRequests.filter((jr) => !jr.isRead).length
+    );
+  }, [notifications, joinRequests]);
 
   if (!isOpen) return null;
 
@@ -285,13 +445,84 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
           <div className="p-10 text-center text-gray-400">
             <p className="text-base">Loading...</p>
           </div>
-        ) : notifications.length === 0 ? (
+        ) : allItems.length === 0 ? (
           <div className="p-10 text-center text-gray-400">
             <p className="text-base">No notifications</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {notifications.map((notification) => {
+            {allItems.map((item) => {
+              // Handle JoinRequestItem
+              if ('type' in item && item.type === 'JOIN_REQUEST') {
+                const joinRequest = item as JoinRequestItem;
+                const avatarColor = generateColor(joinRequest.requesterId);
+                const initials = getInitials(joinRequest.requesterName);
+
+                return (
+                  <div
+                    key={joinRequest.id}
+                    onClick={() => navigate(`/messenger?conversation=${joinRequest.conversationId}`)}
+                    className={`p-4 hover:bg-gray-50/50 transition-colors cursor-pointer ${
+                      !joinRequest.isRead ? 'bg-blue-50/30' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="relative shrink-0">
+                        {joinRequest.requesterAvatar ? (
+                          <img
+                            src={joinRequest.requesterAvatar}
+                            alt={joinRequest.requesterName}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-medium"
+                            style={{ backgroundColor: avatarColor }}
+                          >
+                            {initials}
+                          </div>
+                        )}
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border-2 border-white flex items-center justify-center shadow-sm">
+                          <Users className="w-3 h-3 text-gray-600" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base text-gray-900 leading-relaxed">
+                          <span className="font-semibold">{joinRequest.requesterName}</span>{' '}
+                          <span className="text-gray-600">muốn tham gia nhóm</span>{' '}
+                          <span className="font-semibold text-gray-900">{joinRequest.conversationName}</span>
+                        </p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          {formatTimeAgo(joinRequest.createdAt)}
+                        </p>
+                        {!joinRequest.isRead && (
+                          <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleAcceptJoinRequest(joinRequest)}
+                              className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" />
+                              Chấp nhận
+                            </button>
+                            <button
+                              onClick={() => handleRejectJoinRequest(joinRequest)}
+                              className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+                            >
+                              Từ chối
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {!joinRequest.isRead && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2"></div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Handle regular NotificationData
+              const notification = item as NotificationData;
               const Icon = getNotificationIcon(notification.type);
               const actorName = notification.actorName || 'Someone';
               const actorAvatar = notification.actorAvatar;

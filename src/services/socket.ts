@@ -118,7 +118,9 @@ class SocketService {
             data: event.data,
             timestamp: event.timestamp
           });
+          // Emit both as NOTIFICATION (for notification handlers) and as the actual event type (e.g., MESSAGE_RECEIVED)
           this.handleEvent('NOTIFICATION', event);
+          this.handleEvent(event.type, event); // Emit with actual event type (MESSAGE_RECEIVED, JOIN_REQUEST_CREATED, etc.)
           this.handleEvent('*', event); // Wildcard handler
         } catch (error) {
           console.error('❌ Error parsing notification message:', error, message.body);

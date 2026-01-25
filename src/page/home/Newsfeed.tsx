@@ -32,6 +32,8 @@ export default function Newsfeed() {
     avatar: string;
     role: string;
   } | null>(() => authApi.getCurrentUser());
+  useEffect(() => {
+    if (!currentUser?.id) return;
 
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
@@ -459,7 +461,7 @@ export default function Newsfeed() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       let clickedInsideAnyMenu = false;
-      
+
       Object.values(menuRefs.current).forEach((ref) => {
         if (ref && ref.contains(target)) {
           clickedInsideAnyMenu = true;
@@ -513,6 +515,7 @@ export default function Newsfeed() {
   return (
     <div className="space-y-6 pb-8">
       {/* Stories Section */}
+      {/* Stories Section */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
           {/* Create Your Story */}
@@ -543,6 +546,18 @@ export default function Newsfeed() {
             <p className="text-base text-gray-600 text-center mt-3 font-medium">Create story</p>
           </div>
 
+          {/* Add Story (Facebook Web style) */}
+          {currentUser && (
+            <AddStoryCard
+              avatar={currentUser.avatar}
+              onClick={() => setShowCreateStory(true)}
+            />
+          )}
+          {loadingStories && (
+            <div className="flex items-center justify-center w-full h-48 text-gray-500">
+              Đang tải stories...
+            </div>
+          )}
           {/* Friends Stories */}
           {(() => {
             console.log('🎨 [Newsfeed RENDER] isLoadingStories:', isLoadingStories);
@@ -600,13 +615,14 @@ export default function Newsfeed() {
         </div>
       </div>
 
+
       {/* Create Post */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {currentUser?.avatar ? (
-              <img 
-                src={currentUser.avatar} 
+              <img
+                src={currentUser.avatar}
                 alt={currentUser.fullName}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -735,7 +751,7 @@ export default function Newsfeed() {
                 <div className="relative" ref={(el) => {
                   if (el && post.id) menuRefs.current[post.id] = el;
                 }}>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId(openMenuId === post.id ? null : post.id!);
@@ -908,12 +924,11 @@ export default function Newsfeed() {
                     </span>
                   </button>
                   <button
-                    onClick={() => toggleComments(post.id!)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${
-                      isCommentsExpanded 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : 'hover:bg-gray-50 text-gray-700'
-                    }`}
+                    onClick={() => toggleComments(post.id)}
+                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${isCommentsExpanded
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50 text-gray-700'
+                      }`}
                   >
                     <MessageCircle className={`w-6 h-6 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
                     <span className="text-base font-medium">Comment</span>
@@ -947,12 +962,11 @@ export default function Newsfeed() {
                         />
                         <button
                           onClick={() => handleSendComment(post.id!)}
-                          disabled={!commentInput.trim() || isSubmittingComment[post.id!]}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                            commentInput.trim() && !isSubmittingComment[post.id!]
-                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          }`}
+                          disabled={!commentInput.trim()}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${commentInput.trim()
+                            ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
                         >
                           {isSubmittingComment[post.id!] ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -1106,24 +1120,22 @@ export default function Newsfeed() {
           );
         })}
       </div>
-
-      {/* Create Story Dialog */}
-      <CreateStory
-        isOpen={isCreateStoryOpen}
-        onClose={() => setIsCreateStoryOpen(false)}
-        onStoryCreated={handleStoryCreated}
-      />
-
-      {/* Story Viewer */}
-      <StoryViewer
-        isOpen={isStoryViewerOpen}
-        onClose={() => {
-          setIsStoryViewerOpen(false);
-          setSelectedStoryId(undefined);
-        }}
-        initialStoryId={selectedStoryId}
-        stories={stories}
-      />
+      {viewerUserIndex !== null && (
+        <StoryViewer
+          storyGroups={storyGroups}
+          initialUserIndex={viewerUserIndex}
+          onClose={() => setViewerUserIndex(null)}
+        />
+      )}
+      {showCreateStory && (
+        <CreateStoryModal
+          onClose={() => setShowCreateStory(false)}
+          onCreate={(story: Story) => {
+            setStories((prev) => [story, ...prev]);
+            setShowCreateStory(false);
+          }}
+        />
+      )}
     </div>
   );
 }

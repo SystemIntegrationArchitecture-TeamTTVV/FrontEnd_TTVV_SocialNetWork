@@ -103,17 +103,19 @@ export default function CallWindow({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
-      {/* Header */}
-      <div className="p-6 text-white text-center">
-        <h2 className="text-2xl font-semibold">{callerName}</h2>
-        <p className="text-gray-400 mt-1">
-          {isIncoming ? `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} đến...` : `${callType === 'video' ? 'Video' : 'Thoại'} call`}
-        </p>
-      </div>
+    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col overflow-hidden">
+      {/* Header - Only show for active calls, not incoming */}
+      {!isIncoming && (
+        <div className="p-4 text-white text-center bg-black/30 backdrop-blur-sm">
+          <h2 className="text-xl font-semibold">{callerName}</h2>
+          <p className="text-gray-400 text-sm mt-1">
+            {callType === 'video' ? 'Video call' : 'Thoại call'}
+          </p>
+        </div>
+      )}
 
       {/* Video Area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden">
         {/* Incoming Call Screen */}
         {isIncoming && (
           <div className="w-full h-full flex flex-col items-center justify-center">
@@ -201,40 +203,40 @@ export default function CallWindow({
         )}
       </div>
 
-      {/* Controls */}
-      <div className="p-8 flex justify-center items-center gap-6">
+      {/* Controls - Fixed at bottom with backdrop */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-8 pb-6 px-6 z-10">
         {/* Incoming Call Controls */}
         {isIncoming && onAccept && (
-          <>
-            <div className="flex flex-col items-center gap-2">
+          <div className="flex justify-center items-center gap-8">
+            <div className="flex flex-col items-center gap-3">
               <button
                 onClick={onReject}
-                className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-xl"
+                className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl"
                 aria-label="Từ chối"
               >
                 <PhoneOff className="w-10 h-10" />
               </button>
               <span className="text-white text-sm font-medium">Từ chối</span>
             </div>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
               <button
                 onClick={onAccept}
-                className="w-20 h-20 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-xl animate-pulse"
+                className="w-20 h-20 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl animate-pulse"
                 aria-label="Chấp nhận"
               >
                 {callType === 'video' ? <Video className="w-10 h-10" /> : <Phone className="w-10 h-10" />}
               </button>
               <span className="text-white text-sm font-medium">Chấp nhận</span>
             </div>
-          </>
+          </div>
         )}
 
         {/* Active Call Controls */}
         {!isIncoming && (
-          <>
+          <div className="flex justify-center items-center gap-6 max-w-2xl mx-auto">
             <button
               onClick={toggleMute}
-              className={`w-14 h-14 rounded-full ${isMuted ? 'bg-red-500' : 'bg-gray-700'} hover:bg-gray-600 flex items-center justify-center text-white transition-colors`}
+              className={`w-14 h-14 rounded-full ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} flex items-center justify-center text-white transition-all shadow-lg`}
               aria-label={isMuted ? 'Unmute' : 'Mute'}
             >
               {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
@@ -243,7 +245,7 @@ export default function CallWindow({
             {callType === 'video' && (
               <button
                 onClick={toggleVideo}
-                className={`w-14 h-14 rounded-full ${isVideoOff ? 'bg-red-500' : 'bg-gray-700'} hover:bg-gray-600 flex items-center justify-center text-white transition-colors`}
+                className={`w-14 h-14 rounded-full ${isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} flex items-center justify-center text-white transition-all shadow-lg`}
                 aria-label={isVideoOff ? 'Turn on video' : 'Turn off video'}
               >
                 {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
@@ -252,12 +254,12 @@ export default function CallWindow({
 
             <button
               onClick={onEnd}
-              className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-colors"
+              className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all shadow-lg transform hover:scale-105"
               aria-label="End call"
             >
               <PhoneOff className="w-8 h-8" />
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

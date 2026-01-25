@@ -4,6 +4,7 @@ import type { ChatContact, ChatMessage } from '../types/chat';
 import { useMessages } from '../hooks/useMessages';
 import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
+import { conversationsApi } from '../apis/conversations';
 
 // Re-export types for convenience
 export type { ChatContact, ChatMessage };
@@ -12,6 +13,7 @@ interface ChatBoxContextType {
   openChatBoxes: ChatContact[];
   openChatBox: (contact: ChatContact) => void;
   openChatBoxByUserId: (userId: string, userName?: string, userAvatar?: string) => Promise<void>;
+  openChatBoxByConversationId: (conversationId: string) => Promise<void>;
   closeChatBox: (contactId: string) => void;
   toggleMinimize: (contactId: string) => void;
   minimizedBoxes: Set<string>;
@@ -37,6 +39,77 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   const [openChatBoxes, setOpenChatBoxes] = useState<ChatContact[]>([]);
   const [minimizedBoxes, setMinimizedBoxes] = useState<Set<string>>(new Set());
 
+  const storageKey = useCallback(
+    (suffix: string) => `chatbox:${suffix}:${user?.id || 'anonymous'}`,
+    [user?.id]
+  );
+
+  // Restore open chatboxes/minimized state after refresh
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const rawBoxes = localStorage.getItem(storageKey('openChatBoxes'));
+      const rawMin = localStorage.getItem(storageKey('minimizedBoxes'));
+      const parsedBoxes: unknown = rawBoxes ? JSON.parse(rawBoxes) : [];
+      const parsedMin: unknown = rawMin ? JSON.parse(rawMin) : [];
+
+      const boxes = Array.isArray(parsedBoxes)
+        ? (parsedBoxes as Array<Partial<ChatContact>>)
+            .filter((b) => b && typeof b.id === 'string' && typeof b.name === 'string')
+            .slice(0, 5)
+            .map((b) => ({
+              id: String(b.id),
+              userId: b.userId ? String(b.userId) : undefined,
+              name: String(b.name),
+              avatar: typeof b.avatar === 'string' ? b.avatar : String(b.name).slice(0, 2).toUpperCase(),
+              color: typeof b.color === 'string' ? b.color : '#1877F2',
+              online: typeof b.online === 'boolean' ? b.online : false,
+              isGroup: typeof b.isGroup === 'boolean' ? b.isGroup : false,
+            }))
+        : [];
+
+      const mins = Array.isArray(parsedMin) ? (parsedMin as string[]).map(String) : [];
+
+      // Use functional updates to avoid cascading renders warning
+      setOpenChatBoxes(() => boxes);
+      setMinimizedBoxes(() => new Set(mins));
+
+      // Load messages for restored boxes
+      for (const c of boxes) {
+        loadMessages(c.id);
+      }
+    } catch (e) {
+      console.warn('Failed to restore chatbox state:', e);
+      setOpenChatBoxes([]);
+      setMinimizedBoxes(new Set());
+    }
+  }, [user?.id, storageKey, loadMessages]);
+
+  // Persist chatboxes/minimized state so refresh doesn't lose them
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(storageKey('openChatBoxes'), JSON.stringify(openChatBoxes));
+      localStorage.setItem(storageKey('minimizedBoxes'), JSON.stringify(Array.from(minimizedBoxes)));
+    } catch (e) {
+      console.warn('Failed to persist chatbox state:', e);
+    }
+  }, [user?.id, openChatBoxes, minimizedBoxes, storageKey]);
+
+  // Ensure isGroup flag on contacts stays in sync with conversations (handles old localStorage entries)
+  useEffect(() => {
+    if (!conversations.length) return;
+    setOpenChatBoxes((prev) =>
+      prev.map((c) => {
+        const conv = conversations.find((cv) => cv.id === c.id);
+        if (!conv) return c;
+        const isGroup = conv.isGroup;
+        if (c.isGroup === isGroup) return c;
+        return { ...c, isGroup };
+      })
+    );
+  }, [conversations]);
+
   // Convert API messages to ChatMessage format
   const messages: Record<string, ChatMessage[]> = Object.keys(apiMessages).reduce((acc, conversationId) => {
     const apiMsgs = apiMessages[conversationId] || [];
@@ -44,9 +117,12 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
       const displayMsg = formatMessageForDisplay(msg);
       return {
         id: displayMsg.id,
+        sender: displayMsg.sender,
+        senderId: displayMsg.senderId,
         content: displayMsg.content,
         isMe: displayMsg.isMe,
         time: displayMsg.time,
+        attachments: displayMsg.attachments,
       };
     });
     return acc;
@@ -93,6 +169,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         avatar: initials,
         color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
         online: true, // Assume online when manually opening chat
+        isGroup: false,
       };
 
       // Open chatbox
@@ -104,6 +181,41 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
       console.error('Failed to open chatbox:', error);
     }
   }, [user, getOrCreateDirectConversation, loadMessages, openChatBox]);
+
+  // Open chatbox by conversationId (supports group + direct)
+  const openChatBoxByConversationId = useCallback(
+    async (conversationId: string) => {
+      if (!user?.id || !conversationId) return;
+      try {
+        const conv = await conversationsApi.getConversationById(conversationId);
+        const name = conv.isGroup
+          ? conv.groupName || 'Group Chat'
+          : (() => {
+              const idx = conv.participantIds.findIndex((id) => id !== user.id);
+              return conv.participantNames?.[idx] || 'Unknown User';
+            })();
+
+        const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+        const otherUserId = conv.isGroup ? undefined : conv.participantIds.find((id) => id !== user.id);
+
+        const contact: ChatContact = {
+          id: conv.id,
+          userId: otherUserId,
+          name,
+          avatar: initials,
+          color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+          online: true,
+          isGroup: conv.isGroup,
+        };
+
+        openChatBox(contact);
+        await loadMessages(conv.id);
+      } catch (e) {
+        console.error('Failed to open chatbox by conversationId:', e);
+      }
+    },
+    [user?.id, openChatBox, loadMessages]
+  );
 
   const closeChatBox = (contactId: string) => {
     setOpenChatBoxes((prev) => prev.filter((c) => c.id !== contactId));
@@ -135,6 +247,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   const sendMessage = useCallback(async (contactId: string, content: string) => {
     if (!content.trim()) return;
     await sendMessageAPI(contactId, content);
+     window.dispatchEvent(new Event('refresh-conversations'));
   }, [sendMessageAPI]);
 
   // 🔥 Auto-open chatbox when receiving new message
@@ -143,7 +256,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
 
     console.log('🔔 ChatBox: Subscribing to MESSAGE_RECEIVED for auto-open');
 
-    const unsubscribe = subscribe('MESSAGE_RECEIVED', (event) => {
+    const unsubscribe = subscribe('MESSAGE_RECEIVED', async (event) => {
       console.log('📬 ChatBox received MESSAGE_RECEIVED event:', event);
       
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
@@ -156,20 +269,63 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
           senderName: message.senderName,
         });
         
-        // Only auto-open if message is from another user
+        // 🔒 SECURITY: Only auto-open if message is from another user
+        // Backend already verified user is participant before emitting event to /user/{username}/queue/notifications
         if (message.senderId !== user.id && message.conversationId) {
+          // Optional: Verify participant if conversation is already loaded
+          const conversation = conversations.find(conv => conv.id === message.conversationId);
+          if (conversation) {
+            const isParticipant = conversation.participantIds?.includes(user.id);
+            if (!isParticipant) {
+              console.warn('🚫 SECURITY: Ignoring message - current user is not a participant of this conversation:', {
+                conversationId: message.conversationId,
+                currentUserId: user.id,
+                senderId: message.senderId
+              });
+              return;
+            }
+          } else {
+            // Conversation not in state yet, but backend already verified we're a participant
+            console.log('📋 Conversation not in state yet, but backend verified participant - proceeding to open chatbox');
+          }
+          
           console.log('✅ Message is from another user, auto-opening chatbox');
           
-          // Use sender info from message (already available)
-          const contactName = message.senderName || 'Unknown User';
+          // Determine group vs direct so the floating chatbox has correct title (groupName)
+          let contactName = message.senderName || 'Unknown User';
+          let userIdForCall: string | undefined = message.senderId;
+          let isGroupConversation = false;
+
+          const inState = conversations.find((c) => c.id === message.conversationId);
+          if (inState?.isGroup) {
+            contactName = inState.groupName || 'Group Chat';
+            userIdForCall = undefined;
+            isGroupConversation = true;
+          } else if (!inState) {
+            // Not in state: fetch minimal conversation to detect group
+            try {
+              const conv = await conversationsApi.getConversationById(message.conversationId);
+              if (conv.isGroup) {
+                contactName = conv.groupName || 'Group Chat';
+                userIdForCall = undefined;
+                isGroupConversation = true;
+              }
+            } catch (e) {
+              // ignore network/parse errors here
+              console.warn('Failed to fetch conversation for chatbox title:', e);
+            }
+          }
+
           const initials = contactName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
           const contact: ChatContact = {
             id: message.conversationId,
+            userId: userIdForCall,
             name: contactName,
             avatar: initials,
             color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-            online: true, // User is online since they just sent a message
+            online: true, // sender is online since they just sent a message
+            isGroup: isGroupConversation,
           };
 
           console.log('📦 Opening chatbox with contact:', contact);
@@ -181,7 +337,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
     });
 
     return unsubscribe;
-  }, [isConnected, user?.id, subscribe, openChatBox]);
+  }, [isConnected, user?.id, subscribe, openChatBox, conversations]);
 
   return (
     <ChatBoxContext.Provider
@@ -189,6 +345,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         openChatBoxes,
         openChatBox,
         openChatBoxByUserId,
+        openChatBoxByConversationId,
         closeChatBox,
         toggleMinimize,
         minimizedBoxes,
