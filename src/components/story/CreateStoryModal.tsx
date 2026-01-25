@@ -1,30 +1,11 @@
 import { X, Image, Type, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-
+import { storiesApi } from '../../apis/storiesApi';
+import { authApi } from '../../apis/auth';
 /* ===================== TYPES ===================== */
-
-export type Story = {
-  id: string;
-
-  user: {
-    id: number;
-    name: string;
-    avatar: string;
-  };
-
-  contentType: 'text' | 'image' | 'video';
-  content: string;
-  background?: string;
-
-  duration: number;        // seconds
-  createdAt: string;       // ISO
-  expiresAt: string;       // ISO (24h)
-  isViewed: boolean;
-  viewCount: number;
-  isActive: boolean;
-};
-
+import type { Story } from '../../types/story';
 type MediaState = {
+  file: File;
   url: string;
   type: 'image' | 'video';
 };
@@ -40,6 +21,8 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
   const [mode, setMode] = useState<'text' | 'media' | null>(null);
   const [text, setText] = useState('');
   const [media, setMedia] = useState<MediaState | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const [selectedBg, setSelectedBg] = useState(
     'bg-gradient-to-br from-blue-500 to-purple-500'
   );
@@ -52,63 +35,73 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
     'bg-gradient-to-br from-indigo-500 to-blue-500',
     'bg-gradient-to-br from-purple-500 to-pink-500',
   ];
+  const [currentUser] = useState<{
+    id: string;
+    username: string;
+    fullName: string;
+    avatar: string;
+    role: string;
+  } | null>(() => authApi.getCurrentUser());
 
-  /* ===================== CREATE ===================== */
-
-  const createTextStory = () => {
+  if (!currentUser) {
+    return null; // hoặc redirect login
+  }
+  /* ===================== CREATE TEXT ===================== */
+  const createTextStory = async () => {
     if (!text.trim()) return;
 
-    const now = new Date();
-    const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    try {
+      setLoading(true);
 
-    onCreate({
-      id: Date.now().toString(),
-      user: {
-        id: 1,
-        name: 'You',
-        avatar: 'https://i.pravatar.cc/150?img=10',
-      },
-      contentType: 'text',
-      content: text,
-      background: selectedBg,
+      const story = await storiesApi.createStory({
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        userAvatar: currentUser.avatar,
 
-      duration: 5,
-      createdAt: now.toISOString(),
-      expiresAt: expires.toISOString(),
-      isViewed: false,
-      viewCount: 0,
-      isActive: true,
-    });
+        contentType: 'text',
+        content: text,
+        background: selectedBg,
+        duration: 10,
+      });
 
-    onClose();
+      onCreate(story); // ✅ story đã tồn tại
+      onClose();
+    } catch (err) {
+      console.error('Create text story failed', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const createMediaStory = () => {
+
+
+  /* ===================== CREATE MEDIA ===================== */
+
+  const createMediaStory = async () => {
     if (!media) return;
 
-    const now = new Date();
-    const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    try {
+      setLoading(true);
 
-    onCreate({
-      id: Date.now().toString(),
-      user: {
-        id: 1,
-        name: 'You',
-        avatar: 'https://i.pravatar.cc/150?img=10',
-      },
-      contentType: media.type,
-      content: media.url,
+      const story= await storiesApi.createStory({
+        userId: currentUser.id,
+        userName: currentUser.fullName, // hoặc username
+        userAvatar: currentUser.avatar,
 
-      duration: media.type === 'video' ? 10 : 5,
-      createdAt: now.toISOString(),
-      expiresAt: expires.toISOString(),
-      isViewed: false,
-      viewCount: 0,
-      isActive: true,
-    });
-
-    onClose();
+        contentType: media.type,
+        duration: media.type === 'video' ? 10 : 5,
+        file: media.file,
+      });
+      onCreate(story);
+      onClose();
+    } catch (err) {
+      console.error('Create media story failed', err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+
 
   /* ===================== UI ===================== */
 
@@ -182,16 +175,16 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                     <button
                       key={bg}
                       onClick={() => setSelectedBg(bg)}
-                      className={`h-10 rounded-lg ${bg} ${
-                        selectedBg === bg ? 'ring-4 ring-blue-500' : ''
-                      }`}
+                      className={`h-10 rounded-lg ${bg} ${selectedBg === bg ? 'ring-4 ring-blue-500' : ''
+                        }`}
                     />
                   ))}
                 </div>
 
                 <button
                   onClick={createTextStory}
-                  className="w-full py-3 bg-blue-600 text-white rounded-xl"
+                  disabled={loading}
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl disabled:opacity-50"
                 >
                   Share to Story
                 </button>
@@ -212,11 +205,9 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-
-                      const url = URL.createObjectURL(file);
-
                       setMedia({
-                        url,
+                        file,
+                        url: URL.createObjectURL(file),
                         type: file.type.startsWith('video/')
                           ? 'video'
                           : 'image',
@@ -227,7 +218,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
 
                 <button
                   onClick={createMediaStory}
-                  disabled={!media}
+                  disabled={!media || loading}
                   className="w-full py-3 bg-blue-600 text-white rounded-xl disabled:opacity-50"
                 >
                   Share to Story

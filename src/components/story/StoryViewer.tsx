@@ -7,7 +7,7 @@ type StoryViewerProps = {
   initialUserIndex: number;
   onClose: () => void;
 };
-
+import { API_CONFIG } from '../../apis/config';
 export default function StoryViewer({
   storyGroups,
   initialUserIndex,
@@ -118,7 +118,7 @@ export default function StoryViewer({
           {/* IMAGE */}
           {story.contentType === 'image' && (
             <img
-              src={story.content}
+              src={`${API_CONFIG.COMMON_SERVICE_URL}${story.content}`}
               className="w-full h-full object-cover"
             />
           )}

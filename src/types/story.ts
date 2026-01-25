@@ -3,7 +3,7 @@ export type Story = {
 
   /* ===== OWNER ===== */
   user: {
-    id: number;
+    id: string;
     name: string;
     avatar: string;
   };

@@ -7,6 +7,8 @@ import AddStoryCard from '../../components/story/AddStoryCard';
 import StoryViewer from '../../components/story/StoryViewer';
 import type { Story } from '../../types/story';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
+import { storiesApi } from '../../apis/storiesApi';
+import { API_CONFIG } from '../../apis/config';
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
@@ -15,6 +17,8 @@ export default function Newsfeed() {
   const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
 
   const [showCreateStory, setShowCreateStory] = useState(false);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
 
   const [currentUser] = useState<{
     id: string;
@@ -23,7 +27,27 @@ export default function Newsfeed() {
     avatar: string;
     role: string;
   } | null>(() => authApi.getCurrentUser());
+  useEffect(() => {
+    if (!currentUser?.id) return;
 
+    setLoadingStories(true);
+
+    storiesApi
+      .getStoryFeed(currentUser.id)
+      .then((data) => {
+        setStories(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load stories', err);
+      })
+      .finally(() => {
+        setLoadingStories(false);
+      });
+  }, [currentUser?.id]);
+
+  stories.forEach((story, index) => {
+  console.log(`Story ${index}:`, story);
+});
   const [posts] = useState([
     {
       id: 1,
@@ -90,58 +114,58 @@ export default function Newsfeed() {
     },
   ]);
 
-const [stories, setStories] = useState<Story[]>([
-  {
-    id: '1',
-    user: {
-      id: 2,
-      name: 'Sarah',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-    },
-    contentType: 'text',
-    content: 'Lovely day 🌸',
-    background: 'bg-gradient-to-br from-pink-500 to-purple-500',
-    duration: 5,
-    createdAt: '2026-01-25T08:30:00Z',
-    expiresAt: '2026-01-26T08:30:00Z',
-    isViewed: false,
-    viewCount: 12,
-    isActive: true,
-  },
-  {
-    id: '2',
-    user: {
-      id: 3,
-      name: 'Mike',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-    },
-    contentType: 'image',
-    content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
-    duration: 5,
-    createdAt: '2026-01-25T09:00:00Z',
-    expiresAt: '2026-01-26T09:00:00Z',
-    isViewed: false,
-    viewCount: 30,
-    isActive: true,
-  },
-  {
-    id: '3',
-    user: {
-      id: 4,
-      name: 'Emma',
-      avatar: 'https://i.pravatar.cc/150?img=3',
-    },
-    contentType: 'text',
-    content: 'Weekend vibes ✨',
-    background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
-    duration: 5,
-    createdAt: '2026-01-25T10:15:00Z',
-    expiresAt: '2026-01-26T10:15:00Z',
-    isViewed: true,
-    viewCount: 8,
-    isActive: true,
-  },
-]);
+  // const [stories, setStories] = useState<Story[]>([
+  //   {
+  //     id: '1',
+  //     user: {
+  //       id: 2,
+  //       name: 'Sarah',
+  //       avatar: 'https://i.pravatar.cc/150?img=1',
+  //     },
+  //     contentType: 'text',
+  //     content: 'Lovely day 🌸',
+  //     background: 'bg-gradient-to-br from-pink-500 to-purple-500',
+  //     duration: 5,
+  //     createdAt: '2026-01-25T08:30:00Z',
+  //     expiresAt: '2026-01-26T08:30:00Z',
+  //     isViewed: false,
+  //     viewCount: 12,
+  //     isActive: true,
+  //   },
+  //   {
+  //     id: '2',
+  //     user: {
+  //       id: 3,
+  //       name: 'Mike',
+  //       avatar: 'https://i.pravatar.cc/150?img=2',
+  //     },
+  //     contentType: 'image',
+  //     content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
+  //     duration: 5,
+  //     createdAt: '2026-01-25T09:00:00Z',
+  //     expiresAt: '2026-01-26T09:00:00Z',
+  //     isViewed: false,
+  //     viewCount: 30,
+  //     isActive: true,
+  //   },
+  //   {
+  //     id: '3',
+  //     user: {
+  //       id: 4,
+  //       name: 'Emma',
+  //       avatar: 'https://i.pravatar.cc/150?img=3',
+  //     },
+  //     contentType: 'text',
+  //     content: 'Weekend vibes ✨',
+  //     background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
+  //     duration: 5,
+  //     createdAt: '2026-01-25T10:15:00Z',
+  //     expiresAt: '2026-01-26T10:15:00Z',
+  //     isViewed: true,
+  //     viewCount: 8,
+  //     isActive: true,
+  //   },
+  // ]);
 
 
 
@@ -228,7 +252,11 @@ const [stories, setStories] = useState<Story[]>([
               onClick={() => setShowCreateStory(true)}
             />
           )}
-
+          {loadingStories && (
+            <div className="flex items-center justify-center w-full h-48 text-gray-500">
+              Đang tải stories...
+            </div>
+          )}
           {/* Friends Stories */}
           {storyGroups.map((group, index) => {
             const firstStory = group[0];
@@ -245,7 +273,7 @@ const [stories, setStories] = useState<Story[]>([
                     {/* Story preview */}
                     {firstStory.contentType === 'image' && (
                       <img
-                        src={firstStory.content}
+                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
                         className="w-full h-full object-cover"
                       />
                     )}
@@ -262,7 +290,7 @@ const [stories, setStories] = useState<Story[]>([
 
                     {firstStory.contentType === 'video' && (
                       <video
-                        src={firstStory.content}
+                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
                         preload="metadata"
                         muted
                         playsInline
@@ -605,8 +633,8 @@ const [stories, setStories] = useState<Story[]>([
       {showCreateStory && (
         <CreateStoryModal
           onClose={() => setShowCreateStory(false)}
-          onCreate={(story) => {
-            setStories([story, ...stories]);
+          onCreate={(story: Story) => {
+            setStories((prev) => [story, ...prev]);
             setShowCreateStory(false);
           }}
         />
