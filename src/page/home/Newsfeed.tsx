@@ -3,12 +3,16 @@ import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, P
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
-
+import AddStoryCard from '../../components/story/AddStoryCard';
+import StoryViewer from '../../components/story/StoryViewer';
+import type { Story } from '../../types/story';
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
   const [currentUser] = useState<{
     id: string;
     username: string;
@@ -83,12 +87,38 @@ export default function Newsfeed() {
     },
   ]);
 
-  const stories = [
-    { name: 'Sarah', gradient: 'from-pink-500 to-cyan-400', avatar: 'SJ' },
-    { name: 'Mike', gradient: 'from-green-400 to-yellow-300', avatar: 'MC' },
-    { name: 'Emma', gradient: 'from-purple-400 to-pink-300', avatar: 'ED' },
-    { name: 'Alex', gradient: 'from-blue-400 to-indigo-500', avatar: 'AP' },
+  const stories: Story[] = [
+    {
+      id: '1',
+      user: {
+        name: 'Sarah',
+        avatar: 'https://i.pravatar.cc/150?img=1',
+      },
+      contentType: 'text',
+      content: 'Lovely day 🌸',
+      background: 'bg-gradient-to-br from-pink-500 to-purple-500',
+    },
+    {
+      id: '2',
+      user: {
+        name: 'Mike',
+        avatar: 'https://i.pravatar.cc/150?img=2',
+      },
+      contentType: 'image',
+      content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
+    },
+    {
+      id: '3',
+      user: {
+        name: 'Emma',
+        avatar: 'https://i.pravatar.cc/150?img=3',
+      },
+      contentType: 'text',
+      content: 'Weekend vibes ✨',
+      background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
+    },
   ];
+
 
   const toggleComments = (postId: number) => {
     setExpandedComments((prev) => {
@@ -122,7 +152,7 @@ export default function Newsfeed() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       let clickedInsideAnyMenu = false;
-      
+
       Object.values(menuRefs.current).forEach((ref) => {
         if (ref && ref.contains(target)) {
           clickedInsideAnyMenu = true;
@@ -151,79 +181,50 @@ export default function Newsfeed() {
   return (
     <div className="space-y-6 pb-8">
       {/* Stories Section */}
+      {/* Stories Section */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
-          {/* Your Story */}
-          <div className="shrink-0 w-32">
-            <div className="w-32 h-48 rounded-2xl bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group">
-              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2 overflow-hidden">
-                {currentUser?.avatar ? (
-                  <img 
-                    src={currentUser.avatar} 
-                    alt={currentUser.fullName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent && currentUser) {
-                        const initials = currentUser.fullName
-                          .split(' ')
-                          .map(n => n[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2);
-                        parent.innerHTML = `<span class="text-white font-semibold text-base">${initials}</span>`;
-                      }
-                    }}
-                  />
-                ) : currentUser?.fullName ? (
-                  <span className="text-white font-semibold text-base">
-                    {currentUser.fullName
-                      .split(' ')
-                      .map(n => n[0])
-                      .join('')
-                      .toUpperCase()
-                      .slice(0, 2)}
-                  </span>
-                ) : (
-                  <span className="text-white font-semibold text-base">JD</span>
-                )}
-              </div>
-              <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white flex items-center justify-center -mt-3">
-                <Plus className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <p className="text-base text-gray-600 text-center mt-3 font-medium">Your story</p>
-          </div>
+
+          {/* Add Story (Facebook Web style) */}
+          {currentUser && (
+            <AddStoryCard
+              avatar={currentUser.avatar}
+              onClick={() => console.log('Open create story modal')}
+            />
+          )}
 
           {/* Friends Stories */}
           {stories.map((story, index) => (
-            <Link
-              key={index}
-              to={`/stories/${index + 1}`}
-              className="shrink-0 w-32 cursor-pointer group"
+            <button
+              key={story.id}
+              onClick={() => setViewerIndex(index)}
+              className="shrink-0 w-32 cursor-pointer group text-left"
             >
-              <div className={`w-32 h-48 rounded-2xl bg-gradient-to-b ${story.gradient} p-[2px] group-hover:opacity-90 transition-opacity`}>
+              <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-blue-500 to-purple-500 p-[2px] group-hover:opacity-90 transition-opacity">
                 <div className="w-full h-full bg-white rounded-2xl flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
-                    <span className="text-white text-base font-semibold">{story.avatar}</span>
-                  </div>
+                  <img
+                    src={story.user.avatar}
+                    className="w-14 h-14 rounded-full border-2 border-white"
+                  />
                 </div>
               </div>
-              <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">{story.name}</p>
-            </Link>
+              <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">
+                {story.user.name}
+              </p>
+            </button>
           ))}
+
         </div>
       </div>
+
 
       {/* Create Post */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {currentUser?.avatar ? (
-              <img 
-                src={currentUser.avatar} 
+              <img
+                src={currentUser.avatar}
                 alt={currentUser.fullName}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -322,7 +323,7 @@ export default function Newsfeed() {
                 <div className="relative" ref={(el) => {
                   if (el) menuRefs.current[post.id] = el;
                 }}>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId(openMenuId === post.id ? null : post.id);
@@ -331,7 +332,7 @@ export default function Newsfeed() {
                   >
                     <MoreHorizontal className="w-6 h-6 text-gray-600" />
                   </button>
-                  
+
                   {openMenuId === post.id && (
                     <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-[100] min-w-[200px]">
                       <button
@@ -427,11 +428,10 @@ export default function Newsfeed() {
                   </button>
                   <button
                     onClick={() => toggleComments(post.id)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${
-                      isCommentsExpanded 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : 'hover:bg-gray-50 text-gray-700'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${isCommentsExpanded
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50 text-gray-700'
+                      }`}
                   >
                     <MessageCircle className={`w-6 h-6 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
                     <span className="text-base font-medium">Comment</span>
@@ -497,11 +497,10 @@ export default function Newsfeed() {
                         <button
                           onClick={() => handleSendComment(post.id)}
                           disabled={!commentInput.trim()}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                            commentInput.trim()
-                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          }`}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${commentInput.trim()
+                            ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
                         >
                           <Send className="w-5 h-5" />
                         </button>
@@ -514,6 +513,13 @@ export default function Newsfeed() {
           );
         })}
       </div>
+      {viewerIndex !== null && (
+        <StoryViewer
+          stories={stories}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
     </div>
   );
 }
