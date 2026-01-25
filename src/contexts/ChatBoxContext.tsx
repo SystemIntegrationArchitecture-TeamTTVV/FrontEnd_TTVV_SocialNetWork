@@ -247,6 +247,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   const sendMessage = useCallback(async (contactId: string, content: string) => {
     if (!content.trim()) return;
     await sendMessageAPI(contactId, content);
+     window.dispatchEvent(new Event('refresh-conversations'));
   }, [sendMessageAPI]);
 
   // 🔥 Auto-open chatbox when receiving new message

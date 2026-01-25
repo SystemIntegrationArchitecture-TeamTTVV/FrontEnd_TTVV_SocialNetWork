@@ -3,14 +3,23 @@ import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, P
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
-import { postsApi } from '../../apis/posts';
-import type { PostData } from '../../apis/posts';
-
+import AddStoryCard from '../../components/story/AddStoryCard';
+import StoryViewer from '../../components/story/StoryViewer';
+import type { Story } from '../../types/story';
+import CreateStoryModal from '../../components/story/CreateStoryModal';
+import { storiesApi } from '../../apis/storiesApi';
+import { API_CONFIG } from '../../apis/config';
 export default function Newsfeed() {
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const menuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
+
+  const [showCreateStory, setShowCreateStory] = useState(false);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
+
   const [currentUser] = useState<{
     id: string;
     username: string;
@@ -18,89 +27,160 @@ export default function Newsfeed() {
     avatar: string;
     role: string;
   } | null>(() => authApi.getCurrentUser());
-
-  const [posts, setPosts] = useState<PostData[]>([]);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load posts from API
   useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        setIsLoadingPosts(true);
-        setError(null);
-        const data = await postsApi.getAllPosts();
-        setPosts(data);
-        console.log('✅ Loaded posts:', data.length);
-      } catch (err: any) {
-        console.error('❌ Failed to load posts:', err);
-        
-        // MOCK DATA for testing without authentication
-        console.log('⚠️ Using mock data for testing...');
-        setPosts([
-          {
-            id: 'mock-1',
-            authorId: 'user-1',
-            authorName: 'Sarah Johnson',
-            authorAvatar: '',
-            content: 'Just finished an amazing hike! The view was breathtaking 🏔️',
-            images: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4'],
-            location: 'Swiss Alps',
-            visibility: 'PUBLIC',
-            allowComments: true,
-            allowSharing: true,
-            likeCount: 124,
-            commentCount: 8,
-            shareCount: 12,
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'mock-2',
-            authorId: 'user-2',
-            authorName: 'Mike Chen',
-            authorAvatar: '',
-            content: 'Working on a new project. Excited to share it soon! 💻✨',
-            visibility: 'PUBLIC',
-            allowComments: true,
-            allowSharing: true,
-            likeCount: 89,
-            commentCount: 5,
-            shareCount: 3,
-            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'mock-3',
-            authorId: 'user-3',
-            authorName: 'Emma Davis',
-            authorAvatar: '',
-            content: 'Beautiful sunset today 🌅 Nature never fails to amaze me!',
-            images: ['https://images.unsplash.com/photo-1495616811223-4d98c6e9c869'],
-            visibility: 'PUBLIC',
-            allowComments: true,
-            allowSharing: true,
-            likeCount: 256,
-            commentCount: 15,
-            shareCount: 8,
-            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ]);
-        setError(null); // Clear error when using mock data
-      } finally {
-        setIsLoadingPosts(false);
-      }
-    };
+    if (!currentUser?.id) return;
 
-    loadPosts();
-  }, []);
+    setLoadingStories(true);
 
-  const stories = [
-    { name: 'Sarah', gradient: 'from-pink-500 to-cyan-400', avatar: 'SJ' },
-    { name: 'Mike', gradient: 'from-green-400 to-yellow-300', avatar: 'MC' },
-    { name: 'Emma', gradient: 'from-purple-400 to-pink-300', avatar: 'ED' },
-    { name: 'Alex', gradient: 'from-blue-400 to-indigo-500', avatar: 'AP' },
-  ];
+    storiesApi
+      .getStoryFeed(currentUser.id)
+      .then((data) => {
+        setStories(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load stories', err);
+      })
+      .finally(() => {
+        setLoadingStories(false);
+      });
+  }, [currentUser?.id]);
 
-  const toggleComments = (postId: string) => {
+  stories.forEach((story, index) => {
+  console.log(`Story ${index}:`, story);
+});
+  const [posts] = useState([
+    {
+      id: 1,
+      author: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
+      time: '2h',
+      location: 'location',
+      content: 'Just finished an amazing hike! The view was breathtaking',
+      image: 'mountain',
+      likes: 124,
+      comments: 3,
+      shares: 12,
+      reactions: ['heart', 'thumbsup', 'smile'],
+      commentsList: [
+        {
+          id: 1,
+          author: { name: 'Mike Chen', avatar: 'MC', color: '#1877F2' },
+          content: 'Amazing view! Where is this?',
+          time: '1 giờ trước',
+          likes: 5,
+        },
+        {
+          id: 2,
+          author: { name: 'David Kim', avatar: 'DK', color: '#FF6B6B' },
+          content: 'Looks beautiful!',
+          time: '2 giờ trước',
+          likes: 3,
+        },
+        {
+          id: 3,
+          author: { name: 'Emma Davis', avatar: 'ED', color: '#4ECDC4' },
+          content: 'I want to visit this place too!',
+          time: '3 giờ trước',
+          likes: 8,
+        },
+      ],
+    },
+    {
+      id: 2,
+      author: { name: 'Mike Chen', avatar: 'MC', color: '#FF6B6B' },
+      time: '5h',
+      location: '',
+      content: 'Working on a new project. Excited to share it soon!',
+      image: '',
+      likes: 89,
+      comments: 2,
+      shares: 5,
+      reactions: ['thumbsup', 'smile'],
+      commentsList: [
+        {
+          id: 1,
+          author: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
+          content: 'Can\'t wait to see it!',
+          time: '4 giờ trước',
+          likes: 2,
+        },
+        {
+          id: 2,
+          author: { name: 'Alex Park', avatar: 'AP', color: '#FFD93D' },
+          content: 'Looking forward!',
+          time: '5 giờ trước',
+          likes: 1,
+        },
+      ],
+    },
+  ]);
+
+  // const [stories, setStories] = useState<Story[]>([
+  //   {
+  //     id: '1',
+  //     user: {
+  //       id: 2,
+  //       name: 'Sarah',
+  //       avatar: 'https://i.pravatar.cc/150?img=1',
+  //     },
+  //     contentType: 'text',
+  //     content: 'Lovely day 🌸',
+  //     background: 'bg-gradient-to-br from-pink-500 to-purple-500',
+  //     duration: 5,
+  //     createdAt: '2026-01-25T08:30:00Z',
+  //     expiresAt: '2026-01-26T08:30:00Z',
+  //     isViewed: false,
+  //     viewCount: 12,
+  //     isActive: true,
+  //   },
+  //   {
+  //     id: '2',
+  //     user: {
+  //       id: 3,
+  //       name: 'Mike',
+  //       avatar: 'https://i.pravatar.cc/150?img=2',
+  //     },
+  //     contentType: 'image',
+  //     content: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
+  //     duration: 5,
+  //     createdAt: '2026-01-25T09:00:00Z',
+  //     expiresAt: '2026-01-26T09:00:00Z',
+  //     isViewed: false,
+  //     viewCount: 30,
+  //     isActive: true,
+  //   },
+  //   {
+  //     id: '3',
+  //     user: {
+  //       id: 4,
+  //       name: 'Emma',
+  //       avatar: 'https://i.pravatar.cc/150?img=3',
+  //     },
+  //     contentType: 'text',
+  //     content: 'Weekend vibes ✨',
+  //     background: 'bg-gradient-to-br from-indigo-500 to-cyan-400',
+  //     duration: 5,
+  //     createdAt: '2026-01-25T10:15:00Z',
+  //     expiresAt: '2026-01-26T10:15:00Z',
+  //     isViewed: true,
+  //     viewCount: 8,
+  //     isActive: true,
+  //   },
+  // ]);
+
+
+
+  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc, story) => {
+    const userId = story.user.id;
+
+    if (!acc[userId]) {
+      acc[userId] = [];
+    }
+
+    acc[userId].push(story);
+    return acc;
+  }, {});
+  const storyGroups = Object.values(storiesByUser);
+  const toggleComments = (postId: number) => {
     setExpandedComments((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
@@ -132,7 +212,7 @@ export default function Newsfeed() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       let clickedInsideAnyMenu = false;
-      
+
       Object.values(menuRefs.current).forEach((ref) => {
         if (ref && ref.contains(target)) {
           clickedInsideAnyMenu = true;
@@ -186,79 +266,100 @@ export default function Newsfeed() {
   return (
     <div className="space-y-6 pb-8">
       {/* Stories Section */}
+      {/* Stories Section */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
-          {/* Your Story */}
-          <div className="shrink-0 w-32">
-            <div className="w-32 h-48 rounded-2xl bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group">
-              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2 overflow-hidden">
-                {currentUser?.avatar ? (
-                  <img 
-                    src={currentUser.avatar} 
-                    alt={currentUser.fullName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent && currentUser) {
-                        const initials = currentUser.fullName
-                          .split(' ')
-                          .map(n => n[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2);
-                        parent.innerHTML = `<span class="text-white font-semibold text-base">${initials}</span>`;
-                      }
-                    }}
-                  />
-                ) : currentUser?.fullName ? (
-                  <span className="text-white font-semibold text-base">
-                    {currentUser.fullName
-                      .split(' ')
-                      .map(n => n[0])
-                      .join('')
-                      .toUpperCase()
-                      .slice(0, 2)}
-                  </span>
-                ) : (
-                  <span className="text-white font-semibold text-base">JD</span>
-                )}
-              </div>
-              <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white flex items-center justify-center -mt-3">
-                <Plus className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <p className="text-base text-gray-600 text-center mt-3 font-medium">Your story</p>
-          </div>
 
+          {/* Add Story (Facebook Web style) */}
+          {currentUser && (
+            <AddStoryCard
+              avatar={currentUser.avatar}
+              onClick={() => setShowCreateStory(true)}
+            />
+          )}
+          {loadingStories && (
+            <div className="flex items-center justify-center w-full h-48 text-gray-500">
+              Đang tải stories...
+            </div>
+          )}
           {/* Friends Stories */}
-          {stories.map((story, index) => (
-            <Link
-              key={index}
-              to={`/stories/${index + 1}`}
-              className="shrink-0 w-32 cursor-pointer group"
-            >
-              <div className={`w-32 h-48 rounded-2xl bg-gradient-to-b ${story.gradient} p-[2px] group-hover:opacity-90 transition-opacity`}>
-                <div className="w-full h-full bg-white rounded-2xl flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
-                    <span className="text-white text-base font-semibold">{story.avatar}</span>
+          {storyGroups.map((group, index) => {
+            const firstStory = group[0];
+
+            return (
+              <button
+                key={firstStory.user.id}
+                onClick={() => setViewerUserIndex(index)}
+                className="shrink-0 w-32 text-left"
+              >
+                <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-blue-500 to-purple-500 p-[2px] relative overflow-hidden">
+                  {/* Story Content Background */}
+                  <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                    {/* Story preview */}
+                    {firstStory.contentType === 'image' && (
+                      <img
+                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
+                    {firstStory.contentType === 'text' && (
+                      <div
+                        className={`w-full h-full ${firstStory.background} flex items-center justify-center p-3`}
+                      >
+                        <p className="text-white text-sm font-semibold text-center line-clamp-4">
+                          {firstStory.content}
+                        </p>
+                      </div>
+                    )}
+
+                    {firstStory.contentType === 'video' && (
+                      <video
+                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.currentTime = 0;
+                        }}
+                      />
+                    )}
+
+
+                    {/* Gradient overlay for better avatar visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
+
+                    {/* User Avatar */}
+                    <div className="absolute top-3 left-3">
+                      <img
+                        src={firstStory.user.avatar}
+                        alt={firstStory.user.name}
+                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">{story.name}</p>
-            </Link>
-          ))}
+
+                <p className="text-center mt-3 font-medium truncate text-sm">
+                  {firstStory.user.name}
+                </p>
+              </button>
+            );
+          })}
+
+
         </div>
       </div>
+
 
       {/* Create Post */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {currentUser?.avatar ? (
-              <img 
-                src={currentUser.avatar} 
+              <img
+                src={currentUser.avatar}
                 alt={currentUser.fullName}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -387,7 +488,7 @@ export default function Newsfeed() {
                 <div className="relative" ref={(el) => {
                   if (el && post.id) menuRefs.current[post.id] = el;
                 }}>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId(openMenuId === post.id ? null : post.id!);
@@ -547,12 +648,11 @@ export default function Newsfeed() {
                     <span className="text-base text-gray-700 font-medium group-hover:text-red-500">Like</span>
                   </button>
                   <button
-                    onClick={() => toggleComments(post.id!)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${
-                      isCommentsExpanded 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : 'hover:bg-gray-50 text-gray-700'
-                    }`}
+                    onClick={() => toggleComments(post.id)}
+                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${isCommentsExpanded
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50 text-gray-700'
+                      }`}
                   >
                     <MessageCircle className={`w-6 h-6 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
                     <span className="text-base font-medium">Comment</span>
@@ -586,11 +686,10 @@ export default function Newsfeed() {
                         <button
                           onClick={() => handleSendComment(post.id!)}
                           disabled={!commentInput.trim()}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                            commentInput.trim()
-                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          }`}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${commentInput.trim()
+                            ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
                         >
                           <Send className="w-5 h-5" />
                         </button>
@@ -603,6 +702,22 @@ export default function Newsfeed() {
           );
         })}
       </div>
+      {viewerUserIndex !== null && (
+        <StoryViewer
+          storyGroups={storyGroups}
+          initialUserIndex={viewerUserIndex}
+          onClose={() => setViewerUserIndex(null)}
+        />
+      )}
+      {showCreateStory && (
+        <CreateStoryModal
+          onClose={() => setShowCreateStory(false)}
+          onCreate={(story: Story) => {
+            setStories((prev) => [story, ...prev]);
+            setShowCreateStory(false);
+          }}
+        />
+      )}
     </div>
   );
 }

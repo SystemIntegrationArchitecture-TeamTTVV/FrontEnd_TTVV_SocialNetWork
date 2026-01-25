@@ -6,7 +6,7 @@ import EmojiPicker from '../chat/EmojiPicker';
 import { ImageUpload, VideoUpload } from '../chat/FileUpload';
 import VoiceRecorder from '../chat/VoiceRecorder';
 import type { ChatContact, ChatMessage } from '../../types/chat';
-
+import { useMessages } from '../../hooks/useMessages';
 interface ChatBoxProps {
   contact: ChatContact;
   index: number;
@@ -20,7 +20,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMinimized = minimizedBoxes.has(contact.id);
   const contactMessages = messages[contact.id] || [];
-
+  const { loadConversations } = useMessages();
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -37,6 +37,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     try {
       setSending(true);
       await sendMessage(contact.id, messageInput);
+      await loadConversations();
       setMessageInput('');
       setTimeout(() => {
         scrollToBottom();
@@ -56,19 +57,19 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     try {
       setSending(true);
       console.log('📤 Uploading file:', file.name, file.type, file.size);
-      
+
       // Upload file to server
       const { uploadApi } = await import('../../apis/upload');
       const uploadResult = await uploadApi.uploadFile(file);
       console.log('✅ File uploaded successfully:', uploadResult);
 
       // Send message with file info
-      const messageContent = file.type.startsWith('image/') ? '📷 Đã gửi ảnh' : 
-                            file.type.startsWith('video/') ? '🎥 Đã gửi video' : 
-                            `📎 ${file.name}`;
-      
+      const messageContent = file.type.startsWith('image/') ? '📷 Đã gửi ảnh' :
+        file.type.startsWith('video/') ? '🎥 Đã gửi video' :
+          `📎 ${file.name}`;
+
       await sendMessage(contact.id, `${messageContent}\n${uploadResult.url}`);
-      
+
       setTimeout(() => {
         scrollToBottom();
       }, 100);
@@ -87,7 +88,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
 
       // Convert blob to file
       const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
-      
+
       // Upload voice file
       const { uploadApi } = await import('../../apis/upload');
       const uploadResult = await uploadApi.uploadFile(voiceFile);
@@ -95,7 +96,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
 
       // Send message with voice file
       await sendMessage(contact.id, `🎤 Tin nhắn thoại\n${uploadResult.url}`);
-      
+
       setTimeout(() => {
         scrollToBottom();
       }, 100);
@@ -118,7 +119,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     const minimizedWidth = 260;
     const minimizedGap = 16;
     const rightPosition = index * (minimizedWidth + minimizedGap);
-    
+
     return (
       <div
         className="fixed bottom-0 bg-white rounded-t-xl shadow-xl border border-gray-200 cursor-pointer transition-all duration-300 z-50"
@@ -156,7 +157,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
   const boxWidth = 340;
   const boxGap = 16;
   const rightPosition = index * (boxWidth + boxGap);
-  
+
   return (
     <div
       className="fixed bottom-0 bg-white rounded-t-xl shadow-xl border border-gray-200 flex flex-col transition-all duration-300 z-50"
@@ -249,47 +250,46 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
                   {msg.attachments.map((attachment, idx) => {
                     console.log(`🎨 Rendering attachment ${idx}:`, attachment);
                     return (
-                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-xs">
-                      {attachment.type === 'image' && (
-                        <img 
-                          src={attachment.url} 
-                          alt={attachment.fileName} 
-                          className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                          onError={(e) => console.log('❌ Image failed to load:', attachment.url, e)}
-                          onLoad={() => console.log('✅ Image loaded:', attachment.url)}
-                        />
-                      )}
-                      {attachment.type === 'video' && (
-                        <video 
-                          src={attachment.url} 
-                          controls 
-                          className="w-full h-auto rounded-xl cursor-pointer"
-                          onError={(e) => console.log('❌ Video failed to load:', attachment.url, e)}
-                          onLoadedMetadata={() => console.log('✅ Video loaded:', attachment.url)}
-                        />
-                      )}
-                      {attachment.type === 'file' && (
-                        <a 
-                          href={attachment.url} 
-                          download 
-                          className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                          <span>📎 {attachment.fileName}</span>
-                        </a>
-                      )}
-                    </div>
+                      <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-xs">
+                        {attachment.type === 'image' && (
+                          <img
+                            src={attachment.url}
+                            alt={attachment.fileName}
+                            className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                            onError={(e) => console.log('❌ Image failed to load:', attachment.url, e)}
+                            onLoad={() => console.log('✅ Image loaded:', attachment.url)}
+                          />
+                        )}
+                        {attachment.type === 'video' && (
+                          <video
+                            src={attachment.url}
+                            controls
+                            className="w-full h-auto rounded-xl cursor-pointer"
+                            onError={(e) => console.log('❌ Video failed to load:', attachment.url, e)}
+                            onLoadedMetadata={() => console.log('✅ Video loaded:', attachment.url)}
+                          />
+                        )}
+                        {attachment.type === 'file' && (
+                          <a
+                            href={attachment.url}
+                            download
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                          >
+                            <span>📎 {attachment.fileName}</span>
+                          </a>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
               )}
-              
+
               {/* Message Content */}
               <div
-                className={`rounded-xl px-3 py-2 mb-1 shadow-sm ${
-                  msg.isMe
+                className={`rounded-xl px-3 py-2 mb-1 shadow-sm ${msg.isMe
                     ? 'bg-blue-500 text-white'
                     : 'bg-white text-gray-900 border border-gray-100'
-                }`}
+                  }`}
               >
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
               </div>
