@@ -7,12 +7,13 @@ export interface ApiResponse<T> {
 }
 
 export class HttpError extends Error {
-  constructor(
-    public status: number,
-    public message: string,
-    public data?: any
-  ) {
+  status: number;
+  data?: any;
+
+  constructor(status: number, message: string, data?: any) {
     super(message);
+    this.status = status;
+    this.data = data;
     this.name = 'HttpError';
   }
 }
@@ -21,8 +22,8 @@ export class HttpError extends Error {
  * HTTP Client with token management
  */
 class HttpClient {
-  private getHeaders(includeAuth: boolean = true): HeadersInit {
-    const headers: HeadersInit = {
+  private getHeaders(includeAuth: boolean = true): Record<string, string> {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
@@ -122,7 +123,8 @@ class HttpClient {
   async delete<T>(
     url: string,
     includeAuth: boolean = true,
-    useGateway: boolean = true
+    useGateway: boolean = true,
+    data?: any
   ): Promise<T> {
     const fullUrl = useGateway
       ? `${API_CONFIG.BASE_URL}${url}`
@@ -131,6 +133,7 @@ class HttpClient {
     const response = await fetch(fullUrl, {
       method: 'DELETE',
       headers: this.getHeaders(includeAuth),
+      body: data ? JSON.stringify(data) : undefined,
     });
 
     return this.handleResponse<T>(response);

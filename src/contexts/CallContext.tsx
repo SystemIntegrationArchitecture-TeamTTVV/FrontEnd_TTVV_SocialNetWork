@@ -18,7 +18,7 @@ interface CallState {
 
 interface CallContextType {
   callState: CallState;
-  startCall: (userId: string, userName: string, callType: CallType) => Promise<void>;
+  startCall: (userId: string, userName: string, callType: CallType, conversationId?: string, isGroup?: boolean) => Promise<void>;
   acceptCall: () => Promise<void>;
   rejectCall: () => void;
   endCall: () => void;
@@ -130,10 +130,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const startCall = useCallback(async (
     userId: string,
     userName: string,
-    callType: CallType
+    callType: CallType,
+    conversationId?: string,
+    isGroup?: boolean
   ) => {
     try {
-      console.log('📞 CallProvider: Starting call to:', userName, 'userId:', userId);
+      console.log('📞 CallProvider: Starting call to:', userName, 'userId:', userId, isGroup ? '(GROUP CALL)' : '(DIRECT CALL)');
       
       // End any existing call first
       if (callState.isActive) {
@@ -153,7 +155,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
       console.log('🎯 Recipient info:', {
         userId: userId,
-        userName: userName
+        userName: userName,
+        conversationId: conversationId,
+        isGroup: isGroup
       });
 
       const localStream = await webrtcService.initCall(callType);
@@ -171,14 +175,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
 
       // Create and send offer
+      // For group calls: conversationId is passed, for direct calls: userId is the recipient
       webrtcService.setRemotePeer(userId);
       await webrtcService.createOffer(
         callType,
         userId,
         currentUser.id,
-        currentUser.fullName || currentUser.username
+        currentUser.fullName || currentUser.username,
+        conversationId,
+        isGroup || false
       );
-      console.log('✅ CallProvider: Call offer sent');
+      console.log('✅ CallProvider: Call offer sent', isGroup ? '(GROUP CALL - will broadcast to all participants)' : '(DIRECT CALL)');
     } catch (error: any) {
       console.error('❌ CallProvider: Failed to start call:', error);
       alert(error.message || 'Không thể bắt đầu cuộc gọi. Vui lòng thử lại.');

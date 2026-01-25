@@ -1,6 +1,6 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,27 +8,17 @@ import { useCall } from '../../contexts/CallContext';
 import EmojiPicker from '../../components/chat/EmojiPicker';
 import { ImageUpload, VideoUpload } from '../../components/chat/FileUpload';
 import VoiceRecorder from '../../components/chat/VoiceRecorder';
-import type { Conversation } from '../../apis/conversations';
+import { conversationsApi } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
-import type { MessageAttachment } from '../../apis/messages';
+import { messagesApi, type MessageAttachment } from '../../apis/messages';
 
-interface Message {
-  id: number;
-  sender: string;
-  senderId: number;
-  content: string;
-  time: string;
-  isMe: boolean;
-  status: 'sent' | 'delivered' | 'read' | null;
-  image?: string;
-  reactions?: { emoji: string; users: string[] }[];
-  replyTo?: { id: number; content: string; sender: string };
-  pinned?: boolean;
-  starred?: boolean;
+interface MessengerLocationState {
+  openConversationId?: string;
 }
 
 export default function Messenger() {
   const navigate = useNavigate();
+  const location = useLocation() as Location & { state?: MessengerLocationState };
   const { user } = useAuth();
   const { startCall } = useCall();
   const {
@@ -47,6 +37,8 @@ export default function Messenger() {
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; sender: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -56,8 +48,18 @@ export default function Messenger() {
   const [filePreview, setFilePreview] = useState<{ file: File; preview: string } | null>(null);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [groupMemberInput, setGroupMemberInput] = useState('');
+  const [groupNameDraft, setGroupNameDraft] = useState('');
+  const [groupAvatarDraft, setGroupAvatarDraft] = useState('');
+  const [adminDraft, setAdminDraft] = useState<string[]>([]);
+  const [newOwnerId, setNewOwnerId] = useState<string>('');
+  const [pendingJoins, setPendingJoins] = useState<string[]>([]);
+  const [groupActionError, setGroupActionError] = useState<string | null>(null);
+  const [groupActionMessage, setGroupActionMessage] = useState<string | null>(null);
+  const [updatingGroup, setUpdatingGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const openConversationId = location.state?.openConversationId;
 
   // Load conversations on mount
   useEffect(() => {
@@ -66,6 +68,25 @@ export default function Messenger() {
     }
   }, [user?.id, loadConversations]);
 
+  // Auto-open a conversation passed via navigation state (e.g., after creating new chat)
+  useEffect(() => {
+    if (openConversationId) {
+      setActiveChat(openConversationId);
+    }
+  }, [openConversationId]);
+
+  useEffect(() => {
+    if (openConversationId && conversations.some((c) => c.id === openConversationId)) {
+      setActiveChat(openConversationId);
+    }
+  }, [openConversationId, conversations]);
+
+  const activeConversationRaw = activeChat ? conversations.find((c) => c.id === activeChat) : undefined;
+  const isGroupChat = !!activeConversationRaw?.isGroup;
+  const isOwner = !!(user?.id && activeConversationRaw?.ownerId === user.id);
+  const isAdmin = !!(user?.id && activeConversationRaw?.adminIds?.includes(user.id));
+  const canManageGroup = isOwner || isAdmin;
+
   // Load messages when active chat changes
   useEffect(() => {
     if (activeChat) {
@@ -73,234 +94,162 @@ export default function Messenger() {
     }
   }, [activeChat, loadMessages]);
 
-  // Get current messages for active chat
-  const messages = activeChat ? (apiMessages[activeChat] || []).map(formatMessageForDisplay) : [];
+  // Sync admin/owner draft state when switching conversations
+  useEffect(() => {
+    if (activeConversationRaw) {
+      setGroupNameDraft(activeConversationRaw.groupName || '');
+      setGroupAvatarDraft(activeConversationRaw.groupAvatar || '');
+      setAdminDraft((activeConversationRaw.adminIds || []).filter(id => id !== activeConversationRaw.ownerId));
+      setNewOwnerId(activeConversationRaw.ownerId || '');
+      setGroupActionError(null);
+      setGroupActionMessage(null);
+      if (user?.id && (isOwner || isAdmin) && activeConversationRaw.approvalsRequired) {
+        conversationsApi
+          .getPendingJoinRequests(activeConversationRaw.id, user.id)
+          .then((list) => setPendingJoins(list))
+          .catch((err) => {
+            console.error('Failed to load pending join requests', err);
+            setPendingJoins([]);
+          });
+      } else {
+        setPendingJoins([]);
+      }
+    } else {
+      setGroupNameDraft('');
+      setGroupAvatarDraft('');
+      setAdminDraft([]);
+      setNewOwnerId('');
+      setPendingJoins([]);
+    }
+  }, [activeConversationRaw, user?.id, isOwner, isAdmin, loadConversations]);
 
-  // Format conversation for display
-  const formatConversation = (conv: Conversation) => {
-    if (!user?.id) return null;
-    
-    // For direct conversations, find the other participant
-    const otherParticipantId = conv.participantIds.find(id => id !== user.id);
-    const otherParticipantIndex = conv.participantIds.findIndex(id => id !== user.id);
-    
-    const name = conv.isGroup 
-      ? conv.groupName || 'Group Chat'
-      : conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
-    
-    const avatar = conv.isGroup
-      ? conv.groupAvatar || 'GC'
-      : conv.participantAvatars?.[otherParticipantIndex] || name.charAt(0).toUpperCase();
-    
-    // Get initials for avatar
-    const initials = conv.isGroup 
-      ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-      : name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  // Get current messages for active chat (memoized to keep stable reference for effects)
+  const messages = useMemo(
+    () =>
+      activeChat ? (apiMessages[activeChat] || []).map((m) => formatMessageForDisplay(m)) : [],
+    [activeChat, apiMessages, formatMessageForDisplay]
+  );
 
-    // Format last message time
-    const formatTime = (dateStr?: string) => {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const days = Math.floor(hours / 24);
-      
-      if (days === 0) {
-        if (hours === 0) return 'Vừa xong';
-        return `${hours}h`;
-      } else if (days === 1) return 'Hôm qua';
-      else if (days < 7) return `${days} ngày`;
-      else return date.toLocaleDateString('vi-VN');
-    };
+  const formattedConversations = useMemo(
+    () =>
+      conversations
+        .map((conv) => {
+          if (!user?.id) return null;
 
-    return {
-      id: conv.id,
-      name,
-      avatar: initials,
-      color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-      online: false, // TODO: Implement online status
-      lastMessage: conv.lastMessagePreview || '',
-      time: formatTime(conv.lastMessageAt),
-      unread: 0, // TODO: Implement unread count
-      isGroup: conv.isGroup,
-    };
-  };
+          const otherParticipantIndex = conv.participantIds.findIndex((id) => id !== user.id);
 
-  const formattedConversations = conversations.map(formatConversation).filter(Boolean) as any[];
+          const name = conv.isGroup
+            ? conv.groupName || 'Group Chat'
+            : conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
 
-  // Legacy dummy conversations for backward compatibility (will be removed later)
-  const legacyConversations = [
-    {
-      id: 1,
-      name: 'Sarah Johnson',
-      avatar: 'SJ',
-      color: '#42B72A',
-      online: true,
-      lastMessage: 'Bạn: Hẹn gặp lại sau nhé!',
-      time: '2h',
-      unread: 0,
-    },
-    {
-      id: 2,
-      name: 'Mike Chen',
-      avatar: 'MC',
-      color: '#FF6B6B',
-      online: true,
-      lastMessage: 'Được rồi, cảm ơn!',
-      time: '5h',
-      unread: 0,
-    },
-    {
-      id: 3,
-      name: 'Emma Davis',
-      avatar: 'ED',
-      color: '#4ECDC4',
-      online: false,
-      lastMessage: 'Emma: Xem này này!',
-      time: 'Hôm qua',
-      unread: 2,
-    },
-    {
-      id: 4,
-      name: 'Alex Park',
-      avatar: 'AP',
-      color: '#FFD93D',
-      online: false,
-      lastMessage: 'Alex: Haha',
-      time: '2 ngày',
-      unread: 0,
-    },
-    {
-      id: 5,
-      name: 'Lisa Nguyen',
-      avatar: 'LN',
-      color: '#9B59B6',
-      online: false,
-      lastMessage: 'Lisa: Ok bạn nhé!',
-      time: '3 ngày',
-      unread: 0,
-    },
-    {
-      id: 6,
-      name: 'Nhóm bạn thân',
-      avatar: 'GC',
-      color: '#E4E6EB',
-      online: false,
-      lastMessage: 'Sarah: Đi chơi cuối tuần',
-      time: '4 ngày',
-      unread: 0,
-      isGroup: true,
-    },
-  ];
+          const initials = name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
 
-  const [legacyMessages, setLegacyMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: 'Sarah Johnson',
-      senderId: 1,
-      content: 'Chào bạn! Hôm nay thế nào?',
-      time: '9:30 SA',
-      isMe: false,
-      status: null,
-      reactions: [{ emoji: '❤️', users: ['Me'] }],
-    },
-    {
-      id: 2,
-      sender: 'Me',
-      senderId: 0,
-      content: 'Mình rất tốt, cảm ơn bạn!\nCòn bạn thì sao?',
-      time: '9:32 SA',
-      isMe: true,
-      status: 'read',
-      pinned: true,
-    },
-    {
-      id: 3,
-      sender: 'Sarah Johnson',
-      senderId: 1,
-      content: 'Tuyệt vời! Cuối tuần này có kế hoạch gì chưa?',
-      time: '9:35 SA',
-      isMe: false,
-      status: null,
-      replyTo: { id: 2, content: 'Mình rất tốt, cảm ơn bạn!', sender: 'Me' },
-    },
-    {
-      id: 4,
-      sender: 'Me',
-      senderId: 0,
-      content: 'Chưa có kế hoạch cụ thể!\nMình đang nghĩ đi chơi đâu đó thư giãn',
-      time: '9:40 SA',
-      isMe: true,
-      status: 'read',
-    },
-    {
-      id: 5,
-      sender: 'Sarah Johnson',
-      senderId: 1,
-      content: '',
-      time: '9:45 SA',
-      isMe: false,
-      image: 'beach',
-      status: null,
-    },
-    {
-      id: 6,
-      sender: 'Sarah Johnson',
-      senderId: 1,
-      content: 'Đi biển nhé! Bạn nghĩ sao?',
-      time: '9:48 SA',
-      isMe: false,
-      status: null,
-      reactions: [{ emoji: '👍', users: ['Me', 'Mike'] }, { emoji: '❤️', users: ['Me'] }],
-    },
-  ]);
+          const formatTime = (dateStr?: string) => {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now.getTime() - date.getTime();
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+
+            if (days === 0) {
+              if (hours === 0) return 'Vừa xong';
+              return `${hours}h`;
+            } else if (days === 1) return 'Hôm qua';
+            else if (days < 7) return `${days} ngày`;
+            else return date.toLocaleDateString('vi-VN');
+          };
+
+          return {
+            id: conv.id,
+            name,
+            avatar: initials,
+            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+            online: false,
+            lastMessage: conv.lastMessagePreview || '',
+            time: formatTime(conv.lastMessageAt),
+            unread: 0,
+            isGroup: conv.isGroup,
+          };
+        })
+        .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c)),
+    [conversations, user?.id]
+  );
+
+  const pendingJoinNotifications = useMemo(() => {
+    if (!user?.id) return 0;
+    return conversations.reduce((count, conv) => {
+      if (
+        conv.isGroup &&
+        conv.approvalsRequired &&
+        conv.pendingJoinIds &&
+        conv.pendingJoinIds.length > 0 &&
+        (conv.ownerId === user.id || conv.adminIds?.includes(user.id))
+      ) {
+        return count + conv.pendingJoinIds.length;
+      }
+      return count;
+    }, 0);
+  }, [conversations, user?.id]);
 
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat)
     : null;
   
-  // Get the other participant info for direct calls
-  const getCallRecipient = () => {
+  // Get call info - supports both direct and group calls
+  const getCallInfo = () => {
     if (!activeChat || !user?.id) {
-      console.log('❌ getCallRecipient: No active chat or user');
+      console.log('❌ getCallInfo: No active chat or user');
       return null;
     }
     
     const conv = conversations.find(c => c.id === activeChat);
-    console.log('🔍 getCallRecipient: Found conversation:', conv);
+    console.log('🔍 getCallInfo: Found conversation:', conv);
     
     if (!conv) {
-      console.log('❌ getCallRecipient: Conversation not found for activeChat:', activeChat);
+      console.log('❌ getCallInfo: Conversation not found for activeChat:', activeChat);
       return null;
     }
     
+    // For group calls: use conversationId as the "recipient" ID
     if (conv.isGroup) {
-      console.log('❌ getCallRecipient: Cannot call in group chat');
-      return null;
+      console.log('📞 getCallInfo: Group call - conversationId:', activeChat);
+      return {
+        id: activeChat, // Use conversationId for group calls
+        name: conv.groupName || 'Group Chat',
+        isGroup: true,
+      };
     }
     
-    console.log('👥 getCallRecipient: Participant IDs:', conv.participantIds);
-    console.log('👤 getCallRecipient: Current user ID:', user.id);
+    // For direct calls: return other participant info
+    console.log('👥 getCallInfo: Direct call - Participant IDs:', conv.participantIds);
+    console.log('👤 getCallInfo: Current user ID:', user.id);
     
     const otherParticipantId = conv.participantIds.find(id => id !== user.id);
     const otherParticipantIndex = conv.participantIds.findIndex(id => id !== user.id);
     const otherParticipantName = conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
     
-    console.log('🎯 getCallRecipient: Returning recipient:', {
+    console.log('🎯 getCallInfo: Returning recipient:', {
       id: otherParticipantId,
       name: otherParticipantName,
-      conversationId: activeChat
+      conversationId: activeChat,
+      isGroup: false,
     });
     
     if (!otherParticipantId) {
-      console.error('❌ getCallRecipient: No other participant found!');
+      console.error('❌ getCallInfo: No other participant found!');
       return null;
     }
     
     return {
       id: otherParticipantId,
       name: otherParticipantName,
+      isGroup: false,
     };
   };
 
@@ -352,6 +301,204 @@ export default function Messenger() {
     } catch (error) {
       console.error('Failed to send message:', error);
       alert('Lỗi khi gửi tin nhắn. Vui lòng thử lại!');
+    }
+  };
+
+  const parseIdsInput = (input: string) =>
+    Array.from(
+      new Set(
+        input
+          .split(/[,;\s]+/)
+          .map((i) => i.trim())
+          .filter(Boolean)
+      )
+    );
+
+  const handleAddMembers = async () => {
+    if (!activeChat || !user?.id) return;
+    const ids = parseIdsInput(groupMemberInput);
+    if (ids.length === 0) {
+      setGroupActionError('Nhập ít nhất 1 userId để thêm');
+      return;
+    }
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      await conversationsApi.addGroupMembers(activeChat, {
+        requesterId: user.id,
+        participantIds: ids,
+      });
+      setGroupMemberInput('');
+      setGroupActionMessage('Đã thêm thành viên mới');
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to add members', err);
+      const message = err instanceof Error ? err.message : 'Không thể thêm thành viên';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!activeChat || !user?.id) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      // Owner leave flow: must transfer ownership first
+      if (memberId === user.id && isGroupChat && isOwner) {
+        if (!newOwnerId || newOwnerId === user.id) {
+          setGroupActionError('Bạn là chủ phòng. Hãy chọn chủ phòng mới trước khi rời nhóm.');
+          return;
+        }
+        await conversationsApi.leaveGroup(activeChat, {
+          requesterId: user.id,
+          newOwnerId,
+        });
+        setGroupActionMessage('Bạn đã rời nhóm');
+        await loadConversations();
+        setActiveChat(null);
+        return;
+      }
+
+      await conversationsApi.removeGroupMember(activeChat, {
+        requesterId: user.id,
+        participantId: memberId,
+      });
+      const selfRemoved = memberId === user.id;
+      setGroupActionMessage(selfRemoved ? 'Bạn đã rời nhóm' : 'Đã xoá thành viên');
+      await loadConversations();
+      if (selfRemoved) {
+        setActiveChat(null);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to remove member', err);
+      const message = err instanceof Error ? err.message : 'Không thể xoá thành viên';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleSaveGroupMeta = async () => {
+    if (!activeChat || !user?.id) return;
+    if (!isGroupChat) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      await conversationsApi.updateConversationMeta(activeChat, {
+        requesterId: user.id,
+        groupName: groupNameDraft.trim(),
+        groupAvatar: groupAvatarDraft.trim(),
+      });
+      setGroupActionMessage('Đã cập nhật thông tin nhóm');
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to update group meta', err);
+      const message = err instanceof Error ? err.message : 'Không thể cập nhật thông tin nhóm';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!activeChat || !user?.id) return;
+    if (!isGroupChat || !isOwner) {
+      setGroupActionError('Chỉ chủ phòng mới được giải tán nhóm');
+      return;
+    }
+    const ok = confirm('Giải tán nhóm? Hành động này không thể hoàn tác.');
+    if (!ok) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      await conversationsApi.deleteConversationAsUser(activeChat, user.id);
+      setGroupActionMessage('Đã giải tán nhóm');
+      setActiveChat(null);
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to delete group', err);
+      const message = err instanceof Error ? err.message : 'Không thể giải tán nhóm';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleJoinRequestDecision = async (requesterId: string, approved: boolean) => {
+    if (!activeChat || !user?.id) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.handleJoinRequest(activeChat, {
+        requesterId,
+        approverId: user.id,
+        approved,
+      });
+      setGroupActionMessage(approved ? 'Đã chấp nhận yêu cầu tham gia' : 'Đã từ chối yêu cầu tham gia');
+      // Refresh pending list and conversation
+      if (activeConversationRaw?.approvalsRequired) {
+        const list = await conversationsApi.getPendingJoinRequests(activeChat, user.id);
+        setPendingJoins(list);
+      }
+      await loadConversations();
+    } catch (err) {
+      console.error('Failed to handle join request', err);
+      const message = err instanceof Error ? err.message : 'Không thể xử lý yêu cầu tham gia';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleAdminToggle = (memberId: string) => {
+    if (!activeConversationRaw) return;
+    if (memberId === activeConversationRaw.ownerId) return; // owner always has full rights
+    setAdminDraft((prev) =>
+      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
+    );
+  };
+
+  const handleUpdateRoles = async () => {
+    if (!activeChat || !user?.id || !isOwner) {
+      setGroupActionError('Chỉ chủ phòng được cập nhật vai trò');
+      return;
+    }
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      const payload = {
+        requesterId: user.id,
+        newOwnerId: newOwnerId || undefined,
+        adminIds: adminDraft.filter((id) => id !== newOwnerId),
+      };
+
+      await conversationsApi.updateGroupRoles(activeChat, payload);
+      setGroupActionMessage('Đã cập nhật vai trò nhóm');
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to update group roles', err);
+      const message = err instanceof Error ? err.message : 'Không thể cập nhật vai trò';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
     }
   };
 
@@ -463,42 +610,12 @@ export default function Messenger() {
     }
   };
 
-  const handleReaction = (messageId: string, emoji: string) => {
-    // TODO: Implement reaction API call
-    console.log('Reaction:', messageId, emoji);
-    // For now, update local state - will implement API later
-    setLegacyMessages(prevMessages => prevMessages.map(msg => {
-      if (msg.id.toString() === messageId) {
-        const existingReaction = msg.reactions?.find(r => r.emoji === emoji);
-        if (existingReaction) {
-          if (existingReaction.users.includes('Me')) {
-            const updatedUsers = existingReaction.users.filter(u => u !== 'Me');
-            if (updatedUsers.length === 0) {
-              return { ...msg, reactions: msg.reactions?.filter(r => r.emoji !== emoji) };
-            }
-            return {
-              ...msg,
-              reactions: msg.reactions?.map(r => 
-                r.emoji === emoji ? { ...r, users: updatedUsers } : r
-              )
-            };
-          } else {
-            return {
-              ...msg,
-              reactions: msg.reactions?.map(r => 
-                r.emoji === emoji ? { ...r, users: [...r.users, 'Me'] } : r
-              )
-            };
-          }
-        } else {
-          return {
-            ...msg,
-            reactions: [...(msg.reactions || []), { emoji, users: ['Me'] }]
-          };
-        }
-      }
-      return msg;
-    }));
+  const handleReaction = async (messageId: string, emoji: string) => {
+    try {
+      await messagesApi.toggleReaction(messageId, emoji);
+    } catch (error) {
+      console.error('Failed to toggle reaction:', error);
+    }
   };
 
   const handleMessageAction = (action: string, messageId: string) => {
@@ -517,12 +634,16 @@ export default function Messenger() {
         navigator.clipboard.writeText(message.content);
         break;
       case 'pin':
-        // TODO: Implement pin API
-        console.log('Pin message:', messageId);
+        messagesApi.togglePin(messageId).catch((err: unknown) => {
+          console.error('Failed to toggle pin:', err);
+        });
         break;
       case 'star':
-        // TODO: Implement star API
-        console.log('Star message:', messageId);
+        if (user?.id) {
+          messagesApi.toggleStar(messageId, user.id).catch((err: unknown) => {
+            console.error('Failed to toggle star:', err);
+          });
+        }
         break;
       case 'delete':
         if (confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
@@ -536,6 +657,7 @@ export default function Messenger() {
         break;
     }
     setSelectedMessage(null);
+    setMenuPosition(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -557,6 +679,23 @@ export default function Messenger() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!selectedMessage) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if click is outside menu and button
+      if (!target.closest('[data-message-menu]') && !target.closest('.group')) {
+        setSelectedMessage(null);
+        setMenuPosition(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectedMessage]);
+
   return (
     <div className="h-[calc(100vh-5rem)] bg-gray-50 flex relative overflow-hidden">
       {/* Left Sidebar - Conversations */}
@@ -574,14 +713,21 @@ export default function Messenger() {
                 <button 
                   onClick={() => navigate('/messenger/new')}
                   className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title="New message"
+                  title="Tin nhắn mới"
                 >
                   <Edit className="w-5 h-5 text-gray-700" />
+                </button>
+                <button 
+                  onClick={() => navigate('/messenger/new', { state: { createGroup: true } })}
+                  className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  title="Tạo nhóm chat"
+                >
+                  <Users className="w-5 h-5 text-gray-700" />
                 </button>
                 <Link
                   to="/messenger/settings"
                   className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title="Settings"
+                  title="Cài đặt"
                 >
                   <Settings className="w-5 h-5 text-gray-700" />
                 </Link>
@@ -754,31 +900,39 @@ export default function Messenger() {
               </button>
               <button 
                 onClick={() => {
-                  const recipient = getCallRecipient();
-                  if (recipient?.id && recipient?.name) {
-                    startCall(recipient.id, recipient.name, 'voice');
+                  const callInfo = getCallInfo();
+                  if (callInfo?.id && callInfo?.name) {
+                    // For group calls: pass conversationId and isGroup=true
+                    // For direct calls: pass userId and isGroup=false
+                    const conversationId = callInfo.isGroup ? callInfo.id : undefined;
+                    const isGroup = callInfo.isGroup || false;
+                    startCall(callInfo.id, callInfo.name, 'voice', conversationId, isGroup);
                   } else {
-                    alert('Không thể gọi điện trong nhóm chat hoặc cuộc trò chuyện không hợp lệ');
+                    alert('Không thể bắt đầu cuộc gọi. Vui lòng thử lại.');
                   }
                 }}
                 disabled={!activeChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title="Call"
+                title={isGroupChat ? "Group call" : "Call"}
               >
                 <Phone className="w-5 h-5 text-gray-700" />
               </button>
               <button 
                 onClick={() => {
-                  const recipient = getCallRecipient();
-                  if (recipient?.id && recipient?.name) {
-                    startCall(recipient.id, recipient.name, 'video');
+                  const callInfo = getCallInfo();
+                  if (callInfo?.id && callInfo?.name) {
+                    // For group calls: pass conversationId and isGroup=true
+                    // For direct calls: pass userId and isGroup=false
+                    const conversationId = callInfo.isGroup ? callInfo.id : undefined;
+                    const isGroup = callInfo.isGroup || false;
+                    startCall(callInfo.id, callInfo.name, 'video', conversationId, isGroup);
                   } else {
-                    alert('Không thể gọi video trong nhóm chat hoặc cuộc trò chuyện không hợp lệ');
+                    alert('Không thể bắt đầu cuộc gọi video. Vui lòng thử lại.');
                   }
                 }}
                 disabled={!activeChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title="Video call"
+                title={isGroupChat ? "Group video call" : "Video call"}
               >
                 <Video className="w-5 h-5 text-gray-700" />
               </button>
@@ -839,6 +993,12 @@ export default function Messenger() {
                   </div>
                 )}
                 <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
+                  {/* Sender name for group chats */}
+                  {isGroupChat && !msg.isMe && (
+                    <p className="text-xs font-semibold text-gray-600 mb-1">
+                      {msg.sender}
+                    </p>
+                  )}
                   {/* Reply To */}
                   {msg.replyTo && (
                     <div className={`mb-2 p-3 rounded-lg bg-gray-100 border-l-4 border-blue-500 text-left ${msg.isMe ? 'text-right' : ''}`}>
@@ -970,17 +1130,43 @@ export default function Messenger() {
                   )}
 
                   {/* Message Options */}
-                  <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                  <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
                     <div className="relative">
                       <button
-                        onClick={() => setSelectedMessage(isSelected ? null : msg.id)}
-                        className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                        ref={isSelected ? menuButtonRef : null}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isSelected) {
+                            const buttonRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            if (msg.isMe) {
+                              setMenuPosition({ 
+                                top: buttonRect.top, 
+                                right: window.innerWidth - buttonRect.left + 8 
+                              });
+                            } else {
+                              setMenuPosition({ 
+                                top: buttonRect.top, 
+                                left: buttonRect.right + 8 
+                              });
+                            }
+                            setSelectedMessage(msg.id);
+                          } else {
+                            setSelectedMessage(null);
+                            setMenuPosition(null);
+                          }
+                        }}
+                        className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-20"
                       >
                         <MoreVertical className="w-4 h-4 text-gray-600" />
                       </button>
                       
-                      {isSelected && (
-                        <div className={`absolute ${msg.isMe ? 'left-full' : 'right-full'} top-0 ml-2 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[180px]`}>
+                      {isSelected && selectedMessage === msg.id && menuPosition && (
+                        <div 
+                          data-message-menu
+                          className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999] min-w-[180px]"
+                          style={menuPosition}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                               <button
                                 onClick={() => handleMessageAction('reply', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
@@ -1324,6 +1510,276 @@ export default function Messenger() {
               <p className="text-sm md:text-base text-green-500 font-medium">● Active now</p>
             )}
           </div>
+
+          {isGroupChat && activeConversationRaw && (
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-base md:text-lg font-bold text-gray-900">Quản lý nhóm</h4>
+                <span className="text-xs text-gray-500">{activeConversationRaw.participantIds.length} thành viên</span>
+              </div>
+
+              {groupActionMessage && (
+                <div className="p-3 rounded-lg bg-green-50 text-green-700 text-sm border border-green-100">
+                  {groupActionMessage}
+                </div>
+              )}
+              {groupActionError && (
+                <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">
+                  {groupActionError}
+                </div>
+              )}
+
+              {canManageGroup && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-semibold text-gray-800">Thông tin nhóm</h5>
+                  <label className="text-sm font-medium text-gray-700">Tên nhóm</label>
+                  <input
+                    type="text"
+                    value={groupNameDraft}
+                    onChange={(e) => setGroupNameDraft(e.target.value)}
+                    className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Nhập tên nhóm..."
+                    disabled={updatingGroup}
+                  />
+                  <label className="text-sm font-medium text-gray-700">Avatar nhóm (URL - tùy chọn)</label>
+                  <input
+                    type="text"
+                    value={groupAvatarDraft}
+                    onChange={(e) => setGroupAvatarDraft(e.target.value)}
+                    className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="https://..."
+                    disabled={updatingGroup}
+                  />
+                  <button
+                    onClick={handleSaveGroupMeta}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  >
+                    {updatingGroup ? 'Đang lưu...' : 'Lưu thông tin nhóm'}
+                  </button>
+                </div>
+              )}
+
+              {canManageGroup && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Yêu cầu phê duyệt khi có người tham gia
+                    </span>
+                    <button
+                      onClick={() => {
+                        const next = !activeConversationRaw.approvalsRequired;
+                        handleSaveGroupMeta();
+                        conversationsApi
+                          .updateConversationMeta(activeConversationRaw.id, {
+                            requesterId: user!.id,
+                            approvalsRequired: next,
+                          })
+                          .then(() => loadConversations())
+                          .catch((err) => {
+                            console.error('Failed to toggle approvalsRequired', err);
+                          });
+                      }}
+                      disabled={updatingGroup}
+                      className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors ${
+                        activeConversationRaw.approvalsRequired ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
+                          activeConversationRaw.approvalsRequired ? 'translate-x-5' : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {canManageGroup && activeConversationRaw.approvalsRequired && pendingJoins.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <h5 className="text-sm font-semibold text-gray-800">Yêu cầu tham gia ({pendingJoins.length})</h5>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {pendingJoins.map((pid) => (
+                      <div
+                        key={pid}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-100"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{pid}</p>
+                          <p className="text-xs text-gray-600">Đang chờ duyệt</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleJoinRequestDecision(pid, true)}
+                            disabled={updatingGroup}
+                            className="px-2 py-1 rounded-md text-xs bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60"
+                          >
+                            Chấp nhận
+                          </button>
+                          <button
+                            onClick={() => handleJoinRequestDecision(pid, false)}
+                            disabled={updatingGroup}
+                            className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60"
+                          >
+                            Từ chối
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {canManageGroup && (
+                <div className="space-y-2 pt-2 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      // TODO: Mở modal chọn bạn bè để thêm vào nhóm (tương tự NewMessage.tsx)
+                      // Tạm thời giữ input text cho đến khi có modal
+                      const input = prompt('Nhập userId của thành viên muốn thêm (cách nhau bằng dấu phẩy):');
+                      if (input && input.trim()) {
+                        setGroupMemberInput(input.trim());
+                        handleAddMembers();
+                      }
+                    }}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>{updatingGroup ? 'Đang xử lý...' : 'Thêm thành viên'}</span>
+                  </button>
+                  {/* Hidden input for backward compatibility */}
+                    <input
+                      type="text"
+                      value={groupMemberInput}
+                      onChange={(e) => setGroupMemberInput(e.target.value)}
+                    className="hidden"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <h5 className="text-sm font-semibold text-gray-800">Thành viên</h5>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {activeConversationRaw.participantIds.map((pid, idx) => {
+                    const name = activeConversationRaw.participantNames?.[idx] || pid;
+                    const isMemberOwner = pid === activeConversationRaw.ownerId;
+                    const isMemberAdmin = activeConversationRaw.adminIds?.includes(pid);
+                    const isSelf = pid === user?.id;
+                    
+                    // Permission logic:
+                    // - Owner can kick anyone (except themselves, but they can leave)
+                    // - Admin can only kick regular members (not owner, not other admins)
+                    // - Regular members can only leave themselves
+                    const canKick = isSelf || (
+                      isOwner && !isMemberOwner // Owner can kick anyone except themselves
+                    ) || (
+                      isAdmin && !isOwner && !isMemberOwner && !isMemberAdmin // Admin can only kick regular members
+                    );
+
+                    return (
+                      <div key={pid} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{name}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isMemberOwner && <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">Owner</span>}
+                          {isMemberAdmin && !isMemberOwner && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">Admin</span>
+                          )}
+                          {canKick && (
+                            <button
+                              onClick={() => handleRemoveMember(pid)}
+                              disabled={updatingGroup}
+                              className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60 font-medium"
+                            >
+                              {isSelf ? 'Rời' : 'Xóa'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Role Management & Delete Group - Owner Only */}
+              {isOwner && (
+                <>
+                  <div className="space-y-3 pt-3 border-t border-gray-200">
+                    <h5 className="text-sm font-semibold text-gray-800 mb-2">Quản lý vai trò</h5>
+                    
+                    {/* Transfer Ownership */}
+                <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Chuyển chủ phòng</label>
+                  <select
+                    value={newOwnerId}
+                    onChange={(e) => setNewOwnerId(e.target.value)}
+                    className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    disabled={updatingGroup}
+                  >
+                    {activeConversationRaw.participantIds.map((pid, idx) => {
+                      const name = activeConversationRaw.participantNames?.[idx] || pid;
+                      return (
+                        <option key={pid} value={pid}>
+                          {name} {pid === activeConversationRaw.ownerId ? '(Owner hiện tại)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                    </div>
+
+                    {/* Manage Admins */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">Phân quyền Admin</label>
+                      <p className="text-xs text-gray-500 mb-2">Chọn thành viên để cấp quyền Admin (không bao gồm Owner)</p>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+                        {activeConversationRaw.participantIds
+                          .filter(pid => pid !== activeConversationRaw.ownerId)
+                          .map((pid) => {
+                            const name = activeConversationRaw.participantNames?.[activeConversationRaw.participantIds.indexOf(pid)] || pid;
+                            const isMemberAdmin = activeConversationRaw.adminIds?.includes(pid);
+                            return (
+                              <label key={pid} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={adminDraft.includes(pid)}
+                                  onChange={() => handleAdminToggle(pid)}
+                                  className="rounded border-gray-300"
+                                  disabled={updatingGroup}
+                                />
+                                <span className="text-sm text-gray-700 flex-1">{name}</span>
+                                {isMemberAdmin && !adminDraft.includes(pid) && (
+                                  <span className="text-xs text-gray-400">(Đang là Admin)</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                  <button
+                    onClick={handleUpdateRoles}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  >
+                    {updatingGroup ? 'Đang lưu...' : 'Lưu vai trò'}
+                  </button>
+                </div>
+
+                  <div className="pt-3 border-t border-gray-200">
+                  <button
+                    onClick={handleDeleteGroup}
+                    disabled={updatingGroup}
+                    className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
+                  >
+                    {updatingGroup ? 'Đang xử lý...' : 'Giải tán nhóm'}
+                  </button>
+                </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-3 md:gap-4 mb-6">

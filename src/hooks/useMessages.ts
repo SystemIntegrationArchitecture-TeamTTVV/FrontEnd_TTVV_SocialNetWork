@@ -130,7 +130,7 @@ export function useMessages() {
 
     console.log('🔔 Subscribing to MESSAGE_RECEIVED events');
 
-    const unsubscribe = subscribe('MESSAGE_RECEIVED', (event) => {
+    const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
       console.log('📨 Received MESSAGE_RECEIVED via socket:', event);
       
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
@@ -143,9 +143,24 @@ export function useMessages() {
           content: message.content,
         });
         
-        // Only add message if it's not from current user (to avoid duplicates)
+        // 🔒 SECURITY: Only add message if:
+        // 1. It's not from current user (to avoid duplicates)
+        // 2. Current user is a participant of this conversation
         if (message.senderId !== user.id) {
-          console.log('✅ Message is from another user, adding to state');
+          // Check if current user is a participant of this conversation
+          const conversation = conversations.find(conv => conv.id === message.conversationId);
+          const isParticipant = conversation && conversation.participantIds?.includes(user.id);
+          
+          if (!isParticipant) {
+            console.warn('🚫 SECURITY: Ignoring message - current user is not a participant of this conversation:', {
+              conversationId: message.conversationId,
+              currentUserId: user.id,
+              senderId: message.senderId
+            });
+            return;
+          }
+          
+          console.log('✅ Message is from another user and user is participant, adding to state');
           setMessages(prev => {
             const existing = prev[message.conversationId] || [];
             // Check if message already exists
@@ -187,8 +202,34 @@ export function useMessages() {
       }
     });
 
-    return unsubscribe;
-  }, [isConnected, user?.id, subscribe]);
+    const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
+      console.log('🔔 Received NOTIFICATION via socket:', event);
+
+      if (event.type === 'JOIN_REQUEST_CREATED' && event.data) {
+        const { conversationId, requesterId } = event.data as { conversationId: string; requesterId: string };
+        console.log('👥 JOIN_REQUEST_CREATED for conversation:', conversationId, 'from:', requesterId);
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  pendingJoinIds: conv.pendingJoinIds
+                    ? conv.pendingJoinIds.includes(requesterId)
+                      ? conv.pendingJoinIds
+                      : [...conv.pendingJoinIds, requesterId]
+                    : [requesterId],
+                }
+              : conv
+          )
+        );
+      }
+    });
+
+    return () => {
+      unsubscribeMessage();
+      unsubscribeNotification();
+    };
+  }, [isConnected, user?.id, subscribe, conversations]);
 
   // Format message for display (convert Message to display format)
   interface DisplayMessage {
@@ -214,6 +255,8 @@ export function useMessages() {
     const currentUser = authApi.getCurrentUser();
     const isMe = message.senderId === currentUser?.id;
 
+    const starred = !!message.starredByUserIds?.includes(currentUser?.id || '');
+
     return {
       id: message.id,
       sender: message.senderName,
@@ -229,6 +272,8 @@ export function useMessages() {
       attachments: message.attachments,
       isEdited: message.isEdited,
       createdAt: message.createdAt,
+      pinned: message.pinned,
+      starred,
     };
   }, []);
 

@@ -40,7 +40,7 @@ class SocketService {
     }
 
     // Connect through API Gateway
-    const socketUrl = 'http://localhost:8080/api/common/ws';
+    const socketUrl = 'http://localhost:8088/api/common/ws';
     console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
     const socket = new SockJS(socketUrl);
     this.client = new Client({
@@ -118,7 +118,9 @@ class SocketService {
             data: event.data,
             timestamp: event.timestamp
           });
+          // Emit both as NOTIFICATION (for notification handlers) and as the actual event type (e.g., MESSAGE_RECEIVED)
           this.handleEvent('NOTIFICATION', event);
+          this.handleEvent(event.type, event); // Emit with actual event type (MESSAGE_RECEIVED, JOIN_REQUEST_CREATED, etc.)
           this.handleEvent('*', event); // Wildcard handler
         } catch (error) {
           console.error('❌ Error parsing notification message:', error, message.body);

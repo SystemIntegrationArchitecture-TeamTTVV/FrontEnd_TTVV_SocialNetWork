@@ -10,8 +10,26 @@ export interface UploadResponse {
 export const uploadApi = {
   /**
    * Upload a file (image, video, or document)
+   * TEMPORARY: Using mock upload since backend endpoint doesn't exist yet
    */
   uploadFile: async (file: File): Promise<UploadResponse> => {
+    // MOCK IMPLEMENTATION - Replace with real S3 upload later
+    console.log('⚠️ Using mock upload for:', file.name);
+    
+    // Create a local preview URL
+    const mockUrl = URL.createObjectURL(file);
+    
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      url: mockUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+    };
+    
+    /* REAL IMPLEMENTATION - Uncomment when backend is ready:
     const formData = new FormData();
     formData.append('file', file);
 
@@ -20,7 +38,6 @@ export const uploadApi = {
         method: 'POST',
         body: formData,
         headers: {
-          // Don't set Content-Type - browser will set it with boundary for multipart/form-data
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
@@ -41,6 +58,7 @@ export const uploadApi = {
       console.error('Upload error:', error);
       throw error;
     }
+    */
   },
 
   /**

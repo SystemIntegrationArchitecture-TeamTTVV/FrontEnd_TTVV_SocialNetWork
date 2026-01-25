@@ -16,6 +16,8 @@ export interface Message {
   content: string;
   emojis?: string[];
   attachments?: MessageAttachment[];
+  pinned?: boolean;
+  starredByUserIds?: string[];
   isDeleted: boolean;
   isEdited: boolean;
   createdAt: string;
@@ -65,6 +67,29 @@ export const messagesApi = {
    */
   deleteMessage: async (id: string): Promise<void> => {
     return httpClient.delete(`/api/message/messages/${id}`);
+  },
+
+  /**
+   * Toggle pin for a message
+   */
+  togglePin: async (id: string): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/${id}/pin`);
+  },
+
+  /**
+   * Toggle star for current user
+   */
+  toggleStar: async (id: string, userId: string): Promise<Message> => {
+    const qs = encodeURIComponent(userId);
+    return httpClient.post<Message>(`/api/message/messages/${id}/star?userId=${qs}`);
+  },
+
+  /**
+   * Toggle emoji reaction (aggregated per message)
+   */
+  toggleReaction: async (id: string, emoji: string): Promise<Message> => {
+    const qs = encodeURIComponent(emoji);
+    return httpClient.post<Message>(`/api/message/messages/${id}/react?emoji=${qs}`);
   },
 };
 

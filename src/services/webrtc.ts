@@ -8,6 +8,8 @@ export interface CallOffer {
   callerName: string;
   callType: CallType;
   offer: RTCSessionDescriptionInit;
+  conversationId?: string; // For group calls
+  isGroup?: boolean; // Flag to indicate group call
 }
 
 export interface CallAnswer {
@@ -93,9 +95,11 @@ class WebRTCService {
     callType: CallType,
     recipientId: string,
     callerId: string,
-    callerName: string
+    callerName: string,
+    conversationId?: string,
+    isGroup?: boolean
   ): Promise<CallOffer> {
-    console.log('📞 Creating call offer to:', recipientId);
+    console.log('📞 Creating call offer to:', recipientId, isGroup ? '(GROUP CALL)' : '(DIRECT CALL)');
     
     // Initialize peer connection
     this.peerConnection = new RTCPeerConnection(this.configuration);
@@ -121,16 +125,18 @@ class WebRTCService {
       callerName,
       callType,
       offer: offer,
+      conversationId: conversationId, // For group calls
+      isGroup: isGroup, // Flag to indicate group call
     };
 
     // Send offer via socket - Backend expects SocketEventDTO format
     socketService.send('/app/webrtc/offer', {
       type: 'CALL_OFFER',
-      userId: recipientId, // Target user to receive the offer
+      userId: recipientId, // Target user/conversation to receive the offer
       data: callOffer,
       timestamp: new Date().toISOString(),
     });
-    console.log('📤 Sent call offer to:', recipientId);
+    console.log('📤 Sent call offer to:', recipientId, isGroup ? '(GROUP - will broadcast to all participants)' : '');
 
     return callOffer;
   }

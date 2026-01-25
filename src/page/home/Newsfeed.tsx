@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
@@ -192,11 +192,11 @@ export default function Newsfeed() {
     });
   };
 
-  const handleCommentChange = (postId: number, value: string) => {
+  const handleCommentChange = (postId: string, value: string) => {
     setCommentInputs((prev) => ({ ...prev, [postId]: value }));
   };
 
-  const handleSendComment = (postId: number) => {
+  const handleSendComment = (postId: string) => {
     const comment = commentInputs[postId];
     if (comment?.trim()) {
       console.log('Send comment for post', postId, ':', comment);
@@ -233,9 +233,34 @@ export default function Newsfeed() {
     };
   }, [openMenuId]);
 
-  const handlePostAction = (postId: number, action: string) => {
+  const handlePostAction = (postId: string, action: string) => {
     console.log(`Post action ${action} for post ${postId}`);
     setOpenMenuId(null);
+  };
+
+  const getTimeAgo = (dateString?: string) => {
+    if (!dateString) return 'Just now';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
+  };
+
+  const getAuthorInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -399,31 +424,61 @@ export default function Newsfeed() {
 
       {/* Posts Feed */}
       <div className="space-y-6">
-        {posts.map((post) => {
-          const isCommentsExpanded = expandedComments.has(post.id);
-          const commentInput = commentInputs[post.id] || '';
+        {/* Loading State */}
+        {isLoadingPosts && (
+          <div className="bg-white rounded-2xl p-12 border border-gray-200 flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+            <p className="text-gray-500">Loading posts...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoadingPosts && (
+          <div className="bg-white rounded-2xl p-8 border border-red-200">
+            <p className="text-red-600 text-center">{error}</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoadingPosts && !error && posts.length === 0 && (
+          <div className="bg-white rounded-2xl p-12 border border-gray-200 text-center">
+            <p className="text-gray-500 text-lg">No posts yet. Be the first to post!</p>
+            <Link
+              to="/post/create"
+              className="mt-4 inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Create Post
+            </Link>
+          </div>
+        )}
+
+        {/* Posts List */}
+        {!isLoadingPosts && !error && posts.map((post) => {
+          const isCommentsExpanded = expandedComments.has(post.id!);
+          const commentInput = commentInputs[post.id!] || '';
 
           return (
             <div key={post.id} className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors">
               {/* Post Header */}
               <div className="p-5 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
-                  <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-base flex-shrink-0"
-                    style={{ backgroundColor: post.author.color }}
-                  >
-                    {post.author.avatar}
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-base flex-shrink-0 bg-blue-500">
+                    {post.authorAvatar ? (
+                      <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      getAuthorInitials(post.authorName)
+                    )}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-base">{post.author.name}</p>
+                    <p className="font-semibold text-gray-900 text-base">{post.authorName || 'Unknown User'}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <span>{post.time}</span>
+                      <span>{getTimeAgo(post.createdAt)}</span>
                       {post.location && (
                         <>
                           <span>·</span>
                           <div className="flex items-center gap-1">
                             <LocationIcon className="w-4 h-4" />
-                            <span>Location</span>
+                            <span>{post.location}</span>
                           </div>
                         </>
                       )}
@@ -431,70 +486,59 @@ export default function Newsfeed() {
                   </div>
                 </div>
                 <div className="relative" ref={(el) => {
-                  if (el) menuRefs.current[post.id] = el;
+                  if (el && post.id) menuRefs.current[post.id] = el;
                 }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setOpenMenuId(openMenuId === post.id ? null : post.id);
+                      setOpenMenuId(openMenuId === post.id ? null : post.id!);
                     }}
                     className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
                   >
-                    <MoreHorizontal className="w-6 h-6 text-gray-600" />
+                    <MoreHorizontal className="w-5 h-5 text-gray-600" />
                   </button>
 
                   {openMenuId === post.id && (
-                    <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-[100] min-w-[200px]">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePostAction(post.id, 'save');
-                        }}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-20">
+                      {currentUser?.id === post.authorId && (
+                        <>
+                          <button 
+                            onClick={() => handlePostAction(post.id!, 'edit')}
+                            className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                          >
+                            <Edit className="w-5 h-5 text-gray-600" />
+                            <span className="text-gray-900 font-medium">Edit post</span>
+                          </button>
+                          <button 
+                            onClick={() => handlePostAction(post.id!, 'delete')}
+                            className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5 text-red-600" />
+                            <span className="text-red-600 font-medium">Delete post</span>
+                          </button>
+                          <div className="h-px bg-gray-200 my-2" />
+                        </>
+                      )}
+                      <button 
+                        onClick={() => handlePostAction(post.id!, 'save')}
+                        className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                       >
-                        <Bookmark className="w-4 h-4" />
-                        <span>Lưu bài viết</span>
+                        <Bookmark className="w-5 h-5 text-gray-600" />
+                        <span className="text-gray-900 font-medium">Save post</span>
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePostAction(post.id, 'edit');
-                        }}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      <button 
+                        onClick={() => handlePostAction(post.id!, 'hide')}
+                        className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                       >
-                        <Edit className="w-4 h-4" />
-                        <span>Chỉnh sửa</span>
+                        <EyeOff className="w-5 h-5 text-gray-600" />
+                        <span className="text-gray-900 font-medium">Hide post</span>
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePostAction(post.id, 'hide');
-                        }}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      <button 
+                        onClick={() => handlePostAction(post.id!, 'report')}
+                        className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                       >
-                        <EyeOff className="w-4 h-4" />
-                        <span>Ẩn bài viết</span>
-                      </button>
-                      <div className="border-t border-gray-200 my-1"></div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePostAction(post.id, 'delete');
-                        }}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Xóa bài viết</span>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePostAction(post.id, 'report');
-                        }}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Flag className="w-4 h-4" />
-                        <span>Báo cáo</span>
+                        <Flag className="w-5 h-5 text-gray-600" />
+                        <span className="text-gray-900 font-medium">Report post</span>
                       </button>
                     </div>
                   )}
@@ -502,31 +546,98 @@ export default function Newsfeed() {
               </div>
 
               {/* Post Content */}
-              <div className="px-5 pb-5 overflow-hidden">
-                <p className="text-gray-900 mb-5 leading-relaxed text-base">{post.content}</p>
-                {post.image && (
-                  <div className="w-full aspect-video rounded-xl mb-4 overflow-hidden">
-                    {post.image === 'mountain' && <LargeMountainPlaceholder className="w-full h-full" />}
-                  </div>
-                )}
+              <div className="px-5 pb-4">
+                <p className="text-gray-900 text-base leading-relaxed whitespace-pre-wrap">{post.content}</p>
+              </div>
 
-                {/* Post Stats */}
+              {/* Post Images */}
+              {post.images && post.images.length > 0 && (
+                <div className="mb-4">
+                  {post.images.length === 1 ? (
+                    <img 
+                      src={post.images[0]} 
+                      alt="Post" 
+                      className="w-full max-h-[600px] object-cover" 
+                    />
+                  ) : post.images.length === 2 ? (
+                    <div className="grid grid-cols-2 gap-1">
+                      {post.images.map((imageUrl, idx) => (
+                        <img 
+                          key={idx} 
+                          src={imageUrl} 
+                          alt={`Post ${idx + 1}`} 
+                          className="w-full h-[300px] object-cover" 
+                        />
+                      ))}
+                    </div>
+                  ) : post.images.length === 3 ? (
+                    <div className="grid grid-cols-2 gap-1">
+                      <img 
+                        src={post.images[0]} 
+                        alt="Post 1" 
+                        className="w-full h-[400px] object-cover row-span-2" 
+                      />
+                      <img 
+                        src={post.images[1]} 
+                        alt="Post 2" 
+                        className="w-full h-[199px] object-cover" 
+                      />
+                      <img 
+                        src={post.images[2]} 
+                        alt="Post 3" 
+                        className="w-full h-[199px] object-cover" 
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-1">
+                      {post.images.slice(0, 4).map((imageUrl, idx) => (
+                        <div key={idx} className="relative">
+                          <img 
+                            src={imageUrl} 
+                            alt={`Post ${idx + 1}`} 
+                            className="w-full h-[250px] object-cover" 
+                          />
+                          {idx === 3 && post.images!.length > 4 && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                              <span className="text-white text-3xl font-bold">
+                                +{post.images!.length - 4}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Post Videos */}
+              {post.videos && post.videos.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {post.videos.map((videoUrl, idx) => (
+                    <video 
+                      key={idx} 
+                      src={videoUrl} 
+                      controls
+                      className="w-full max-h-[600px] bg-black"
+                      preload="metadata"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  ))}
+                </div>
+              )}
+
+              {/* Post Stats */}
+              <div className="px-5 pb-3">
                 <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex items-center gap-1">
-                      {post.reactions.slice(0, 3).map((reaction, idx) => {
-                        if (reaction === 'heart') return <HeartIcon key={idx} className="w-5 h-5 text-red-500 fill-red-500" />;
-                        if (reaction === 'thumbsup') return <ThumbsUpIcon key={idx} className="w-5 h-5 text-blue-500 fill-blue-500" />;
-                        if (reaction === 'smile') return <SmileIcon key={idx} className="w-5 h-5 text-yellow-500 fill-yellow-500" />;
-                        return null;
-                      })}
-                    </div>
-                    <span className="font-semibold">{post.likes}</span>
+                    <span className="font-semibold">{post.likeCount || 0} likes</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="font-medium">{post.comments} comments</span>
+                    <span className="font-medium">{post.commentCount || 0} comments</span>
                     <span>·</span>
-                    <span className="font-medium">{post.shares} shares</span>
+                    <span className="font-medium">{post.shareCount || 0} shares</span>
                   </div>
                 </div>
 
@@ -558,54 +669,22 @@ export default function Newsfeed() {
                 {/* Comments Section */}
                 {isCommentsExpanded && (
                   <div className="border-t border-gray-200 pt-5 mt-3 space-y-4">
-                    {/* Comments List */}
-                    {post.commentsList && post.commentsList.length > 0 && (
-                      <div className="space-y-4">
-                        {post.commentsList.map((comment) => (
-                          <div key={comment.id} className="flex items-start gap-4">
-                            <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
-                              style={{ backgroundColor: comment.author.color }}
-                            >
-                              {comment.author.avatar}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="bg-gray-50 rounded-lg p-4 mb-2">
-                                <p className="font-semibold text-sm text-gray-900 mb-1">{comment.author.name}</p>
-                                <p className="text-base text-gray-900">{comment.content}</p>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <button className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors">
-                                  <Heart className="w-4 h-4" />
-                                  <span className="text-sm font-medium">{comment.likes}</span>
-                                </button>
-                                <button className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                                  Phản hồi
-                                </button>
-                                <span className="text-sm text-gray-500">{comment.time}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
                     {/* Comment Input */}
                     <div className="flex items-center gap-4 pt-2">
                       <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                        JD
+                        {currentUser?.fullName?.charAt(0) || 'U'}
                       </div>
                       <div className="flex-1 relative">
                         <input
                           type="text"
                           value={commentInput}
-                          onChange={(e) => handleCommentChange(post.id, e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendComment(post.id)}
+                          onChange={(e) => handleCommentChange(post.id!, e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendComment(post.id!)}
                           placeholder="Viết bình luận..."
                           className="w-full h-12 px-4 pr-14 rounded-lg bg-gray-50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
                         />
                         <button
-                          onClick={() => handleSendComment(post.id)}
+                          onClick={() => handleSendComment(post.id!)}
                           disabled={!commentInput.trim()}
                           className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${commentInput.trim()
                             ? 'bg-blue-500 hover:bg-blue-600 text-white'
