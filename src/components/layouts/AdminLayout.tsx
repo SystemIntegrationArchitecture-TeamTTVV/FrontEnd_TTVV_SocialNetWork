@@ -1,5 +1,5 @@
 import { Outlet, useLocation, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -16,10 +16,31 @@ import {
   Calendar,
   Bell
 } from 'lucide-react';
+import { usersApi } from '../../apis/users';
+import { postsApi } from '../../apis/posts';
 
 export default function AdminLayout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userCount, setUserCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
+
+  useEffect(() => {
+    loadCounts();
+  }, []);
+
+  const loadCounts = async () => {
+    try {
+      const [users, posts] = await Promise.all([
+        usersApi.getAllUsers(),
+        postsApi.getAllPosts()
+      ]);
+      setUserCount(users.length);
+      setPostCount(posts.length);
+    } catch (error) {
+      console.error('Failed to load counts:', error);
+    }
+  };
 
   const menuItems = [
     { 
@@ -34,14 +55,14 @@ export default function AdminLayout() {
       icon: Users, 
       label: 'Người dùng', 
       path: '/admin/users',
-      badge: 12 
+      badge: userCount > 0 ? userCount : null 
     },
     { 
       id: 'posts', 
       icon: FileText, 
       label: 'Bài viết', 
       path: '/admin/posts',
-      badge: null 
+      badge: postCount > 0 ? postCount : null 
     },
     { 
       id: 'groups', 
@@ -69,7 +90,7 @@ export default function AdminLayout() {
       icon: AlertTriangle, 
       label: 'Báo cáo', 
       path: '/admin/reports',
-      badge: 8 
+      badge: null 
     },
     { 
       id: 'statistics', 
@@ -164,8 +185,8 @@ export default function AdminLayout() {
                       {item.label}
                     </span>
                     {item.badge && (
-                      <span className="w-8 h-8 rounded-full bg-red-500 text-white text-sm font-bold flex items-center justify-center">
-                        {item.badge}
+                      <span className="min-w-[32px] h-8 px-2 rounded-full bg-blue-500 text-white text-sm font-bold flex items-center justify-center">
+                        {item.badge > 99 ? '99+' : item.badge}
                       </span>
                     )}
                   </>

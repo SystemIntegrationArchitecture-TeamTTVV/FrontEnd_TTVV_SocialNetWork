@@ -39,6 +39,18 @@ export default function Navbar() {
     }
   }, [location.pathname, currentUser?.id]);
 
+  // Function to reload unread notification count
+  const loadUnreadCount = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const count = await notificationsApi.getUnreadNotificationCount(currentUser.id);
+      setUnreadNotificationCount(count);
+    } catch (error) {
+      console.error('Failed to load unread count:', error);
+    }
+  };
+
   // Load unread notification count and pending join requests
   useEffect(() => {
     const loadCounts = async () => {

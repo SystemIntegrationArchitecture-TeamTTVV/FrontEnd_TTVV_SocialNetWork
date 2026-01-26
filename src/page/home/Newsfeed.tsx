@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
@@ -32,9 +32,7 @@ export default function Newsfeed() {
     avatar: string;
     role: string;
   } | null>(() => authApi.getCurrentUser());
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
+  
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +41,10 @@ export default function Newsfeed() {
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
+  const [showCreateStory, setShowCreateStory] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   // Load posts from API
   useEffect(() => {
@@ -482,9 +484,72 @@ export default function Newsfeed() {
     };
   }, [openMenuId]);
 
-  const handlePostAction = (postId: string, action: string) => {
-    console.log(`Post action ${action} for post ${postId}`);
+  const handlePostAction = async (postId: string, action: string) => {
     setOpenMenuId(null);
+    
+    if (action === 'edit') {
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        setEditingPostId(postId);
+        setEditContent(post.content);
+      }
+    } else if (action === 'delete') {
+      if (window.confirm('Are you sure you want to delete this post?')) {
+        try {
+          setIsDeleting(postId);
+          await postsApi.deletePost(postId);
+          setPosts(prev => prev.filter(p => p.id !== postId));
+          console.log('✅ Post deleted successfully');
+        } catch (error) {
+          console.error('❌ Failed to delete post:', error);
+          alert('Failed to delete post. Please try again.');
+        } finally {
+          setIsDeleting(null);
+        }
+      }
+    } else if (action === 'save') {
+      console.log('Save post:', postId);
+      // TODO: Implement save post functionality
+    } else if (action === 'hide') {
+      console.log('Hide post:', postId);
+      // TODO: Implement hide post functionality
+    } else if (action === 'report') {
+      console.log('Report post:', postId);
+      // TODO: Implement report post functionality
+    }
+  };
+
+  const handleUpdatePost = async (postId: string) => {
+    if (!editContent.trim()) {
+      alert('Post content cannot be empty');
+      return;
+    }
+
+    try {
+      // Get the current post to preserve images and videos
+      const currentPost = posts.find(p => p.id === postId);
+      
+      const updatedPost = await postsApi.updatePost(postId, {
+        content: editContent.trim(),
+        images: currentPost?.images, // Preserve existing images
+        videos: currentPost?.videos, // Preserve existing videos
+        location: currentPost?.location, // Preserve location
+        visibility: currentPost?.visibility, // Preserve visibility
+      });
+      
+      setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
+      setEditingPostId(null);
+      setEditContent('');
+      console.log('✅ Post updated successfully');
+    } catch (error) {
+      console.error('❌ Failed to update post:', error);
+      alert('Failed to update post. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditContent('');
   };
 
   const getTimeAgo = (dateString?: string) => {
@@ -546,14 +611,16 @@ export default function Newsfeed() {
             <p className="text-base text-gray-600 text-center mt-3 font-medium">Create story</p>
           </div>
 
-          {/* Add Story (Facebook Web style) */}
+          {/* Add Story (Facebook Web style) - Comment out or remove if not implemented */}
+          {/*
           {currentUser && (
             <AddStoryCard
               avatar={currentUser.avatar}
               onClick={() => setShowCreateStory(true)}
             />
           )}
-          {loadingStories && (
+          */}
+          {isLoadingStories && (
             <div className="flex items-center justify-center w-full h-48 text-gray-500">
               Đang tải stories...
             </div>
@@ -721,7 +788,7 @@ export default function Newsfeed() {
           const commentInput = commentInputs[post.id!] || '';
 
           return (
-            <div key={post.id} className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors">
+            <div key={post.id} className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors relative">
               {/* Post Header */}
               <div className="p-5 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
@@ -810,8 +877,45 @@ export default function Newsfeed() {
 
               {/* Post Content */}
               <div className="px-5 pb-4">
-                <p className="text-gray-900 text-base leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                {editingPostId === post.id ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                      placeholder="What's on your mind?"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleUpdatePost(post.id!)}
+                        disabled={!editContent.trim()}
+                        className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-900 text-base leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                )}
               </div>
+
+              {/* Deleting Overlay */}
+              {isDeleting === post.id && (
+                <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-30 rounded-2xl">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto mb-2" />
+                    <p className="text-gray-700 font-medium">Deleting post...</p>
+                  </div>
+                </div>
+              )}
 
               {/* Post Images */}
               {post.images && post.images.length > 0 && (
@@ -1120,6 +1224,9 @@ export default function Newsfeed() {
           );
         })}
       </div>
+
+      {/* Story Viewer - Comment out if not implemented */}
+      {/*
       {viewerUserIndex !== null && (
         <StoryViewer
           storyGroups={storyGroups}
@@ -1127,12 +1234,34 @@ export default function Newsfeed() {
           onClose={() => setViewerUserIndex(null)}
         />
       )}
+      */}
+
+      {/* Create Story Modal - Comment out if not implemented */}
+      {/*
       {showCreateStory && (
         <CreateStoryModal
           onClose={() => setShowCreateStory(false)}
           onCreate={(story: Story) => {
             setStories((prev) => [story, ...prev]);
             setShowCreateStory(false);
+          }}
+        />
+      )}
+      */}
+      
+      {isCreateStoryOpen && (
+        <CreateStory
+          onClose={() => setIsCreateStoryOpen(false)}
+          onSuccess={handleStoryCreated}
+        />
+      )}
+
+      {isStoryViewerOpen && selectedStoryId && (
+        <StoryViewer
+          storyId={selectedStoryId}
+          onClose={() => {
+            setIsStoryViewerOpen(false);
+            setSelectedStoryId(undefined);
           }}
         />
       )}
