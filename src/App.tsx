@@ -4,6 +4,7 @@ import { ChatBoxProvider } from './contexts/ChatBoxContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { CallProvider } from './contexts/CallContext';
+import { MusicProvider } from './contexts/MusicContext';
 
 function App() {
   return (
@@ -11,7 +12,9 @@ function App() {
       <SocketProvider>
         <CallProvider>
           <ChatBoxProvider>
-            <RouterProvider router={router} />
+            <MusicProvider>
+              <RouterProvider router={router} />
+            </MusicProvider>
           </ChatBoxProvider>
         </CallProvider>
       </SocketProvider>

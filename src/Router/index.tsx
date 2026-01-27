@@ -52,6 +52,9 @@ import DeleteMessage from '../page/messenger/features/DeleteMessage';
 import ReactionDetails from '../page/messenger/features/ReactionDetails';
 import ThemeCustomization from '../page/messenger/features/ThemeCustomization';
 
+// Music Pages
+import MusicEDM from '../page/music/MusicEDM';
+
 // Social Pages
 import FriendRequests from '../page/social/FriendRequests';
 import FindPeople from '../page/social/FindPeople';
@@ -147,6 +150,9 @@ export const router = createBrowserRouter([
       { path: 'messenger/:id/delete', element: <DeleteMessage /> },
       { path: 'messenger/:id/reactions', element: <ReactionDetails /> },
       { path: 'messenger/theme', element: <ThemeCustomization /> },
+
+      // Music
+      { path: 'music', element: <MusicEDM /> },
 
       // Social
       { path: 'find-people', element: <FindPeople /> },

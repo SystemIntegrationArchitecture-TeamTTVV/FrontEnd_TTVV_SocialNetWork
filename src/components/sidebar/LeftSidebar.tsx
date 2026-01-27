@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, Store, Video, Clock, Bookmark, UserPlus, ChevronDown } from 'lucide-react';
+import { User, Users, Store, Video, Clock, Bookmark, UserPlus, ChevronDown, Music2 } from 'lucide-react';
 import { authApi } from '../../apis/auth';
 
 export default function LeftSidebar() {
@@ -25,6 +25,7 @@ export default function LeftSidebar() {
     { icon: Users, label: 'Groups', path: '/groups' },
     { icon: Store, label: 'Marketplace', path: '/marketplace' },
     { icon: Video, label: 'Watch', path: '/watch' },
+    { icon: Music2, label: 'Music edm', path: '/music' },
     { icon: Clock, label: 'Memories', path: '/memories' },
     { icon: Bookmark, label: 'Saved', path: '/saved' },
   ];

@@ -3,6 +3,7 @@ import Navbar from '../navbar/Navbar';
 import LeftSidebar from '../sidebar/LeftSidebar';
 import RightSidebar from '../sidebar/RightSidebar';
 import ChatBoxManager from '../chatbox/ChatBoxManager';
+import MiniMusicPlayer from '../music/MiniMusicPlayer';
 
 export default function MainLayout() {
   const location = useLocation();
@@ -42,6 +43,7 @@ export default function MainLayout() {
       </div>
       
       <ChatBoxManager />
+      <MiniMusicPlayer />
       
       {/* CSS để ẩn scrollbar */}
       <style>{`
