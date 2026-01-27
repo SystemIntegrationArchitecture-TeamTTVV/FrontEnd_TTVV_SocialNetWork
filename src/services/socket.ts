@@ -40,7 +40,7 @@ class SocketService {
     }
 
     // Connect through API Gateway
-    const socketUrl = 'http://localhost:8088/api/common/ws';
+    const socketUrl = 'http://localhost:8080/api/common/ws';
     console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
     const socket = new SockJS(socketUrl);
     this.client = new Client({
