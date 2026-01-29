@@ -1,6 +1,6 @@
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
-import { authApi } from '../apis/auth';
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import { authApi } from "../apis/auth";
 
 export interface SocketEvent {
   type: string;
@@ -29,18 +29,18 @@ class SocketService {
 
   connect(): void {
     if (this.client?.connected) {
-      console.log('ℹ️ Socket already connected');
+      console.log("ℹ️ Socket already connected");
       return;
     }
 
     const token = authApi.getToken();
     if (!token) {
-      console.warn('⚠️ No token available, cannot connect socket');
+      console.warn("⚠️ No token available, cannot connect socket");
       return;
     }
 
     // Connect through API Gateway
-    const socketUrl = 'http://localhost:8080/api/common/ws';
+    const socketUrl = "http://localhost:8088/api/common/ws";
     console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
     const socket = new SockJS(socketUrl);
     this.client = new Client({
@@ -49,33 +49,35 @@ class SocketService {
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       onConnect: () => {
-        console.log('✅ Socket connected successfully to WebSocket server');
-        console.log('📡 Subscribing to channels...');
+        console.log("✅ Socket connected successfully to WebSocket server");
+        console.log("📡 Subscribing to channels...");
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.subscribeToChannels();
       },
       onDisconnect: () => {
-        console.log('❌ Socket disconnected from WebSocket server');
+        console.log("❌ Socket disconnected from WebSocket server");
         this.isConnected = false;
         this.subscriptions.clear();
       },
       onStompError: (frame) => {
-        console.error('STOMP error:', frame);
+        console.error("STOMP error:", frame);
         this.isConnected = false;
         this.reconnectAttempts++;
-        
+
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           setTimeout(() => {
-            console.log(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            console.log(
+              `Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+            );
             this.connect();
           }, 5000);
         } else {
-          console.error('Max reconnect attempts reached');
+          console.error("Max reconnect attempts reached");
         }
       },
       onWebSocketError: (error) => {
-        console.error('WebSocket error:', error);
+        console.error("WebSocket error:", error);
       },
     });
 
@@ -104,70 +106,84 @@ class SocketService {
     // NOT userId! The principal name is set from JWT token's username field
     const username = user.username || user.id; // Fallback to id if username not available
     const notificationPath = `/user/${username}/queue/notifications`;
-    console.log(`🔔 Subscribing to notifications at: ${notificationPath} (user.id=${user.id}, username=${username})`);
-    
+    console.log(
+      `🔔 Subscribing to notifications at: ${notificationPath} (user.id=${user.id}, username=${username})`,
+    );
+
     const notificationSub = this.client.subscribe(
       notificationPath,
       (message: StompMessage) => {
         try {
           const event: SocketEvent = JSON.parse(message.body);
-          console.log('📨 Received notification via socket:', event);
-          console.log('📨 Event details:', {
+          console.log("📨 Received notification via socket:", event);
+          console.log("📨 Event details:", {
             type: event.type,
             userId: event.userId,
             data: event.data,
-            timestamp: event.timestamp
+            timestamp: event.timestamp,
           });
           // Emit both as NOTIFICATION (for notification handlers) and as the actual event type (e.g., MESSAGE_RECEIVED)
-          this.handleEvent('NOTIFICATION', event);
+          this.handleEvent("NOTIFICATION", event);
           this.handleEvent(event.type, event); // Emit with actual event type (MESSAGE_RECEIVED, JOIN_REQUEST_CREATED, etc.)
-          this.handleEvent('*', event); // Wildcard handler
+          this.handleEvent("*", event); // Wildcard handler
         } catch (error) {
-          console.error('❌ Error parsing notification message:', error, message.body);
+          console.error(
+            "❌ Error parsing notification message:",
+            error,
+            message.body,
+          );
         }
-      }
+      },
     );
-    this.subscriptions.set('notifications', notificationSub);
+    this.subscriptions.set("notifications", notificationSub);
     console.log(`✅ Subscribed to notifications: ${notificationPath}`);
 
     // Subscribe to WebRTC signaling events
     const webrtcPath = `/user/${username}/queue/webrtc`;
     console.log(`📞 Subscribing to WebRTC at: ${webrtcPath}`);
-    
+
     const webrtcSub = this.client.subscribe(
       webrtcPath,
       (message: StompMessage) => {
         try {
           const event: SocketEvent = JSON.parse(message.body);
-          console.log('📞 Received WebRTC event via socket:', event.type, event);
+          console.log(
+            "📞 Received WebRTC event via socket:",
+            event.type,
+            event,
+          );
           this.handleEvent(event.type, event);
-          this.handleEvent('*', event); // Wildcard handler
+          this.handleEvent("*", event); // Wildcard handler
         } catch (error) {
-          console.error('❌ Error parsing WebRTC message:', error, message.body);
+          console.error(
+            "❌ Error parsing WebRTC message:",
+            error,
+            message.body,
+          );
         }
-      }
+      },
     );
-    this.subscriptions.set('webrtc', webrtcSub);
+    this.subscriptions.set("webrtc", webrtcSub);
     console.log(`✅ Subscribed to WebRTC: ${webrtcPath}`);
 
     // Subscribe to public events (posts, reactions, etc.)
     const publicSub = this.client.subscribe(
-      '/topic/public',
+      "/topic/public",
       (message: StompMessage) => {
         const event: SocketEvent = JSON.parse(message.body);
-        console.log('📢 Received public event via socket:', event.type, event);
+        console.log("📢 Received public event via socket:", event.type, event);
         this.handleEvent(event.type, event);
-        this.handleEvent('*', event); // Wildcard handler
-      }
+        this.handleEvent("*", event); // Wildcard handler
+      },
     );
-    this.subscriptions.set('public', publicSub);
-    console.log('✅ Subscribed to public events: /topic/public');
+    this.subscriptions.set("public", publicSub);
+    console.log("✅ Subscribed to public events: /topic/public");
   }
 
   private handleEvent(type: string, event: SocketEvent): void {
     const typeHandlers = this.handlers.get(type);
     if (typeHandlers) {
-      typeHandlers.forEach(handler => {
+      typeHandlers.forEach((handler) => {
         try {
           handler(event);
         } catch (error) {
@@ -179,7 +195,7 @@ class SocketService {
 
   disconnect(): void {
     if (this.client) {
-      this.subscriptions.forEach(sub => sub.unsubscribe());
+      this.subscriptions.forEach((sub) => sub.unsubscribe());
       this.subscriptions.clear();
       this.client.deactivate();
       this.client = null;
@@ -217,7 +233,7 @@ class SocketService {
 
   send(destination: string, body: any): void {
     if (!this.client?.connected) {
-      console.warn('Socket not connected, cannot send message');
+      console.warn("Socket not connected, cannot send message");
       return;
     }
 
@@ -236,4 +252,3 @@ export const socketService = new SocketService();
 
 // Re-export SocketEvent type for easier imports
 export type { SocketEvent };
-
