@@ -31,8 +31,16 @@ export default function ProtectedRoute({
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && (!isAuthenticated || user?.role !== 'ADMIN')) {
-    return <Navigate to="/home" replace />;
+  if (requireAdmin) {
+    if (!isAuthenticated) {
+      return <Navigate to="/auth/login" state={{ from: location }} replace />;
+    }
+    // Check if user has ADMIN role (case-insensitive)
+    const userRole = user?.role?.toUpperCase();
+    if (userRole !== 'ADMIN') {
+      // Redirect non-admin users to home page
+      return <Navigate to="/home" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -3,6 +3,7 @@ import MainLayout from '../components/layouts/MainLayout';
 import AuthLayout from '../components/layouts/AuthLayout';
 import AdminLayout from '../components/layouts/AdminLayout';
 import RootRedirect from '../components/RootRedirect';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 // Auth Pages
 import Login from '../page/auth/Login';
@@ -176,10 +177,14 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Admin Routes - Separate Layout
+  // Admin Routes - Separate Layout (Protected with Admin Role)
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <ProtectedRoute requireAuth={true} requireAdmin={true}>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <AdminDashboard /> },
       { path: 'users', element: <AdminUserManagement /> },

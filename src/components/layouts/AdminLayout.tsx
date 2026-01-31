@@ -1,4 +1,4 @@
-import { Outlet, useLocation, Link } from 'react-router-dom';
+import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
@@ -18,9 +18,12 @@ import {
 } from 'lucide-react';
 import { usersApi } from '../../apis/users';
 import { postsApi } from '../../apis/posts';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userCount, setUserCount] = useState(0);
   const [postCount, setPostCount] = useState(0);
@@ -204,24 +207,35 @@ export default function AdminLayout() {
           {!sidebarCollapsed ? (
             <div className="flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-                <UserCircle className="w-7 h-7 text-white" />
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.fullName} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <UserCircle className="w-7 h-7 text-white" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 text-lg truncate">Admin User</p>
-                <p className="text-sm text-gray-500 truncate">admin@ttvv.com</p>
+                <p className="font-bold text-gray-900 text-lg truncate">{user?.fullName || user?.username || 'Admin'}</p>
+                <p className="text-sm text-gray-500 truncate">{user?.username || 'admin@ttvv.com'}</p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-                <UserCircle className="w-7 h-7 text-white" />
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.fullName} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <UserCircle className="w-7 h-7 text-white" />
+                )}
               </div>
             </div>
           )}
           
-          <Link
-            to="/home"
-            className={`flex items-center gap-5 px-5 py-4 rounded-xl text-red-600 hover:bg-red-50 transition-colors mt-3 ${
+          <button
+            onClick={() => {
+              logout();
+              navigate('/home');
+            }}
+            className={`flex items-center gap-5 px-5 py-4 rounded-xl text-red-600 hover:bg-red-50 transition-colors mt-3 w-full ${
               sidebarCollapsed ? 'justify-center' : ''
             }`}
             title={sidebarCollapsed ? 'Đăng xuất' : ''}
@@ -232,7 +246,7 @@ export default function AdminLayout() {
             {!sidebarCollapsed && (
               <span className="font-bold text-lg">Đăng xuất</span>
             )}
-          </Link>
+          </button>
         </div>
       </aside>
 
