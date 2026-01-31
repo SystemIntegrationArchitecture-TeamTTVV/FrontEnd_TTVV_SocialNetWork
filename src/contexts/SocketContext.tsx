@@ -1,25 +1,30 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { socketService } from '../services/socket';
 import type { SocketEvent } from '../services/socket';
-import { useAuth } from './AuthContext';
+import { AuthContext } from './AuthContext';
 
 interface SocketContextType {
   isConnected: boolean;
   subscribe: (eventType: string, handler: (event: SocketEvent) => void) => () => void;
-  send: (destination: string, body: any) => void;
+  send: (destination: string, body: unknown) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export function SocketProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  // Get auth context directly - AuthProvider should always wrap SocketProvider
+  // If AuthContext is undefined, treat as not authenticated
+  const authContextValue = useContext(AuthContext);
+  const isAuthenticated = authContextValue?.isAuthenticated ?? false;
+  
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       // Disconnect if not authenticated
       socketService.disconnect();
-      setIsConnected(false);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => setIsConnected(false), 0);
       return;
     }
 
@@ -58,7 +63,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return socketService.on(eventType, handler);
   };
 
-  const send = (destination: string, body: any) => {
+  const send = (destination: string, body: unknown) => {
     socketService.send(destination, body);
   };
 

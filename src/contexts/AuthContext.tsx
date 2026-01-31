@@ -41,7 +41,7 @@ interface RegisterData {
   country?: string;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -80,8 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role,
       });
 
-      // Use window.location instead of navigate since we're outside Router
-      window.location.href = '/home';
+      // Redirect to root path which will be handled by RootRedirect to /home
+      // This ensures proper routing through React Router
+      window.location.href = '/';
     } catch (error: unknown) {
       setIsLoading(false);
       throw error;
@@ -103,8 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role,
       });
 
-      // Use window.location instead of navigate since we're outside Router
-      window.location.href = '/home';
+      // Redirect to root path which will be handled by RootRedirect to /home
+      // This ensures proper routing through React Router
+      window.location.href = '/';
     } catch (error: unknown) {
       setIsLoading(false);
       throw error;

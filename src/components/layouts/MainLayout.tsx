@@ -4,6 +4,7 @@ import LeftSidebar from '../sidebar/LeftSidebar';
 import RightSidebar from '../sidebar/RightSidebar';
 import ChatBoxManager from '../chatbox/ChatBoxManager';
 import MiniMusicPlayer from '../music/MiniMusicPlayer';
+import AIChatWidget from '../ai/AIChatWidget';
 
 export default function MainLayout() {
   const location = useLocation();
@@ -44,6 +45,7 @@ export default function MainLayout() {
       
       <ChatBoxManager />
       <MiniMusicPlayer />
+      <AIChatWidget />
       
       {/* CSS để ẩn scrollbar */}
       <style>{`

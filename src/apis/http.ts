@@ -55,8 +55,9 @@ class HttpClient {
     }
 
     if (!response.ok) {
-      // Handle 401 Unauthorized (expired token)
-      if (response.status === 401) {
+      // Handle 401 Unauthorized (expired token or invalid credentials)
+      // Only redirect if it's NOT a login request (to avoid redirect loop)
+      if (response.status === 401 && !response.url?.includes('/auth/login')) {
         console.warn('🔒 [HTTP] Token expired or invalid, logging out...');
         localStorage.removeItem('token');
         localStorage.removeItem('user');

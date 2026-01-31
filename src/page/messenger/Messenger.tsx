@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
 import { useMessages } from '../../hooks/useMessages';
@@ -11,6 +11,7 @@ import VoiceRecorder from '../../components/chat/VoiceRecorder';
 import { conversationsApi } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type MessageAttachment } from '../../apis/messages';
+import { aiApi, type AIChatRequest } from '../../apis/ai';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -60,6 +61,19 @@ export default function Messenger() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openConversationId = location.state?.openConversationId;
+  
+  // AI Chat state
+  const AI_CONVERSATION_ID = 'ai_assistant';
+  const [aiMessages, setAiMessages] = useState<Array<{ id: string; text: string; isUser: boolean; timestamp: Date }>>([
+    {
+      id: '1',
+      text: 'Xin chào! Tôi là AI Assistant. Bạn có thể hỏi tôi bất cứ điều gì!',
+      isUser: false,
+      timestamp: new Date(),
+    },
+  ]);
+  const [aiConversationId, setAiConversationId] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Load conversations on mount
   useEffect(() => {
@@ -81,8 +95,9 @@ export default function Messenger() {
     }
   }, [openConversationId, conversations]);
 
-  const activeConversationRaw = activeChat ? conversations.find((c) => c.id === activeChat) : undefined;
-  const isGroupChat = !!activeConversationRaw?.isGroup;
+  const activeConversationRaw = activeChat && activeChat !== AI_CONVERSATION_ID ? conversations.find((c) => c.id === activeChat) : undefined;
+  const isGroupChat = activeChat !== AI_CONVERSATION_ID && !!activeConversationRaw?.isGroup;
+  const isAIChat = activeChat === AI_CONVERSATION_ID;
   const isOwner = !!(user?.id && activeConversationRaw?.ownerId === user.id);
   const isAdmin = !!(user?.id && activeConversationRaw?.adminIds?.includes(user.id));
   const canManageGroup = isOwner || isAdmin;
@@ -124,62 +139,84 @@ export default function Messenger() {
   }, [activeConversationRaw, user?.id, isOwner, isAdmin, loadConversations]);
 
   // Get current messages for active chat (memoized to keep stable reference for effects)
-  const messages = useMemo(
-    () =>
-      activeChat ? (apiMessages[activeChat] || []).map((m) => formatMessageForDisplay(m)) : [],
-    [activeChat, apiMessages, formatMessageForDisplay]
-  );
+  const messages = useMemo(() => {
+    if (activeChat === AI_CONVERSATION_ID) {
+      // Return AI messages formatted for display
+      return aiMessages.map((m) => ({
+        id: m.id,
+        content: m.text,
+        senderId: m.isUser ? user?.id || '' : 'ai',
+        senderName: m.isUser ? user?.fullName || user?.username || 'You' : 'AI Assistant',
+        timestamp: m.timestamp.toISOString(),
+        type: 'text' as const,
+      }));
+    }
+    return activeChat ? (apiMessages[activeChat] || []).map((m) => formatMessageForDisplay(m)) : [];
+  }, [activeChat, apiMessages, formatMessageForDisplay, aiMessages, user?.id, user?.fullName, user?.username]);
 
-  const formattedConversations = useMemo(
-    () =>
-      conversations
-        .map((conv) => {
-          if (!user?.id) return null;
+  const formattedConversations = useMemo(() => {
+    const formatTime = (dateStr?: string) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(hours / 24);
 
-          const otherParticipantIndex = conv.participantIds.findIndex((id) => id !== user.id);
+      if (days === 0) {
+        if (hours === 0) return 'Vừa xong';
+        return `${hours}h`;
+      } else if (days === 1) return 'Hôm qua';
+      else if (days < 7) return `${days} ngày`;
+      else return date.toLocaleDateString('vi-VN');
+    };
 
-          const name = conv.isGroup
-            ? conv.groupName || 'Group Chat'
-            : conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
+    // Add AI Assistant conversation at the top
+    const aiConversation = {
+      id: AI_CONVERSATION_ID,
+      name: 'AI Assistant',
+      avatar: 'AI',
+      color: '#3b82f6',
+      online: true,
+      lastMessage: aiMessages.length > 0 ? aiMessages[aiMessages.length - 1].text.substring(0, 50) : 'Xin chào! Tôi là AI Assistant.',
+      time: aiMessages.length > 0 ? formatTime(aiMessages[aiMessages.length - 1].timestamp.toISOString()) : '',
+      unread: 0,
+      isGroup: false,
+    };
 
-          const initials = name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase();
+    const regularConversations = conversations
+      .map((conv) => {
+        if (!user?.id) return null;
 
-          const formatTime = (dateStr?: string) => {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const days = Math.floor(hours / 24);
+        const otherParticipantIndex = conv.participantIds.findIndex((id) => id !== user.id);
 
-            if (days === 0) {
-              if (hours === 0) return 'Vừa xong';
-              return `${hours}h`;
-            } else if (days === 1) return 'Hôm qua';
-            else if (days < 7) return `${days} ngày`;
-            else return date.toLocaleDateString('vi-VN');
-          };
+        const name = conv.isGroup
+          ? conv.groupName || 'Group Chat'
+          : conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
 
-          return {
-            id: conv.id,
-            name,
-            avatar: initials,
-            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-            online: false,
-            lastMessage: conv.lastMessagePreview || '',
-            time: formatTime(conv.lastMessageAt),
-            unread: 0,
-            isGroup: conv.isGroup,
-          };
-        })
-        .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c)),
-    [conversations, user?.id]
-  );
+        const initials = name
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+
+        return {
+          id: conv.id,
+          name,
+          avatar: initials,
+          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+          online: false,
+          lastMessage: conv.lastMessagePreview || '',
+          time: formatTime(conv.lastMessageAt),
+          unread: 0,
+          isGroup: conv.isGroup,
+        };
+      })
+      .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c));
+
+    return [aiConversation, ...regularConversations];
+  }, [conversations, user?.id, aiMessages]);
 
   const pendingJoinNotifications = useMemo(() => {
     if (!user?.id) return 0;
@@ -205,6 +242,11 @@ export default function Messenger() {
   const getCallInfo = () => {
     if (!activeChat || !user?.id) {
       console.log('❌ getCallInfo: No active chat or user');
+      return null;
+    }
+    
+    // AI chat doesn't support calls
+    if (activeChat === AI_CONVERSATION_ID) {
       return null;
     }
     
@@ -257,7 +299,56 @@ export default function Messenger() {
 
   const handleSendMessage = async () => {
     if (!message.trim() && !replyTo && !filePreview) return;
-    if (!activeChat) return;
+    if (!activeChat || !user?.id) return;
+
+    // Handle AI conversation separately
+    if (activeChat === AI_CONVERSATION_ID) {
+      const userMessage = {
+        id: Date.now().toString(),
+        text: message,
+        isUser: true,
+        timestamp: new Date(),
+      };
+      
+      setAiMessages((prev) => [...prev, userMessage]);
+      setMessage('');
+      setIsAiLoading(true);
+
+      try {
+        const request: AIChatRequest = {
+          message: message,
+          userId: user.id,
+          conversationId: aiConversationId || undefined,
+        };
+
+        const response = await aiApi.chat(request);
+
+        if (response.conversationId && !aiConversationId) {
+          setAiConversationId(response.conversationId);
+        }
+
+        const aiMessage = {
+          id: (Date.now() + 1).toString(),
+          text: response.response,
+          isUser: false,
+          timestamp: new Date(),
+        };
+
+        setAiMessages((prev) => [...prev, aiMessage]);
+      } catch (error) {
+        console.error('❌ Error chatting with AI:', error);
+        const errorMessage = {
+          id: (Date.now() + 1).toString(),
+          text: 'Xin lỗi, đã xảy ra lỗi khi gửi tin nhắn. Vui lòng thử lại sau.',
+          isUser: false,
+          timestamp: new Date(),
+        };
+        setAiMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsAiLoading(false);
+      }
+      return;
+    }
 
     try {
       let attachments: MessageAttachment[] = [];
@@ -777,7 +868,11 @@ export default function Messenger() {
             >
               {leftSidebarCollapsed ? (
                 <div className="relative">
-                  {conv.isGroup ? (
+                  {conv.id === AI_CONVERSATION_ID ? (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                      <Bot className="w-6 h-6 text-white" />
+                    </div>
+                  ) : conv.isGroup ? (
                     <div className="relative w-12 h-12">
                       <div className="absolute top-0 left-0 w-9 h-9 rounded-lg bg-green-500 border-2 border-white flex items-center justify-center shadow-sm">
                         <span className="text-white text-xs font-bold">S</span>
@@ -808,7 +903,11 @@ export default function Messenger() {
               ) : (
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
-                    {conv.isGroup ? (
+                    {conv.id === AI_CONVERSATION_ID ? (
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                        <Bot className="w-7 h-7 text-white" />
+                      </div>
+                    ) : conv.isGroup ? (
                       <div className="relative w-14 h-14">
                         <div className="absolute top-0 left-0 w-11 h-11 rounded-xl bg-green-500 border-3 border-white flex items-center justify-center shadow-sm">
                           <span className="text-white text-sm font-bold">S</span>
@@ -911,9 +1010,9 @@ export default function Messenger() {
                     alert('Không thể bắt đầu cuộc gọi. Vui lòng thử lại.');
                   }
                 }}
-                disabled={!activeChat}
+                disabled={!activeChat || isAIChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title={isGroupChat ? "Group call" : "Call"}
+                title={isAIChat ? "Không thể gọi AI" : (isGroupChat ? "Group call" : "Call")}
               >
                 <Phone className="w-5 h-5 text-gray-700" />
               </button>
@@ -930,9 +1029,9 @@ export default function Messenger() {
                     alert('Không thể bắt đầu cuộc gọi video. Vui lòng thử lại.');
                   }
                 }}
-                disabled={!activeChat}
+                disabled={!activeChat || isAIChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title={isGroupChat ? "Group video call" : "Video call"}
+                title={isAIChat ? "Không thể gọi AI" : (isGroupChat ? "Group video call" : "Video call")}
               >
                 <Video className="w-5 h-5 text-gray-700" />
               </button>
@@ -985,19 +1084,31 @@ export default function Messenger() {
               >
                 {!msg.isMe && (
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: '#42B72A' }}
-                    onClick={() => navigate(`/profile/${msg.senderId}`)}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-opacity ${
+                      msg.senderId === 'ai' 
+                        ? 'bg-gradient-to-br from-indigo-400 to-purple-500 cursor-default' 
+                        : 'bg-green-500 cursor-pointer hover:opacity-90'
+                    }`}
+                    onClick={msg.senderId === 'ai' ? undefined : () => navigate(`/profile/${msg.senderId}`)}
                   >
-                    {msg.sender.charAt(0)}
+                    {msg.senderId === 'ai' ? (
+                      <Bot className="w-6 h-6 text-white" />
+                    ) : (
+                      <span className="text-white font-bold text-base">{msg.sender.charAt(0)}</span>
+                    )}
                   </div>
                 )}
                 <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
-                  {/* Sender name for group chats */}
-                  {isGroupChat && !msg.isMe && (
-                    <p className="text-xs font-semibold text-gray-600 mb-1">
-                      {msg.sender}
-                    </p>
+                  {/* Sender name for group chats or AI */}
+                  {(isGroupChat || msg.senderId === 'ai') && !msg.isMe && (
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {msg.senderId === 'ai' && (
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                      )}
+                      <p className="text-xs font-semibold text-gray-600">
+                        {msg.sender}
+                      </p>
+                    </div>
                   )}
                   {/* Reply To */}
                   {msg.replyTo && (
@@ -1107,7 +1218,8 @@ export default function Messenger() {
                               download 
                               className="inline-flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors"
                             >
-                              <span>📎 {attachment.fileName}</span>
+                              <FileText className="w-4 h-4 text-gray-600" />
+                              <span>{attachment.fileName}</span>
                             </a>
                           )}
                         </div>
@@ -1120,7 +1232,9 @@ export default function Messenger() {
                     <div
                       className={`rounded-2xl px-5 py-3.5 mb-1 shadow-sm relative ${
                         msg.isMe
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
+                          : msg.senderId === 'ai'
+                          ? 'bg-white text-gray-900 border border-gray-100'
                           : 'bg-white text-gray-900 border border-gray-100'
                       }`}
                       onDoubleClick={() => handleReaction(msg.id, '❤️')}
@@ -1312,15 +1426,24 @@ export default function Messenger() {
         )}
 
         {/* Typing Indicator */}
-        {isTyping && (
-          <div className="px-4 md:px-6 py-2 bg-white border-t border-gray-100">
-            <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+        {(isTyping || (isAIChat && isAiLoading)) && (
+          <div className="px-4 md:px-6 py-3 bg-white border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              {isAIChat && (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 shadow-sm">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <span className="text-sm text-gray-600 font-medium">
+                  {isAIChat ? 'AI đang suy nghĩ...' : `${activeConversation?.name} đang nhập...`}
+                </span>
               </div>
-              <span className="truncate">{activeConversation?.name} is typing...</span>
             </div>
           </div>
         )}
@@ -1480,11 +1603,15 @@ export default function Messenger() {
             {message.trim() || replyTo || filePreview ? (
               <button
                 onClick={handleSendMessage}
-                disabled={uploadingFiles}
+                disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim())}
                 className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all shrink-0 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Send"
               >
-                <Send className="w-4 h-4 md:w-5 md:h-5" />
+                {isAiLoading ? (
+                  <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Send className="w-4 h-4 md:w-5 md:h-5" />
+                )}
               </button>
             ) : (
               <VoiceRecorder onRecordingComplete={handleVoiceRecording} />
