@@ -50,6 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load user from localStorage on mount
   useEffect(() => {
     const loadUser = () => {
+      // Check if token is still valid
+      if (!authApi.isAuthenticated()) {
+        // Token expired or invalid, clear user
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      
       const savedUser = authApi.getCurrentUser();
       if (savedUser) {
         setUser(savedUser);

@@ -148,7 +148,29 @@ export const authApi = {
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    // Check if token is expired
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const exp = payload.exp * 1000; // Convert to milliseconds
+      const now = Date.now();
+      
+      if (exp < now) {
+        // Token expired, clear it
+        console.warn('⚠️ [Auth] Token expired, clearing...');
+        authApi.logout();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      // Invalid token format, clear it
+      console.warn('⚠️ [Auth] Invalid token format, clearing...');
+      authApi.logout();
+      return false;
+    }
   },
 };
 

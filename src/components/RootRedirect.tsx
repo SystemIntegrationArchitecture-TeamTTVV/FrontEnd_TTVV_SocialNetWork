@@ -1,19 +1,32 @@
 import { Navigate } from 'react-router-dom';
-import { authApi } from '../apis/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Root redirect component - checks authentication and redirects accordingly
  * When user visits root path '/', redirects to /home if authenticated, otherwise /auth/login
+ * Note: This component is already inside ProtectedRoute, so it will only render if authenticated
  */
 export default function RootRedirect() {
-  const isAuthenticated = authApi.isAuthenticated();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   if (isAuthenticated) {
     // If authenticated, redirect to home
     return <Navigate to="/home" replace />;
   }
   
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login (shouldn't happen since MainLayout is protected)
   return <Navigate to="/auth/login" replace />;
 }
 

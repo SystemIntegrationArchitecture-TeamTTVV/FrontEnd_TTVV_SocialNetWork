@@ -104,13 +104,24 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Stories Viewer - Fullscreen (outside MainLayout)
-  { path: '/stories/:id', element: <StoriesViewer /> },
+  // Stories Viewer - Fullscreen (outside MainLayout, but still requires auth)
+  {
+    path: '/stories/:id',
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <StoriesViewer />
+      </ProtectedRoute>
+    ),
+  },
 
-  // Main App Routes
+  // Main App Routes - Protected (require authentication)
   {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <RootRedirect /> },
       // Home
