@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search } from 'lucide-react';
+import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search, Globe } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
 import UserDropdown from './UserDropdown';
 import { authApi } from '../../apis/auth';
@@ -11,6 +12,7 @@ import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
 
 export default function Navbar() {
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
@@ -21,6 +23,7 @@ export default function Navbar() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const { isConnected: socketConnected, subscribe } = useSocket();
   const [currentUser] = useState<{
     id: string;
@@ -163,6 +166,19 @@ export default function Navbar() {
     navigate(`/profile/${user.id}`);
   };
 
+  const handleLanguageChange = (lang: 'en' | 'vi') => {
+    i18n.changeLanguage(lang).catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error('Failed to change language:', error);
+    });
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('language', lang);
+    }
+    setIsLanguageOpen(false);
+  };
+
+  const currentLang = i18n.language === 'vi' ? 'vi' : 'en';
+
   return (
     <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b border-gray-200 z-50 shadow-sm">
       <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between gap-4">
@@ -195,7 +211,7 @@ export default function Navbar() {
                     setShowSuggestions(false);
                   }
                 }}
-                placeholder="Search TTVV"
+                placeholder={t('navbar.searchPlaceholder')}
                 className="w-64 lg:w-80 h-11 pl-11 pr-4 rounded-full bg-gray-50 text-sm border border-gray-200 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-gray-500"
               />
             </div>
@@ -305,6 +321,44 @@ export default function Navbar() {
           <button className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setIsLanguageOpen((prev) => !prev)}
+              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+              aria-haspopup="true"
+              aria-expanded={isLanguageOpen}
+            >
+              <Globe className="w-5 h-5 text-gray-700" />
+              <span className="absolute -bottom-1 text-[10px] font-semibold uppercase text-gray-700">
+                {currentLang === 'en' ? 'EN' : 'VI'}
+              </span>
+            </button>
+            {isLanguageOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] py-1">
+                <button
+                  type="button"
+                  onClick={() => handleLanguageChange('en')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 ${
+                    currentLang === 'en' ? 'font-semibold text-blue-600' : 'text-gray-700'
+                  }`}
+                >
+                  <span className="w-5 text-xs font-semibold">EN</span>
+                  <span>{t('navbar.english')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLanguageChange('vi')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 ${
+                    currentLang === 'vi' ? 'font-semibold text-blue-600' : 'text-gray-700'
+                  }`}
+                >
+                  <span className="w-5 text-xs font-semibold">VI</span>
+                  <span>{t('navbar.vietnamese')}</span>
+                </button>
+              </div>
+            )}
+          </div>
           
           <Link
             to="/messenger"
