@@ -190,10 +190,12 @@ export default function MusicEDM() {
           {/* Playlist */}
           <div className="flex-1 overflow-y-auto space-y-2 mb-6 max-h-[500px]">
             {playlist.map((song, index) => (
-              <button
+              <div
                 key={song.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => selectSong(index)}
-                className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
+                className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group cursor-pointer ${
                   index === currentIndex
                     ? 'bg-blue-50 border border-blue-200'
                     : 'hover:bg-gray-50'
@@ -209,6 +211,7 @@ export default function MusicEDM() {
                 </div>
                 <span className="text-xs text-gray-500">{song.duration}</span>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleFavorite(song.id);
@@ -219,7 +222,7 @@ export default function MusicEDM() {
                     className={`w-5 h-5 ${favorites.includes(song.id) ? 'fill-red-500 text-red-500' : ''}`}
                   />
                 </button>
-              </button>
+              </div>
             ))}
           </div>
 

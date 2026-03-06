@@ -26,7 +26,6 @@ export default function LeftSidebar() {
     { icon: Store, label: 'Marketplace', path: '/marketplace' },
     { icon: Video, label: 'Watch', path: '/watch' },
     { icon: Music2, label: 'Music edm', path: '/music' },
-    { icon: Clock, label: 'Memories', path: '/memories' },
     { icon: Bookmark, label: 'Saved', path: '/saved' },
   ];
 

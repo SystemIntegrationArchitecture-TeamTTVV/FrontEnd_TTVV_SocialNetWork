@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
  * Note: This component is already inside ProtectedRoute, so it will only render if authenticated
  */
 export default function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   
   // Show loading while checking authentication
   if (isLoading) {
@@ -22,7 +22,11 @@ export default function RootRedirect() {
   }
   
   if (isAuthenticated) {
-    // If authenticated, redirect to home
+    // Nếu là admin thì đưa vào trang admin, ngược lại vào home
+    const role = user?.role?.toUpperCase();
+    if (role === 'ADMIN') {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to="/home" replace />;
   }
   

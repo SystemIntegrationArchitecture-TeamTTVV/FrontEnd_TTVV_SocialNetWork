@@ -322,44 +322,6 @@ export default function Navbar() {
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setIsLanguageOpen((prev) => !prev)}
-              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-              aria-haspopup="true"
-              aria-expanded={isLanguageOpen}
-            >
-              <Globe className="w-5 h-5 text-gray-700" />
-              <span className="absolute -bottom-1 text-[10px] font-semibold uppercase text-gray-700">
-                {currentLang === 'en' ? 'EN' : 'VI'}
-              </span>
-            </button>
-            {isLanguageOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] py-1">
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange('en')}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 ${
-                    currentLang === 'en' ? 'font-semibold text-blue-600' : 'text-gray-700'
-                  }`}
-                >
-                  <span className="w-5 text-xs font-semibold">EN</span>
-                  <span>{t('navbar.english')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange('vi')}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 ${
-                    currentLang === 'vi' ? 'font-semibold text-blue-600' : 'text-gray-700'
-                  }`}
-                >
-                  <span className="w-5 text-xs font-semibold">VI</span>
-                  <span>{t('navbar.vietnamese')}</span>
-                </button>
-              </div>
-            )}
-          </div>
-          
           <Link
             to="/messenger"
             className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
