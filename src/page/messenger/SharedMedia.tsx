@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Search, Image, Video, FileText, Filter, Download } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function SharedMedia() {
-  const { id } = useParams();
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');

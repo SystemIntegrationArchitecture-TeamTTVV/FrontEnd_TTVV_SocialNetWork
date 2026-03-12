@@ -141,15 +141,36 @@ export default function Messenger() {
   // Get current messages for active chat (memoized to keep stable reference for effects)
   const messages = useMemo(() => {
     if (activeChat === AI_CONVERSATION_ID) {
-      // Return AI messages formatted for display
-      return aiMessages.map((m) => ({
-        id: m.id,
-        content: m.text,
-        senderId: m.isUser ? user?.id || '' : 'ai',
-        senderName: m.isUser ? user?.fullName || user?.username || 'You' : 'AI Assistant',
-        timestamp: m.timestamp.toISOString(),
-        type: 'text' as const,
-      }));
+      // Return AI messages formatted in the same shape as regular DisplayMessage
+      return aiMessages.map((m) => {
+        const isMe = !!m.isUser;
+        const senderId = isMe ? user?.id || 'me' : 'ai';
+        const sender =
+          isMe
+            ? user?.fullName || user?.username || 'You'
+            : 'AI Assistant';
+
+        return {
+          id: m.id,
+          sender,
+          senderId,
+          content: m.text,
+          time: m.timestamp.toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isMe,
+          status: isMe ? ('read' as const) : null,
+          reactions: [],
+          attachments: [],
+          isEdited: false,
+          createdAt: m.timestamp.toISOString(),
+          image: undefined,
+          pinned: false,
+          starred: false,
+          replyTo: undefined,
+        };
+      });
     }
     return activeChat ? (apiMessages[activeChat] || []).map((m) => formatMessageForDisplay(m)) : [];
   }, [activeChat, apiMessages, formatMessageForDisplay, aiMessages, user?.id, user?.fullName, user?.username]);
