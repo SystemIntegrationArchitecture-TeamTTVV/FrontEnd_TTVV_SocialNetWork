@@ -12,6 +12,17 @@ export interface User {
   bio?: string;
   city?: string;
   country?: string;
+  // Extended profile fields
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  workPlace?: string;
+  education?: string;
+  interests?: string[];
+  profileVisibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+  postVisibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+  showEmail?: boolean;
+  showPhone?: boolean;
   isActive?: boolean;
   isVerified?: boolean;
   role?: string;

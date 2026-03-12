@@ -76,11 +76,11 @@ export default function About({ displayUser }: AboutProps) {
       </div>
 
       {/* Interests */}
-      {displayUser.interests?.length > 0 && (
+      {((displayUser.interests ?? []).length > 0) && (
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-3">Interests</h3>
           <div className="flex flex-wrap gap-2">
-            {displayUser.interests.map((interest, index) => (
+            {(displayUser.interests ?? []).map((interest, index) => (
               <span
                 key={index}
                 className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
