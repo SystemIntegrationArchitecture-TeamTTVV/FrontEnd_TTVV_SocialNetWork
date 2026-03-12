@@ -81,7 +81,8 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
       if (mediaFile) {
         const uploadedFiles = await uploadApi.uploadFiles([mediaFile]);
         if (uploadedFiles.length > 0) {
-          mediaUrl = uploadedFiles[0];
+          const first = uploadedFiles[0];
+          mediaUrl = first.url;
           
           // For videos, we could generate thumbnail (simplified: use media URL)
           if (storyType === 'video') {

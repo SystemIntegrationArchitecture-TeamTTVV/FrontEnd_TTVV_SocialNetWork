@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, MoreVertical, Ban, CheckCircle2, XCircle, Eye, Edit, Trash2, Loader2, UserPlus } from 'lucide-react';
+import { Search, Ban, CheckCircle2, XCircle, Eye, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usersApi, type User } from '../../apis/users';
 
