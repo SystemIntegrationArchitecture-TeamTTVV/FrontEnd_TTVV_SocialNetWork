@@ -30,9 +30,7 @@ export default function WatchVideo() {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [featuredVideos, setFeaturedVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reactions, setReactions] = useState<Record<string, ReactionData[]>>(
-    {},
-  );
+  const [, setReactions] = useState<Record<string, ReactionData[]>>({});
   const [userReactions, setUserReactions] = useState<
     Record<string, ReactionData>
   >({});

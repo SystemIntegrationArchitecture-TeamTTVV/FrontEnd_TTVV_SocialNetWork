@@ -1,10 +1,7 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Check, Bell, Share2, MoreVertical, Image as ImageIcon, Smile } from 'lucide-react';
+import { Check, Bell, Share2, MoreVertical, Image as ImageIcon, Smile } from 'lucide-react';
 import { useState } from 'react';
 
 export default function GroupDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('discussion');
 
   return (

@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { Bell, Mail, Smartphone, Globe, Users, MessageSquare, Heart, Share2, UserPlus } from 'lucide-react';
+import { Bell, Users, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function NotificationSettings() {

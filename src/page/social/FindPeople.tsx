@@ -424,7 +424,11 @@ export default function FindPeople() {
                       {/* Friend Request Button */}
                       {status === 'none' && (
                         <button
-                          onClick={() => handleSendFriendRequest(user.id)}
+                          onClick={() => {
+                            if (user.id) {
+                              handleSendFriendRequest(user.id);
+                            }
+                          }}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
                         >
                           <UserPlus className="w-4 h-4" />

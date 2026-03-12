@@ -1,4 +1,4 @@
-import { Bell, Heart, MessageCircle, Share2, UserPlus, Tag, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Share2, UserPlus, Tag, Clock } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Notifications() {

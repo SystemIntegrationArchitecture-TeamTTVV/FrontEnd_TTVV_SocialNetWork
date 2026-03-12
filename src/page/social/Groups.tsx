@@ -1,10 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Plus, Bell, Share2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { PlaneIcon, CameraIcon, GamepadIcon, BookIcon, ChefHatIcon } from '../../common/icons/IconComponents';
 
 export default function Groups() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('your');
 
   const groupsManaged = [
