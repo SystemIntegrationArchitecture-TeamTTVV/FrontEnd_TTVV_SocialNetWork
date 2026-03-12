@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, UserPlus, Check, X, User as UserIcon, Loader2, MessageCircle } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { usersApi, type User } from '../../apis/users';
 import { friendRequestsApi, type FriendRequest } from '../../apis/friendRequests';
 import { authApi } from '../../apis/auth';
@@ -14,7 +14,6 @@ export default function FindPeople() {
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
   const currentUser = authApi.getCurrentUser();
   const { subscribe } = useSocket();
   const { openChatBoxByUserId } = useChatBox();
@@ -128,19 +127,6 @@ export default function FindPeople() {
       const received = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
       const all = [...sent, ...received];
       setFriendRequests(all);
-      
-      // Create set of user IDs with pending requests
-      const pendingSet = new Set<string>();
-      all.forEach(req => {
-        if (req.status === 'PENDING') {
-          if (req.senderId === currentUser.id) {
-            pendingSet.add(req.receiverId);
-          } else {
-            pendingSet.add(req.senderId);
-          }
-        }
-      });
-      setPendingRequests(pendingSet);
     } catch (error) {
       console.error('Failed to load friend requests:', error);
     }
@@ -216,8 +202,6 @@ export default function FindPeople() {
       });
       console.log('✅ Friend request sent successfully:', friendRequest);
       
-      // Update UI immediately
-      setPendingRequests(prev => new Set(prev).add(userId));
       await loadFriendRequests();
       
       // Note: Backend automatically sends socket notification to receiver
@@ -258,10 +242,11 @@ export default function FindPeople() {
   };
 
   const handleMessage = async (user: User) => {
-    if (!currentUser?.id || user.id === currentUser.id) return;
+    if (!currentUser?.id || !user.id || user.id === currentUser.id) return;
 
     try {
-      await openChatBoxByUserId(user.id, user.fullName || user.username, user.avatar);
+      const displayName = user.fullName || user.username || 'Unknown User';
+      await openChatBoxByUserId(user.id, displayName, user.avatar);
     } catch (error) {
       console.error('Failed to open chat:', error);
     }
@@ -313,6 +298,7 @@ export default function FindPeople() {
                   Suggestions
                 </div>
                 {suggestions.map((user) => {
+                  const safeUsername = user.username ?? '';
                   const userInitials = user.fullName
                     ? user.fullName
                         .split(' ')
@@ -320,7 +306,7 @@ export default function FindPeople() {
                         .join('')
                         .toUpperCase()
                         .slice(0, 2)
-                    : user.username.charAt(0).toUpperCase();
+                    : safeUsername.charAt(0).toUpperCase();
 
                   return (
                     <button
@@ -341,9 +327,9 @@ export default function FindPeople() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate text-sm">
-                          {user.fullName || user.username}
+                          {user.fullName || user.username || safeUsername || 'Unknown User'}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">@{user.username}</p>
+                        <p className="text-xs text-gray-500 truncate">@{safeUsername}</p>
                       </div>
                     </button>
                   );
@@ -360,6 +346,8 @@ export default function FindPeople() {
           <h2 className="text-lg font-semibold text-gray-900">Search Results</h2>
           <div className="space-y-3">
             {users.map((user) => {
+              if (!user.id) return null;
+              const safeUsername = user.username ?? '';
               const status = getFriendRequestStatus(user.id);
               const requestId = getRequestId(user.id);
               const userInitials = user.fullName
@@ -369,7 +357,7 @@ export default function FindPeople() {
                     .join('')
                     .toUpperCase()
                     .slice(0, 2)
-                : user.username.charAt(0).toUpperCase();
+                : safeUsername.charAt(0).toUpperCase();
 
               return (
                 <div
@@ -400,8 +388,8 @@ export default function FindPeople() {
                       onClick={() => navigate(`/profile/${user.id}`)}
                       className="flex-1 min-w-0 cursor-pointer"
                     >
-                      <p className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">{user.fullName || user.username}</p>
-                      <p className="text-sm text-gray-500 truncate">@{user.username}</p>
+                      <p className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">{user.fullName || user.username || safeUsername || 'Unknown User'}</p>
+                      <p className="text-sm text-gray-500 truncate">@{safeUsername}</p>
                       {user.bio && (
                         <p className="text-sm text-gray-600 mt-1 line-clamp-1">{user.bio}</p>
                       )}
