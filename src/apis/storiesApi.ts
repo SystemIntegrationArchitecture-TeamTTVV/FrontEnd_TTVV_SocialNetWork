@@ -11,7 +11,7 @@ class StoriesApi {
         );
     }
 
-    // ✅ Helper method để gửi FormData
+    //  Helper method để gửi FormData
     private async postFormData<T>(url: string, formData: FormData): Promise<T> {
         const token = localStorage.getItem('token');
         const headers: HeadersInit = {};
@@ -20,7 +20,7 @@ class StoriesApi {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        // ✅ Dùng BASE_URL từ config
+        //  Dùng BASE_URL từ config
         const fullUrl = `${API_CONFIG.BASE_URL}${url}`;
 
         const response = await fetch(fullUrl, {
