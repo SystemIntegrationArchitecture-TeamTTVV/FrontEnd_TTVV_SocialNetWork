@@ -1,10 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, Share2, ShoppingCart, MapPin, Store, Star, MessageCircle } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Heart, Share2, ShoppingCart, MapPin, Star, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ProductDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [quantity, setQuantity] = useState(1);
 

@@ -1,6 +1,5 @@
 import { Bell, Heart, MessageCircle, Share2, UserPlus, Tag, Clock } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 
 export default function Notifications() {
   const [activeTab, setActiveTab] = useState('all');

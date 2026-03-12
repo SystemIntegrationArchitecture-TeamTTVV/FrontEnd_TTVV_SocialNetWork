@@ -269,13 +269,13 @@ export default function WatchVideo() {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      Object.entries(menuRefs.current).forEach(([videoId, ref]) => {
+      Object.entries(menuRefs.current).forEach(([, ref]) => {
         if (ref && !ref.contains(event.target as Node)) {
           setOpenMenuId(null);
         }
       });
 
-      Object.entries(reactionRefs.current).forEach(([videoId, ref]) => {
+      Object.entries(reactionRefs.current).forEach(([, ref]) => {
         if (ref && !ref.contains(event.target as Node)) {
           setOpenReactionId(null);
         }
@@ -395,7 +395,6 @@ export default function WatchVideo() {
         {/* Video Feed */}
         <div className="space-y-4">
           {videos.map((video) => {
-            const videoReactions = reactions[video.id!] || [];
             const userReaction = userReactions[video.id!];
             const videoComments = comments[video.id!] || [];
             const showingComments = showComments[video.id!];
