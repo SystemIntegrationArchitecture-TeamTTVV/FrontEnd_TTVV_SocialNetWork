@@ -316,7 +316,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          const initials = contactName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+          const initials = contactName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
           const contact: ChatContact = {
             id: message.conversationId,

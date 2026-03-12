@@ -12,7 +12,7 @@ import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
 
 export default function Navbar() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;

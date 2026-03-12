@@ -195,6 +195,3 @@ class PostsApi {
 }
 
 export const postsApi = new PostsApi();
-
-// Explicit re-exports for better module resolution
-export type { PostData, CreatePostRequest, UpdatePostRequest };

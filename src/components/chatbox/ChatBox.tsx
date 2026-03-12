@@ -5,7 +5,7 @@ import { useCall } from '../../contexts/CallContext';
 import EmojiPicker from '../chat/EmojiPicker';
 import { ImageUpload, VideoUpload } from '../chat/FileUpload';
 import VoiceRecorder from '../chat/VoiceRecorder';
-import type { ChatContact, ChatMessage } from '../../types/chat';
+import type { ChatContact } from '../../types/chat';
 import { useMessages } from '../../hooks/useMessages';
 interface ChatBoxProps {
   contact: ChatContact;
