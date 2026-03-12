@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, X } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
+import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
 import { postsApi } from '../../apis/posts';
 import type { PostData } from '../../apis/posts';
@@ -41,7 +41,6 @@ export default function Newsfeed() {
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
-  const [showCreateStory, setShowCreateStory] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -264,7 +263,11 @@ export default function Newsfeed() {
     setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
     try {
-      const newComment = await commentsApi.createComment(postId, currentUser.id, comment.trim());
+      const newComment = await commentsApi.createComment({
+        postId,
+        userId: currentUser.id,
+        content: comment.trim(),
+      });
       
       // Add comment to state
       setPostComments(prev => ({
@@ -385,7 +388,7 @@ export default function Newsfeed() {
     }
   };
 
-  const handleReplyToComment = (commentId: string, postId: string) => {
+  const handleReplyToComment = (commentId: string) => {
     setReplyingTo(commentId);
     setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
   };
@@ -397,12 +400,12 @@ export default function Newsfeed() {
     setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
 
     try {
-      const newReply = await commentsApi.createComment(
-        postId, 
-        currentUser.id, 
-        replyText.trim(), 
-        parentCommentId
-      );
+      const newReply = await commentsApi.createComment({
+        postId,
+        userId: currentUser.id,
+        content: replyText.trim(),
+        parentCommentId,
+      });
 
       // Add reply to state
       setCommentReplies(prev => ({
@@ -1028,7 +1031,7 @@ export default function Newsfeed() {
                     </span>
                   </button>
                   <button
-                    onClick={() => toggleComments(post.id)}
+                    onClick={() => toggleComments(post.id!)}
                     className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${isCommentsExpanded
                       ? 'bg-blue-50 text-blue-600'
                       : 'hover:bg-gray-50 text-gray-700'
@@ -1109,7 +1112,7 @@ export default function Newsfeed() {
                                     {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
                                   </button>
                                   <button 
-                                    onClick={() => handleReplyToComment(comment.id!, post.id!)}
+                                    onClick={() => handleReplyToComment(comment.id!)}
                                     className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
                                   >
                                     Reply
@@ -1249,22 +1252,21 @@ export default function Newsfeed() {
       )}
       */}
       
-      {isCreateStoryOpen && (
-        <CreateStory
-          onClose={() => setIsCreateStoryOpen(false)}
-          onSuccess={handleStoryCreated}
-        />
-      )}
+      <CreateStory
+        isOpen={isCreateStoryOpen}
+        onClose={() => setIsCreateStoryOpen(false)}
+        onStoryCreated={handleStoryCreated}
+      />
 
-      {isStoryViewerOpen && selectedStoryId && (
-        <StoryViewer
-          storyId={selectedStoryId}
-          onClose={() => {
-            setIsStoryViewerOpen(false);
-            setSelectedStoryId(undefined);
-          }}
-        />
-      )}
+      <StoryViewer
+        isOpen={isStoryViewerOpen}
+        initialStoryId={selectedStoryId}
+        stories={stories}
+        onClose={() => {
+          setIsStoryViewerOpen(false);
+          setSelectedStoryId(undefined);
+        }}
+      />
     </div>
   );
 }

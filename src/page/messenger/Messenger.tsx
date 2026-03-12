@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Loader2 } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
 import { useMessages } from '../../hooks/useMessages';
@@ -238,22 +238,6 @@ export default function Messenger() {
 
     return [aiConversation, ...regularConversations];
   }, [conversations, user?.id, aiMessages]);
-
-  const pendingJoinNotifications = useMemo(() => {
-    if (!user?.id) return 0;
-    return conversations.reduce((count, conv) => {
-      if (
-        conv.isGroup &&
-        conv.approvalsRequired &&
-        conv.pendingJoinIds &&
-        conv.pendingJoinIds.length > 0 &&
-        (conv.ownerId === user.id || conv.adminIds?.includes(user.id))
-      ) {
-        return count + conv.pendingJoinIds.length;
-      }
-      return count;
-    }, 0);
-  }, [conversations, user?.id]);
 
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat)

@@ -163,7 +163,7 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
         ) : currentStory.text ? (
           <div
             className="w-full h-96 flex items-center justify-center p-8"
-            style={{ background: currentStory.backgroundColor }}
+            style={{ background: currentStory.backgroundColor || undefined }}
           >
             <p className="text-white text-3xl font-bold text-center">{currentStory.text}</p>
           </div>
