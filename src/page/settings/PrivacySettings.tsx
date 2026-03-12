@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Globe, Users, Lock, Eye, EyeOff, UserMinus, UserPlus } from 'lucide-react';
+import { Globe, Users, Lock, Eye, UserMinus, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function PrivacySettings() {

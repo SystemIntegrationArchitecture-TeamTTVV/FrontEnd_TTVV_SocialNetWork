@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import { authApi } from "../../../apis/auth";
-import { usersApi, type User } from "../../../apis/users";
+import { type User } from "../../../apis/users";
 import {
   MapPin,
   Briefcase,
@@ -11,12 +9,17 @@ import {
 } from "lucide-react";
 
 interface AboutProps {
-  displayUser: User | null;
+  displayUser: (User & {
+    workPlace?: string;
+    education?: string;
+    showEmail?: boolean;
+    showPhone?: boolean;
+    phoneNumber?: string;
+    interests?: string[];
+  }) | null;
 }
 
 export default function About({ displayUser }: AboutProps) {
-  const currentUser = authApi.getCurrentUser();
-
   if (!displayUser) return null;
 
   return (
@@ -30,11 +33,11 @@ export default function About({ displayUser }: AboutProps) {
 
       {/* Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Info icon={UserIcon} label="Full name" value={displayUser.fullName} />
+        <Info icon={UserIcon} label="Full name" value={displayUser.fullName ?? ''} />
         <Info
           icon={UserIcon}
           label="Username"
-          value={`@${displayUser.username}`}
+          value={`@${displayUser.username ?? ''}`}
         />
 
         {(displayUser.city || displayUser.country) && (
