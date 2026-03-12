@@ -55,8 +55,8 @@ export function IncomingCall({ contactName, callType, onAnswer, onReject }: Inco
 }
 
 export function VideoCall({ contactId, callType, onEnd }: VideoCallProps) {
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const {
     isCallActive,

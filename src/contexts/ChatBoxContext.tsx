@@ -68,7 +68,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
             }))
         : [];
 
-      const mins = Array.isArray(parsedMin) ? (parsedMin as string[]).map(String) : [];
+      const mins = Array.isArray(parsedMin) ? (parsedMin as string[]).map((n: string) => String(n)) : [];
 
       // Use functional updates to avoid cascading renders warning
       setOpenChatBoxes(() => boxes);
