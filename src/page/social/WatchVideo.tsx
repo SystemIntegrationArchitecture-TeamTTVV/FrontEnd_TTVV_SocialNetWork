@@ -1,5 +1,4 @@
 // src/pages/WatchVideo.tsx
-import { useNavigate } from "react-router-dom";
 import {
   Search,
   Settings,
@@ -25,7 +24,6 @@ import { reactionsApi, type ReactionData } from "../../apis/reactions";
 import { commentsApi, type CommentData } from "../../apis/comments";
 
 export default function WatchVideo() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openReactionId, setOpenReactionId] = useState<string | null>(null);
@@ -442,7 +440,9 @@ export default function WatchVideo() {
                   </div>
                   <div
                     className="relative"
-                    ref={(el) => (menuRefs.current[video.id!] = el)}
+                    ref={(el) => {
+                      menuRefs.current[video.id!] = el;
+                    }}
                   >
                     <button
                       onClick={() =>
@@ -553,7 +553,9 @@ export default function WatchVideo() {
                   {/* Reaction Button */}
                   <div
                     className="relative flex-1"
-                    ref={(el) => (reactionRefs.current[video.id!] = el)}
+                    ref={(el) => {
+                      reactionRefs.current[video.id!] = el;
+                    }}
                   >
                     <button
                       onClick={() => {
