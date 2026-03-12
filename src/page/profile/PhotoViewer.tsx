@@ -1,9 +1,8 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, X, Download, Share2, Heart, MoreVertical, Edit, Trash2, Flag, Copy } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function PhotoViewer() {
-  const { id } = useParams();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
