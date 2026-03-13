@@ -1,32 +1,32 @@
-// import { useState, useEffect } from 'react';
-// import { X, ChevronLeft, ChevronRight, Heart, Eye } from 'lucide-react';
-// import { storiesApi, type StoryData } from '../../apis/stories';
-// import { authApi } from '../../apis/auth';
+import { useState, useEffect } from 'react';
+import { X, ChevronLeft, ChevronRight, Heart, Eye } from 'lucide-react';
+import { storiesApi, type StoryData } from '../../apis/stories';
+import { authApi } from '../../apis/auth';
 
-// interface StoryViewerProps {
-//   isOpen: boolean;
-//   onClose: () => void;
-//   initialStoryId?: string;
-//   stories: StoryData[];
-// }
+interface StoryViewerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialStoryId?: string;
+  stories: StoryData[];
+}
 
-// export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }: StoryViewerProps) {
-//   const currentUser = authApi.getCurrentUser();
-//   const [currentIndex, setCurrentIndex] = useState(0);
-//   const [progress, setProgress] = useState(0);
-//   const [isPaused, setIsPaused] = useState(false);
+export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }: StoryViewerProps) {
+  const currentUser = authApi.getCurrentUser();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-//   useEffect(() => {
-//     if (initialStoryId) {
-//       const index = stories.findIndex(s => s.id === initialStoryId);
-//       if (index >= 0) setCurrentIndex(index);
-//     }
-//   }, [initialStoryId, stories]);
+  useEffect(() => {
+    if (initialStoryId) {
+      const index = stories.findIndex(s => s.id === initialStoryId);
+      if (index >= 0) setCurrentIndex(index);
+    }
+  }, [initialStoryId, stories]);
 
-//   useEffect(() => {
-//     if (!isOpen || isPaused || stories.length === 0) return;
+  useEffect(() => {
+    if (!isOpen || isPaused || stories.length === 0) return;
 
-//     const currentStory = stories[currentIndex];
+    const currentStory = stories[currentIndex];
     
     // Mark story as viewed
     if (currentStory && currentUser?.id) {

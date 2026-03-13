@@ -35,16 +35,12 @@ export default function Newsfeed() {
     avatar: string;
     role: string;
   } | null>(() => authApi.getCurrentUser());
-
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
-  // const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
-  // const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
-  // const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
   const [showCreateStory, setShowCreateStory] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -211,8 +207,7 @@ export default function Newsfeed() {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
-  };
-  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc, story) => {
+  };  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc: any, story: any) => {
     const userId = story.user.id;
 
     if (!acc[userId]) {
@@ -222,7 +217,7 @@ export default function Newsfeed() {
     acc[userId].push(story);
     return acc;
   }, {});
-  const storyGroups = Object.values(storiesByUser);
+  const storyGroups: Story[][] = Object.values(storiesByUser);
   // const handleViewStory = (storyId: string) => {
   //   setSelectedStoryId(storyId);
   //   setIsStoryViewerOpen(true);
@@ -394,8 +389,7 @@ export default function Newsfeed() {
       }));
     }
   };
-
-  const handleReplyToComment = (commentId: string) => {
+  const handleReplyToComment = (commentId: string, postId?: string) => {
     setReplyingTo(commentId);
     setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
   };
@@ -1211,10 +1205,7 @@ export default function Newsfeed() {
             </div>
           );
         })}
-      </div>
-
-      {/* Story Viewer - Comment out if not implemented */}
-
+      </div>      {/* Story Viewer */}
       {viewerUserIndex !== null && (
         <StoryViewer
           storyGroups={storyGroups}
@@ -1223,35 +1214,16 @@ export default function Newsfeed() {
         />
       )}
 
-
-      {/* Create Story Modal - Comment out if not implemented */}
-
+      {/* Create Story Modal */}
       {showCreateStory && (
         <CreateStoryModal
           onClose={() => setShowCreateStory(false)}
           onCreate={(story: Story) => {
-            setStories((prev) => [story, ...prev]);
+            setStories((prev: Story[]) => [story, ...prev]);
             setShowCreateStory(false);
           }}
         />
       )}
-      */}
-      
-      <CreateStory
-        isOpen={isCreateStoryOpen}
-        onClose={() => setIsCreateStoryOpen(false)}
-        onStoryCreated={handleStoryCreated}
-      />
-
-      <StoryViewer
-        isOpen={isStoryViewerOpen}
-        initialStoryId={selectedStoryId}
-        stories={stories}
-        onClose={() => {
-          setIsStoryViewerOpen(false);
-          setSelectedStoryId(undefined);
-        }}
-      />
     </div>
   );
 }
