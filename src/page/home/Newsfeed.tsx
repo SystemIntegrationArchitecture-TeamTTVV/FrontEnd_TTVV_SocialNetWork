@@ -5,13 +5,16 @@ import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
 import { postsApi } from '../../apis/posts';
 import type { PostData } from '../../apis/posts';
+import type { Story } from '../../types/story';
 import { reactionsApi } from '../../apis/reactions';
 import { commentsApi, type CommentData } from '../../apis/comments';
 import { useSocket } from '../../contexts/SocketContext';
-import { storiesApi, type StoryData } from '../../apis/stories';
-import CreateStory from './CreateStory';
-import StoryViewer from './StoryViewer';
-
+import { storiesApi } from '../../apis/storiesApi';
+import { API_CONFIG } from '../../apis/config';
+import AddStoryCard from '../../components/story/AddStoryCard';
+import StoryViewer from '../../components/story/StoryViewer';
+// import StoryViewer from './StoryViewer';
+import CreateStoryModal from '../../components/story/CreateStoryModal';
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -32,19 +35,20 @@ export default function Newsfeed() {
     avatar: string;
     role: string;
   } | null>(() => authApi.getCurrentUser());
-  
+
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stories, setStories] = useState<StoryData[]>([]);
-  const [isLoadingStories, setIsLoadingStories] = useState(true);
-  const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
-  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
-  const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
+  const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
+  // const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
+  // const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  // const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
+  const [showCreateStory, setShowCreateStory] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-
   // Load posts from API
   useEffect(() => {
     const loadPosts = async () => {
@@ -65,7 +69,7 @@ export default function Newsfeed() {
                 .map(r => r.postId!)
             );
             setLikedPosts(likedPostIds);
-            
+
             const likedCommentIds = new Set(
               userReactions
                 .filter(r => r.commentId) // Only comment reactions
@@ -79,7 +83,7 @@ export default function Newsfeed() {
         }
       } catch (err: any) {
         console.error('❌ Failed to load posts:', err);
-        
+
         // MOCK DATA for testing without authentication
         console.log('⚠️ Using mock data for testing...');
         setPosts([
@@ -140,29 +144,26 @@ export default function Newsfeed() {
 
   // Load stories from API
   useEffect(() => {
-    console.log('🚀 [Newsfeed] useEffect for stories TRIGGERED');
-    const loadStories = async () => {
-      try {
-        console.log('📡 [Newsfeed] Loading stories... storiesApi:', storiesApi);
-        setIsLoadingStories(true);
-        const data = await storiesApi.getAllActiveStories();
-        console.log('📦 [Newsfeed] Raw response:', data);
-        console.log('📦 [Newsfeed] Is array?', Array.isArray(data));
-        console.log('📦 [Newsfeed] Data length:', data?.length);
-        console.log('📦 [Newsfeed] Before setStories, current stories:', stories);
-        setStories(Array.isArray(data) ? data : []);
-        console.log('✅ Loaded stories:', Array.isArray(data) ? data.length : 0, data);
-      } catch (err) {
-        console.error('❌ Failed to load stories:', err);
-        console.error('❌ Error details:', err instanceof Error ? err.message : String(err));
-        setStories([]);
-      } finally {
-        setIsLoadingStories(false);
-      }
-    };
+    if (!currentUser?.id) return;
 
-    loadStories();
-  }, []);
+    setLoadingStories(true);
+
+    storiesApi
+      .getStoryFeed(currentUser.id)
+      .then((data) => {
+        setStories(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load stories', err);
+      })
+      .finally(() => {
+        setLoadingStories(false);
+      });
+  }, [currentUser?.id]);
+
+  stories.forEach((story, index) => {
+    console.log(`Story ${index}:`, story);
+  });
 
   // Subscribe to socket events for real-time updates
   useEffect(() => {
@@ -211,26 +212,36 @@ export default function Newsfeed() {
     }
     return name.substring(0, 2).toUpperCase();
   };
+  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc, story) => {
+    const userId = story.user.id;
 
-  const handleViewStory = (storyId: string) => {
-    setSelectedStoryId(storyId);
-    setIsStoryViewerOpen(true);
-  };
-
-  const handleStoryCreated = async () => {
-    // Reload stories after creating new one
-    try {
-      const data = await storiesApi.getAllActiveStories();
-      setStories(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Failed to reload stories:', err);
-      setStories([]);
+    if (!acc[userId]) {
+      acc[userId] = [];
     }
-  };
+
+    acc[userId].push(story);
+    return acc;
+  }, {});
+  const storyGroups = Object.values(storiesByUser);
+  // const handleViewStory = (storyId: string) => {
+  //   setSelectedStoryId(storyId);
+  //   setIsStoryViewerOpen(true);
+  // };
+
+  // const handleStoryCreated = async () => {
+  //   // Reload stories after creating new one
+  //   try {
+  //     const data = await storiesApi.getAllActiveStories();
+  //     setStories(Array.isArray(data) ? data : []);
+  //   } catch (err) {
+  //     console.error('Failed to reload stories:', err);
+  //     setStories([]);
+  //   }
+  // };
 
   const toggleComments = async (postId: string) => {
     const isExpanding = !expandedComments.has(postId);
-    
+
     setExpandedComments((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
@@ -263,12 +274,8 @@ export default function Newsfeed() {
     setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
     try {
-      const newComment = await commentsApi.createComment({
-        postId,
-        userId: currentUser.id,
-        content: comment.trim(),
-      });
-      
+      const newComment = await commentsApi.createComment(postId, currentUser.id, comment.trim());
+
       // Add comment to state
       setPostComments(prev => ({
         ...prev,
@@ -276,7 +283,7 @@ export default function Newsfeed() {
       }));
 
       // Update post comment count
-      setPosts(prev => prev.map(p => 
+      setPosts(prev => prev.map(p =>
         p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p
       ));
 
@@ -310,8 +317,8 @@ export default function Newsfeed() {
       return newSet;
     });
 
-    setPosts(prev => prev.map(p => 
-      p.id === postId 
+    setPosts(prev => prev.map(p =>
+      p.id === postId
         ? { ...p, likeCount: (p.likeCount || 0) + (isLiked ? -1 : 1) }
         : p
     ));
@@ -330,8 +337,8 @@ export default function Newsfeed() {
         }
         return newSet;
       });
-      setPosts(prev => prev.map(p => 
-        p.id === postId 
+      setPosts(prev => prev.map(p =>
+        p.id === postId
           ? { ...p, likeCount: (p.likeCount || 0) + (isLiked ? 1 : -1) }
           : p
       ));
@@ -356,8 +363,8 @@ export default function Newsfeed() {
 
     setPostComments(prev => ({
       ...prev,
-      [postId]: prev[postId]?.map(c => 
-        c.id === commentId 
+      [postId]: prev[postId]?.map(c =>
+        c.id === commentId
           ? { ...c, likeCount: (c.likeCount || 0) + (isLiked ? -1 : 1) }
           : c
       ) || []
@@ -379,8 +386,8 @@ export default function Newsfeed() {
       });
       setPostComments(prev => ({
         ...prev,
-        [postId]: prev[postId]?.map(c => 
-          c.id === commentId 
+        [postId]: prev[postId]?.map(c =>
+          c.id === commentId
             ? { ...c, likeCount: (c.likeCount || 0) + (isLiked ? 1 : -1) }
             : c
         ) || []
@@ -400,12 +407,12 @@ export default function Newsfeed() {
     setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
 
     try {
-      const newReply = await commentsApi.createComment({
+      const newReply = await commentsApi.createComment(
         postId,
-        userId: currentUser.id,
-        content: replyText.trim(),
-        parentCommentId,
-      });
+        currentUser.id,
+        replyText.trim(),
+        parentCommentId
+      );
 
       // Add reply to state
       setCommentReplies(prev => ({
@@ -416,8 +423,8 @@ export default function Newsfeed() {
       // Update parent comment reply count
       setPostComments(prev => ({
         ...prev,
-        [postId]: prev[postId]?.map(c => 
-          c.id === parentCommentId 
+        [postId]: prev[postId]?.map(c =>
+          c.id === parentCommentId
             ? { ...c, replyCount: (c.replyCount || 0) + 1 }
             : c
         ) || []
@@ -440,7 +447,7 @@ export default function Newsfeed() {
 
   const toggleReplies = async (commentId: string) => {
     const isExpanding = !expandedReplies.has(commentId);
-    
+
     setExpandedReplies(prev => {
       const newSet = new Set(prev);
       if (newSet.has(commentId)) {
@@ -489,7 +496,7 @@ export default function Newsfeed() {
 
   const handlePostAction = async (postId: string, action: string) => {
     setOpenMenuId(null);
-    
+
     if (action === 'edit') {
       const post = posts.find(p => p.id === postId);
       if (post) {
@@ -531,7 +538,7 @@ export default function Newsfeed() {
     try {
       // Get the current post to preserve images and videos
       const currentPost = posts.find(p => p.id === postId);
-      
+
       const updatedPost = await postsApi.updatePost(postId, {
         content: editContent.trim(),
         images: currentPost?.images, // Preserve existing images
@@ -539,7 +546,7 @@ export default function Newsfeed() {
         location: currentPost?.location, // Preserve location
         visibility: currentPost?.visibility, // Preserve visibility
       });
-      
+
       setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
       setEditingPostId(null);
       setEditContent('');
@@ -586,102 +593,86 @@ export default function Newsfeed() {
       {/* Stories Section */}
       <div className="bg-white rounded-2xl p-5 border border-gray-200">
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
-          {/* Create Your Story */}
-          <div className="shrink-0 w-32">
-            <div 
-              onClick={() => setIsCreateStoryOpen(true)}
-              className="w-32 h-48 rounded-2xl bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors group"
-            >
-              <div className="w-14 h-14 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center mb-2 overflow-hidden">
-                {currentUser?.avatar ? (
-                  <img 
-                    src={currentUser.avatar} 
-                    alt={currentUser.fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : currentUser?.fullName ? (
-                  <span className="text-white font-semibold text-base">
-                    {getInitials(currentUser.fullName)}
-                  </span>
-                ) : (
-                  <span className="text-white font-semibold text-base">U</span>
-                )}
-              </div>
-              <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center -mt-3">
-                <Plus className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <p className="text-base text-gray-600 text-center mt-3 font-medium">Create story</p>
-          </div>
 
-          {/* Add Story (Facebook Web style) - Comment out or remove if not implemented */}
-          {/*
+          {/* Add Story (Facebook Web style) */}
           {currentUser && (
             <AddStoryCard
               avatar={currentUser.avatar}
               onClick={() => setShowCreateStory(true)}
             />
           )}
-          */}
-          {isLoadingStories && (
+          {loadingStories && (
             <div className="flex items-center justify-center w-full h-48 text-gray-500">
               Đang tải stories...
             </div>
           )}
           {/* Friends Stories */}
-          {(() => {
-            console.log('🎨 [Newsfeed RENDER] isLoadingStories:', isLoadingStories);
-            console.log('🎨 [Newsfeed RENDER] stories:', stories);
-            console.log('🎨 [Newsfeed RENDER] stories.length:', stories?.length);
-            console.log('🎨 [Newsfeed RENDER] Array.isArray(stories):', Array.isArray(stories));
-            return null;
-          })()}
-          {isLoadingStories ? (
-            <div className="flex items-center justify-center py-12 text-gray-500">
-              <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              Loading stories...
-            </div>
-          ) : Array.isArray(stories) && stories.length > 0 ? (
-            stories.map((story) => (
-              <div
-                key={story.id}
-                onClick={() => handleViewStory(story.id)}
-                className="shrink-0 w-32 cursor-pointer group"
+          {storyGroups.map((group, index) => {
+            const firstStory = group[0];
+
+            return (
+              <button
+                key={firstStory.user.id}
+                onClick={() => setViewerUserIndex(index)}
+                className="shrink-0 w-32 text-left"
               >
-                <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-purple-500 to-pink-500 p-[3px] group-hover:opacity-90 transition-opacity">
-                  <div 
-                    className="w-full h-full rounded-2xl overflow-hidden relative"
-                    style={{
-                      background: story.mediaUrl ? `url(${story.mediaUrl}) center/cover` : story.backgroundColor || '#6366f1',
-                    }}
-                  >
-                    {/* Author avatar in top-left corner */}
-                    <div className="absolute top-2 left-2">
-                      {story.authorAvatar ? (
-                        <img
-                          src={story.authorAvatar}
-                          alt={story.authorName}
-                          className="w-10 h-10 rounded-full border-2 border-white"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
-                          <span className="text-white text-xs font-semibold">{getInitials(story.authorName)}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Text overlay for text-only stories */}
-                    {story.text && (
-                      <div className="absolute inset-0 flex items-center justify-center p-4">
-                        <p className="text-white text-center font-bold text-sm line-clamp-6">{story.text}</p>
+                <div className="w-32 h-48 rounded-2xl bg-gradient-to-b from-blue-500 to-purple-500 p-[2px] relative overflow-hidden">
+                  {/* Story Content Background */}
+                  <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                    {/* Story preview */}
+                    {firstStory.contentType === 'image' && (
+                      <img
+                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
+                    {firstStory.contentType === 'text' && (
+                      <div
+                        className={`w-full h-full ${firstStory.background} flex items-center justify-center p-3`}
+                      >
+                        <p className="text-white text-sm font-semibold text-center line-clamp-4">
+                          {firstStory.content}
+                        </p>
                       </div>
                     )}
+
+                    {firstStory.contentType === 'video' && (
+                      <video
+                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.currentTime = 0;
+                        }}
+                      />
+                    )}
+
+
+                    {/* Gradient overlay for better avatar visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
+
+                    {/* User Avatar */}
+                    <div className="absolute top-3 left-3">
+                      <img
+                        src={firstStory.user.avatar}
+                        alt={firstStory.user.name}
+                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg"
+                      />
+                    </div>
                   </div>
                 </div>
-                <p className="text-base text-gray-600 text-center mt-3 font-medium truncate">{story.authorName}</p>
-              </div>
-            ))
-          ) : null}
+
+                <p className="text-center mt-3 font-medium truncate text-sm">
+                  {firstStory.user.name}
+                </p>
+              </button>
+            );
+          })}
+
+
         </div>
       </div>
 
@@ -835,14 +826,14 @@ export default function Newsfeed() {
                     <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-20">
                       {currentUser?.id === post.authorId && (
                         <>
-                          <button 
+                          <button
                             onClick={() => handlePostAction(post.id!, 'edit')}
                             className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                           >
                             <Edit className="w-5 h-5 text-gray-600" />
                             <span className="text-gray-900 font-medium">Edit post</span>
                           </button>
-                          <button 
+                          <button
                             onClick={() => handlePostAction(post.id!, 'delete')}
                             className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                           >
@@ -852,21 +843,21 @@ export default function Newsfeed() {
                           <div className="h-px bg-gray-200 my-2" />
                         </>
                       )}
-                      <button 
+                      <button
                         onClick={() => handlePostAction(post.id!, 'save')}
                         className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                       >
                         <Bookmark className="w-5 h-5 text-gray-600" />
                         <span className="text-gray-900 font-medium">Save post</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => handlePostAction(post.id!, 'hide')}
                         className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                       >
                         <EyeOff className="w-5 h-5 text-gray-600" />
                         <span className="text-gray-900 font-medium">Hide post</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => handlePostAction(post.id!, 'report')}
                         className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
                       >
@@ -924,48 +915,48 @@ export default function Newsfeed() {
               {post.images && post.images.length > 0 && (
                 <div className="mb-4">
                   {post.images.length === 1 ? (
-                    <img 
-                      src={post.images[0]} 
-                      alt="Post" 
-                      className="w-full max-h-[600px] object-cover" 
+                    <img
+                      src={post.images[0]}
+                      alt="Post"
+                      className="w-full max-h-[600px] object-cover"
                     />
                   ) : post.images.length === 2 ? (
                     <div className="grid grid-cols-2 gap-1">
                       {post.images.map((imageUrl, idx) => (
-                        <img 
-                          key={idx} 
-                          src={imageUrl} 
-                          alt={`Post ${idx + 1}`} 
-                          className="w-full h-[300px] object-cover" 
+                        <img
+                          key={idx}
+                          src={imageUrl}
+                          alt={`Post ${idx + 1}`}
+                          className="w-full h-[300px] object-cover"
                         />
                       ))}
                     </div>
                   ) : post.images.length === 3 ? (
                     <div className="grid grid-cols-2 gap-1">
-                      <img 
-                        src={post.images[0]} 
-                        alt="Post 1" 
-                        className="w-full h-[400px] object-cover row-span-2" 
+                      <img
+                        src={post.images[0]}
+                        alt="Post 1"
+                        className="w-full h-[400px] object-cover row-span-2"
                       />
-                      <img 
-                        src={post.images[1]} 
-                        alt="Post 2" 
-                        className="w-full h-[199px] object-cover" 
+                      <img
+                        src={post.images[1]}
+                        alt="Post 2"
+                        className="w-full h-[199px] object-cover"
                       />
-                      <img 
-                        src={post.images[2]} 
-                        alt="Post 3" 
-                        className="w-full h-[199px] object-cover" 
+                      <img
+                        src={post.images[2]}
+                        alt="Post 3"
+                        className="w-full h-[199px] object-cover"
                       />
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-1">
                       {post.images.slice(0, 4).map((imageUrl, idx) => (
                         <div key={idx} className="relative">
-                          <img 
-                            src={imageUrl} 
-                            alt={`Post ${idx + 1}`} 
-                            className="w-full h-[250px] object-cover" 
+                          <img
+                            src={imageUrl}
+                            alt={`Post ${idx + 1}`}
+                            className="w-full h-[250px] object-cover"
                           />
                           {idx === 3 && post.images!.length > 4 && (
                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -985,9 +976,9 @@ export default function Newsfeed() {
               {post.videos && post.videos.length > 0 && (
                 <div className="mb-4 space-y-2">
                   {post.videos.map((videoUrl, idx) => (
-                    <video 
-                      key={idx} 
-                      src={videoUrl} 
+                    <video
+                      key={idx}
+                      src={videoUrl}
                       controls
                       className="w-full max-h-[600px] bg-black"
                       preload="metadata"
@@ -1013,20 +1004,17 @@ export default function Newsfeed() {
 
                 {/* Post Actions */}
                 <div className="border-t border-gray-200 pt-3 flex items-center">
-                  <button 
+                  <button
                     onClick={() => handleLikePost(post.id!)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors group ${
-                      likedPosts.has(post.id!) ? 'text-red-500' : 'hover:bg-gray-50'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors group ${likedPosts.has(post.id!) ? 'text-red-500' : 'hover:bg-gray-50'
+                      }`}
                   >
-                    <Heart className={`w-6 h-6 transition-colors ${
-                      likedPosts.has(post.id!) 
-                        ? 'text-red-500 fill-red-500' 
+                    <Heart className={`w-6 h-6 transition-colors ${likedPosts.has(post.id!)
+                        ? 'text-red-500 fill-red-500'
                         : 'text-gray-500 group-hover:text-red-500 group-hover:fill-red-500'
-                    }`} />
-                    <span className={`text-base font-medium ${
-                      likedPosts.has(post.id!) ? 'text-red-500' : 'text-gray-700 group-hover:text-red-500'
-                    }`}>
+                      }`} />
+                    <span className={`text-base font-medium ${likedPosts.has(post.id!) ? 'text-red-500' : 'text-gray-700 group-hover:text-red-500'
+                      }`}>
                       {likedPosts.has(post.id!) ? 'Liked' : 'Like'}
                     </span>
                   </button>
@@ -1100,19 +1088,18 @@ export default function Newsfeed() {
                                   <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
                                 </div>
                                 <div className="flex items-center gap-4 mt-1.5 px-3">
-                                  <button 
+                                  <button
                                     onClick={() => handleLikeComment(comment.id!, post.id!)}
-                                    className={`text-xs font-semibold transition-colors ${
-                                      likedComments.has(comment.id!) 
-                                        ? 'text-red-600' 
+                                    className={`text-xs font-semibold transition-colors ${likedComments.has(comment.id!)
+                                        ? 'text-red-600'
                                         : 'text-gray-600 hover:text-blue-600'
-                                    }`}
+                                      }`}
                                   >
                                     {likedComments.has(comment.id!) ? 'Liked' : 'Like'}
                                     {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
                                   </button>
-                                  <button 
-                                    onClick={() => handleReplyToComment(comment.id!)}
+                                  <button
+                                    onClick={() => handleReplyToComment(comment.id!, post.id!)}
                                     className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
                                   >
                                     Reply
@@ -1155,11 +1142,10 @@ export default function Newsfeed() {
                                       <button
                                         onClick={() => handleSendReply(comment.id!, post.id!)}
                                         disabled={!commentInputs[`reply-${comment.id}`]?.trim() || isSubmittingComment[`reply-${comment.id}`]}
-                                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ${
-                                          commentInputs[`reply-${comment.id}`]?.trim() 
-                                            ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ${commentInputs[`reply-${comment.id}`]?.trim()
+                                            ? 'bg-blue-500 text-white hover:bg-blue-600'
                                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
+                                          }`}
                                       >
                                         {isSubmittingComment[`reply-${comment.id}`] ? (
                                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1194,13 +1180,12 @@ export default function Newsfeed() {
                                             <p className="text-gray-700 text-sm mt-0.5">{reply.content}</p>
                                           </div>
                                           <div className="flex items-center gap-3 mt-1 px-2">
-                                            <button 
+                                            <button
                                               onClick={() => handleLikeComment(reply.id!, post.id!)}
-                                              className={`text-xs font-semibold transition-colors ${
-                                                likedComments.has(reply.id!) 
-                                                  ? 'text-red-600' 
+                                              className={`text-xs font-semibold transition-colors ${likedComments.has(reply.id!)
+                                                  ? 'text-red-600'
                                                   : 'text-gray-600 hover:text-blue-600'
-                                              }`}
+                                                }`}
                                             >
                                               {likedComments.has(reply.id!) ? 'Liked' : 'Like'}
                                               {reply.likeCount && reply.likeCount > 0 && ` (${reply.likeCount})`}
@@ -1229,7 +1214,7 @@ export default function Newsfeed() {
       </div>
 
       {/* Story Viewer - Comment out if not implemented */}
-      {/*
+
       {viewerUserIndex !== null && (
         <StoryViewer
           storyGroups={storyGroups}
@@ -1237,10 +1222,10 @@ export default function Newsfeed() {
           onClose={() => setViewerUserIndex(null)}
         />
       )}
-      */}
+
 
       {/* Create Story Modal - Comment out if not implemented */}
-      {/*
+
       {showCreateStory && (
         <CreateStoryModal
           onClose={() => setShowCreateStory(false)}
