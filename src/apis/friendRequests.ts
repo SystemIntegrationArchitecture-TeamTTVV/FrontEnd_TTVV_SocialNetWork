@@ -55,4 +55,25 @@ export const friendRequestsApi = {
     return httpClient.delete<void>(`/api/common/friend-requests/${id}`);
   },
 };
+export const getFriends = async (userId: string) => {
+  const sent = await friendRequestsApi.getFriendRequestsBySenderId(userId);
+  const received = await friendRequestsApi.getFriendRequestsByReceiverId(userId);
 
+  const activeSent = sent
+    .filter(r => r.status === "ACTIVE")
+    .map(r => ({
+      id: r.receiverId,
+      name: r.receiverName,
+      avatar: r.receiverAvatar
+    }));
+
+  const activeReceived = received
+    .filter(r => r.status === "ACTIVE")
+    .map(r => ({
+      id: r.senderId,
+      name: r.senderName,
+      avatar: r.senderAvatar
+    }));
+
+  return [...activeSent, ...activeReceived];
+};
