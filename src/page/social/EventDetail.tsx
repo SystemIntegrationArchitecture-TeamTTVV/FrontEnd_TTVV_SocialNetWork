@@ -1,10 +1,9 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Share2, Bell, Edit } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Calendar, MapPin, Users, Share2, Bell, Edit } from 'lucide-react';
 import { useState } from 'react';
 
 export default function EventDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [isGoing, setIsGoing] = useState(false);
   const [isInterested, setIsInterested] = useState(false);
 

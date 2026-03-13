@@ -249,6 +249,3 @@ class SocketService {
 }
 
 export const socketService = new SocketService();
-
-// Re-export SocketEvent type for easier imports
-export type { SocketEvent };

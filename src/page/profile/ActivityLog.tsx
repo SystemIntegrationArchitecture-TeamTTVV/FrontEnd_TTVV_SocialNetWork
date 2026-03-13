@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { Filter, Calendar, FileText, Heart, MessageCircle, UserPlus, Share2, Image as ImageIcon } from 'lucide-react';
+import { Calendar, FileText, Heart, MessageCircle, UserPlus, Share2, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ActivityLog() {
@@ -105,7 +104,7 @@ export default function ActivityLog() {
 
       {/* Activities Timeline */}
       <div className="space-y-4">
-        {filteredActivities.map((activity, index) => {
+        {filteredActivities.map((activity) => {
           const Icon = activity.icon;
           return (
             <div

@@ -1,10 +1,9 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MoreVertical, Download, Share2, Trash2, Edit, Plus } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { Download, Share2, Trash2, Edit, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AlbumView() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
 
   // Mock album data

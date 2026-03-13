@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import { Bell, BellOff, Volume2, VolumeX, Image, Video, Users, Lock, Trash2, Search } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Bell, BellOff, Volume2, Image, Lock, Trash2 } from 'lucide-react';
 
 export default function ConversationSettings() {
-  const { id } = useParams();
-  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     notifications: true,
     sound: true,

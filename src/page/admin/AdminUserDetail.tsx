@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Mail, Calendar, FileText, Users, Shield, Ban, CheckCircle2, Edit } from 'lucide-react';
 
 export default function AdminUserDetail() {

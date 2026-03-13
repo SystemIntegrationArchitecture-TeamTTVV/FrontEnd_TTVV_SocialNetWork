@@ -1,8 +1,30 @@
 import { useState, useEffect, useRef } from "react";
 import { Camera, Save, Loader2, Plus, X, Upload } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { usersApi } from "../../apis/users";
+import { usersApi, type User } from "../../apis/users";
 import { authApi } from "../../apis/auth";
+
+type ProfileFormData = {
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  bio: string;
+  workPlace: string;
+  education: string;
+  city: string;
+  country: string;
+  phoneNumber: string;
+  email: string;
+  dateOfBirth: string;
+  gender: string;
+  interests: string[];
+  profileVisibility: User["profileVisibility"];
+  postVisibility: User["postVisibility"];
+  showEmail: boolean;
+  showPhone: boolean;
+  avatar: string;
+  coverPhoto: string;
+};
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
@@ -21,7 +43,7 @@ export default function ProfileEdit() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileFormData>({
     firstName: "",
     lastName: "",
     fullName: "",
@@ -212,7 +234,7 @@ export default function ProfileEdit() {
         payload.coverPhoto = formData.coverPhoto;
       }
 
-      const optionalFields = [
+      const optionalFields: (keyof ProfileFormData)[] = [
         "bio",
         "email",
         "phoneNumber",
@@ -225,7 +247,7 @@ export default function ProfileEdit() {
       ];
 
       optionalFields.forEach((field) => {
-        const value = formData[field as keyof UpdateUserRequest];
+        const value = formData[field];
         if (typeof value === "string" && value.trim()) {
           payload[field] = value.trim();
         }

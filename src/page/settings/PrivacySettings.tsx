@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Globe, Users, Lock, Eye, EyeOff, Shield, UserMinus, UserPlus } from 'lucide-react';
+import { Globe, Users, Lock, Eye, UserMinus, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function PrivacySettings() {
@@ -12,10 +12,6 @@ export default function PrivacySettings() {
     whoCanSeeEmail: 'friends',
     blockUsers: false,
   });
-
-  const handleToggle = (key: string) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
-  };
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));

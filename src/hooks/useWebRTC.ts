@@ -11,8 +11,8 @@ interface WebRTCCallData {
 }
 
 interface UseWebRTCOptions {
-  localVideoRef: React.RefObject<HTMLVideoElement>;
-  remoteVideoRef: React.RefObject<HTMLVideoElement>;
+  localVideoRef: React.RefObject<HTMLVideoElement | null>;
+  remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
   onCallStart?: () => void;
   onCallEnd?: () => void;
   onCallReject?: () => void;

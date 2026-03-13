@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Loader2 } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
 import { useMessages } from '../../hooks/useMessages';
@@ -141,15 +141,36 @@ export default function Messenger() {
   // Get current messages for active chat (memoized to keep stable reference for effects)
   const messages = useMemo(() => {
     if (activeChat === AI_CONVERSATION_ID) {
-      // Return AI messages formatted for display
-      return aiMessages.map((m) => ({
-        id: m.id,
-        content: m.text,
-        senderId: m.isUser ? user?.id || '' : 'ai',
-        senderName: m.isUser ? user?.fullName || user?.username || 'You' : 'AI Assistant',
-        timestamp: m.timestamp.toISOString(),
-        type: 'text' as const,
-      }));
+      // Return AI messages formatted in the same shape as regular DisplayMessage
+      return aiMessages.map((m) => {
+        const isMe = !!m.isUser;
+        const senderId = isMe ? user?.id || 'me' : 'ai';
+        const sender =
+          isMe
+            ? user?.fullName || user?.username || 'You'
+            : 'AI Assistant';
+
+        return {
+          id: m.id,
+          sender,
+          senderId,
+          content: m.text,
+          time: m.timestamp.toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isMe,
+          status: isMe ? ('read' as const) : null,
+          reactions: [],
+          attachments: [],
+          isEdited: false,
+          createdAt: m.timestamp.toISOString(),
+          image: undefined,
+          pinned: false,
+          starred: false,
+          replyTo: undefined,
+        };
+      });
     }
     return activeChat ? (apiMessages[activeChat] || []).map((m) => formatMessageForDisplay(m)) : [];
   }, [activeChat, apiMessages, formatMessageForDisplay, aiMessages, user?.id, user?.fullName, user?.username]);
@@ -217,22 +238,6 @@ export default function Messenger() {
 
     return [aiConversation, ...regularConversations];
   }, [conversations, user?.id, aiMessages]);
-
-  const pendingJoinNotifications = useMemo(() => {
-    if (!user?.id) return 0;
-    return conversations.reduce((count, conv) => {
-      if (
-        conv.isGroup &&
-        conv.approvalsRequired &&
-        conv.pendingJoinIds &&
-        conv.pendingJoinIds.length > 0 &&
-        (conv.ownerId === user.id || conv.adminIds?.includes(user.id))
-      ) {
-        return count + conv.pendingJoinIds.length;
-      }
-      return count;
-    }, 0);
-  }, [conversations, user?.id]);
 
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat)

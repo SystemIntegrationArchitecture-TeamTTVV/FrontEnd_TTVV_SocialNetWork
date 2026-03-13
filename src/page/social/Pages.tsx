@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Users, Heart, Share2, MapPin, Globe, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Plus, Users, Heart, MapPin, Globe } from 'lucide-react';
 
 export default function Pages() {
   const [searchQuery, setSearchQuery] = useState('');

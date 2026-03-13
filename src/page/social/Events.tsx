@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Plus, Calendar, MapPin, Users, Share2, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export default function Events() {
   const [activeTab, setActiveTab] = useState('today');

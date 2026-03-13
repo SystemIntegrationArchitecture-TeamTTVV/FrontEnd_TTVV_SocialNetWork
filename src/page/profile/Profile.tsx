@@ -26,12 +26,10 @@ export default function Profile() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [loadingFriendRequest, setLoadingFriendRequest] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const currentUser = authApi.getCurrentUser();
   const { subscribe } = useSocket();
   const { openChatBoxByUserId } = useChatBox();
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Load user profile data
@@ -194,46 +192,17 @@ export default function Profile() {
   };
 
   const handleMessageClick = async () => {
-    if (!displayUser) return;
+    if (!displayUser || !displayUser.id) return;
     try {
-      await openChatBoxByUserId(displayUser.id, displayUser.fullName);
+      const displayName =
+        displayUser.fullName || displayUser.username || "Unknown User";
+      await openChatBoxByUserId(
+        displayUser.id,
+        displayName,
+        displayUser.avatar,
+      );
     } catch (error) {
       console.error("Failed to open chatbox:", error);
-    }
-  };
-
-  const handleAvatarUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file || !currentUser?.id) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Kích thước ảnh không được vượt quá 5MB");
-      return;
-    }
-
-    setUploadingAvatar(true);
-    try {
-      const uploadResponse = await uploadApi.uploadFile(file);
-      await usersApi.updateUser(currentUser.id, { avatar: uploadResponse.url });
-
-      // Update local state
-      setProfileUser((prev) =>
-        prev ? { ...prev, avatar: uploadResponse.url } : null,
-      );
-
-      // Update localStorage
-      const updatedUser = { ...currentUser, avatar: uploadResponse.url };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      // Reload page to update all components
-      window.location.reload();
-    } catch (error) {
-      console.error("Failed to upload avatar:", error);
-      alert("Không thể tải ảnh đại diện lên");
-    } finally {
-      setUploadingAvatar(false);
     }
   };
 
@@ -251,7 +220,7 @@ export default function Profile() {
     setUploadingCover(true);
     try {
       const uploadResponse = await uploadApi.uploadFile(file);
-      await usersApi.updateUser(currentUser.id, {
+      await usersApi.updateUserProfile(currentUser.id, {
         coverPhoto: uploadResponse.url,
       });
 
@@ -393,8 +362,10 @@ export default function Profile() {
             currentUser.id !== id &&
             displayUser &&
             (() => {
-              const status = getFriendRequestStatus(displayUser.id);
-              const requestId = getRequestId(displayUser.id);
+              if (!displayUser.id) return null;
+              const safeId = displayUser.id;
+              const status = getFriendRequestStatus(safeId);
+              const requestId = getRequestId(safeId);
 
               return (
                 <div className="flex gap-2 pb-1">
@@ -408,7 +379,7 @@ export default function Profile() {
 
                   {status === "none" && (
                     <button
-                      onClick={() => handleSendFriendRequest(displayUser.id)}
+                      onClick={() => handleSendFriendRequest(safeId)}
                       disabled={loadingFriendRequest}
                       className="h-10 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >

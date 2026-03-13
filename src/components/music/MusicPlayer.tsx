@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Music, Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, X, Shuffle, Repeat, Heart, Music2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, X, Shuffle, Repeat, Heart, Music2 } from 'lucide-react';
 
 interface Song {
   id: number;
