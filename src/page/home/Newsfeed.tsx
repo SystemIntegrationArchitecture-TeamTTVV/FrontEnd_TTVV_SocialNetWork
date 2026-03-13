@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
@@ -199,15 +199,7 @@ export default function Newsfeed() {
       unsubscribers.forEach(unsub => unsub());
     };
   }, [currentUser?.id, subscribe]);
-
-  const getInitials = (name: string): string => {
-    if (!name) return 'U';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc: any, story: any) => {
+  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc: any, story: any) => {
     const userId = story.user.id;
 
     if (!acc[userId]) {
@@ -266,10 +258,12 @@ export default function Newsfeed() {
     const comment = commentInputs[postId];
     if (!comment?.trim() || !currentUser) return;
 
-    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
-
-    try {
-      const newComment = await commentsApi.createComment(postId, currentUser.id, comment.trim());
+    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));    try {
+      const newComment = await commentsApi.createComment({
+        postId,
+        userId: currentUser.id,
+        content: comment.trim(),
+      });
 
       // Add comment to state
       setPostComments(prev => ({
@@ -388,8 +382,7 @@ export default function Newsfeed() {
         ) || []
       }));
     }
-  };
-  const handleReplyToComment = (commentId: string, postId?: string) => {
+  };  const handleReplyToComment = (commentId: string) => {
     setReplyingTo(commentId);
     setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
   };
@@ -398,15 +391,13 @@ export default function Newsfeed() {
     const replyText = commentInputs[`reply-${parentCommentId}`];
     if (!replyText?.trim() || !currentUser) return;
 
-    setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
-
-    try {
-      const newReply = await commentsApi.createComment(
+    setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));    try {
+      const newReply = await commentsApi.createComment({
         postId,
-        currentUser.id,
-        replyText.trim(),
-        parentCommentId
-      );
+        userId: currentUser.id,
+        content: replyText.trim(),
+        parentCommentId,
+      });
 
       // Add reply to state
       setCommentReplies(prev => ({
@@ -1091,9 +1082,8 @@ export default function Newsfeed() {
                                   >
                                     {likedComments.has(comment.id!) ? 'Liked' : 'Like'}
                                     {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
-                                  </button>
-                                  <button
-                                    onClick={() => handleReplyToComment(comment.id!, post.id!)}
+                                  </button>                                <button
+                                    onClick={() => handleReplyToComment(comment.id!)}
                                     className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
                                   >
                                     Reply

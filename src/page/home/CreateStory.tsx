@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Image as ImageIcon, Video, Type, Upload, Loader2 } from 'lucide-react';
 import { authApi } from '../../apis/auth';
-import { storiesApi } from '../../apis/stories';
+import { storiesApi } from '../../apis/storiesApi';
 import { uploadApi } from '../../apis/upload';
 
 interface CreateStoryProps {
@@ -71,11 +71,8 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
       return;
     }
 
-    setIsUploading(true);
-
-    try {
+    setIsUploading(true);    try {
       let mediaUrl = '';
-      let thumbnailUrl = '';
 
       // Upload media if present
       if (mediaFile) {
@@ -83,23 +80,19 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
         if (uploadedFiles.length > 0) {
           const first = uploadedFiles[0];
           mediaUrl = first.url;
-          
-          // For videos, we could generate thumbnail (simplified: use media URL)
-          if (storyType === 'video') {
-            thumbnailUrl = mediaUrl;
-          }
         }
       }
 
       // Create story
       await storiesApi.createStory({
-        authorId: currentUser.id,
-        type: storyType === 'video' ? 'VIDEO' : 'IMAGE',
-        mediaUrl: (storyType === 'image' || storyType === 'video') ? mediaUrl : undefined,
-        thumbnailUrl: storyType === 'video' ? thumbnailUrl : undefined,
-        text: storyType === 'text' ? text : undefined,
-        backgroundColor: storyType === 'text' ? selectedBackground : undefined,
-        visibility,
+        userId: currentUser.id,
+        userName: currentUser.fullName || 'Anonymous',
+        userAvatar: currentUser.avatar || '',
+        contentType: storyType === 'text' ? 'text' : (storyType === 'video' ? 'video' : 'image'),
+        content: storyType === 'text' ? text : ((storyType === 'image' || storyType === 'video') ? mediaUrl : ''),
+        background: storyType === 'text' ? selectedBackground : undefined,
+        duration: 24, // 24 hours default
+        file: mediaFile,
       });
 
       // Reset and close
