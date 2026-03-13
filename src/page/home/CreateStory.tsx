@@ -81,9 +81,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
           const first = uploadedFiles[0];
           mediaUrl = first.url;
         }
-      }
-
-      // Create story
+      }      // Create story
       await storiesApi.createStory({
         userId: currentUser.id,
         userName: currentUser.fullName || 'Anonymous',
@@ -92,7 +90,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
         content: storyType === 'text' ? text : ((storyType === 'image' || storyType === 'video') ? mediaUrl : ''),
         background: storyType === 'text' ? selectedBackground : undefined,
         duration: 24, // 24 hours default
-        file: mediaFile,
+        file: mediaFile || undefined,
       });
 
       // Reset and close

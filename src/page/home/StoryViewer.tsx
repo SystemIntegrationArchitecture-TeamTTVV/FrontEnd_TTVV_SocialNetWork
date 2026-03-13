@@ -21,17 +21,8 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
       const index = stories.findIndex(s => s.id === initialStoryId);
       if (index >= 0) setCurrentIndex(index);
     }
-  }, [initialStoryId, stories]);
-  useEffect(() => {
+  }, [initialStoryId, stories]);  useEffect(() => {
     if (!isOpen || isPaused || stories.length === 0) return;
-
-    const currentStory = stories[currentIndex];
-    
-    // Mark story as viewed (if API has this method)
-    // Currently storiesApi doesn't have incrementViewCount, so we skip this
-    // if (currentStory && currentUser?.id) {
-    //   storiesApi.incrementViewCount(currentStory.id).catch(console.error);
-    // }
 
     // Auto-advance progress
     const duration = 5000; // 5 seconds per story
