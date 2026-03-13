@@ -1,6 +1,7 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { authApi } from "../apis/auth";
+import { API_CONFIG } from "../apis/config";
 
 export interface SocketEvent {
   type: string;
@@ -39,8 +40,12 @@ class SocketService {
       return;
     }
 
-    // Connect through API Gateway
-    const socketUrl = "http://localhost:8088/api/common/ws";
+    // SockJS must use http(s). When the site is served over HTTPS (Vercel),
+    // using http:// here will throw: "An insecure SockJS connection..."
+    const base =
+      API_CONFIG.BASE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+    const socketUrl = new URL("/api/common/ws", base).toString();
     console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
     const socket = new SockJS(socketUrl);
     this.client = new Client({
