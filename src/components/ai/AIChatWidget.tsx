@@ -163,7 +163,7 @@ export default function AIChatWidget() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
-        {messages.map((message, index) => (
+        {messages.map((message) => (
           <div
             key={message.id}
             className={`flex items-start gap-2 ${
