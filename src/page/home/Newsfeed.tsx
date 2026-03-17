@@ -28,13 +28,14 @@ export default function Newsfeed() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const { subscribe } = useSocket();
+  const isAuthenticated = authApi.isAuthenticated();
   const [currentUser] = useState<{
     id: string;
     username: string;
     fullName: string;
     avatar: string;
     role: string;
-  } | null>(() => authApi.getCurrentUser());
+  } | null>(() => (isAuthenticated ? authApi.getCurrentUser() : null));
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -696,14 +697,14 @@ export default function Newsfeed() {
                   .slice(0, 2)}
               </span>
             ) : (
-              <span className="text-white font-semibold text-base">JD</span>
+              <span className="text-white font-semibold text-base">U</span>
             )}
           </div>
           <Link
-            to="/post/create"
+            to={currentUser ? "/post/create" : "/auth/login"}
             className="flex-1 h-14 px-5 rounded-xl bg-gray-50 hover:bg-gray-100 text-left flex items-center text-gray-600 hover:text-gray-900 cursor-pointer text-base font-medium transition-colors"
           >
-            What's on your mind, {currentUser?.fullName?.split(' ')[0] || 'John'}?
+            {currentUser ? `Bạn đang nghĩ gì, ${currentUser.fullName.split(' ')[0]}?` : 'Đăng nhập để đăng bài…'}
           </Link>
         </div>
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +19,7 @@ interface RegisterForm {
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register: registerUser, isLoading } = useAuth();
   const {
     register,
@@ -53,6 +54,8 @@ export default function Register() {
         gender: data.gender,
         dateOfBirth,
       });
+      const from = (location.state as any)?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       if (err instanceof HttpError) {
         setError(err.message || "Registration failed. Please try again.");

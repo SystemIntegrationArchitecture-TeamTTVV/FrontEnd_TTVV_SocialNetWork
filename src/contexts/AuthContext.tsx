@@ -79,10 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: response.avatar,
         role: response.role,
       });
-
-      // Redirect to root path which will be handled by RootRedirect to /home
-      // This ensures proper routing through React Router
-      window.location.href = '/';
     } catch (error: unknown) {
       setIsLoading(false);
       throw error;
@@ -103,10 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: response.avatar,
         role: response.role,
       });
-
-      // Redirect to root path which will be handled by RootRedirect to /home
-      // This ensures proper routing through React Router
-      window.location.href = '/';
     } catch (error: unknown) {
       setIsLoading(false);
       throw error;
