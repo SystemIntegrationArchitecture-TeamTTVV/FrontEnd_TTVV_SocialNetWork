@@ -1235,24 +1235,6 @@ export default function Newsfeed() {
           }}
         />
       )}
-
-      {/*       
-      {isCreateStoryOpen && (
-        <CreateStory
-          onClose={() => setIsCreateStoryOpen(false)}
-          onSuccess={handleStoryCreated}
-        />
-      )}
-
-      {isStoryViewerOpen && selectedStoryId && (
-        <StoryViewer
-          storyId={selectedStoryId}
-          onClose={() => {
-            setIsStoryViewerOpen(false);
-            setSelectedStoryId(undefined);
-          }}
-        />
-      )} */}
     </div>
   );
 }
