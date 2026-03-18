@@ -15,7 +15,7 @@ export default function ResetPasswordNew() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const newPassword = watch('newPassword');
-  const hasMinLength = newPassword?.length >= 8;
+  const hasMinLength = newPassword?.length >= 3;
   const hasUpperLower = newPassword && /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword);
   const hasNumberOrSpecial = newPassword && (/[0-9]/.test(newPassword) || /[^a-zA-Z0-9]/.test(newPassword));
 
@@ -28,7 +28,7 @@ export default function ResetPasswordNew() {
   };
 
   return (
-    <div className="w-full max-w-[500px] mx-auto">
+    <div className="w-full max-w-125 mx-auto">
       <div className="bg-white rounded-lg shadow-xl p-8 relative">
         {/* Close Button */}
         <button
@@ -69,7 +69,7 @@ export default function ResetPasswordNew() {
               <input
                 {...register('newPassword', {
                   required: 'Vui lòng nhập mật khẩu mới',
-                  minLength: { value: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự' },
+                  minLength: { value: 3, message: 'Mật khẩu phải có ít nhất 3 ký tự' },
                 })}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Nhập mật khẩu mới"
@@ -130,7 +130,7 @@ export default function ResetPasswordNew() {
             <p className="text-sm font-semibold text-[#050505]">Yêu cầu mật khẩu:</p>
             <div className="space-y-1 text-sm">
               <p className={hasMinLength ? 'text-[#42B72A]' : 'text-[#65676B]'}>
-                {hasMinLength ? '✓' : '○'} Tối thiểu 8 ký tự
+                {hasMinLength ? '✓' : '○'} Tối thiểu 3 ký tự
               </p>
               <p className={hasUpperLower ? 'text-[#42B72A]' : 'text-[#65676B]'}>
                 {hasUpperLower ? '✓' : '○'} Có chữ hoa và chữ thường

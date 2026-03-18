@@ -69,8 +69,8 @@ export default function Login() {
                   {...register('password', { 
                     required: 'Vui lòng nhập mật khẩu',
                     minLength: {
-                      value: 6,
-                      message: 'Mật khẩu tối thiểu 6 ký tự'
+                      value: 3,
+                      message: 'Mật khẩu tối thiểu 3 ký tự'
                     }
                   })}
                   type="password"
