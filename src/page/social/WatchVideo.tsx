@@ -86,7 +86,8 @@ export default function WatchVideo() {
   const loadVideos = async () => {
     try {
       setLoading(true);
-      const allVideos = await videosApi.getAllVideos();
+      const rawVideos = await videosApi.getAllVideos();
+      const allVideos = Array.isArray(rawVideos) ? rawVideos : [];
 
       // Split into featured (first 2) and feed (rest)
       setFeaturedVideos(allVideos.slice(0, 2));

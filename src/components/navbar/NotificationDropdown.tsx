@@ -89,11 +89,14 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       try {
         setLoading(true);
         // Load regular notifications
-        const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+        const rawData = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+        const data = Array.isArray(rawData) ? rawData : [];
         
         // Load friend requests để check status
-        const friendRequests = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
-        const sentFriendRequests = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
+        const friendRequestsRaw = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
+        const sentFriendRequestsRaw = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
+        const friendRequests = Array.isArray(friendRequestsRaw) ? friendRequestsRaw : [];
+        const sentFriendRequests = Array.isArray(sentFriendRequestsRaw) ? sentFriendRequestsRaw : [];
         const allFriendRequests = [...friendRequests, ...sentFriendRequests];
         
         // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
@@ -110,7 +113,8 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
         setNotifications(filteredData);
 
         // Load conversations để lấy join requests
-        const conversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const rawConversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const conversations = Array.isArray(rawConversations) ? rawConversations : [];
         const joinRequestsList: JoinRequestItem[] = [];
         
         for (const conv of conversations) {
@@ -313,10 +317,13 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       // Reload notifications để đảm bảo đồng bộ (backend đã xóa notification)
       if (currentUser?.id) {
         try {
-          const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+          const rawData = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+          const data = Array.isArray(rawData) ? rawData : [];
           // Load friend requests để filter notifications đã ACTIVE
-          const friendRequests = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
-          const sentFriendRequests = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
+          const friendRequestsRaw = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
+          const sentFriendRequestsRaw = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
+          const friendRequests = Array.isArray(friendRequestsRaw) ? friendRequestsRaw : [];
+          const sentFriendRequests = Array.isArray(sentFriendRequestsRaw) ? sentFriendRequestsRaw : [];
           const allFriendRequests = [...friendRequests, ...sentFriendRequests];
           
           // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
@@ -357,8 +364,8 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       await friendRequestsApi.rejectFriendRequest(notification.relatedId);
       // Reload notifications
       if (currentUser?.id) {
-        const data = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
-        setNotifications(data);
+        const rawData = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+        setNotifications(Array.isArray(rawData) ? rawData : []);
       }
     } catch (error: unknown) {
       console.error('Failed to reject friend request:', error);

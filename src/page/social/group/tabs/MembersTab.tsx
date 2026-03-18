@@ -26,7 +26,7 @@ export default function MembersTab({ groupId, adminId }: Props) {
 
       console.log("Members API response:", data);
 
-      setMembers(data);
+      setMembers(Array.isArray(data) ? data : []);
 
     } catch (err) {
 

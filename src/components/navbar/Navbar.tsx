@@ -51,7 +51,8 @@ export default function Navbar() {
         setUnreadNotificationCount(count);
 
         // Load pending join requests count
-        const conversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const rawConversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const conversations = Array.isArray(rawConversations) ? rawConversations : [];
         let joinRequestCount = 0;
         for (const conv of conversations) {
           if (
@@ -85,7 +86,8 @@ export default function Navbar() {
       // Handle join request events
       if ((event.type === 'JOIN_REQUEST_CREATED' || event.type === 'JOIN_REQUEST_UPDATED') && event.data) {
         // Reload conversations to get updated count
-        conversationsApi.getConversationsByUserId(currentUser.id).then((conversations) => {
+        conversationsApi.getConversationsByUserId(currentUser.id).then((rawConversations) => {
+          const conversations = Array.isArray(rawConversations) ? rawConversations : [];
           let joinRequestCount = 0;
           for (const conv of conversations) {
             if (
@@ -112,7 +114,8 @@ export default function Navbar() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        const results = await usersApi.searchUsers(searchQuery);
+        const rawResults = await usersApi.searchUsers(searchQuery);
+        const results = Array.isArray(rawResults) ? rawResults : [];
         const filtered = results
           .filter(user => user.id !== currentUser?.id)
           .slice(0, 5);

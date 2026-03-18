@@ -40,16 +40,23 @@ export default function Groups() {
 
   const loadGroups = async () => {
     if (!userId) return;
-    const [your, joined, all] = await Promise.all([
-      groupsApi.getGroupsByAdminId(userId),
-      groupsApi.getGroupsByUserId(userId),
-      groupsApi.getAllGroups(),
-    ]);
-    setYourGroups(your);
-    setJoinedGroups(joined);
-    setDiscoverGroups(
-      all.filter(g => !your.some(y => y.id === g.id) && !joined.some(j => j.id === g.id))
-    );
+    try {
+      const [your, joined, all] = await Promise.all([
+        groupsApi.getGroupsByAdminId(userId),
+        groupsApi.getGroupsByUserId(userId),
+        groupsApi.getAllGroups(),
+      ]);
+      const safeYour = Array.isArray(your) ? your : [];
+      const safeJoined = Array.isArray(joined) ? joined : [];
+      const safeAll = Array.isArray(all) ? all : [];
+      setYourGroups(safeYour);
+      setJoinedGroups(safeJoined);
+      setDiscoverGroups(
+        safeAll.filter(g => !safeYour.some(y => y.id === g.id) && !safeJoined.some(j => j.id === g.id))
+      );
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    }
   };
 
   useEffect(() => { loadGroups(); }, []);
@@ -57,9 +64,13 @@ export default function Groups() {
   const handleSearch = async (value: string) => {
     setSearchText(value);
     if (!value) { loadGroups(); return; }
-    const result = await groupsApi.searchGroups(value);
-    setDiscoverGroups(result);
-    setActiveTab("discover");
+    try {
+      const result = await groupsApi.searchGroups(value);
+      setDiscoverGroups(Array.isArray(result) ? result : []);
+      setActiveTab("discover");
+    } catch (err) {
+      console.error('Failed to search groups:', err);
+    }
   };
 
   const getAvatarIcon = (category?: string) => {

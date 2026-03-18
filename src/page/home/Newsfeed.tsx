@@ -56,8 +56,8 @@ export default function Newsfeed() {
         setIsLoadingPosts(true);
         setError(null);
         const data = await postsApi.getAllPosts();
-        setPosts(data);
-        console.log('✅ Loaded posts:', data.length);
+        setPosts(Array.isArray(data) ? data : []);
+        console.log('✅ Loaded posts:', Array.isArray(data) ? data.length : 0, '(raw type:', typeof data, ')');
 
         // Load user's reactions to mark liked posts
         if (currentUser?.id) {
@@ -151,7 +151,7 @@ export default function Newsfeed() {
     storiesApi
       .getStoryFeed(currentUser.id)
       .then((data) => {
-        setStories(data);
+        setStories(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
         console.error('Failed to load stories', err);
