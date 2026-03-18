@@ -1,5 +1,4 @@
 // src/pages/WatchVideo.tsx
-import { useNavigate } from "react-router-dom";
 import {
   Search,
   Settings,
@@ -25,16 +24,13 @@ import { reactionsApi, type ReactionData } from "../../apis/reactions";
 import { commentsApi, type CommentData } from "../../apis/comments";
 
 export default function WatchVideo() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openReactionId, setOpenReactionId] = useState<string | null>(null);
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [featuredVideos, setFeaturedVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reactions, setReactions] = useState<Record<string, ReactionData[]>>(
-    {},
-  );
+  const [, setReactions] = useState<Record<string, ReactionData[]>>({});
   const [userReactions, setUserReactions] = useState<
     Record<string, ReactionData>
   >({});
@@ -271,13 +267,13 @@ export default function WatchVideo() {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      Object.entries(menuRefs.current).forEach(([videoId, ref]) => {
+      Object.entries(menuRefs.current).forEach(([, ref]) => {
         if (ref && !ref.contains(event.target as Node)) {
           setOpenMenuId(null);
         }
       });
 
-      Object.entries(reactionRefs.current).forEach(([videoId, ref]) => {
+      Object.entries(reactionRefs.current).forEach(([, ref]) => {
         if (ref && !ref.contains(event.target as Node)) {
           setOpenReactionId(null);
         }
@@ -397,7 +393,6 @@ export default function WatchVideo() {
         {/* Video Feed */}
         <div className="space-y-4">
           {videos.map((video) => {
-            const videoReactions = reactions[video.id!] || [];
             const userReaction = userReactions[video.id!];
             const videoComments = comments[video.id!] || [];
             const showingComments = showComments[video.id!];
@@ -442,7 +437,9 @@ export default function WatchVideo() {
                   </div>
                   <div
                     className="relative"
-                    ref={(el) => (menuRefs.current[video.id!] = el)}
+                    ref={(el) => {
+                      menuRefs.current[video.id!] = el;
+                    }}
                   >
                     <button
                       onClick={() =>
@@ -553,7 +550,9 @@ export default function WatchVideo() {
                   {/* Reaction Button */}
                   <div
                     className="relative flex-1"
-                    ref={(el) => (reactionRefs.current[video.id!] = el)}
+                    ref={(el) => {
+                      reactionRefs.current[video.id!] = el;
+                    }}
                   >
                     <button
                       onClick={() => {

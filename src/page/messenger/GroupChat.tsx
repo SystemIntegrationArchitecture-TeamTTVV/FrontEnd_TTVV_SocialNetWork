@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Image as ImageIcon, Smile, MoreVertical, Users, Settings, Search } from 'lucide-react';
+import { Send, Image as ImageIcon, Smile, Users, Settings, Search } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 export default function GroupChat() {

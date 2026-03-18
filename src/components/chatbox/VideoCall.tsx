@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X } from 'lucide-react';
+import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from 'lucide-react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 
 interface VideoCallProps {
@@ -54,21 +54,19 @@ export function IncomingCall({ contactName, callType, onAnswer, onReject }: Inco
   );
 }
 
-export function VideoCall({ contactId, callType, onEnd }: VideoCallProps) {
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+export function VideoCall({ contactId: _contactId, callType, onEnd }: VideoCallProps) {
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const {
     isCallActive,
     isCalling,
     isIncomingCall,
-    startCall,
     answerCall,
     rejectCall,
     endCall,
     toggleAudio,
     toggleVideo,
-    localStream,
   } = useWebRTC({
     localVideoRef,
     remoteVideoRef,

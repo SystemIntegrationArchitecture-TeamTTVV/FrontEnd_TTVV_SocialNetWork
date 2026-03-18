@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Search as SearchIcon, User, FileText, Image, Video, Users, File } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search as SearchIcon } from 'lucide-react';
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState('travel photos');

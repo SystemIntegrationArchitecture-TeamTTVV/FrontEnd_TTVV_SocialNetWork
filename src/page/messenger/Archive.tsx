@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Archive as ArchiveIcon, RotateCcw, Trash2, Users, User } from 'lucide-react';
+import { Search, Archive as ArchiveIcon, RotateCcw, Trash2, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Archive() {

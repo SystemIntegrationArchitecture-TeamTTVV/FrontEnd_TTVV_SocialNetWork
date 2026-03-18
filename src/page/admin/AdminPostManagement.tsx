@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Eye, Trash2, Flag, CheckCircle2, X, AlertCircle } from 'lucide-react';
+import { Search, Filter, Eye, Trash2, X, AlertCircle } from 'lucide-react';
 import { postsApi, type PostData } from '../../apis/posts';
-import { reactionsApi } from '../../apis/reactions';
-import { commentsApi } from '../../apis/comments';
 
 export default function AdminPostManagement() {
   const [searchQuery, setSearchQuery] = useState('');

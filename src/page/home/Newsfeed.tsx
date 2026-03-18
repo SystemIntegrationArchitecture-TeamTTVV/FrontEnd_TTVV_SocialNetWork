@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, X } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { LocationIcon, LargeMountainPlaceholder, HeartIcon, ThumbsUpIcon, SmileIcon } from '../../common/icons/IconComponents';
+import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
 import { postsApi } from '../../apis/posts';
 import type { PostData } from '../../apis/posts';
@@ -395,7 +395,7 @@ export default function Newsfeed() {
     }
   };
 
-  const handleReplyToComment = (commentId: string, postId: string) => {
+  const handleReplyToComment = (commentId: string) => {
     setReplyingTo(commentId);
     setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
   };
@@ -1019,7 +1019,7 @@ export default function Newsfeed() {
                     </span>
                   </button>
                   <button
-                    onClick={() => toggleComments(post.id)}
+                    onClick={() => toggleComments(post.id!)}
                     className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${isCommentsExpanded
                       ? 'bg-blue-50 text-blue-600'
                       : 'hover:bg-gray-50 text-gray-700'
@@ -1235,6 +1235,26 @@ export default function Newsfeed() {
           }}
         />
       )}
+<<<<<<< HEAD
+=======
+      */}
+      
+      <CreateStory
+        isOpen={isCreateStoryOpen}
+        onClose={() => setIsCreateStoryOpen(false)}
+        onStoryCreated={handleStoryCreated}
+      />
+
+      <StoryViewer
+        isOpen={isStoryViewerOpen}
+        initialStoryId={selectedStoryId}
+        stories={stories}
+        onClose={() => {
+          setIsStoryViewerOpen(false);
+          setSelectedStoryId(undefined);
+        }}
+      />
+>>>>>>> 261cd1f93e77b3463094fa3da29fa546788eb2d5
     </div>
   );
 }

@@ -3,10 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 import { passwordResetApi } from '../../apis/passwordReset';
 
-interface ForgotPasswordForm {
-  email: string;
-}
-
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

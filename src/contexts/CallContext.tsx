@@ -49,7 +49,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Handle incoming call offer
     const unsubOffer = socketService.on('CALL_OFFER', async (event) => {
       console.log('📞🎯 CallProvider: CALL_OFFER EVENT RECEIVED!', event);
-      const { callerId, callerName, callType, offer, callId } = event.data;
+      const { callerId, callerName, callType } = event.data;
       console.log('📞 CallProvider: Incoming call from:', callerName, 'callerId:', callerId);
 
       // End any existing call first

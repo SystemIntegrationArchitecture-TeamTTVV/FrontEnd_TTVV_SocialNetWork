@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Search, Bookmark, Image, Video, Link as LinkIcon, FileText, Filter } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Bookmark, Image, Video, Link as LinkIcon, FileText } from 'lucide-react';
 
 export default function SavedItems() {
   const [activeFilter, setActiveFilter] = useState('all');

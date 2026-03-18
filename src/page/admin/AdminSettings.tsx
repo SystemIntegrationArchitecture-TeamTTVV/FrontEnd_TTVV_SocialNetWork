@@ -1,4 +1,4 @@
-import { Save, Bell, Shield, Globe, Database, Server } from 'lucide-react';
+import { Save, Bell, Shield, Server } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AdminSettings() {

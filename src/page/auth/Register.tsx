@@ -51,15 +51,7 @@ export default function Register() {
         firstName: data.firstName,
         lastName: data.lastName,
         gender: data.gender,
-
-        // ✅ DateTime đúng chuẩn ISO
-        dateOfBirth: `${data.year}-${String(data.month).padStart(2, "0")}-${String(data.day).padStart(2, "0")}T00:00:00`,
-
-        // 🔥 BẮT BUỘC
-        isActive: true,
-        isVerified: false,
-        showEmail: false,
-        showPhone: false,
+        dateOfBirth,
       });
     } catch (err: unknown) {
       if (err instanceof HttpError) {

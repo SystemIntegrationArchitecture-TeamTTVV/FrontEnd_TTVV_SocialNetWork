@@ -197,6 +197,7 @@ export default function NewMessage() {
             )}
 
             {searchResults.map((contact) => {
+              if (!contact.id) return null;
               const isSelected = selectedContacts.includes(contact.id);
               const color = '#42B72A';
               const initials =
@@ -206,7 +207,7 @@ export default function NewMessage() {
               return (
                 <button
                   key={contact.id}
-                  onClick={() => toggleContact(contact.id)}
+                  onClick={() => toggleContact(contact.id!)}
                   className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all ${
                     isSelected
                       ? 'bg-blue-50 border-2 border-blue-500'

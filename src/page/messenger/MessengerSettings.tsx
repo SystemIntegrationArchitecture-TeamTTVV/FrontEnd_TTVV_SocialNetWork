@@ -1,10 +1,7 @@
-import { Link } from 'react-router-dom';
 import { Bell, Lock, Palette, Download, Shield, Globe, Moon, Sun } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 export default function MessengerSettings() {
-  const navigate = useNavigate();
   const [settings, setSettings] = useState({
     notifications: true,
     sound: true,

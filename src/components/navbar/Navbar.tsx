@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search, Globe } from 'lucide-react';
+import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -12,7 +12,7 @@ import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
 
 export default function Navbar() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
@@ -23,8 +23,7 @@ export default function Navbar() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const { isConnected: socketConnected, subscribe } = useSocket();
+  const { subscribe } = useSocket();
   const [currentUser] = useState<{
     id: string;
     username: string;
@@ -166,19 +165,6 @@ export default function Navbar() {
     navigate(`/profile/${user.id}`);
   };
 
-  const handleLanguageChange = (lang: 'en' | 'vi') => {
-    i18n.changeLanguage(lang).catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error('Failed to change language:', error);
-    });
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('language', lang);
-    }
-    setIsLanguageOpen(false);
-  };
-
-  const currentLang = i18n.language === 'vi' ? 'vi' : 'en';
-
   return (
     <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b border-gray-200 z-50 shadow-sm">
       <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between gap-4">
@@ -221,9 +207,10 @@ export default function Navbar() {
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 z-[9999] max-h-96 overflow-y-auto">
                 <div className="py-2">
                   {suggestions.map((user) => {
+                    const safeUsername = user.username ?? 'U';
                     const userInitials = user.fullName
-                      ? user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                      : user.username.charAt(0).toUpperCase();
+                      ? user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+                      : safeUsername.charAt(0).toUpperCase();
 
                     return (
                       <button
@@ -244,9 +231,9 @@ export default function Navbar() {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm text-gray-900 truncate">
-                            {user.fullName || user.username}
+                            {user.fullName || safeUsername}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">@{user.username}</p>
+                          <p className="text-xs text-gray-500 truncate">@{safeUsername}</p>
                         </div>
                       </button>
                     );
