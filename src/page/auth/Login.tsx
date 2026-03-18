@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { HttpError } from '../../apis/http';
-import logo from '../../assets/logo-favicon.png';
+import AuthFrame from '../../components/auth/AuthFrame';
 
 interface LoginForm {
   username: string;
@@ -38,27 +38,11 @@ export default function Login() {
   };
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-        {/* Left Section - Branding */}
-        <div className="hidden lg:flex flex-col items-center justify-center text-center">
-          <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-2xl border border-gray-100 overflow-hidden">
-            <img 
-              src={logo} 
-              alt="TTVV Logo" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h1 className="text-6xl font-bold text-gray-900 mb-6">TTVV</h1>
-          <p className="text-2xl text-gray-600 leading-relaxed max-w-lg">
-            Kết nối với bạn bè và chia sẻ khoảnh khắc mỗi ngày.
-          </p>
-        </div>
-
-        {/* Right Section - Login Form */}
-        <div className="w-full flex items-center justify-center">
-          <div className="w-full max-w-[500px] bg-white rounded-3xl shadow-xl p-10 lg:p-12 border border-gray-100">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <AuthFrame
+      brandHeading="TTVV"
+      brandDescription="Kết nối với bạn bè và chia sẻ khoảnh khắc mỗi ngày."
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <input
                   {...register('username', { 
@@ -136,17 +120,7 @@ export default function Login() {
               >
                 Tạo tài khoản mới
               </Link>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-6 left-0 right-0 text-center">
-        <p className="text-sm text-gray-500">
-          TTVV © 2026 · Quyền riêng tư · Điều khoản · Trợ giúp
-        </p>
-      </div>
-    </div>
+      </form>
+    </AuthFrame>
   );
 }

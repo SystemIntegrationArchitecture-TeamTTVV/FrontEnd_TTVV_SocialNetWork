@@ -5,6 +5,7 @@ import { useMessages } from '../hooks/useMessages';
 import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
 import { conversationsApi } from '../apis/conversations';
+import { showAuthRequiredPrompt } from '../utils/authPrompt';
 
 // Re-export types for convenience
 export type { ChatContact, ChatMessage };
@@ -129,6 +130,11 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   }, {} as Record<string, ChatMessage[]>);
 
   const openChatBox = useCallback((contact: ChatContact) => {
+    if (!user?.id) {
+      showAuthRequiredPrompt(window.location.pathname);
+      return;
+    }
+
     setOpenChatBoxes((prev) => {
       // Nếu đã mở rồi thì không mở lại
       if (prev.some((c) => c.id === contact.id)) {
@@ -146,11 +152,15 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
 
     // Load messages for this conversation
     loadMessages(contact.id);
-  }, [loadMessages]);
+  }, [loadMessages, user?.id]);
 
   // Open chatbox by userId (creates conversation if needed)
   const openChatBoxByUserId = useCallback(async (userId: string, userName?: string) => {
-    if (!user?.id || userId === user.id) return;
+    if (!user?.id) {
+      showAuthRequiredPrompt(window.location.pathname);
+      return;
+    }
+    if (userId === user.id) return;
 
     try {
       // Get or create conversation
@@ -185,7 +195,11 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   // Open chatbox by conversationId (supports group + direct)
   const openChatBoxByConversationId = useCallback(
     async (conversationId: string) => {
-      if (!user?.id || !conversationId) return;
+      if (!user?.id) {
+        showAuthRequiredPrompt(window.location.pathname);
+        return;
+      }
+      if (!conversationId) return;
       try {
         const conv = await conversationsApi.getConversationById(conversationId);
         const name = conv.isGroup
@@ -245,10 +259,14 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   };
 
   const sendMessage = useCallback(async (contactId: string, content: string) => {
+    if (!user?.id) {
+      showAuthRequiredPrompt(window.location.pathname);
+      return;
+    }
     if (!content.trim()) return;
     await sendMessageAPI(contactId, content);
      window.dispatchEvent(new Event('refresh-conversations'));
-  }, [sendMessageAPI]);
+  }, [sendMessageAPI, user?.id]);
 
   // 🔥 Auto-open chatbox when receiving new message
   useEffect(() => {

@@ -1,16 +1,35 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Navbar from '../navbar/Navbar';
 import LeftSidebar from '../sidebar/LeftSidebar';
 import RightSidebar from '../sidebar/RightSidebar';
 import ChatBoxManager from '../chatbox/ChatBoxManager';
 import MiniMusicPlayer from '../music/MiniMusicPlayer';
 import AIChatWidget from '../ai/AIChatWidget';
+import AuthRequiredModal from '../common/AuthRequiredModal';
+import { AUTH_REQUIRED_EVENT } from '../../utils/authPrompt';
 
 export default function MainLayout() {
   const location = useLocation();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [fromPath, setFromPath] = useState<string | undefined>(undefined);
   
   // Chỉ ẩn sidebars khi đang ở trang messenger full page
   const isMessengerPage = location.pathname.startsWith('/messenger');
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ from?: string }>;
+      const nextFrom = custom.detail?.from || location.pathname;
+      setFromPath(nextFrom);
+      setShowAuthModal(true);
+    };
+
+    window.addEventListener(AUTH_REQUIRED_EVENT, handler as EventListener);
+    return () => {
+      window.removeEventListener(AUTH_REQUIRED_EVENT, handler as EventListener);
+    };
+  }, [location.pathname]);
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
@@ -30,7 +49,7 @@ export default function MainLayout() {
             ? 'px-0 max-w-full' 
             : 'px-4 sm:px-8 lg:px-10 py-6 sm:py-10'
         }`}>
-          <div className={isMessengerPage ? 'w-full' : 'mx-auto max-w-full sm:max-w-[900px] lg:max-w-[1000px] xl:max-w-[1100px]'}>
+          <div className={isMessengerPage ? 'w-full' : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'}>
             <Outlet />
           </div>
         </main>
@@ -46,6 +65,11 @@ export default function MainLayout() {
       <ChatBoxManager />
       <MiniMusicPlayer />
       <AIChatWidget />
+      <AuthRequiredModal
+        open={showAuthModal}
+        fromPath={fromPath}
+        onClose={() => setShowAuthModal(false)}
+      />
       
       {/* CSS để ẩn scrollbar */}
       <style>{`

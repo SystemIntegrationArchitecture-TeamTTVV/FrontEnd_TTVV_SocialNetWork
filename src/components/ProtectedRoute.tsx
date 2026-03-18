@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { showAuthRequiredPrompt } from '../utils/authPrompt';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
+  const hasPrompted = useRef(false);
 
   if (isLoading) {
     return (
@@ -26,11 +29,6 @@ export default function ProtectedRoute({
     );
   }
 
-  if (requireAuth && !isAuthenticated) {
-    // Redirect to login with return url
-    return <Navigate to="/auth/login" state={{ from: location }} replace />;
-  }
-
   if (requireAdmin) {
     if (!isAuthenticated) {
       return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -41,6 +39,16 @@ export default function ProtectedRoute({
       // Redirect non-admin users to home page
       return <Navigate to="/home" replace />;
     }
+  }
+
+  useEffect(() => {
+    if (!requireAuth || isAuthenticated || requireAdmin || hasPrompted.current) return;
+    hasPrompted.current = true;
+    showAuthRequiredPrompt(location.pathname);
+  }, [isAuthenticated, location.pathname, requireAdmin, requireAuth]);
+
+  if (requireAuth && !isAuthenticated) {
+    return null;
   }
 
   return <>{children}</>;

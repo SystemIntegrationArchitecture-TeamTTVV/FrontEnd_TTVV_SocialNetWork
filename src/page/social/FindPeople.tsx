@@ -208,7 +208,7 @@ export default function FindPeople() {
       // Receiver will see real-time notification if they have socket connected
     } catch (error: any) {
       console.error('❌ Failed to send friend request:', error);
-      alert(error.message || 'Failed to send friend request');
+      alert(error.message || 'Gửi lời mời kết bạn thất bại');
     }
   };
 
@@ -217,7 +217,7 @@ export default function FindPeople() {
       await friendRequestsApi.acceptFriendRequest(requestId);
       await loadFriendRequests();
     } catch (error: any) {
-      alert(error.message || 'Failed to accept friend request');
+      alert(error.message || 'Chấp nhận lời mời kết bạn thất bại');
     }
   };
 
@@ -226,7 +226,7 @@ export default function FindPeople() {
       await friendRequestsApi.rejectFriendRequest(requestId);
       await loadFriendRequests();
     } catch (error: any) {
-      alert(error.message || 'Failed to reject friend request');
+      alert(error.message || 'Từ chối lời mời kết bạn thất bại');
     }
   };
 
@@ -255,8 +255,8 @@ export default function FindPeople() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Find People</h1>
-        <p className="text-gray-600">Search for people and send friend requests</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Tìm bạn bè</h1>
+        <p className="text-gray-600">Tìm người dùng và gửi lời mời kết bạn</p>
       </div>
 
       {/* Search Bar */}
@@ -276,7 +276,7 @@ export default function FindPeople() {
             }}
             onKeyPress={handleKeyPress}
             onFocus={handleInputFocus}
-            placeholder="Search by name or username..."
+            placeholder="Tìm theo tên hoặc tên đăng nhập..."
             className="w-full h-12 pl-12 pr-24 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
@@ -287,15 +287,15 @@ export default function FindPeople() {
             disabled={loading}
             className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Tìm kiếm'}
           </button>
 
           {/* Suggestions Dropdown */}
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-[9999] max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-9999 max-h-80 overflow-y-auto">
               <div className="p-2">
                 <div className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase">
-                  Suggestions
+                  Gợi ý
                 </div>
                 {suggestions.map((user) => {
                   const safeUsername = user.username ?? '';
@@ -318,16 +318,16 @@ export default function FindPeople() {
                         <img
                           src={user.avatar}
                           alt={user.fullName}
-                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          className="w-10 h-10 rounded-full object-cover shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
                           {userInitials}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate text-sm">
-                          {user.fullName || user.username || safeUsername || 'Unknown User'}
+                          {user.fullName || user.username || safeUsername || 'Người dùng'}
                         </p>
                         <p className="text-xs text-gray-500 truncate">@{safeUsername}</p>
                       </div>
@@ -343,7 +343,7 @@ export default function FindPeople() {
       {/* Search Results */}
       {users.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Search Results</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Kết quả tìm kiếm</h2>
           <div className="space-y-3">
             {users.map((user) => {
               if (!user.id) return null;
@@ -368,7 +368,7 @@ export default function FindPeople() {
                     {/* Avatar */}
                     <div 
                       onClick={() => navigate(`/profile/${user.id}`)}
-                      className="flex-shrink-0 cursor-pointer"
+                      className="shrink-0 cursor-pointer"
                     >
                       {user.avatar ? (
                         <img
@@ -377,7 +377,7 @@ export default function FindPeople() {
                           className="w-14 h-14 rounded-full object-cover hover:opacity-80 transition-opacity"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg hover:opacity-80 transition-opacity">
+                        <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg hover:opacity-80 transition-opacity">
                           {userInitials}
                         </div>
                       )}
@@ -388,7 +388,7 @@ export default function FindPeople() {
                       onClick={() => navigate(`/profile/${user.id}`)}
                       className="flex-1 min-w-0 cursor-pointer"
                     >
-                      <p className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">{user.fullName || user.username || safeUsername || 'Unknown User'}</p>
+                      <p className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">{user.fullName || user.username || safeUsername || 'Người dùng'}</p>
                       <p className="text-sm text-gray-500 truncate">@{safeUsername}</p>
                       {user.bio && (
                         <p className="text-sm text-gray-600 mt-1 line-clamp-1">{user.bio}</p>
@@ -396,7 +396,7 @@ export default function FindPeople() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex-shrink-0 flex items-center gap-2">
+                    <div className="shrink-0 flex items-center gap-2">
                       {/* Message Button - Show for all statuses except none */}
                       {(status === 'sent' || status === 'received' || status === 'accepted') && (
                         <button
@@ -405,7 +405,7 @@ export default function FindPeople() {
                           title="Nhắn tin"
                         >
                           <MessageCircle className="w-4 h-4" />
-                          <span className="hidden sm:inline">Message</span>
+                          <span className="hidden sm:inline">Nhắn tin</span>
                         </button>
                       )}
 
@@ -420,7 +420,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
                         >
                           <UserPlus className="w-4 h-4" />
-                          Add Friend
+                          Kết bạn
                         </button>
                       )}
                       {status === 'sent' && (
@@ -429,7 +429,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium"
                         >
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="hidden sm:inline">Pending</span>
+                          <span className="hidden sm:inline">Đang chờ</span>
                         </button>
                       )}
                       {status === 'received' && requestId && (
@@ -439,14 +439,14 @@ export default function FindPeople() {
                             className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
                           >
                             <Check className="w-4 h-4" />
-                            Accept
+                            Chấp nhận
                           </button>
                           <button
                             onClick={() => handleRejectFriendRequest(requestId)}
                             className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
                           >
                             <X className="w-4 h-4" />
-                            Reject
+                            Từ chối
                           </button>
                         </div>
                       )}
@@ -456,7 +456,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg cursor-not-allowed text-sm font-medium"
                         >
                           <Check className="w-4 h-4" />
-                          <span className="hidden sm:inline">Friends</span>
+                          <span className="hidden sm:inline">Bạn bè</span>
                         </button>
                       )}
                     </div>
@@ -471,14 +471,14 @@ export default function FindPeople() {
       {!loading && searchQuery && users.length === 0 && (
         <div className="text-center py-12">
           <UserIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">No users found matching "{searchQuery}"</p>
+          <p className="text-gray-600">Không tìm thấy người dùng phù hợp với "{searchQuery}"</p>
         </div>
       )}
 
       {!searchQuery && (
         <div className="text-center py-12">
           <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Enter a name or username to search for people</p>
+          <p className="text-gray-600">Nhập tên hoặc tên đăng nhập để tìm người dùng</p>
         </div>
       )}
     </div>

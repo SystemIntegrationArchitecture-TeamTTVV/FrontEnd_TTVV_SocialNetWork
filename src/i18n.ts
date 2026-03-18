@@ -25,17 +25,17 @@ const resources = {
 } as const;
 
 const getInitialLanguage = () => {
-  if (typeof window === 'undefined') return 'en';
+  if (typeof window === 'undefined') return 'vi';
 
   const stored = window.localStorage.getItem('language');
   if (stored && (stored === 'en' || stored === 'vi')) {
     return stored;
   }
 
-  const browserLang = window.navigator.language?.toLowerCase() ?? 'en';
+  const browserLang = window.navigator.language?.toLowerCase() ?? 'vi';
   if (browserLang.startsWith('vi')) return 'vi';
 
-  return 'en';
+  return 'vi';
 };
 
 i18n
@@ -43,7 +43,7 @@ i18n
   .init({
     resources,
     lng: getInitialLanguage(),
-    fallbackLng: 'en',
+    fallbackLng: 'vi',
     interpolation: {
       escapeValue: false,
     },

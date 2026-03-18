@@ -10,6 +10,7 @@ import { usersApi, type User } from '../../apis/users';
 import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
+import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
 export default function Navbar() {
   const { t } = useTranslation();
@@ -26,6 +27,7 @@ export default function Navbar() {
   const { subscribe } = useSocket();
   const { user: currentUser } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
+  const requestLogin = () => showAuthRequiredPrompt(location.pathname);
 
   // Function to reload unread notification count
   const loadUnreadCount = async () => {
@@ -298,17 +300,35 @@ export default function Navbar() {
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
 
-          <Link
-            to="/messenger"
-            className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-          >
-            <MessageCircle className="w-5 h-5 text-gray-700" />
-          </Link>
+          {currentUser ? (
+            <Link
+              to="/messenger"
+              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+            >
+              <MessageCircle className="w-5 h-5 text-gray-700" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={requestLogin}
+              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+              title="Đăng nhập để dùng Messenger"
+            >
+              <MessageCircle className="w-5 h-5 text-gray-700" />
+            </button>
+          )}
           
           <div className="relative">
             <button
-              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              onClick={() => {
+                if (!currentUser) {
+                  requestLogin();
+                  return;
+                }
+                setIsNotificationOpen(!isNotificationOpen);
+              }}
               className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+              title={!currentUser ? 'Đăng nhập để xem thông báo' : undefined}
             >
               <Bell className="w-6 h-6 text-gray-700" />
               {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (

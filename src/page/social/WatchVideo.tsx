@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import { videosApi, type VideoData } from "../../apis/video";
 import { reactionsApi, type ReactionData } from "../../apis/reactions";
 import { commentsApi, type CommentData } from "../../apis/comments";
+import { showAuthRequiredPrompt } from "../../utils/authPrompt";
 
 export default function WatchVideo() {
   const { user } = useAuth();
@@ -133,7 +134,7 @@ export default function WatchVideo() {
   // Handle reaction
   const handleReaction = async (videoId: string, reactionType: string) => {
     if (!user?.id) {
-      alert("Vui lòng đăng nhập để thực hiện hành động này");
+      showAuthRequiredPrompt(window.location.pathname);
       return;
     }
 
@@ -177,7 +178,7 @@ export default function WatchVideo() {
   // Handle comment
   const handleComment = async (videoId: string) => {
     if (!user?.id) {
-      alert("Vui lòng đăng nhập để bình luận");
+      showAuthRequiredPrompt(window.location.pathname);
       return;
     }
 

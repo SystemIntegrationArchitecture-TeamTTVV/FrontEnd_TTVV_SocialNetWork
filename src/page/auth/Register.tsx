@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { HttpError } from "../../apis/http";
+import AuthFrame from "../../components/auth/AuthFrame";
 
 interface RegisterForm {
   firstName: string;
@@ -25,9 +25,13 @@ export default function Register() {
     register,
     handleSubmit,
     formState: { errors },
+    trigger,
+    watch,
   } = useForm<RegisterForm>();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState(1);
+  const totalSteps = 3;
 
   const onSubmit = async (data: RegisterForm) => {
     try {
@@ -75,206 +79,265 @@ export default function Register() {
     (_, i) => new Date().getFullYear() - i,
   );
 
+  const nextStep = async () => {
+    let fields: Array<keyof RegisterForm> = [];
+
+    if (step === 1) {
+      fields = ["firstName", "lastName", "email"];
+    } else if (step === 2) {
+      fields = ["username", "password"];
+    }
+
+    if (fields.length === 0) return;
+    const isValid = await trigger(fields);
+    if (isValid) {
+      setError(null);
+      setStep((prev) => Math.min(prev + 1, totalSteps));
+    }
+  };
+
+  const previousStep = () => {
+    setError(null);
+    setStep((prev) => Math.max(prev - 1, 1));
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="relative p-6 border-b border-[#DFE1E6]">
-          <button
-            onClick={() => navigate("/auth/login")}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF] transition-colors"
-          >
-            <X className="w-5 h-5 text-[#8A8D91]" />
-          </button>
-          <h2 className="text-3xl font-bold text-[#1C1E21] text-center">
-            Sign Up
-          </h2>
-          <p className="text-center text-[#606770] mt-1">
-            It's quick and easy.
-          </p>
+    <AuthFrame
+      brandHeading="TTVV"
+      brandDescription="Tạo tài khoản để bắt đầu kết nối và chia sẻ cùng bạn bè."
+      cardTitle="Tạo tài khoản"
+      cardSubtitle="Quy trình 3 bước nhanh gọn và rõ ràng"
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div className="space-y-3">
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${(step / totalSteps) * 100}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <p className={`text-center ${step >= 1 ? "text-blue-600 font-semibold" : "text-gray-400"}`}>Bước 1</p>
+            <p className={`text-center ${step >= 2 ? "text-blue-600 font-semibold" : "text-gray-400"}`}>Bước 2</p>
+            <p className={`text-center ${step >= 3 ? "text-blue-600 font-semibold" : "text-gray-400"}`}>Bước 3</p>
+          </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          {/* Name Inputs */}
-          <div className="flex gap-3">
+        {step === 1 && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                {...register("firstName", { required: "Vui lòng nhập tên" })}
+                type="text"
+                placeholder="Tên"
+                className={`h-12 px-4 rounded-xl border ${errors.firstName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+              />
+              <input
+                {...register("lastName", { required: "Vui lòng nhập họ" })}
+                type="text"
+                placeholder="Họ"
+                className={`h-12 px-4 rounded-xl border ${errors.lastName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+              />
+            </div>
+            {(errors.firstName || errors.lastName) && (
+              <p className="text-xs text-red-600">
+                {(errors.firstName?.message || errors.lastName?.message) as string}
+              </p>
+            )}
+
             <input
-              {...register("firstName", { required: true })}
-              type="text"
-              placeholder="First name"
-              className="flex-1 h-12 px-4 rounded-md border border-[#CCD0D5] focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+              {...register("email", {
+                required: "Vui lòng nhập email",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Email không hợp lệ",
+                },
+              })}
+              type="email"
+              placeholder="Email"
+              className={`w-full h-12 px-4 rounded-xl border ${
+                errors.email ? "border-red-300" : "border-gray-200"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
             />
+            {errors.email && (
+              <p className="text-xs text-red-600 -mt-1">{errors.email.message as string}</p>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3">
             <input
-              {...register("lastName", { required: true })}
+              {...register("username", {
+                required: "Vui lòng nhập tên đăng nhập",
+                minLength: {
+                  value: 3,
+                  message: "Tên đăng nhập tối thiểu 3 ký tự",
+                },
+              })}
               type="text"
-              placeholder="Last name"
-              className="flex-1 h-12 px-4 rounded-md border border-[#CCD0D5] focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+              placeholder="Tên đăng nhập"
+              className={`w-full h-12 px-4 rounded-xl border ${
+                errors.username ? "border-red-300" : "border-gray-200"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
             />
+            {errors.username && (
+              <p className="text-xs text-red-600 -mt-1">{errors.username.message as string}</p>
+            )}
+
+            <input
+              {...register("password", {
+                required: "Vui lòng nhập mật khẩu",
+                minLength: {
+                  value: 3,
+                  message: "Mật khẩu tối thiểu 3 ký tự",
+                },
+              })}
+              type="password"
+              placeholder="Mật khẩu mới"
+              className={`w-full h-12 px-4 rounded-xl border ${
+                errors.password ? "border-red-300" : "border-gray-200"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+            />
+            {errors.password && (
+              <p className="text-xs text-red-600 -mt-1">{errors.password.message as string}</p>
+            )}
           </div>
+        )}
 
-          {/* Email Input */}
-          <input
-            {...register("email", {
-              required: "Email is required",
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: "Invalid email address",
-              },
-            })}
-            type="email"
-            placeholder="Email"
-            className={`w-full h-12 px-4 rounded-md border ${
-              errors.email ? "border-red-300" : "border-[#CCD0D5]"
-            } focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent`}
-          />
-          {errors.email && (
-            <p className="text-xs text-red-600 mt-1">
-              {errors.email.message as string}
-            </p>
-          )}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-2">Ngày sinh</label>
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  {...register("month", { required: "Vui lòng chọn tháng" })}
+                  className="h-11 px-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50"
+                >
+                  <option value="">Tháng</option>
+                  {months.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  {...register("day", { required: "Vui lòng chọn ngày" })}
+                  className="h-11 px-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50"
+                >
+                  <option value="">Ngày</option>
+                  {days.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <select
+                  {...register("year", { required: "Vui lòng chọn năm" })}
+                  className="h-11 px-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50"
+                >
+                  <option value="">Năm</option>
+                  {years.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              {(errors.month || errors.day || errors.year) && (
+                <p className="text-xs text-red-600 mt-1">
+                  {(errors.month?.message || errors.day?.message || errors.year?.message) as string}
+                </p>
+              )}
+            </div>
 
-          {/* Username Input */}
-          <input
-            {...register("username", {
-              required: "Username is required",
-              minLength: {
-                value: 3,
-                message: "Username must be at least 3 characters",
-              },
-            })}
-            type="text"
-            placeholder="Username"
-            className={`w-full h-12 px-4 rounded-md border ${
-              errors.username ? "border-red-300" : "border-[#CCD0D5]"
-            } focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent`}
-          />
-          {errors.username && (
-            <p className="text-xs text-red-600 mt-1">
-              {errors.username.message as string}
-            </p>
-          )}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-2">Giới tính</label>
+              <div className="grid grid-cols-3 gap-2">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    {...register("gender", { required: "Vui lòng chọn giới tính" })}
+                    type="radio"
+                    value="female"
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">Nữ</span>
+                </label>
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    {...register("gender", { required: "Vui lòng chọn giới tính" })}
+                    type="radio"
+                    value="male"
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">Nam</span>
+                </label>
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    {...register("gender", { required: "Vui lòng chọn giới tính" })}
+                    type="radio"
+                    value="custom"
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">Khác</span>
+                </label>
+              </div>
+              {errors.gender && (
+                <p className="text-xs text-red-600 mt-1">{errors.gender.message as string}</p>
+              )}
+            </div>
 
-          {/* Password Input */}
-          <input
-            {...register("password", {
-              required: "Password is required",
-              minLength: {
-                value: 3,
-                message: "Password must be at least 3 characters",
-              },
-            })}
-            type="password"
-            placeholder="New password"
-            className={`w-full h-12 px-4 rounded-md border ${
-              errors.password ? "border-red-300" : "border-[#CCD0D5]"
-            } focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent`}
-          />
-          {errors.password && (
-            <p className="text-xs text-red-600 mt-1">
-              {errors.password.message as string}
-            </p>
-          )}
-
-          {/* Birthday */}
-          <div>
-            <label className="block text-xs text-[#606770] mb-2">
-              Birthday
-            </label>
-            <div className="flex gap-2">
-              <select
-                {...register("month", { required: true })}
-                className="flex-1 h-10 px-3 rounded-md border border-[#CCD0D5] focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
-              >
-                <option value="">Month</option>
-                {months.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <select
-                {...register("day", { required: true })}
-                className="flex-1 h-10 px-3 rounded-md border border-[#CCD0D5] focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
-              >
-                <option value="">Day</option>
-                {days.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-              <select
-                {...register("year", { required: true })}
-                className="flex-1 h-10 px-3 rounded-md border border-[#CCD0D5] focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
-              >
-                <option value="">Year</option>
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600">
+              <p className="font-semibold text-gray-700 mb-1">Xác nhận thông tin</p>
+              <p>Họ tên: {watch("lastName") || "-"} {watch("firstName") || "-"}</p>
+              <p>Email: {watch("email") || "-"}</p>
+              <p>Tên đăng nhập: {watch("username") || "-"}</p>
             </div>
           </div>
+        )}
 
-          {/* Gender */}
-          <div>
-            <label className="block text-xs text-[#606770] mb-2">Gender</label>
-            <div className="flex gap-3">
-              <label className="flex-1 flex items-center gap-2 p-3 rounded-md border border-[#CCD0D5] cursor-pointer hover:bg-[#F0F2F5]">
-                <input
-                  {...register("gender", { required: true })}
-                  type="radio"
-                  value="female"
-                  className="w-4 h-4 text-[#1877F2]"
-                />
-                <span>Female</span>
-              </label>
-              <label className="flex-1 flex items-center gap-2 p-3 rounded-md border border-[#CCD0D5] cursor-pointer hover:bg-[#F0F2F5]">
-                <input
-                  {...register("gender", { required: true })}
-                  type="radio"
-                  value="male"
-                  className="w-4 h-4 text-[#1877F2]"
-                />
-                <span>Male</span>
-              </label>
-              <label className="flex-1 flex items-center gap-2 p-3 rounded-md border border-[#CCD0D5] cursor-pointer hover:bg-[#F0F2F5]">
-                <input
-                  {...register("gender", { required: true })}
-                  type="radio"
-                  value="custom"
-                  className="w-4 h-4 text-[#1877F2]"
-                />
-                <span>Custom</span>
-              </label>
-            </div>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
+        )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Bằng việc tạo tài khoản, bạn đồng ý với Điều khoản, Chính sách quyền riêng tư và Chính sách cookie của chúng tôi.
+        </p>
+
+        <div className="flex gap-3">
+          {step > 1 ? (
+            <button
+              type="button"
+              onClick={previousStep}
+              className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            >
+              Quay lại
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate("/auth/login")}
+              className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            >
+              Đăng nhập
+            </button>
           )}
 
-          {/* Terms */}
-          <p className="text-xs text-[#777]">
-            By clicking Sign Up, you agree to our Terms, Privacy Policy and
-            Cookies Policy. You may receive SMS notifications from us and can
-            opt out at any time.
-          </p>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting || isLoading}
-            className="w-full h-12 bg-[#42B72A] text-white font-bold text-lg rounded-md hover:bg-[#36A420] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting || isLoading ? "Creating account..." : "Sign Up"}
-          </button>
-        </form>
-      </div>
-    </div>
+          {step < totalSteps ? (
+            <button
+              type="button"
+              onClick={nextStep}
+              className="flex-1 h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              Tiếp tục
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting || isLoading}
+              className="flex-1 h-11 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting || isLoading ? "Đang tạo tài khoản..." : "Hoàn tất tạo tài khoản"}
+            </button>
+          )}
+        </div>
+      </form>
+    </AuthFrame>
   );
 }

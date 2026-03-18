@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { User, Users, Store, Video, Bookmark, UserPlus, ChevronDown, Music2 } from 'lucide-react';
 import { authApi } from '../../apis/auth';
+import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
 type MenuItem = {
   icon: typeof User;
@@ -28,11 +29,11 @@ export default function LeftSidebar() {
   const menuItems: MenuItem[] = [
     { icon: UserPlus, label: 'Tìm bạn bè', path: '/find-people' },
     { icon: Users, label: 'Bạn bè', path: '/friends', requireAuth: true },
-    { icon: Users, label: 'Groups', path: '/groups' },
-    { icon: Store, label: 'Marketplace', path: '/marketplace' },
-    { icon: Video, label: 'Watch', path: '/watch' },
-    { icon: Music2, label: 'Music edm', path: '/music' },
-    { icon: Bookmark, label: 'Saved', path: '/saved', requireAuth: true },
+    { icon: Users, label: 'Nhóm', path: '/groups' },
+    { icon: Store, label: 'Chợ', path: '/marketplace' },
+    { icon: Video, label: 'Video', path: '/watch' },
+    { icon: Music2, label: 'Nhạc', path: '/music' },
+    { icon: Bookmark, label: 'Đã lưu', path: '/saved', requireAuth: true },
   ];
 
   const menuItemsWithUser: MenuItem[] = currentUser?.id && currentUser.fullName?.trim()
@@ -57,16 +58,18 @@ export default function LeftSidebar() {
           
           return (
             isDisabled ? (
-              <div
+              <button
                 key={index}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 cursor-not-allowed select-none"
-                title="Vui lòng đăng nhập để sử dụng"
+                type="button"
+                onClick={() => showAuthRequiredPrompt(location.pathname)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition-all"
+                title="Vui lòng đăng nhập để sử dụng đầy đủ tính năng"
               >
                 <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                   <Icon className="w-5 h-5" />
                 </div>
                 <span className="text-sm font-medium">{item.label}</span>
-              </div>
+              </button>
             ) : (
               <Link
                 key={index}
@@ -124,7 +127,7 @@ export default function LeftSidebar() {
           <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors shrink-0">
             <ChevronDown className="w-5 h-5" />
           </div>
-          <span className="text-sm font-medium">See more</span>
+          <span className="text-sm font-medium">Xem thêm</span>
         </button>
       </div>
     </aside>
