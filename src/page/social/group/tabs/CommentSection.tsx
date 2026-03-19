@@ -1,6 +1,6 @@
 import { Send, Loader2 } from "lucide-react";
 import type { CommentData } from "../../../../apis/comments";
-import CommentItem from "./Commentitem";
+import CommentItem from "./CommentItem";
 
 interface CommentSectionProps {
   postId: string;

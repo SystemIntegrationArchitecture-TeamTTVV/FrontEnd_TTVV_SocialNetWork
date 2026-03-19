@@ -6,7 +6,7 @@ import { reactionsApi } from "../../../../apis/reactions";
 import { commentsApi, type CommentData } from "../../../../apis/comments";
 import { authApi } from "../../../../apis/auth";
 import CreatePostGroup from "./CreatePostGroup";
-import PostCard from "./PostCard";
+import PostCard from "./Postcard";
 import CommentSection from "./CommentSection";
 
 export default function PostsTab({ groupId }: { groupId: string }) {
@@ -116,7 +116,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
     if (!text || !currentUser) return;
     setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
     try {
-      const newComment = await commentsApi.createComment(postId, currentUser.id, text);
+      const newComment = await commentsApi.createComment({ postId, userId: currentUser.id, content: text });
       setPostComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), newComment] }));
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
       setCommentInputs(prev => ({ ...prev, [postId]: "" }));
@@ -160,7 +160,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
     if (!text || !currentUser) return;
     setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
     try {
-      const newReply = await commentsApi.createComment(postId, currentUser.id, text, parentCommentId);
+      const newReply = await commentsApi.createComment({ postId, userId: currentUser.id, content: text, parentCommentId });
       setCommentReplies(prev => ({ ...prev, [parentCommentId]: [...(prev[parentCommentId] || []), newReply] }));
       setPostComments(prev => ({
         ...prev,
