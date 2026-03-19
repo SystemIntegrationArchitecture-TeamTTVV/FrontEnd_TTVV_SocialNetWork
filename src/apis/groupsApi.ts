@@ -287,29 +287,62 @@ class GroupsApi {
     //
     async getInvitableFriends(groupId: string, userId: string): Promise<any[]> {
 
-    try {
+        try {
 
-        console.log(`📡 [Groups API] Fetching invitable friends for group ${groupId}`);
+            console.log(`📡 [Groups API] Fetching invitable friends for group ${groupId}`);
 
-        const response = await httpClient.get<any[]>(
-            `${this.baseUrl}/${groupId}/invitable-friends/${userId}`
-        );
+            const response = await httpClient.get<any[]>(
+                `${this.baseUrl}/${groupId}/invitable-friends/${userId}`
+            );
 
-        console.log("✅ [Groups API] Invitable friends:", response.length);
+            console.log("✅ [Groups API] Invitable friends:", response.length);
 
-        return response;
+            return response;
 
-    } catch (error) {
+        } catch (error) {
 
-        console.error("❌ [Groups API] Failed to fetch invitable friends:", error);
+            console.error("❌ [Groups API] Failed to fetch invitable friends:", error);
 
-        throw error;
+            throw error;
+
+        }
 
     }
+    async getUserStatus(groupId: string, userId: string): Promise<string | null> {
+        try {
+            console.log(`📡 [Groups API] Fetching status of user ${userId} in group ${groupId}`);
+            const status = await httpClient.get<string>(`${this.baseUrl}/${groupId}/status/${userId}`);
+            console.log("✅ Status fetched:", status);
+            return status;
+        } catch (error) {
+            console.error("❌ [Groups API] Failed to fetch user status:", error);
+            return null;
+        }
+    }
+    /**
+   * Get pending members of a group
+   */
+    async getPendingMembers(groupId: string): Promise<any[]> {
+        try {
+            console.log(`📡 [Groups API] Fetching pending members for group ${groupId}`);
+            const response = await httpClient.get<any[]>(`${this.baseUrl}/${groupId}/pending-members`);
+            console.log(`✅ [Groups API] Pending members fetched: ${response.length}`);
+            return response;
+        } catch (error) {
+            console.error(`❌ [Groups API] Failed to fetch pending members for group ${groupId}:`, error);
+            throw error;
+        }
+    }
+    async toggleGroupPrivacy(groupId: string): Promise<any[]> {
+        return httpClient.post(`${this.baseUrl}/${groupId}/toggle-privacy`);
+    }
+    async approveMember(groupId: string, userId: string): Promise<void> {
+        await httpClient.post(`${this.baseUrl}/${groupId}/members/${userId}/approve`);
+    }
 
-}
-    
-
+    async rejectMember(groupId: string, userId: string): Promise<void> {
+        await httpClient.post(`${this.baseUrl}/${groupId}/members/${userId}/reject`);
+    }
 }
 
 export const groupsApi = new GroupsApi();

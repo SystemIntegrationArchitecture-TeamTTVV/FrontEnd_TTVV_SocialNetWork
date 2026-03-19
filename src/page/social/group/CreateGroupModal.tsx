@@ -19,7 +19,7 @@ export default function CreateGroupModal({ userId, onClose, onCreated }: Props) 
     const [friends, setFriends] = useState<Friend[]>([]);
     const [selected, setSelected] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-
+    const [privacy, setPrivacy] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
     useEffect(() => {
         loadFriends();
     }, []);
@@ -37,11 +37,16 @@ export default function CreateGroupModal({ userId, onClose, onCreated }: Props) 
         );
     };
 
-    const handleCreate = async () => {
-        if (!name.trim()) return;
-        setLoading(true);
+const handleCreate = async () => {
+    if (!name.trim()) return;
+    setLoading(true);
 
-        const group = await groupsApi.createGroup({ name, adminId: userId });
+    try {
+        const group = await groupsApi.createGroup({
+            name,
+            adminId: userId,
+            privacy,   // <-- thêm đây
+        });
 
         if (!group.id) {
             console.error("Group id missing");
@@ -55,7 +60,11 @@ export default function CreateGroupModal({ userId, onClose, onCreated }: Props) 
 
         onCreated();
         onClose();
-    };
+    } catch (error) {
+        console.error("Failed to create group:", error);
+        setLoading(false);
+    }
+};
 
     return (
         <>
@@ -379,7 +388,30 @@ export default function CreateGroupModal({ userId, onClose, onCreated }: Props) 
                                 onChange={(e) => setName(e.target.value)}
                             />
                         </div>
-
+                        {/* Privacy selection */}
+                        <div className="cgm-label">Group Type</div>
+                        <div className="flex gap-3 mb-4">
+                            <button
+                                type="button"
+                                className={`px-4 py-2 rounded-lg font-medium transition ${privacy === 'PUBLIC'
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                onClick={() => setPrivacy('PUBLIC')}
+                            >
+                                Public
+                            </button>
+                            <button
+                                type="button"
+                                className={`px-4 py-2 rounded-lg font-medium transition ${privacy === 'PRIVATE'
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                onClick={() => setPrivacy('PRIVATE')}
+                            >
+                                Private
+                            </button>
+                        </div>
                         {/* Friends list */}
                         <div className="cgm-section-header">
                             <div className="cgm-label" style={{ margin: 0 }}>Add members</div>

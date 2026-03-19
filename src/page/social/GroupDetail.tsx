@@ -17,10 +17,10 @@ export default function GroupDetail() {
 
   const [group, setGroup] = useState<GroupData | null>(null);
 
-  const [activeTab, setActiveTab] = useState("discussion");
+  const [activeTab, setActiveTab] = useState("posts");
 
   const [myRole, setMyRole] = useState<string | null>(null);
-
+  const [myStatus, setMyStatus] = useState<string | null>(null);
   const [loadingJoin, setLoadingJoin] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupData | null>(null);
@@ -50,7 +50,9 @@ export default function GroupDetail() {
 
         if (userId) {
           const role = await groupsApi.getUserRole(id, userId);
+          const status = await groupsApi.getUserStatus(id, userId);
           setMyRole(role);
+          setMyStatus(status);
         }
 
       } catch (error) {
@@ -75,35 +77,33 @@ export default function GroupDetail() {
     loadGroup();
 
   }, [id, userId]);
-
+console.log("aaa"+ myStatus);
   /* ---------------- Join group ---------------- */
 
   const handleJoinGroup = async () => {
-
-    if (!id || !userId) return;
+    if (!id || !userId || !group) return;
 
     try {
-
       setLoadingJoin(true);
 
       await groupsApi.joinGroup(id, userId);
 
-      setMyRole("MEMBER");
+      if (group.privacy === "PUBLIC") {
+        setMyRole("MEMBER");
 
-      setGroup(prev =>
-        prev ? { ...prev, memberCount: (prev.memberCount || 0) + 1 } : prev
-      );
+        setGroup(prev =>
+          prev ? { ...prev, memberCount: (prev.memberCount || 0) + 1 } : prev
+        );
+      } else if (group.privacy === "PRIVATE") {
+        setMyRole("PENDING"); // chờ duyệt
+        // không tăng memberCount
+      }
 
     } catch (error) {
-
       console.error("Join group failed", error);
-
     } finally {
-
       setLoadingJoin(false);
-
     }
-
   };
   const handleLeaveGroup = async () => {
     if (!id || !userId) return;
@@ -159,7 +159,7 @@ export default function GroupDetail() {
                 </h1>
 
                 <p className="text-[#65676B]">
-                  Nhóm công khai · {group.memberCount || 0} thành viên
+                  {group.privacy === "PUBLIC" ? "Nhóm công khai" : "Nhóm riêng tư"} · {group.memberCount || 0} thành viên
                 </p>
 
               </div>
@@ -211,8 +211,16 @@ export default function GroupDetail() {
                     </button>
                   )}
 
+                  {(myRole === "PENDING"||myStatus==="PENDING") && (
+                    <button
+                      
+                      className="w-full text-left px-4 py-2 hover:bg-[#F0F2F5]"
+                    >
+                      Đang chờ duyệt
+                    </button>
+                  )}
                   {/* NOT MEMBER */}
-                  {!myRole && (
+                  {(!myRole &&  myStatus!=="PENDING") && (
                     <button
                       onClick={handleJoinGroup}
                       className="w-full text-left px-4 py-2 hover:bg-[#F0F2F5]"
@@ -232,15 +240,21 @@ export default function GroupDetail() {
 
           <div className="flex gap-3">
 
-            {myRole ? (
-
-              <button className="h-10 px-4 bg-[#1877F2] text-white font-bold rounded-md flex items-center gap-2">
-                <Check className="w-4 h-4" />
-                <span>Đã tham gia ({myRole})</span>
-              </button>
-
+            {(myRole||myStatus=== "PENDING") ? (
+              (myRole === "PENDING" || myStatus=== "PENDING") ? (
+                <button
+                  disabled
+                  className="h-10 px-4 bg-[#FFD700] text-black font-bold rounded-md flex items-center gap-2 cursor-not-allowed"
+                >
+                  ⏳ <span>Đang chờ duyệt</span>
+                </button>
+              ) : (
+                <button className="h-10 px-4 bg-[#1877F2] text-white font-bold rounded-md flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  <span>Đã tham gia ({myRole})</span>
+                </button>
+              )
             ) : (
-
               <button
                 onClick={handleJoinGroup}
                 disabled={loadingJoin}
@@ -248,7 +262,6 @@ export default function GroupDetail() {
               >
                 {loadingJoin ? "Đang tham gia..." : "Tham gia nhóm"}
               </button>
-
             )}
 
             <button className="h-10 px-4 bg-[#E4E6EB] rounded-md flex items-center gap-2">
@@ -275,7 +288,7 @@ export default function GroupDetail() {
           <div className="flex items-center gap-2 p-2">
 
             {[
-              "discussion",
+              "posts",
               "featured",
               "members",
               "events",
@@ -293,7 +306,7 @@ export default function GroupDetail() {
                   }`}
               >
 
-                {tab === "discussion" && "Thảo luận"}
+                {tab === "posts" && "Thảo luận"}
                 {tab === "featured" && "Nổi bật"}
                 {tab === "members" && "Thành viên"}
                 {tab === "events" && "Sự kiện"}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { groupsApi, type GroupData } from "../../../apis/groupsApi";
-import { Trash2, Users, Edit3, Settings, ChevronRight, Check, X, UserMinus, Shield } from "lucide-react";
+import { Trash2, Users, Edit3, Settings, ChevronRight, Check, X, UserMinus, Shield, Clock, CheckCircle, XCircle, Lock, Globe } from "lucide-react";
 import { authApi } from '../../../apis/auth';
 
 interface Props {
@@ -15,16 +15,30 @@ interface Member {
   role?: string | null;
 }
 
-type Tab = "members" | "settings";
+interface PendingMember {
+  userId: string;
+  fullName: string;
+  avatar?: string;
+  status: string;
+}
+
+type Tab = "members" | "pending" | "settings";
 
 export default function GroupManageModal({ group, onClose }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingPending, setLoadingPending] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("members");
 
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(group.name);
   const [savingName, setSavingName] = useState(false);
+
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  const [isPrivate, setIsPrivate] = useState<boolean>(group.privacy === "PRIVATE");
+  const [togglingPrivacy, setTogglingPrivacy] = useState(false);
 
   const [currentUser] = useState<{
     id: string;
@@ -38,15 +52,12 @@ export default function GroupManageModal({ group, onClose }: Props) {
     try {
       setLoading(true);
       const data: Member[] = await groupsApi.getGroupMembers(group.id!);
-
-      // Fetch role for each member in parallel
       const withRoles = await Promise.all(
         data.map(async (m) => {
           const role = await groupsApi.getUserRole(group.id!, m.id);
           return { ...m, role };
         })
       );
-
       setMembers(withRoles);
     } catch (error) {
       console.error(error);
@@ -55,7 +66,25 @@ export default function GroupManageModal({ group, onClose }: Props) {
     }
   };
 
+  const loadPendingMembers = async () => {
+    try {
+      setLoadingPending(true);
+      const data: PendingMember[] = await groupsApi.getPendingMembers(group.id!);
+      setPendingMembers(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingPending(false);
+    }
+  };
+
   useEffect(() => { loadMembers(); }, []);
+
+  useEffect(() => {
+    if (activeTab === "pending") {
+      loadPendingMembers();
+    }
+  }, [activeTab]);
 
   const handleUpdateName = async () => {
     try {
@@ -78,6 +107,18 @@ export default function GroupManageModal({ group, onClose }: Props) {
     }
   };
 
+  const handleTogglePrivacy = async () => {
+    try {
+      setTogglingPrivacy(true);
+      await groupsApi.toggleGroupPrivacy(group.id!);
+      setIsPrivate((prev) => !prev);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setTogglingPrivacy(false);
+    }
+  };
+
   const handleDeleteGroup = async () => {
     const confirm = window.confirm("Are you sure you want to delete this group?");
     if (!confirm) return;
@@ -89,8 +130,43 @@ export default function GroupManageModal({ group, onClose }: Props) {
     }
   };
 
+  const handleApproveMember = async (userId: string) => {
+    try {
+      setProcessingIds((prev) => new Set(prev).add(userId));
+      await groupsApi.approveMember(group.id!, userId);
+      setPendingMembers((prev) => prev.filter((m) => m.userId !== userId));
+      // Reload members list to reflect new approved member
+      loadMembers();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  };
+
+  const handleRejectMember = async (userId: string) => {
+    try {
+      setProcessingIds((prev) => new Set(prev).add(userId));
+      await groupsApi.rejectMember(group.id!, userId);
+      setPendingMembers((prev) => prev.filter((m) => m.userId !== userId));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  };
+
   const tabs = [
     { id: "members" as Tab, label: "Members", icon: Users, count: members.length },
+    { id: "pending" as Tab, label: "Pending", icon: Clock, count: pendingMembers.length },
     { id: "settings" as Tab, label: "Settings", icon: Settings, count: null },
   ];
 
@@ -154,6 +230,9 @@ export default function GroupManageModal({ group, onClose }: Props) {
           margin-left: auto; font-size: 11px; font-weight: 600;
           background: #6c63ff18; color: #6c63ff; padding: 1px 7px; border-radius: 20px;
         }
+        .gmm-nav-count.pending-count {
+          background: #fff7ed; color: #f59e0b;
+        }
         .gmm-nav-arrow { margin-left: auto; width: 14px; height: 14px; opacity: 0.4; }
 
         .gmm-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -206,6 +285,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
         }
         .gmm-role-badge.admin { background: #fef3c7; color: #d97706; }
         .gmm-role-badge.member { background: #f0f0f8; color: #a0a0bc; }
+        .gmm-role-badge.pending-badge { background: #fff7ed; color: #f59e0b; }
         .gmm-shield-icon { width: 10px; height: 10px; }
 
         /* Remove button */
@@ -217,6 +297,39 @@ export default function GroupManageModal({ group, onClose }: Props) {
         }
         .gmm-remove-btn:hover:not(:disabled) { background: #fff0f0; color: #ef4444; }
         .gmm-remove-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+        /* Pending action buttons */
+        .gmm-pending-actions { display: flex; align-items: center; gap: 6px; }
+        .gmm-approve-btn {
+          height: 30px; padding: 0 12px; border-radius: 8px; border: none;
+          background: #ecfdf5; color: #059669;
+          font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+          cursor: pointer; display: flex; align-items: center; gap: 5px;
+          transition: all 0.15s; flex-shrink: 0;
+        }
+        .gmm-approve-btn:hover:not(:disabled) { background: #d1fae5; transform: translateY(-1px); }
+        .gmm-approve-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .gmm-reject-btn {
+          height: 30px; padding: 0 12px; border-radius: 8px; border: none;
+          background: #fff0f0; color: #ef4444;
+          font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+          cursor: pointer; display: flex; align-items: center; gap: 5px;
+          transition: all 0.15s; flex-shrink: 0;
+        }
+        .gmm-reject-btn:hover:not(:disabled) { background: #fde8e8; transform: translateY(-1px); }
+        .gmm-reject-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Empty state */
+        .gmm-empty {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          padding: 48px 0; gap: 10px;
+        }
+        .gmm-empty-icon {
+          width: 44px; height: 44px; border-radius: 14px;
+          background: #f4f4f8; display: flex; align-items: center; justify-content: center;
+          color: #c4c4d0;
+        }
+        .gmm-empty-text { font-size: 13px; color: #c4c4d0; }
 
         .gmm-loading {
           display: flex; align-items: center; gap: 8px;
@@ -272,6 +385,50 @@ export default function GroupManageModal({ group, onClose }: Props) {
         }
         .gmm-cancel-btn:hover { background: #fff0f0; border-color: #ffd0d0; color: #ef4444; }
 
+        /* ── Privacy Toggle ── */
+        .gmm-privacy-section {
+          margin-bottom: 24px; padding: 18px 20px; border-radius: 14px;
+          border: 1.5px solid #ececf4; background: #fafafa;
+          display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        }
+        .gmm-privacy-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+        .gmm-privacy-icon-wrap {
+          width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.3s;
+        }
+        .gmm-privacy-icon-wrap.public { background: #ecfdf5; color: #059669; }
+        .gmm-privacy-icon-wrap.private { background: #f0f0f8; color: #6c63ff; }
+        .gmm-privacy-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .gmm-privacy-title { font-size: 14px; font-weight: 600; color: #0f0f1a; }
+        .gmm-privacy-desc { font-size: 12px; color: #9b9bae; line-height: 1.4; }
+
+        /* Toggle switch */
+        .gmm-toggle-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .gmm-toggle-label { font-size: 12px; font-weight: 600; color: #9b9bae; transition: color 0.2s; }
+        .gmm-toggle-label.active { color: #6c63ff; }
+        .gmm-toggle {
+          position: relative; width: 44px; height: 24px;
+          cursor: pointer; flex-shrink: 0;
+        }
+        .gmm-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .gmm-toggle-track {
+          position: absolute; inset: 0; border-radius: 24px;
+          background: #e0e0f0; transition: background 0.25s;
+        }
+        .gmm-toggle input:checked ~ .gmm-toggle-track { background: #6c63ff; }
+        .gmm-toggle-thumb {
+          position: absolute; top: 3px; left: 3px;
+          width: 18px; height: 18px; border-radius: 50%;
+          background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+          transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        .gmm-toggle input:checked ~ .gmm-toggle-thumb { transform: translateX(20px); }
+        .gmm-toggle-spinner {
+          position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+          pointer-events: none;
+        }
+
         .gmm-danger-zone {
           margin-top: 32px; padding: 20px; border-radius: 14px;
           border: 1.5px solid #fde8e8; background: #fff9f9;
@@ -304,6 +461,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
             <nav className="gmm-nav">
               {tabs.map(tab => {
                 const Icon = tab.icon;
+                const isPendingTab = tab.id === "pending";
                 return (
                   <button
                     key={tab.id}
@@ -313,7 +471,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
                     <Icon className="gmm-nav-icon" />
                     {tab.label}
                     {tab.count !== null
-                      ? <span className="gmm-nav-count">{tab.count}</span>
+                      ? <span className={`gmm-nav-count ${isPendingTab ? "pending-count" : ""}`}>{tab.count}</span>
                       : <ChevronRight className="gmm-nav-arrow" />
                     }
                   </button>
@@ -327,11 +485,15 @@ export default function GroupManageModal({ group, onClose }: Props) {
             <div className="gmm-content-header">
               <div>
                 <p className="gmm-content-title">
-                  {activeTab === "members" ? "Members" : "Group Settings"}
+                  {activeTab === "members" ? "Members"
+                    : activeTab === "pending" ? "Pending Requests"
+                    : "Group Settings"}
                 </p>
                 <p className="gmm-content-subtitle">
                   {activeTab === "members"
                     ? `${members.length} people in this group`
+                    : activeTab === "pending"
+                    ? `${pendingMembers.length} request${pendingMembers.length !== 1 ? "s" : ""} waiting for approval`
                     : "Manage group name and preferences"}
                 </p>
               </div>
@@ -350,8 +512,9 @@ export default function GroupManageModal({ group, onClose }: Props) {
                   ) : (
                     <div>
                       {members.length === 0 && (
-                        <div style={{ textAlign: "center", color: "#c4c4d0", fontSize: "13px", padding: "32px 0" }}>
-                          No members yet
+                        <div className="gmm-empty">
+                          <div className="gmm-empty-icon"><Users style={{ width: 20, height: 20 }} /></div>
+                          <span className="gmm-empty-text">No members yet</span>
                         </div>
                       )}
                       {members.map((member) => {
@@ -399,6 +562,77 @@ export default function GroupManageModal({ group, onClose }: Props) {
                 </div>
               )}
 
+              {/* Pending tab */}
+              {activeTab === "pending" && (
+                <div>
+                  {loadingPending ? (
+                    <div className="gmm-loading">
+                      <span className="gmm-spinner" /> Loading requests…
+                    </div>
+                  ) : (
+                    <div>
+                      {pendingMembers.length === 0 && (
+                        <div className="gmm-empty">
+                          <div className="gmm-empty-icon"><Clock style={{ width: 20, height: 20 }} /></div>
+                          <span className="gmm-empty-text">No pending requests</span>
+                        </div>
+                      )}
+                      {pendingMembers.map((member) => {
+                        const isProcessing = processingIds.has(member.userId);
+                        return (
+                          <div key={member.userId} className="gmm-member-row">
+                            <div className="gmm-member-left">
+                              {member.avatar
+                                ? <img src={member.avatar} className="gmm-avatar" alt={member.fullName} />
+                                : (
+                                  <div className="gmm-avatar-placeholder">
+                                    {member.fullName?.charAt(0).toUpperCase()}
+                                  </div>
+                                )
+                              }
+                              <div className="gmm-member-info">
+                                <span className="gmm-member-name">{member.fullName}</span>
+                                <span className="gmm-role-badge pending-badge">
+                                  <Clock style={{ width: 10, height: 10 }} />
+                                  Pending
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="gmm-pending-actions">
+                              <button
+                                className="gmm-approve-btn"
+                                disabled={isProcessing}
+                                onClick={() => handleApproveMember(member.userId)}
+                                title="Approve member"
+                              >
+                                {isProcessing
+                                  ? <span style={{ width:12,height:12,border:"2px solid rgba(5,150,105,0.3)",borderTopColor:"#059669",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
+                                  : <CheckCircle style={{ width: 13, height: 13 }} />
+                                }
+                                Approve
+                              </button>
+                              <button
+                                className="gmm-reject-btn"
+                                disabled={isProcessing}
+                                onClick={() => handleRejectMember(member.userId)}
+                                title="Reject request"
+                              >
+                                {isProcessing
+                                  ? <span style={{ width:12,height:12,border:"2px solid rgba(239,68,68,0.3)",borderTopColor:"#ef4444",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
+                                  : <XCircle style={{ width: 13, height: 13 }} />
+                                }
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Settings tab */}
               {activeTab === "settings" && (
                 <div>
@@ -432,6 +666,53 @@ export default function GroupManageModal({ group, onClose }: Props) {
                           </button>
                         </>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Privacy toggle */}
+                  <div className="gmm-field">
+                    <div className="gmm-field-label">Privacy</div>
+                    <div className="gmm-privacy-section">
+                      <div className="gmm-privacy-left">
+                        <div className={`gmm-privacy-icon-wrap ${isPrivate ? "private" : "public"}`}>
+                          {isPrivate
+                            ? <Lock style={{ width: 18, height: 18 }} />
+                            : <Globe style={{ width: 18, height: 18 }} />
+                          }
+                        </div>
+                        <div className="gmm-privacy-text">
+                          <span className="gmm-privacy-title">
+                            {isPrivate ? "Private Group" : "Public Group"}
+                          </span>
+                          <span className="gmm-privacy-desc">
+                            {isPrivate
+                              ? "Only approved members can see posts and join this group."
+                              : "Anyone can see the group and its posts. Members can join freely."}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="gmm-toggle-wrap">
+                        <span className={`gmm-toggle-label ${!isPrivate ? "active" : ""}`}>Public</span>
+                        <label className="gmm-toggle" title={togglingPrivacy ? "Updating…" : isPrivate ? "Switch to Public" : "Switch to Private"}>
+                          <input
+                            type="checkbox"
+                            checked={isPrivate}
+                            disabled={togglingPrivacy}
+                            onChange={handleTogglePrivacy}
+                          />
+                          <div className="gmm-toggle-track" />
+                          {togglingPrivacy
+                            ? (
+                              <div className="gmm-toggle-spinner">
+                                <span style={{ width:12,height:12,border:"2px solid rgba(108,99,255,0.25)",borderTopColor:"#6c63ff",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
+                              </div>
+                            )
+                            : <div className="gmm-toggle-thumb" />
+                          }
+                        </label>
+                        <span className={`gmm-toggle-label ${isPrivate ? "active" : ""}`}>Private</span>
+                      </div>
                     </div>
                   </div>
 
