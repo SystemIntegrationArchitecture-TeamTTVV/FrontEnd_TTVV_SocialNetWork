@@ -1,37 +1,28 @@
-// import { useState, useEffect } from 'react';
-// import { X, ChevronLeft, ChevronRight, Heart, Eye } from 'lucide-react';
-// import { storiesApi, type StoryData } from '../../apis/stories';
-// import { authApi } from '../../apis/auth';
+import { useState, useEffect } from 'react';
+import { X, ChevronLeft, ChevronRight, Heart, Eye } from 'lucide-react';
+import type { Story } from '../../types/story';
+import { authApi } from '../../apis/auth';
 
-// interface StoryViewerProps {
-//   isOpen: boolean;
-//   onClose: () => void;
-//   initialStoryId?: string;
-//   stories: StoryData[];
-// }
+interface StoryViewerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialStoryId?: string;
+  stories: Story[];
+}
 
-// export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }: StoryViewerProps) {
-//   const currentUser = authApi.getCurrentUser();
-//   const [currentIndex, setCurrentIndex] = useState(0);
-//   const [progress, setProgress] = useState(0);
-//   const [isPaused, setIsPaused] = useState(false);
+export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }: StoryViewerProps) {
+  const currentUser = authApi.getCurrentUser();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-//   useEffect(() => {
-//     if (initialStoryId) {
-//       const index = stories.findIndex(s => s.id === initialStoryId);
-//       if (index >= 0) setCurrentIndex(index);
-//     }
-//   }, [initialStoryId, stories]);
-
-//   useEffect(() => {
-//     if (!isOpen || isPaused || stories.length === 0) return;
-
-//     const currentStory = stories[currentIndex];
-    
-    // Mark story as viewed
-    if (currentStory && currentUser?.id) {
-      storiesApi.incrementViewCount(currentStory.id).catch(console.error);
+  useEffect(() => {
+    if (initialStoryId) {
+      const index = stories.findIndex(s => s.id === initialStoryId);
+      if (index >= 0) setCurrentIndex(index);
     }
+  }, [initialStoryId, stories]);  useEffect(() => {
+    if (!isOpen || isPaused || stories.length === 0) return;
 
     // Auto-advance progress
     const duration = 5000; // 5 seconds per story
@@ -102,25 +93,23 @@
             />
           </div>
         ))}
-      </div>
-
-      {/* Header */}
+      </div>      {/* Header */}
       <div className="absolute top-4 left-0 right-0 px-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {currentStory.authorAvatar ? (
+            {currentStory.user.avatar ? (
               <img
-                src={currentStory.authorAvatar}
-                alt={currentStory.authorName}
+                src={currentStory.user.avatar}
+                alt={currentStory.user.name}
                 className="w-10 h-10 rounded-full border-2 border-white"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white">
-                {getInitials(currentStory.authorName)}
+                {getInitials(currentStory.user.name)}
               </div>
             )}
             <div>
-              <p className="text-white font-semibold">{currentStory.authorName}</p>
+              <p className="text-white font-semibold">{currentStory.user.name}</p>
               <p className="text-gray-300 text-xs">
                 {new Date(currentStory.createdAt).toLocaleTimeString('en-US', {
                   hour: '2-digit',
@@ -146,26 +135,25 @@
         onMouseUp={() => setIsPaused(false)}
         onTouchStart={() => setIsPaused(true)}
         onTouchEnd={() => setIsPaused(false)}
-      >
-        {currentStory.type === 'IMAGE' && currentStory.mediaUrl ? (
+      >        {currentStory.contentType === 'image' && currentStory.content ? (
           <img
-            src={currentStory.mediaUrl}
+            src={currentStory.content}
             alt="Story"
             className="w-full h-auto max-h-full object-contain"
           />
-        ) : currentStory.type === 'VIDEO' && currentStory.mediaUrl ? (
+        ) : currentStory.contentType === 'video' && currentStory.content ? (
           <video
-            src={currentStory.mediaUrl}
+            src={currentStory.content}
             autoPlay
             muted
             className="w-full h-auto max-h-full object-contain"
           />
-        ) : currentStory.text ? (
+        ) : currentStory.contentType === 'text' ? (
           <div
             className="w-full h-96 flex items-center justify-center p-8"
-            style={{ background: currentStory.backgroundColor || undefined }}
+            style={{ background: currentStory.background || undefined }}
           >
-            <p className="text-white text-3xl font-bold text-center">{currentStory.text}</p>
+            <p className="text-white text-3xl font-bold text-center">{currentStory.content}</p>
           </div>
         ) : null}
 
@@ -186,19 +174,21 @@
             <ChevronRight className="w-6 h-6 text-white" />
           </button>
         )}
-      </div>
-
-      {/* Footer Stats */}
+      </div>      {/* Footer Stats */}
       <div className="absolute bottom-8 left-0 right-0 px-4 z-10">
         <div className="flex items-center justify-center gap-6 text-white">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5" />
-            <span className="font-medium">{currentStory.viewCount}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5" />
-            <span className="font-medium">{currentStory.reactionCount}</span>
-          </div>
+          {currentStory.viewCount !== undefined && (
+            <div className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              <span className="font-medium">{currentStory.viewCount}</span>
+            </div>
+          )}
+          {currentStory.reactions && (
+            <div className="flex items-center gap-2">
+              <Heart className="w-5 h-5" />
+              <span className="font-medium">{Object.values(currentStory.reactions).reduce((a, b) => (a || 0) + (b || 0), 0)}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

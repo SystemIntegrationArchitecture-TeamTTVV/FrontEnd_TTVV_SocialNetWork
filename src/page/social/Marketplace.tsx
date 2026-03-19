@@ -1,31 +1,48 @@
-import { useState } from 'react';
-import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, ChevronDown, Star } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LaptopIcon, BikeIcon, CameraIcon, SofaIcon, PhoneIcon, GuitarIcon, WatchIcon, GamepadIcon } from '../../common/icons/IconComponents';
 
 export default function Marketplace() {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
-    { id: 'all', icon: Home, label: 'Browse all' },
-    { id: 'vehicles', icon: Car, label: 'Vehicles' },
-    { id: 'property', icon: Building, label: 'Property Rentals' },
-    { id: 'clothing', icon: Shirt, label: 'Clothing & Accessories' },
-    { id: 'electronics', icon: Smartphone, label: 'Electronics' },
-    { id: 'home', icon: Sofa, label: 'Home & Garden' },
-    { id: 'hobbies', icon: Gamepad2, label: 'Hobbies' },
+    { id: 'all', icon: Home, label: 'Tất cả' },
+    { id: 'vehicles', icon: Car, label: 'Xe cộ' },
+    { id: 'property', icon: Building, label: 'Nhà cho thuê' },
+    { id: 'clothing', icon: Shirt, label: 'Thời trang & phụ kiện' },
+    { id: 'electronics', icon: Smartphone, label: 'Điện tử' },
+    { id: 'home', icon: Sofa, label: 'Nhà cửa & đời sống' },
+    { id: 'hobbies', icon: Gamepad2, label: 'Sở thích' },
   ];
 
   const products = [
-    { id: 1, title: 'MacBook Pro 2020', price: 450, location: 'San Francisco, CA', icon: 'laptop', condition: 'Excellent condition' },
-    { id: 2, title: 'Mountain Bike', price: 180, location: 'Oakland, CA', icon: 'bike', condition: 'Like new' },
-    { id: 3, title: 'Canon DSLR Camera', price: 320, location: 'Berkeley, CA', icon: 'camera', condition: 'Good condition' },
-    { id: 4, title: 'Comfortable Sofa', price: 200, location: 'San Jose, CA', icon: 'sofa', condition: 'Must pick up' },
-    { id: 5, title: 'iPhone 14 Pro', price: 650, location: 'Palo Alto, CA', icon: 'phone', condition: 'Unlocked' },
-    { id: 6, title: 'Acoustic Guitar', price: 280, location: 'Fremont, CA', icon: 'guitar', condition: 'With case' },
-    { id: 7, title: 'Smart Watch', price: 220, location: 'Sunnyvale, CA', icon: 'watch', condition: 'GPS enabled' },
-    { id: 8, title: 'Gaming Console', price: 380, location: 'Mountain View, CA', icon: 'gamepad', condition: '2 controllers' },
+    { id: 1, title: 'MacBook Pro 2020', price: 11500000, location: 'Quận 1, TP.HCM', icon: 'laptop', condition: 'Tình trạng rất tốt', category: 'electronics' },
+    { id: 2, title: 'Xe đạp địa hình', price: 4200000, location: 'Thủ Đức, TP.HCM', icon: 'bike', condition: 'Như mới', category: 'vehicles' },
+    { id: 3, title: 'Canon DSLR', price: 7900000, location: 'Hải Châu, Đà Nẵng', icon: 'camera', condition: 'Hoạt động ổn định', category: 'electronics' },
+    { id: 4, title: 'Ghế sofa 2 chỗ', price: 5100000, location: 'Cầu Giấy, Hà Nội', icon: 'sofa', condition: 'Tự vận chuyển', category: 'home' },
+    { id: 5, title: 'iPhone 14 Pro', price: 16900000, location: 'Ninh Kiều, Cần Thơ', icon: 'phone', condition: 'Máy quốc tế', category: 'electronics' },
+    { id: 6, title: 'Guitar acoustic', price: 3600000, location: 'Biên Hòa, Đồng Nai', icon: 'guitar', condition: 'Tặng kèm bao đàn', category: 'hobbies' },
+    { id: 7, title: 'Đồng hồ thông minh', price: 2800000, location: 'Long Biên, Hà Nội', icon: 'watch', condition: 'Có GPS', category: 'electronics' },
+    { id: 8, title: 'Máy chơi game', price: 9200000, location: 'Bình Thạnh, TP.HCM', icon: 'gamepad', condition: 'Kèm 2 tay cầm', category: 'hobbies' },
   ];
+
+  const activeCategoryLabel = categories.find((c) => c.id === activeCategory)?.label || 'Tất cả';
+
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchCategory = activeCategory === 'all' || product.category === activeCategory;
+      const matchSearch =
+        !query ||
+        product.title.toLowerCase().includes(query) ||
+        product.location.toLowerCase().includes(query);
+
+      return matchCategory && matchSearch;
+    });
+  }, [activeCategory, products, searchQuery]);
 
   const getProductIcon = (iconType: string) => {
     switch (iconType) {
@@ -42,24 +59,27 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Left Sidebar */}
-      <aside className="w-80 bg-white shadow-sm p-4 shrink-0">
-        <h1 className="text-xl font-bold text-[#050505] mb-4">Marketplace</h1>
+      <aside className="w-80 bg-white border-r border-gray-200 p-5 shrink-0">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Chợ</h1>
+        <p className="text-sm text-gray-500 mb-4">Khám phá sản phẩm phù hợp với bạn</p>
 
         {/* Search */}
         <div className="relative mb-6">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#65676B]" />
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            placeholder="Search"
-            className="w-full h-10 pl-10 pr-4 rounded-full bg-[#F0F2F5] border-none focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm kiếm trên chợ"
+            className="w-full h-11 pl-10 pr-4 rounded-full bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
 
         {/* Categories */}
         <div className="mb-6">
-          <p className="text-xs font-semibold text-[#65676B] uppercase mb-3">BROWSE ALL</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Danh mục</p>
           <div className="space-y-2">
             {categories.map((category) => {
               const Icon = category.icon;
@@ -69,8 +89,8 @@ export default function Marketplace() {
                   onClick={() => setActiveCategory(category.id)}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
                     activeCategory === category.id
-                      ? 'bg-[#E7F3FF] text-[#1877F2]'
-                      : 'hover:bg-[#F0F2F5] text-[#050505]'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-100 text-gray-900'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -82,48 +102,52 @@ export default function Marketplace() {
         </div>
 
         {/* Create Listing */}
-        <button className="w-full h-11 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#166FE5] transition-colors flex items-center justify-center gap-2">
+        <button className="w-full h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
           <Plus className="w-5 h-5" />
-          <span>Create new listing</span>
+          <span>Tạo tin đăng mới</span>
         </button>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-[#050505]">Today's picks</h2>
-          <div className="flex gap-3">
-            <button className="h-9 px-4 rounded-full bg-[#E4E6EB] text-sm font-semibold text-[#050505] hover:bg-[#D8DADF] transition-colors flex items-center gap-1">
-              <ChevronDown className="w-4 h-4" />
-              Location
-            </button>
-            <button className="h-9 px-4 rounded-full bg-[#E4E6EB] text-sm font-semibold text-[#050505] hover:bg-[#D8DADF] transition-colors flex items-center gap-1">
-              <ChevronDown className="w-4 h-4" />
-              Price
-            </button>
-            <button className="h-9 px-4 rounded-full bg-[#E4E6EB] text-sm font-semibold text-[#050505] hover:bg-[#D8DADF] transition-colors flex items-center gap-1">
-              <ChevronDown className="w-4 h-4" />
-              Category
-            </button>
+      <main className="flex-1 p-6 lg:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Gợi ý hôm nay</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {filteredProducts.length} sản phẩm • {activeCategoryLabel}
+            </p>
           </div>
+
+          {(searchQuery.trim() || activeCategory !== 'all') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategory('all');
+              }}
+              className="h-9 px-4 rounded-full bg-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <Link
               key={product.id}
               to={`/marketplace/product/${product.id}`}
-              className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
             >
-              <div className="aspect-square bg-[#E4E6EB] flex items-center justify-center">
+              <div className="aspect-square bg-gray-100 flex items-center justify-center">
                 {getProductIcon(product.icon)}
               </div>
               <div className="p-4">
-                <p className="text-xl font-bold text-[#050505] mb-1">${product.price}</p>
-                <p className="font-semibold text-[#050505] mb-1 line-clamp-1">{product.title}</p>
-                <p className="text-sm text-[#65676B] mb-2">{product.location}</p>
-                <p className="text-xs text-[#65676B] flex items-center gap-1">
+                <p className="text-xl font-bold text-gray-900 mb-1">{product.price.toLocaleString('vi-VN')} đ</p>
+                <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{product.title}</p>
+                <p className="text-sm text-gray-500 mb-2">{product.location}</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                   {product.condition}
                 </p>
@@ -131,6 +155,13 @@ export default function Marketplace() {
             </Link>
           ))}
         </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center">
+            <p className="text-base font-semibold text-gray-900">Không tìm thấy sản phẩm phù hợp</p>
+            <p className="text-sm text-gray-500 mt-1">Thử từ khóa khác hoặc chọn lại danh mục.</p>
+          </div>
+        )}
       </main>
     </div>
   );

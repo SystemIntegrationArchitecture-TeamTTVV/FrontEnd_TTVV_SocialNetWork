@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Plus, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
@@ -15,6 +15,8 @@ import AddStoryCard from '../../components/story/AddStoryCard';
 import StoryViewer from '../../components/story/StoryViewer';
 // import StoryViewer from './StoryViewer';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
+import { showAuthRequiredPrompt } from '../../utils/authPrompt';
+
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -28,27 +30,25 @@ export default function Newsfeed() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const { subscribe } = useSocket();
+  const isAuthenticated = authApi.isAuthenticated();
   const [currentUser] = useState<{
     id: string;
     username: string;
     fullName: string;
     avatar: string;
     role: string;
-  } | null>(() => authApi.getCurrentUser());
-
+  } | null>(() => (isAuthenticated ? authApi.getCurrentUser() : null));
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
-  // const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
-  // const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
-  // const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>();
   const [showCreateStory, setShowCreateStory] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
   // Load posts from API
   useEffect(() => {
     const loadPosts = async () => {
@@ -56,8 +56,8 @@ export default function Newsfeed() {
         setIsLoadingPosts(true);
         setError(null);
         const data = await postsApi.getAllPosts();
-        setPosts(data);
-        console.log('✅ Loaded posts:', data.length);
+        setPosts(Array.isArray(data) ? data : []);
+        console.log('✅ Loaded posts:', Array.isArray(data) ? data.length : 0, '(raw type:', typeof data, ')');
 
         // Load user's reactions to mark liked posts
         if (currentUser?.id) {
@@ -151,7 +151,7 @@ export default function Newsfeed() {
     storiesApi
       .getStoryFeed(currentUser.id)
       .then((data) => {
-        setStories(data);
+        setStories(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
         console.error('Failed to load stories', err);
@@ -203,16 +203,7 @@ export default function Newsfeed() {
       unsubscribers.forEach(unsub => unsub());
     };
   }, [currentUser?.id, subscribe]);
-
-  const getInitials = (name: string): string => {
-    if (!name) return 'U';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
-  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc, story) => {
+  const storiesByUser = stories.reduce<Record<string, Story[]>>((acc: any, story: any) => {
     const userId = story.user.id;
 
     if (!acc[userId]) {
@@ -222,7 +213,7 @@ export default function Newsfeed() {
     acc[userId].push(story);
     return acc;
   }, {});
-  const storyGroups = Object.values(storiesByUser);
+  const storyGroups: Story[][] = Object.values(storiesByUser);
   // const handleViewStory = (storyId: string) => {
   //   setSelectedStoryId(storyId);
   //   setIsStoryViewerOpen(true);
@@ -271,10 +262,12 @@ export default function Newsfeed() {
     const comment = commentInputs[postId];
     if (!comment?.trim() || !currentUser) return;
 
-    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
-
-    try {
-      const newComment = await commentsApi.createComment(postId, currentUser.id, comment.trim());
+    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));    try {
+      const newComment = await commentsApi.createComment({
+        postId,
+        userId: currentUser.id,
+        content: comment.trim(),
+      });
 
       // Add comment to state
       setPostComments(prev => ({
@@ -393,9 +386,7 @@ export default function Newsfeed() {
         ) || []
       }));
     }
-  };
-
-  const handleReplyToComment = (commentId: string) => {
+  };  const handleReplyToComment = (commentId: string) => {
     setReplyingTo(commentId);
     setCommentInputs(prev => ({ ...prev, [`reply-${commentId}`]: '' }));
   };
@@ -404,15 +395,13 @@ export default function Newsfeed() {
     const replyText = commentInputs[`reply-${parentCommentId}`];
     if (!replyText?.trim() || !currentUser) return;
 
-    setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));
-
-    try {
-      const newReply = await commentsApi.createComment(
+    setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));    try {
+      const newReply = await commentsApi.createComment({
         postId,
-        currentUser.id,
-        replyText.trim(),
-        parentCommentId
-      );
+        userId: currentUser.id,
+        content: replyText.trim(),
+        parentCommentId,
+      });
 
       // Add reply to state
       setCommentReplies(prev => ({
@@ -711,38 +700,79 @@ export default function Newsfeed() {
                   .slice(0, 2)}
               </span>
             ) : (
-              <span className="text-white font-semibold text-base">JD</span>
+              <span className="text-white font-semibold text-base">U</span>
             )}
           </div>
-          <Link
-            to="/post/create"
-            className="flex-1 h-14 px-5 rounded-xl bg-gray-50 hover:bg-gray-100 text-left flex items-center text-gray-600 hover:text-gray-900 cursor-pointer text-base font-medium transition-colors"
-          >
-            What's on your mind, {currentUser?.fullName?.split(' ')[0] || 'John'}?
-          </Link>
+          {currentUser ? (
+            <Link
+              to="/post/create"
+              className="flex-1 h-14 px-5 rounded-xl bg-gray-50 hover:bg-gray-100 text-left flex items-center text-gray-600 hover:text-gray-900 cursor-pointer text-base font-medium transition-colors"
+            >
+              {`Bạn đang nghĩ gì, ${currentUser.fullName.split(' ')[0]}?`}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={requestLogin}
+              className="flex-1 h-14 px-5 rounded-xl bg-gray-50 hover:bg-gray-100 text-left flex items-center text-gray-600 hover:text-gray-900 cursor-pointer text-base font-medium transition-colors"
+            >
+              Đăng nhập để đăng bài...
+            </button>
+          )}
         </div>
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-          <Link
-            to="/post/create"
-            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Image className="w-6 h-6 text-green-600" />
-            <span className="text-base text-gray-700 font-medium">Photo</span>
-          </Link>
-          <Link
-            to="/post/create"
-            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Smile className="w-6 h-6 text-yellow-600" />
-            <span className="text-base text-gray-700 font-medium">Feeling</span>
-          </Link>
-          <Link
-            to="/post/create"
-            className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Activity className="w-6 h-6 text-red-600" />
-            <span className="text-base text-gray-700 font-medium">Activity</span>
-          </Link>
+          {currentUser ? (
+            <>
+              <Link
+                to="/post/create"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Image className="w-6 h-6 text-green-600" />
+                <span className="text-base text-gray-700 font-medium">Photo</span>
+              </Link>
+              <Link
+                to="/post/create"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Smile className="w-6 h-6 text-yellow-600" />
+                <span className="text-base text-gray-700 font-medium">Feeling</span>
+              </Link>
+              <Link
+                to="/post/create"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Activity className="w-6 h-6 text-red-600" />
+                <span className="text-base text-gray-700 font-medium">Activity</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={requestLogin}
+                className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Image className="w-6 h-6 text-green-600" />
+                <span className="text-base text-gray-700 font-medium">Photo</span>
+              </button>
+              <button
+                type="button"
+                onClick={requestLogin}
+                className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Smile className="w-6 h-6 text-yellow-600" />
+                <span className="text-base text-gray-700 font-medium">Feeling</span>
+              </button>
+              <button
+                type="button"
+                onClick={requestLogin}
+                className="flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Activity className="w-6 h-6 text-red-600" />
+                <span className="text-base text-gray-700 font-medium">Activity</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -767,12 +797,22 @@ export default function Newsfeed() {
         {!isLoadingPosts && !error && posts.length === 0 && (
           <div className="bg-white rounded-2xl p-12 border border-gray-200 text-center">
             <p className="text-gray-500 text-lg">No posts yet. Be the first to post!</p>
-            <Link
-              to="/post/create"
-              className="mt-4 inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Create Post
-            </Link>
+            {currentUser ? (
+              <Link
+                to="/post/create"
+                className="mt-4 inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Create Post
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={requestLogin}
+                className="mt-4 inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Đăng nhập để đăng bài
+              </button>
+            )}
           </div>
         )}
 
@@ -1097,9 +1137,8 @@ export default function Newsfeed() {
                                   >
                                     {likedComments.has(comment.id!) ? 'Liked' : 'Like'}
                                     {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
-                                  </button>
-                                  <button
-                                    onClick={() => handleReplyToComment(comment.id!, post.id!)}
+                                  </button>                                <button
+                                    onClick={() => handleReplyToComment(comment.id!)}
                                     className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
                                   >
                                     Reply
@@ -1211,10 +1250,7 @@ export default function Newsfeed() {
             </div>
           );
         })}
-      </div>
-
-      {/* Story Viewer - Comment out if not implemented */}
-
+      </div>      {/* Story Viewer */}
       {viewerUserIndex !== null && (
         <StoryViewer
           storyGroups={storyGroups}
@@ -1223,38 +1259,17 @@ export default function Newsfeed() {
         />
       )}
 
-
-      {/* Create Story Modal - Comment out if not implemented */}
-
+      {/* Create Story Modal */}
       {showCreateStory && (
         <CreateStoryModal
           onClose={() => setShowCreateStory(false)}
           onCreate={(story: Story) => {
-            setStories((prev) => [story, ...prev]);
+            setStories((prev: Story[]) => [story, ...prev]);
             setShowCreateStory(false);
           }}
         />
       )}
-<<<<<<< HEAD
-=======
-      */}
-      
-      <CreateStory
-        isOpen={isCreateStoryOpen}
-        onClose={() => setIsCreateStoryOpen(false)}
-        onStoryCreated={handleStoryCreated}
-      />
 
-      <StoryViewer
-        isOpen={isStoryViewerOpen}
-        initialStoryId={selectedStoryId}
-        stories={stories}
-        onClose={() => {
-          setIsStoryViewerOpen(false);
-          setSelectedStoryId(undefined);
-        }}
-      />
->>>>>>> 261cd1f93e77b3463094fa3da29fa546788eb2d5
     </div>
   );
 }

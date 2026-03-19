@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Minimize2, Send, Bot, Sparkles, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Minimize2, Send, Bot, Loader2 } from 'lucide-react';
 import { aiApi, type AIChatRequest } from '../../apis/ai';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -103,14 +103,11 @@ export default function AIChatWidget() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 left-6 w-16 h-16 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-2xl hover:shadow-3xl flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 z-50 group"
-        title="Chat với AI"
-        aria-label="Mở AI Assistant"
+        className="fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 flex items-center justify-center text-gray-800 transition-colors hover:bg-gray-50 active:scale-95 z-50"
+        title="Hỗ trợ"
+        aria-label="Mở trợ lý"
       >
-        <div className="relative">
-          <Sparkles className="w-7 h-7 group-hover:rotate-12 transition-transform" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
-        </div>
+        <Bot className="w-6 h-6" />
       </button>
     );
   }
@@ -119,9 +116,9 @@ export default function AIChatWidget() {
     return (
       <button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 left-6 w-16 h-16 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-2xl hover:shadow-3xl flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 z-50"
-        title="Mở chat AI"
-        aria-label="Mở lại AI Assistant"
+        className="fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 flex items-center justify-center text-gray-800 hover:bg-gray-50 transition-colors active:scale-95 z-50"
+        title="Mở hỗ trợ"
+        aria-label="Mở lại trợ lý"
       >
         <MessageCircle className="w-7 h-7" />
       </button>
@@ -129,65 +126,64 @@ export default function AIChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 w-[420px] h-[640px] bg-white rounded-3xl shadow-2xl flex flex-col z-50 border border-gray-100 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-6 left-6 w-[380px] h-[560px] bg-white rounded-2xl shadow-xl flex flex-col z-50 border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-5 py-4 flex items-center justify-between">
+      <div className="bg-white text-gray-900 px-4 py-3 flex items-center justify-between border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-            <Bot className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border border-gray-200">
+            <Bot className="w-5 h-5 text-gray-800" />
           </div>
           <div>
-            <h3 className="font-semibold text-base">AI Assistant</h3>
-            <p className="text-xs text-white/80 font-medium">Trợ lý thông minh</p>
+            <h3 className="font-semibold text-sm">Trợ lý</h3>
+            <p className="text-xs text-gray-500">Hỗ trợ nhanh</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsMinimized(true)}
-            className="w-9 h-9 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors active:scale-95"
+            className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors active:scale-95"
             title="Thu nhỏ"
             aria-label="Thu nhỏ"
           >
-            <Minimize2 className="w-4.5 h-4.5" />
+            <Minimize2 className="w-4 h-4 text-gray-700" />
           </button>
           <button
             onClick={() => {
               setIsOpen(false);
               setIsMinimized(false);
             }}
-            className="w-9 h-9 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors active:scale-95"
+            className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors active:scale-95"
             title="Đóng"
             aria-label="Đóng"
           >
-            <X className="w-4.5 h-4.5" />
+            <X className="w-4 h-4 text-gray-700" />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-gray-50 to-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-        {messages.map((message, index) => (
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
+        {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+            className={`flex items-start gap-2 ${
               message.isUser ? 'flex-row-reverse' : 'flex-row'
             }`}
-            style={{ animationDelay: `${index * 50}ms` }}
           >
             {!message.isUser && (
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 shadow-sm">
-                <Bot className="w-4.5 h-4.5 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
+                <Bot className="w-4 h-4 text-gray-700" />
               </div>
             )}
             <div className="flex flex-col gap-1 max-w-[75%]">
               <div
-                className={`rounded-2xl px-4 py-3 shadow-sm ${
+                className={`rounded-2xl px-3 py-2 ${
                   message.isUser
-                    ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-sm'
-                    : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
+                    ? 'bg-gray-900 text-white rounded-tr-sm'
+                    : 'bg-gray-50 text-gray-800 border border-gray-200 rounded-tl-sm'
                 }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.text}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{message.text}</p>
               </div>
               <span
                 className={`text-xs px-1 ${
@@ -203,14 +199,14 @@ export default function AIChatWidget() {
           </div>
         ))}
         {isLoading && (
-          <div className="flex items-start gap-3 animate-in fade-in duration-200">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 shadow-sm">
-              <Bot className="w-4.5 h-4.5 text-white" />
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
+              <Bot className="w-4 h-4 text-gray-700" />
             </div>
-            <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 border border-gray-100 shadow-sm">
+            <div className="bg-gray-50 rounded-2xl rounded-tl-sm px-3 py-2 border border-gray-200">
               <div className="flex items-center gap-1.5">
-                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
-                <span className="text-xs text-gray-500 font-medium">Đang suy nghĩ...</span>
+                <Loader2 className="w-4 h-4 text-gray-700 animate-spin" />
+                <span className="text-xs text-gray-500 font-medium">Đang trả lời…</span>
               </div>
             </div>
           </div>
@@ -219,8 +215,8 @@ export default function AIChatWidget() {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-100 bg-white">
-        <div className="flex items-end gap-2">
+      <div className="p-3 border-t border-gray-200 bg-white">
+        <div className="flex items-center gap-2">
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -228,15 +224,15 @@ export default function AIChatWidget() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Nhập câu hỏi của bạn..."
+              placeholder="Nhập tin nhắn…"
               disabled={isLoading}
-              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed text-sm transition-all placeholder:text-gray-400"
+              className="w-full px-4 h-11 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed text-sm placeholder:text-gray-400"
             />
           </div>
           <button
             onClick={handleSend}
             disabled={!inputMessage.trim() || isLoading}
-            className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed rounded-2xl flex items-center justify-center text-white transition-all shadow-lg hover:shadow-xl active:scale-95 shrink-0"
+            className="w-11 h-11 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white transition-colors active:scale-95 shrink-0"
             title="Gửi"
             aria-label="Gửi tin nhắn"
           >

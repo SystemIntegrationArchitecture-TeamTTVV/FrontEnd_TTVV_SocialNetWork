@@ -3,7 +3,7 @@ import { httpClient } from './http';
 import { API_CONFIG } from './config';
 
 class StoriesApi {
-    private baseUrl = '/api/common/api/stories';
+    private baseUrl = '/api/common/stories';
 
     async getStoryFeed(userId: string): Promise<Story[]> {
         return await httpClient.get<Story[]>(

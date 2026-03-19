@@ -2,7 +2,6 @@ import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../components/layouts/MainLayout";
 import AuthLayout from "../components/layouts/AuthLayout";
 import AdminLayout from "../components/layouts/AdminLayout";
-import RootRedirect from "../components/RootRedirect";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 // Auth Pages
@@ -108,60 +107,56 @@ export const router = createBrowserRouter([
   {
     path: "/stories/:id",
     element: (
-      <ProtectedRoute requireAuth={true}>
-        <StoriesViewer />
-      </ProtectedRoute>
+      <StoriesViewer />
     ),
   },
 
-  // Main App Routes - Protected (require authentication)
+  // Main App Routes - Public shell; protect only sensitive pages/actions
   {
     path: "/",
     element: (
-      <ProtectedRoute requireAuth={true}>
-        <MainLayout />
-      </ProtectedRoute>
+      <MainLayout />
     ),
     children: [
-      { index: true, element: <RootRedirect /> },
+      { index: true, element: <Newsfeed /> },
       // Home
       { path: "home", element: <Newsfeed /> },
-      { path: "post/create", element: <CreatePost /> },
-      { path: "post/:id/edit", element: <PostEdit /> },
-      { path: "post/:id/comments", element: <CommentDetail /> },
-      { path: "post/:id/share", element: <ShareDialog /> },
+      { path: "post/create", element: <ProtectedRoute requireAuth={true}><CreatePost /></ProtectedRoute> },
+      { path: "post/:id/edit", element: <ProtectedRoute requireAuth={true}><PostEdit /></ProtectedRoute> },
+      { path: "post/:id/comments", element: <ProtectedRoute requireAuth={true}><CommentDetail /></ProtectedRoute> },
+      { path: "post/:id/share", element: <ProtectedRoute requireAuth={true}><ShareDialog /></ProtectedRoute> },
 
       // Profile
       { path: "profile/:id", element: <Profile /> },
-      { path: "profile/edit", element: <ProfileEdit /> },
-      { path: "profile/activity-log", element: <ActivityLog /> },
+      { path: "profile/edit", element: <ProtectedRoute requireAuth={true}><ProfileEdit /></ProtectedRoute> },
+      { path: "profile/activity-log", element: <ProtectedRoute requireAuth={true}><ActivityLog /></ProtectedRoute> },
       { path: "photo/:id", element: <PhotoViewer /> },
       { path: "album/:id", element: <AlbumView /> },
-      { path: "album/create", element: <CreateAlbum /> },
-      { path: "friends", element: <Friends /> },
-      { path: "friends/requests", element: <FriendRequests /> },
+      { path: "album/create", element: <ProtectedRoute requireAuth={true}><CreateAlbum /></ProtectedRoute> },
+      { path: "friends", element: <ProtectedRoute requireAuth={true}><Friends /></ProtectedRoute> },
+      { path: "friends/requests", element: <ProtectedRoute requireAuth={true}><FriendRequests /></ProtectedRoute> },
 
       // Messenger
-      { path: "messenger", element: <Messenger /> },
-      { path: "messenger/new", element: <NewMessage /> },
-      { path: "messenger/group/:id", element: <GroupChat /> },
-      { path: "messenger/:id/settings", element: <ConversationSettings /> },
-      { path: "messenger/:id/media", element: <SharedMedia /> },
-      { path: "messenger/settings", element: <MessengerSettings /> },
-      { path: "messenger/search", element: <MessengerSearch /> },
-      { path: "messenger/archive", element: <Archive /> },
-      { path: "messenger/:id/actions", element: <MessageActions /> },
-      { path: "messenger/:id/voice-call", element: <VoiceCall /> },
-      { path: "messenger/:id/video-call", element: <VideoCall /> },
-      { path: "messenger/file-share", element: <FileSharing /> },
-      { path: "messenger/photo-share", element: <PhotoSharing /> },
-      { path: "messenger/emoji", element: <EmojiPicker /> },
-      { path: "messenger/stickers", element: <StickerPicker /> },
-      { path: "messenger/poll", element: <PollCreation /> },
-      { path: "messenger/forward", element: <ForwardMessage /> },
-      { path: "messenger/:id/delete", element: <DeleteMessage /> },
-      { path: "messenger/:id/reactions", element: <ReactionDetails /> },
-      { path: "messenger/theme", element: <ThemeCustomization /> },
+      { path: "messenger", element: <ProtectedRoute requireAuth={true}><Messenger /></ProtectedRoute> },
+      { path: "messenger/new", element: <ProtectedRoute requireAuth={true}><NewMessage /></ProtectedRoute> },
+      { path: "messenger/group/:id", element: <ProtectedRoute requireAuth={true}><GroupChat /></ProtectedRoute> },
+      { path: "messenger/:id/settings", element: <ProtectedRoute requireAuth={true}><ConversationSettings /></ProtectedRoute> },
+      { path: "messenger/:id/media", element: <ProtectedRoute requireAuth={true}><SharedMedia /></ProtectedRoute> },
+      { path: "messenger/settings", element: <ProtectedRoute requireAuth={true}><MessengerSettings /></ProtectedRoute> },
+      { path: "messenger/search", element: <ProtectedRoute requireAuth={true}><MessengerSearch /></ProtectedRoute> },
+      { path: "messenger/archive", element: <ProtectedRoute requireAuth={true}><Archive /></ProtectedRoute> },
+      { path: "messenger/:id/actions", element: <ProtectedRoute requireAuth={true}><MessageActions /></ProtectedRoute> },
+      { path: "messenger/:id/voice-call", element: <ProtectedRoute requireAuth={true}><VoiceCall /></ProtectedRoute> },
+      { path: "messenger/:id/video-call", element: <ProtectedRoute requireAuth={true}><VideoCall /></ProtectedRoute> },
+      { path: "messenger/file-share", element: <ProtectedRoute requireAuth={true}><FileSharing /></ProtectedRoute> },
+      { path: "messenger/photo-share", element: <ProtectedRoute requireAuth={true}><PhotoSharing /></ProtectedRoute> },
+      { path: "messenger/emoji", element: <ProtectedRoute requireAuth={true}><EmojiPicker /></ProtectedRoute> },
+      { path: "messenger/stickers", element: <ProtectedRoute requireAuth={true}><StickerPicker /></ProtectedRoute> },
+      { path: "messenger/poll", element: <ProtectedRoute requireAuth={true}><PollCreation /></ProtectedRoute> },
+      { path: "messenger/forward", element: <ProtectedRoute requireAuth={true}><ForwardMessage /></ProtectedRoute> },
+      { path: "messenger/:id/delete", element: <ProtectedRoute requireAuth={true}><DeleteMessage /></ProtectedRoute> },
+      { path: "messenger/:id/reactions", element: <ProtectedRoute requireAuth={true}><ReactionDetails /></ProtectedRoute> },
+      { path: "messenger/theme", element: <ProtectedRoute requireAuth={true}><ThemeCustomization /></ProtectedRoute> },
 
       // Music
       { path: "music", element: <MusicEDM /> },
@@ -180,11 +175,11 @@ export const router = createBrowserRouter([
       { path: "watch", element: <WatchVideo /> },
       { path: "marketplace", element: <Marketplace /> },
       { path: "marketplace/product/:id", element: <ProductDetail /> },
-      { path: "saved", element: <SavedItems /> },
+      { path: "saved", element: <ProtectedRoute requireAuth={true}><SavedItems /></ProtectedRoute> },
 
       // Settings
-      { path: "settings", element: <Settings /> },
-      { path: "settings/privacy", element: <PrivacySettings /> },
+      { path: "settings", element: <ProtectedRoute requireAuth={true}><Settings /></ProtectedRoute> },
+      { path: "settings/privacy", element: <ProtectedRoute requireAuth={true}><PrivacySettings /></ProtectedRoute> },
     ],
   },
 

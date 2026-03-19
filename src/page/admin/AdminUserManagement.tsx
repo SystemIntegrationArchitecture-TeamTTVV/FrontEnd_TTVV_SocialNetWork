@@ -24,8 +24,8 @@ export default function AdminUserManagement() {
       setIsLoading(true);
       setError(null);
       const data = await usersApi.getAllUsers();
-      setUsers(data);
-      console.log('✅ Loaded users:', data.length);
+      setUsers(Array.isArray(data) ? data : []);
+      console.log('✅ Loaded users:', Array.isArray(data) ? data.length : 0);
     } catch (err: any) {
       console.error('❌ Failed to load users:', err);
       setError('Không thể tải danh sách người dùng');

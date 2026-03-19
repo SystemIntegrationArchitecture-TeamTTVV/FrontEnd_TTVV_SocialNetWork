@@ -25,7 +25,7 @@ export default function AdminPostManagement() {
       setLoading(true);
       setError(null);
       const data = await postsApi.getAllPosts();
-      setPosts(data);
+      setPosts(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || 'Không thể tải danh sách bài viết');
       console.error('Failed to load posts:', err);

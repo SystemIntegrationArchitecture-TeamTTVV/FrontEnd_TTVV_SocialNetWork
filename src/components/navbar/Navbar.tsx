@@ -4,12 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
 import UserDropdown from './UserDropdown';
-import { authApi } from '../../apis/auth';
 import { useSocket } from '../../contexts/SocketContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { usersApi, type User } from '../../apis/users';
 import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
+import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
 export default function Navbar() {
   const { t } = useTranslation();
@@ -24,22 +25,9 @@ export default function Navbar() {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
   const { subscribe } = useSocket();
-  const [currentUser] = useState<{
-    id: string;
-    username: string;
-    fullName: string;
-    avatar: string;
-    role: string;
-  } | null>(() => authApi.getCurrentUser());
+  const { user: currentUser } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
-
-  // Reload user when route changes
-  useEffect(() => {
-    const user = authApi.getCurrentUser();
-    if (user?.id !== currentUser?.id) {
-      window.location.reload();
-    }
-  }, [location.pathname, currentUser?.id]);
+  const requestLogin = () => showAuthRequiredPrompt(location.pathname);
 
   // Function to reload unread notification count
   const loadUnreadCount = async () => {
@@ -63,7 +51,8 @@ export default function Navbar() {
         setUnreadNotificationCount(count);
 
         // Load pending join requests count
-        const conversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const rawConversations = await conversationsApi.getConversationsByUserId(currentUser.id);
+        const conversations = Array.isArray(rawConversations) ? rawConversations : [];
         let joinRequestCount = 0;
         for (const conv of conversations) {
           if (
@@ -97,7 +86,8 @@ export default function Navbar() {
       // Handle join request events
       if ((event.type === 'JOIN_REQUEST_CREATED' || event.type === 'JOIN_REQUEST_UPDATED') && event.data) {
         // Reload conversations to get updated count
-        conversationsApi.getConversationsByUserId(currentUser.id).then((conversations) => {
+        conversationsApi.getConversationsByUserId(currentUser.id).then((rawConversations) => {
+          const conversations = Array.isArray(rawConversations) ? rawConversations : [];
           let joinRequestCount = 0;
           for (const conv of conversations) {
             if (
@@ -120,15 +110,12 @@ export default function Navbar() {
 
   // Debounced search
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+    if (!searchQuery.trim()) return;
 
     const timeoutId = setTimeout(async () => {
       try {
-        const results = await usersApi.searchUsers(searchQuery);
+        const rawResults = await usersApi.searchUsers(searchQuery);
+        const results = Array.isArray(rawResults) ? rawResults : [];
         const filtered = results
           .filter(user => user.id !== currentUser?.id)
           .slice(0, 5);
@@ -185,7 +172,14 @@ export default function Navbar() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setSearchQuery(next);
+                  if (!next.trim()) {
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  }
+                }}
                 onFocus={() => {
                   if (suggestions.length > 0) {
                     setShowSuggestions(true);
@@ -309,17 +303,35 @@ export default function Navbar() {
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
 
-          <Link
-            to="/messenger"
-            className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-          >
-            <MessageCircle className="w-5 h-5 text-gray-700" />
-          </Link>
+          {currentUser ? (
+            <Link
+              to="/messenger"
+              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+            >
+              <MessageCircle className="w-5 h-5 text-gray-700" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={requestLogin}
+              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+              title="Đăng nhập để dùng Messenger"
+            >
+              <MessageCircle className="w-5 h-5 text-gray-700" />
+            </button>
+          )}
           
           <div className="relative">
             <button
-              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              onClick={() => {
+                if (!currentUser) {
+                  requestLogin();
+                  return;
+                }
+                setIsNotificationOpen(!isNotificationOpen);
+              }}
               className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
+              title={!currentUser ? 'Đăng nhập để xem thông báo' : undefined}
             >
               <Bell className="w-6 h-6 text-gray-700" />
               {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
@@ -349,8 +361,8 @@ export default function Navbar() {
                   {currentUser.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
               ) : (
-                <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                  <UserIcon className="w-5 h-5 text-white" />
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <UserIcon className="w-5 h-5 text-gray-700" />
                 </div>
               )}
             </button>

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { LogOut, User, Settings, X } from 'lucide-react';
+import { LogOut, User, Settings, X, LogIn, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -36,19 +36,21 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !user) return null;
+  if (!isOpen) return null;
 
   const handleLogout = () => {
     logout();
     onClose();
   };
 
-  const userInitials = user.fullName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const userInitials = user?.fullName
+    ? user.fullName
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'U';
 
   return (
     <div
@@ -58,7 +60,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
       {/* Header */}
       <div className="p-4 border-b border-gray-100/50">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Account</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Tài khoản</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-md hover:bg-gray-100 flex items-center justify-center transition-colors"
@@ -66,68 +68,101 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {user.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt={user.fullName}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `<span class="text-white font-semibold text-sm">${userInitials}</span>`;
-                  }
-                }}
-              />
-            ) : (
-              <span className="text-white font-semibold text-sm">{userInitials}</span>
-            )}
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {user.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt={user.fullName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<span class="text-white font-semibold text-sm">${userInitials}</span>`;
+                    }
+                  }}
+                />
+              ) : (
+                <span className="text-white font-semibold text-sm">{userInitials}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{user.fullName}</p>
+              <p className="text-sm text-gray-600 truncate">@{user.username}</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 truncate">{user.fullName}</p>
-            <p className="text-sm text-gray-600 truncate">@{user.username}</p>
+        ) : (
+          <div className="text-sm text-gray-600">
+            Bạn chưa đăng nhập.
           </div>
-        </div>
+        )}
       </div>
 
       {/* Menu Items */}
       <div className="py-2">
-        <Link
-          to={user ? `/profile/${user.id}` : '/profile/1'}
-          onClick={onClose}
-          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
-        >
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-            <User className="w-5 h-5 text-gray-600" />
-          </div>
-          <span className="font-medium">View Profile</span>
-        </Link>
+        {user ? (
+          <>
+            <Link
+              to={`/profile/${user.id}`}
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <User className="w-5 h-5 text-gray-600" />
+              </div>
+              <span className="font-medium">Trang cá nhân</span>
+            </Link>
 
-        <Link
-          to="/settings"
-          onClick={onClose}
-          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
-        >
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-            <Settings className="w-5 h-5 text-gray-600" />
-          </div>
-          <span className="font-medium">Settings</span>
-        </Link>
+            <Link
+              to="/settings"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <Settings className="w-5 h-5 text-gray-600" />
+              </div>
+              <span className="font-medium">Cài đặt</span>
+            </Link>
 
-        <div className="border-t border-gray-100 my-2"></div>
+            <div className="border-t border-gray-100 my-2"></div>
 
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-red-600"
-        >
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-            <LogOut className="w-5 h-5 text-red-600" />
-          </div>
-          <span className="font-medium">Log Out</span>
-        </button>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-red-600"
+            >
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-red-600" />
+              </div>
+              <span className="font-medium">Đăng xuất</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              to="/auth/login"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <LogIn className="w-5 h-5 text-gray-600" />
+              </div>
+              <span className="font-medium">Đăng nhập</span>
+            </Link>
+            <Link
+              to="/auth/register"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-gray-600" />
+              </div>
+              <span className="font-medium">Đăng ký</span>
+            </Link>
+          </>
+        )}
       </div>
     </div>
   );

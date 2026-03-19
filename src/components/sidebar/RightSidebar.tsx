@@ -151,17 +151,17 @@ export default function RightSidebar() {
   }, [allContacts, searchQuery]);
 
   return (
-    <aside className="hidden xl:flex xl:flex-col w-80 bg-white border-l border-gray-200">
+    <aside className="hidden xl:flex xl:flex-col w-80 border-l border-gray-200 bg-white/90 backdrop-blur-sm">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Contacts
+      <div className="px-5 py-4 bg-white/95">
+        <h2 className="text-[15px] font-semibold tracking-tight text-gray-900 mb-3">
+          Liên hệ
         </h2>
 
         {/* Search Bar */}
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -175,13 +175,12 @@ export default function RightSidebar() {
           </svg>
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên..."
+            placeholder="Tìm theo tên…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 
-                       rounded-lg text-sm placeholder-gray-400 text-gray-900
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 
-                       focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 h-10 bg-gray-50 border border-gray-200/90
+                       rounded-full text-sm placeholder-gray-400 text-gray-900
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all"
           />
           {searchQuery && (
             <button
@@ -195,49 +194,55 @@ export default function RightSidebar() {
             </button>
           )}
         </div>
+
+        <div className="mt-4 -mx-5 border-t border-gray-300/90" />
       </div>
 
       {/* Contacts List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-linear-to-b from-white to-gray-50/70">
         {filteredContacts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+          <div className="flex min-h-full items-center justify-center px-6 py-10">
             {searchQuery ? (
-              <>
-                <svg className="w-16 h-16 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-full max-w-63 rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-4 shadow-sm">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <p className="text-sm font-medium text-gray-900 mb-1">
-                  Không tìm thấy kết quả
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">
+                  Không có kết quả
                 </p>
-                <p className="text-xs text-gray-500">
-                  Thử tìm kiếm với từ khóa khác
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Thử từ khóa khác hoặc kiểm tra lại chính tả.
                 </p>
-              </>
+              </div>
             ) : (
-              <>
-                <svg className="w-16 h-16 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-full max-w-63 rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-4 shadow-sm">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <p className="text-sm font-medium text-gray-900 mb-1">
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">
                   Chưa có cuộc trò chuyện
                 </p>
-                <p className="text-xs text-gray-500">
-                  Bắt đầu trò chuyện với bạn bè của bạn
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Hãy bắt đầu nhắn tin để hiện danh sách liên hệ ở đây.
                 </p>
-              </>
+              </div>
             )}
           </div>
         ) : (
-          <div className="py-2">
+          <div className="p-2 bg-transparent">
             {filteredContacts.map((contact, index) => (
               <div
                 key={contact.id}
                 onClick={() => openChatBox(contact)}
-                className="flex items-center gap-3 px-5 py-3 
-                           hover:bg-gray-50 cursor-pointer transition-colors
-                           border-b border-gray-50 last:border-b-0
+                className="flex items-center gap-3 px-3 py-3 rounded-xl
+                           hover:bg-white cursor-pointer transition-colors
+                           border border-transparent hover:border-gray-100
                            active:bg-gray-100"
                 style={{
                   animation: searchQuery ? `fadeIn 0.3s ease-out ${index * 0.05}s both` : 'none'
@@ -284,7 +289,7 @@ export default function RightSidebar() {
 
       {/* Footer Info */}
       {filteredContacts.length > 0 && (
-        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50">
+        <div className="px-5 py-3 border-t border-gray-200/80 bg-white/95">
           <p className="text-xs text-gray-500 text-center">
             {searchQuery 
               ? `${filteredContacts.length} kết quả`
@@ -298,7 +303,7 @@ export default function RightSidebar() {
         @keyframes fadeIn {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-6px);
           }
           to {
             opacity: 1;

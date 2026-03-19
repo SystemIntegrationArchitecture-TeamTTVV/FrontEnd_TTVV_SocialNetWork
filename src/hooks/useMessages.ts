@@ -21,7 +21,7 @@ export function useMessages() {
       setLoading(true);
       setError(null);
       const data = await conversationsApi.getConversationsByUserId(user.id);
-      setConversations(data);
+      setConversations(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations';
       console.error('Failed to load conversations:', err);

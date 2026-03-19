@@ -29,7 +29,7 @@ export default function InviteFriendsModal({
       try {
 
         const data = await groupsApi.getInvitableFriends(groupId, userId);
-        setFriends(data);
+        setFriends(Array.isArray(data) ? data : []);
 
       } catch (e) {
 

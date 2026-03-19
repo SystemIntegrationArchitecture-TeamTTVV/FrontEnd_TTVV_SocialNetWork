@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+html {
+  /* Keep text size stable across browsers/devices after deployment */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 /* Custom scrollbar */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

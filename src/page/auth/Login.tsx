@@ -1,9 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { HttpError } from '../../apis/http';
-import logo from '../../assets/logo-favicon.png';
+import AuthFrame from '../../components/auth/AuthFrame';
 
 interface LoginForm {
   username: string;
@@ -11,6 +11,8 @@ interface LoginForm {
 }
 
 export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
   const { login, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -21,11 +23,13 @@ export default function Login() {
       setError(null);
       setIsSubmitting(true);
       await login(data.username, data.password);
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       if (err instanceof HttpError) {
-        setError(err.message || 'Invalid username or password');
+        setError(err.message || 'Sai tên đăng nhập hoặc mật khẩu.');
       } else {
-        setError('An error occurred. Please try again.');
+        setError('Không thể đăng nhập lúc này. Bạn thử lại sau nhé.');
       }
       console.error('Login error:', err);
     } finally {
@@ -34,38 +38,23 @@ export default function Login() {
   };
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-        {/* Left Section - Branding */}
-        <div className="hidden lg:flex flex-col items-center justify-center text-center">
-          <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-2xl border border-gray-100 overflow-hidden">
-            <img 
-              src={logo} 
-              alt="TTVV Logo" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h1 className="text-6xl font-bold text-gray-900 mb-6">TTVV</h1>
-          <p className="text-2xl text-gray-600 leading-relaxed max-w-lg">
-            Connect with friends and the world around you on TTVV Social Network.
-          </p>
-        </div>
-
-        {/* Right Section - Login Form */}
-        <div className="w-full flex items-center justify-center">
-          <div className="w-full max-w-[500px] bg-white rounded-3xl shadow-xl p-10 lg:p-12 border border-gray-100">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <AuthFrame
+      brandHeading="TTVV"
+      brandDescription="Kết nối với bạn bè và chia sẻ khoảnh khắc mỗi ngày."
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <input
                   {...register('username', { 
-                    required: 'Username is required',
+                    required: 'Vui lòng nhập tên đăng nhập',
                     minLength: {
                       value: 3,
-                      message: 'Username must be at least 3 characters'
+                      message: 'Tên đăng nhập tối thiểu 3 ký tự'
                     }
                   })}
                   type="text"
-                  placeholder="Username"
+                  placeholder="Tên đăng nhập"
+                  autoComplete="username"
                   className={`w-full h-16 px-6 rounded-2xl border-2 ${
                     errors.username ? 'border-red-300' : 'border-gray-200'
                   } focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all`}
@@ -78,14 +67,15 @@ export default function Login() {
               <div>
                 <input
                   {...register('password', { 
-                    required: 'Password is required',
+                    required: 'Vui lòng nhập mật khẩu',
                     minLength: {
                       value: 3,
-                      message: 'Password must be at least 3 characters'
+                      message: 'Mật khẩu tối thiểu 3 ký tự'
                     }
                   })}
                   type="password"
-                  placeholder="Password"
+                  placeholder="Mật khẩu"
+                  autoComplete="current-password"
                   className={`w-full h-16 px-6 rounded-2xl border-2 ${
                     errors.password ? 'border-red-300' : 'border-gray-200'
                   } focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all`}
@@ -104,9 +94,9 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isSubmitting || isLoading}
-                className="w-full h-16 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xl rounded-2xl hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full h-16 bg-blue-600 text-white font-bold text-xl rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting || isLoading ? 'Logging in...' : 'Log In'}
+                {isSubmitting || isLoading ? 'Đang đăng nhập…' : 'Đăng nhập'}
               </button>
 
               <div className="text-center pt-2">
@@ -114,7 +104,7 @@ export default function Login() {
                   to="/auth/forgot-password"
                   className="text-blue-600 text-base hover:underline font-semibold transition-colors"
                 >
-                  Forgotten password?
+                  Quên mật khẩu?
                 </Link>
               </div>
 
@@ -126,21 +116,11 @@ export default function Login() {
 
               <Link
                 to="/auth/register"
-                className="block w-full h-16 bg-green-500 text-white font-bold text-lg rounded-2xl hover:bg-green-600 shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
+                className="w-full h-16 bg-green-600 text-white font-bold text-lg rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center"
               >
-                Create new account
+                Tạo tài khoản mới
               </Link>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-6 left-0 right-0 text-center">
-        <p className="text-sm text-gray-500">
-          TTVV Social Network © 2026 · Privacy · Terms · Help
-        </p>
-      </div>
-    </div>
+      </form>
+    </AuthFrame>
   );
 }

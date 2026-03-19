@@ -52,7 +52,7 @@ export default function MusicEDM() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Music EDM</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Nhạc</h1>
           <p className="text-gray-600">Thư viện nhạc của bạn</p>
         </div>
         <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ export default function MusicEDM() {
           <div className="w-full">
             {/* Album Art */}
             <div className="relative mb-6">
-              <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100">
+              <div className="w-full aspect-square rounded-2xl overflow-hidden bg-linear-to-br from-blue-100 to-purple-100">
                 {currentSong.cover ? (
                   <img
                     src={currentSong.cover}
@@ -188,7 +188,7 @@ export default function MusicEDM() {
           <h3 className="text-lg font-bold text-gray-900 mb-4">Danh sách phát</h3>
           
           {/* Playlist */}
-          <div className="flex-1 overflow-y-auto space-y-2 mb-6 max-h-[500px]">
+          <div className="flex-1 overflow-y-auto space-y-2 mb-6 max-h-125">
             {playlist.map((song, index) => (
               <div
                 key={song.id}
