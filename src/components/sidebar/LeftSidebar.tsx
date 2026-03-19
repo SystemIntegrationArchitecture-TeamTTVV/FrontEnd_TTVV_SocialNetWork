@@ -49,46 +49,51 @@ export default function LeftSidebar() {
     : menuItems;
 
   return (
-    <aside className="hidden lg:block w-72 px-4 py-6">
-      <div className="space-y-2.5">
+    <aside className="hidden lg:block w-72 px-3 py-5">
+      <div className="space-y-1">
         {menuItemsWithUser.map((item, index) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           const isDisabled = !!item.requireAuth && !currentUser;
           
+          /* ── class helpers ── */
+          const rowBase = 'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border';
+
+          const rowActive   = 'bg-blue-50 border-blue-200 dark:bg-blue-500/15 dark:border-blue-500/40';
+          const rowInactive = 'border-transparent hover:bg-gray-100 hover:border-gray-200 dark:hover:bg-[#1e2133] dark:hover:border-[#2b2f45]';
+
+          const iconBase    = 'w-11 h-11 rounded-xl flex items-center justify-center transition-all shrink-0 shadow-sm border';
+          const iconActive  = 'bg-blue-500 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-400';
+          const iconInactive = 'bg-gray-100 border-gray-300 text-gray-600 group-hover:bg-gray-200 group-hover:border-gray-400 dark:bg-[#22263a] dark:border-[#2b2f45] dark:text-[#9aa3bc] dark:group-hover:bg-[#2b2f45] dark:group-hover:border-[#353a54]';
+
+          const labelActive   = 'text-blue-700 dark:text-blue-400';
+          const labelInactive = 'text-gray-700 group-hover:text-gray-900 dark:text-[#c8ccde] dark:group-hover:text-[#edf0fa]';
+
           return (
             isDisabled ? (
               <button
                 key={index}
                 type="button"
                 onClick={() => showAuthRequiredPrompt(location.pathname)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition-all"
+                className={`w-full ${rowBase} ${rowInactive} text-gray-500 dark:text-[#6a7494]`}
                 title="Vui lòng đăng nhập để sử dụng đầy đủ tính năng"
               >
-                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                <div className={`${iconBase} ${iconInactive}`}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-sm font-semibold">{item.label}</span>
               </button>
             ) : (
               <Link
                 key={index}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  isActive
-                    ? 'bg-blue-50'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`${rowBase} ${isActive ? rowActive : rowInactive}`}
               >
               {item.isUser ? (
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 overflow-hidden ${
-                  isActive 
-                    ? 'bg-blue-500' 
-                    : 'bg-blue-500'
-                }`}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-[#13151f]">
                   {userAvatar ? (
-                    <img 
-                      src={userAvatar} 
+                    <img
+                      src={userAvatar}
                       alt={item.label}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -96,38 +101,36 @@ export default function LeftSidebar() {
                         target.style.display = 'none';
                         const parent = target.parentElement;
                         if (parent) {
-                          parent.innerHTML = `<span class="text-white font-semibold text-sm">${userInitials}</span>`;
+                          parent.innerHTML = `<span class="text-white font-semibold text-sm bg-blue-500 w-full h-full flex items-center justify-center">${userInitials}</span>`;
                         }
                       }}
                     />
                   ) : (
-                    <span className="text-white font-semibold text-sm">{userInitials}</span>
+                    <div className="w-full h-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">{userInitials}</span>
+                    </div>
                   )}
                 </div>
               ) : (
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                  isActive 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
-                }`}>
+                <div className={`${iconBase} ${isActive ? iconActive : iconInactive}`}>
                   <Icon className="w-5 h-5" />
                 </div>
               )}
-              <span className={`text-sm font-medium ${
-                isActive ? 'text-blue-600' : 'text-gray-700 group-hover:text-gray-900'
-              }`}>
+              <span className={`text-sm font-semibold ${isActive ? labelActive : labelInactive}`}>
                 {item.label}
               </span>
               </Link>
             )
           );
         })}
-        
-        <button className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 transition-all duration-200 w-full text-gray-600 hover:text-gray-900 group">
-          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors shrink-0">
-            <ChevronDown className="w-5 h-5" />
+
+        <button className={`w-full ${
+          'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group border border-transparent hover:bg-gray-100 hover:border-gray-200 dark:hover:bg-[#1e2133] dark:hover:border-[#2b2f45]'
+        }`}>
+          <div className="w-11 h-11 rounded-xl bg-gray-100 border border-gray-300 flex items-center justify-center group-hover:bg-gray-200 group-hover:border-gray-400 dark:bg-[#22263a] dark:border-[#2b2f45] dark:group-hover:bg-[#2b2f45] dark:group-hover:border-[#353a54] transition-colors shrink-0 shadow-sm">
+            <ChevronDown className="w-5 h-5 text-gray-600 dark:text-[#9aa3bc]" />
           </div>
-          <span className="text-sm font-medium">Xem thêm</span>
+          <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-900 dark:text-[#9aa3bc] dark:group-hover:text-[#edf0fa]">Xem thêm</span>
         </button>
       </div>
     </aside>

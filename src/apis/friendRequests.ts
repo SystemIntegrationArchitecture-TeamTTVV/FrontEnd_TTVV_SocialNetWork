@@ -8,7 +8,7 @@ export interface FriendRequest {
   receiverId: string;
   receiverName?: string;
   receiverAvatar?: string;
-  status: 'PENDING' | 'ACTIVE';
+  status: 'PENDING' | 'ACTIVE' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -55,25 +55,32 @@ export const friendRequestsApi = {
     return httpClient.delete<void>(`/api/common/friend-requests/${id}`);
   },
 };
+export interface FriendDTO {
+  id: string;
+  userId: string;
+  userName?: string;
+  userAvatar?: string;
+  friendId: string;
+  friendName?: string;
+  friendAvatar?: string;
+}
+
+export const friendsApi = {
+  /** Lấy danh sách bạn bè từ bảng Friend (sau khi accept) */
+  getFriendsByUserId: async (userId: string): Promise<FriendDTO[]> => {
+    return httpClient.get<FriendDTO[]>(`/api/common/friends/user/${userId}`);
+  },
+  checkIfFriends: async (userId: string, friendId: string): Promise<boolean> => {
+    return httpClient.get<boolean>(`/api/common/friends/check?userId=${userId}&friendId=${friendId}`);
+  },
+};
+
 export const getFriends = async (userId: string) => {
-  const sent = await friendRequestsApi.getFriendRequestsBySenderId(userId);
-  const received = await friendRequestsApi.getFriendRequestsByReceiverId(userId);
-
-  const activeSent = sent
-    .filter(r => r.status === "ACTIVE")
-    .map(r => ({
-      id: r.receiverId,
-      name: r.receiverName,
-      avatar: r.receiverAvatar
-    }));
-
-  const activeReceived = received
-    .filter(r => r.status === "ACTIVE")
-    .map(r => ({
-      id: r.senderId,
-      name: r.senderName,
-      avatar: r.senderAvatar
-    }));
-
-  return [...activeSent, ...activeReceived];
+  const data = await friendsApi.getFriendsByUserId(userId);
+  console.log('[getFriends] FriendDTO[]:', data);
+  return (Array.isArray(data) ? data : []).map(f => ({
+    id: f.friendId,
+    name: f.friendName,
+    avatar: f.friendAvatar,
+  }));
 };

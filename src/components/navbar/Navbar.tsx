@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search } from 'lucide-react';
+import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
 import UserDropdown from './UserDropdown';
 import { useSocket } from '../../contexts/SocketContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { usersApi, type User } from '../../apis/users';
 import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
@@ -17,6 +18,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
+  const { isDark, toggleTheme } = useTheme();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -153,7 +155,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b border-gray-200 z-50 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b-2 border-gray-300 z-50 shadow-md">
       <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between gap-4">
         
         {/* LEFT - Logo & Search */}
@@ -299,6 +301,51 @@ export default function Navbar() {
 
         {/* RIGHT - Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
+
+          {/* ── Dark / Light theme toggle ── */}
+          <button
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+            title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+            className="relative w-14 h-8 rounded-full theme-toggle-track flex items-center px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          >
+            {/* Sun icon (light mode side) */}
+            <span
+              className="absolute left-1.5 flex items-center justify-center"
+              style={{ transition: 'opacity 300ms ease, transform 300ms ease' }}
+            >
+              <Sun
+                className="w-4 h-4 text-amber-600"
+                style={{
+                  opacity: isDark ? 0.35 : 1,
+                  transform: isDark ? 'scale(0.7) rotate(-30deg)' : 'scale(1) rotate(0deg)',
+                  transition: 'opacity 350ms ease, transform 350ms ease',
+                }}
+              />
+            </span>
+
+            {/* Moon icon (dark mode side) */}
+            <span className="absolute right-1.5 flex items-center justify-center">
+              <Moon
+                className="w-4 h-4 text-indigo-200"
+                style={{
+                  opacity: isDark ? 1 : 0.35,
+                  transform: isDark ? 'scale(1) rotate(0deg)' : 'scale(0.7) rotate(30deg)',
+                  transition: 'opacity 350ms ease, transform 350ms ease',
+                }}
+              />
+            </span>
+
+            {/* Sliding knob */}
+            <span
+              className="relative z-10 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center"
+              style={{
+                transform: isDark ? 'translateX(24px)' : 'translateX(0px)',
+                transition: 'transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+            />
+          </button>
+
           <button className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
             <Menu className="w-5 h-5 text-gray-700" />
           </button>

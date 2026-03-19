@@ -32,18 +32,18 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#E9EAEC] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
       <Navbar />
       
       <div className="flex flex-1 overflow-hidden pt-20">
-        {/* LEFT SIDEBAR - Ẩn trên mobile/tablet, hiện từ lg trở lên */}
+        {/* LEFT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white border-r border-gray-200">
+          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-r-2 border-gray-300 dark:border-[#22263a]">
             <LeftSidebar />
           </aside>
         )}
         
-        {/* MAIN CONTENT - Scroll riêng */}
+        {/* MAIN CONTENT */}
         <main className={`flex-1 h-full overflow-y-auto scrollbar-hide ${
           isMessengerPage 
             ? 'px-0 max-w-full' 
@@ -54,9 +54,9 @@ export default function MainLayout() {
           </div>
         </main>
         
-        {/* RIGHT SIDEBAR - Ẩn trên mobile/tablet, hiện từ xl trở lên */}
+        {/* RIGHT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide">
+          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide border-l-2 border-gray-300 dark:border-[#22263a]">
             <RightSidebar />
           </aside>
         )}

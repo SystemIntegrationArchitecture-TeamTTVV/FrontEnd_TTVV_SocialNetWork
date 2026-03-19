@@ -5,20 +5,23 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { CallProvider } from './contexts/CallContext';
 import { MusicProvider } from './contexts/MusicContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <CallProvider>
-          <ChatBoxProvider>
-            <MusicProvider>
-              <RouterProvider router={router} />
-            </MusicProvider>
-          </ChatBoxProvider>
-        </CallProvider>
-      </SocketProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <CallProvider>
+            <ChatBoxProvider>
+              <MusicProvider>
+                <RouterProvider router={router} />
+              </MusicProvider>
+            </ChatBoxProvider>
+          </CallProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

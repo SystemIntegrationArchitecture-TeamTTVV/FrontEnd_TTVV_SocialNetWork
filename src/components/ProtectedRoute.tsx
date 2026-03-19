@@ -18,6 +18,13 @@ export default function ProtectedRoute({
   const location = useLocation();
   const hasPrompted = useRef(false);
 
+  // Hooks phải luôn được gọi trước mọi return có điều kiện
+  useEffect(() => {
+    if (!requireAuth || isAuthenticated || requireAdmin || hasPrompted.current) return;
+    hasPrompted.current = true;
+    showAuthRequiredPrompt(location.pathname);
+  }, [isAuthenticated, location.pathname, requireAdmin, requireAuth]);
+
   if (isLoading) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center">
@@ -33,19 +40,11 @@ export default function ProtectedRoute({
     if (!isAuthenticated) {
       return <Navigate to="/auth/login" state={{ from: location }} replace />;
     }
-    // Check if user has ADMIN role (case-insensitive)
     const userRole = user?.role?.toUpperCase();
     if (userRole !== 'ADMIN') {
-      // Redirect non-admin users to home page
       return <Navigate to="/home" replace />;
     }
   }
-
-  useEffect(() => {
-    if (!requireAuth || isAuthenticated || requireAdmin || hasPrompted.current) return;
-    hasPrompted.current = true;
-    showAuthRequiredPrompt(location.pathname);
-  }, [isAuthenticated, location.pathname, requireAdmin, requireAuth]);
 
   if (requireAuth && !isAuthenticated) {
     return null;
