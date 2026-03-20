@@ -5,7 +5,7 @@ type Theme = 'light' | 'dark';
 interface ThemeContextValue {
   theme: Theme;
   isDark: boolean;
-  toggleTheme: () => void;
+  toggleTheme: (e?: React.MouseEvent) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
@@ -13,6 +13,16 @@ const ThemeContext = createContext<ThemeContextValue>({
   isDark: false,
   toggleTheme: () => {},
 });
+
+/* ─── View Transitions API type (Chrome 111+, Edge 111+) ─── */
+interface ViewTransition {
+  ready: Promise<void>;
+  finished: Promise<void>;
+  updateCallbackDone: Promise<void>;
+}
+interface DocumentWithVT extends Document {
+  startViewTransition?: (cb: () => void | Promise<void>) => ViewTransition;
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -23,19 +33,53 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const html = document.documentElement;
-    // Enable long transition only for the theme switch moment
-    html.setAttribute('data-theme-switching', 'true');
-    if (theme === 'dark') {
-      html.classList.add('dark');
-    } else {
-      html.classList.remove('dark');
-    }
+    if (theme === 'dark') html.classList.add('dark');
+    else html.classList.remove('dark');
     localStorage.setItem('ttvv-theme', theme);
-    const timer = setTimeout(() => html.removeAttribute('data-theme-switching'), 400);
-    return () => clearTimeout(timer);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  const toggleTheme = (e?: React.MouseEvent) => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    const applyTheme = () => setTheme(newTheme);
+
+    const doc = document as DocumentWithVT;
+
+    /* ── View Transitions API: GPU-accelerated circular reveal ── */
+    if (!doc.startViewTransition || !e) {
+      /* Fallback: CSS transition (browsers without VT support) */
+      const html = document.documentElement;
+      html.setAttribute('data-theme-switching', 'true');
+      applyTheme();
+      const t = setTimeout(() => html.removeAttribute('data-theme-switching'), 280);
+      return () => clearTimeout(t);
+    }
+
+    const x = e.clientX;
+    const y = e.clientY;
+    /* Radius large enough to cover the farthest corner of the viewport */
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
+
+    const transition = doc.startViewTransition(applyTheme);
+
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 420,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)', /* spring-like ease-out */
+          pseudoElement: '::view-transition-new(root)',
+        },
+      );
+    });
+  };
 
   return (
     <ThemeContext.Provider value={{ theme, isDark: theme === 'dark', toggleTheme }}>

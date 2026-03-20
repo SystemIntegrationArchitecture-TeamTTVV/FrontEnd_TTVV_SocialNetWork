@@ -36,23 +36,45 @@ body {
 }
 
 /* ─────────────────────────────────────────────────
-   SMOOTH TRANSITIONS
-   Color/bg transitions are 150ms normally.
-   During theme switch ([data-theme-switching]) they
-   become 350ms so the whole page fades gracefully.
+   GLOBAL COLOR TRANSITION
+   Only transition color-related properties globally so
+   the browser doesn't compute transform/shadow transitions
+   on every element (causes jank).
+   Components handle their own transform/shadow transitions.
 ───────────────────────────────────────────────── */
-* {
+*, *::before, *::after {
   transition-property: color, background-color, border-color,
-    text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+    text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: 120ms;
 }
 
+/* CSS fallback for browsers without View Transitions API (Firefox) */
 [data-theme-switching] *,
 [data-theme-switching] *::before,
 [data-theme-switching] *::after {
-  transition-duration: 350ms !important;
+  transition-duration: 260ms !important;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ─────────────────────────────────────────────────
+   VIEW TRANSITIONS API — circular ripple theme switch
+   Chrome 111+  |  Edge 111+  |  Safari 18+
+   Firefox: falls back to CSS transition above.
+───────────────────────────────────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  /* Disable the default cross-fade; we drive our own clip-path animation */
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* New theme slides in on top; old stays underneath */
+::view-transition-new(root) {
+  z-index: 9999;
+}
+::view-transition-old(root) {
+  z-index: 1;
 }
 
 /* Better focus styles */

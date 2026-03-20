@@ -304,7 +304,7 @@ export default function Navbar() {
 
           {/* ── Dark / Light theme toggle ── */}
           <button
-            onClick={toggleTheme}
+            onClick={(e) => toggleTheme(e)}
             aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
             title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
             className="relative w-14 h-8 rounded-full theme-toggle-track flex items-center px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
