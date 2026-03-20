@@ -184,7 +184,7 @@ export default function Navbar() {
       {/* ═══════════════════════════════════════════════════════
           TOP NAVBAR  (fixed, h-20 on all breakpoints)
       ═══════════════════════════════════════════════════════ */}
-      <nav className="fixed top-0 left-0 right-0 h-20 bg-white dark:bg-[#12151f] border-b-2 border-gray-300 dark:border-[#1e2130] z-50 shadow-md">
+      <nav className="fixed top-0 left-0 right-0 h-20 bg-white/95 dark:bg-[#12151f] border-b border-gray-200 dark:border-[#1e2130] z-50 shadow-sm backdrop-blur-md">
 
         {/* ── DESKTOP layout (md+) ── */}
         <div className="hidden md:flex max-w-[1920px] mx-auto px-6 h-full items-center justify-between gap-4">
@@ -218,7 +218,7 @@ export default function Navbar() {
                 />
               </div>
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 z-9999 max-h-96 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200/80 z-80 max-h-96 overflow-y-auto">
                   <div className="py-2">
                     {suggestions.map((user) => {
                       const safeUsername = user.username ?? 'U';
@@ -384,7 +384,7 @@ export default function Navbar() {
         {/* Mobile search overlay — slides down from below the top bar */}
         {isMobileSearchOpen && (
           <div ref={mobileSearchRef}
-            className="absolute top-full left-0 right-0 md:hidden bg-white dark:bg-[#12151f] border-b-2 border-gray-200 dark:border-[#1e2130] shadow-lg px-4 py-3 z-50">
+            className="absolute top-full left-0 right-0 md:hidden bg-white dark:bg-[#12151f] border-b border-gray-200 dark:border-[#1e2130] shadow-lg px-4 py-3 z-70">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -439,7 +439,7 @@ export default function Navbar() {
       {/* ═══════════════════════════════════════════════════════
           MOBILE BOTTOM NAVIGATION  (md:hidden, fixed bottom)
       ═══════════════════════════════════════════════════════ */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden bg-white dark:bg-[#12151f] border-t-2 border-gray-200 dark:border-[#1e2130] flex items-stretch z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+      <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden bg-white dark:bg-[#12151f] border-t border-gray-200 dark:border-[#1e2130] flex items-stretch z-50 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         {[
           { to: '/home',        icon: Home,          label: 'Trang chủ' },
           { to: '/watch',       icon: Video,         label: 'Video'     },

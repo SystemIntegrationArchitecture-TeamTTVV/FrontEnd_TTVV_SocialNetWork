@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { LogOut, User, Settings, X, LogIn, UserPlus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface UserDropdownProps {
@@ -18,6 +18,7 @@ interface UserDropdownProps {
 export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -43,6 +44,11 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
     onClose();
   };
 
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    onClose();
+  };
+
   const userInitials = user?.fullName
     ? user.fullName
         .split(' ')
@@ -55,10 +61,12 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100/50 z-50 overflow-hidden"
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-200/80 z-80 overflow-hidden"
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-100/50">
+      <div className="p-4 border-b border-gray-100/80">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Tài khoản</h3>
           <button
@@ -70,7 +78,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
         </div>
         {user ? (
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden shrink-0">
               {user.avatar ? (
                 <img 
                   src={user.avatar} 
@@ -108,7 +116,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
             <Link
               to={`/profile/${user.id}`}
               onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
             >
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <User className="w-5 h-5 text-gray-600" />
@@ -141,26 +149,26 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
           </>
         ) : (
           <>
-            <Link
-              to="/auth/login"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+            <button
+              type="button"
+              onClick={() => handleNavigate('/auth/login')}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left"
             >
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <LogIn className="w-5 h-5 text-gray-600" />
               </div>
               <span className="font-medium">Đăng nhập</span>
-            </Link>
-            <Link
-              to="/auth/register"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavigate('/auth/register')}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left"
             >
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <UserPlus className="w-5 h-5 text-gray-600" />
               </div>
               <span className="font-medium">Đăng ký</span>
-            </Link>
+            </button>
           </>
         )}
       </div>

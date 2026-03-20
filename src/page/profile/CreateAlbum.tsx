@@ -41,7 +41,7 @@ export default function CreateAlbum() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
+        <div className="bg-white rounded-[28px] shadow-sm p-8 border border-gray-100">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin album</h2>
           
           <div className="space-y-6">
@@ -54,7 +54,7 @@ export default function CreateAlbum() {
                 onChange={handleChange}
                 required
                 placeholder="Nhập tên album..."
-                className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
+                className="w-full h-14 px-5 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-base transition-all"
               />
             </div>
 
@@ -66,7 +66,7 @@ export default function CreateAlbum() {
                 onChange={handleChange}
                 rows={4}
                 placeholder="Mô tả về album này..."
-                className="w-full px-5 py-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all resize-none"
+                className="w-full px-5 py-4 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-base transition-all resize-none"
               />
             </div>
 
@@ -76,7 +76,7 @@ export default function CreateAlbum() {
                 name="privacy"
                 value={formData.privacy}
                 onChange={handleChange}
-                className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
+                className="w-full h-14 px-5 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-base transition-all"
               >
                 <option value="public">Công khai</option>
                 <option value="friends">Bạn bè</option>
@@ -87,7 +87,7 @@ export default function CreateAlbum() {
         </div>
 
         {/* Photos */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
+        <div className="bg-white rounded-[28px] shadow-sm p-8 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Ảnh trong album</h2>
@@ -96,7 +96,7 @@ export default function CreateAlbum() {
             <button
               type="button"
               onClick={handleImageSelect}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-xl transition-colors flex items-center gap-2 shadow-lg"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-2xl transition-colors flex items-center gap-2 shadow-sm"
             >
               <Upload className="w-5 h-5" />
               Thêm ảnh
@@ -106,14 +106,14 @@ export default function CreateAlbum() {
           {selectedImages.length > 0 ? (
             <div className="grid grid-cols-3 gap-4">
               {selectedImages.map((img, index) => (
-                <div key={index} className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden group">
+                <div key={index} className="relative aspect-square bg-slate-50 rounded-2xl overflow-hidden group border border-gray-100">
                   <div className="w-full h-full flex items-center justify-center text-6xl">
                     {img}
                   </div>
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -123,7 +123,7 @@ export default function CreateAlbum() {
                 <button
                   type="button"
                   onClick={handleImageSelect}
-                  className="aspect-square border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 flex flex-col items-center justify-center transition-colors"
+                  className="aspect-square border-2 border-dashed border-gray-300 rounded-2xl hover:border-blue-400 hover:bg-blue-50/70 flex flex-col items-center justify-center transition-colors"
                 >
                   <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
                   <span className="text-sm font-semibold text-gray-600">Thêm ảnh</span>
@@ -131,14 +131,14 @@ export default function CreateAlbum() {
               )}
             </div>
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
+            <div className="border-2 border-dashed border-gray-300 rounded-[28px] p-12 text-center bg-white/70">
               <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">Chưa có ảnh nào</h3>
               <p className="text-base text-gray-600 mb-6">Thêm ảnh để tạo album</p>
               <button
                 type="button"
                 onClick={handleImageSelect}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-xl transition-colors inline-flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-2xl transition-colors inline-flex items-center gap-2 shadow-sm"
               >
                 <Upload className="w-5 h-5" />
                 Chọn ảnh
@@ -151,14 +151,14 @@ export default function CreateAlbum() {
         <div className="flex items-center justify-end gap-4">
           <Link
             to="/profile/1"
-            className="px-8 py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg transition-colors"
+            className="px-8 py-4 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-lg transition-colors shadow-sm"
           >
             Hủy
           </Link>
           <button
             type="submit"
             disabled={!formData.name || selectedImages.length === 0}
-            className={`px-8 py-4 rounded-xl font-semibold text-lg transition-colors shadow-lg flex items-center gap-2 ${
+            className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-colors shadow-sm flex items-center gap-2 ${
               !formData.name || selectedImages.length === 0
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'

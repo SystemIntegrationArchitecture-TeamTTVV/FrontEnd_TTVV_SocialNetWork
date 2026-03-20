@@ -112,7 +112,7 @@ export default function Register() {
         <div className="space-y-3">
           <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full bg-blue-600 transition-all duration-300"
+              className="h-full bg-blue-500 transition-all duration-300"
               style={{ width: `${(step / totalSteps) * 100}%` }}
             />
           </div>
@@ -130,13 +130,13 @@ export default function Register() {
                 {...register("firstName", { required: "Vui lòng nhập tên" })}
                 type="text"
                 placeholder="Tên"
-                className={`h-12 px-4 rounded-xl border ${errors.firstName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+                className={`h-12 px-4 rounded-xl border bg-white shadow-sm ${errors.firstName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
               />
               <input
                 {...register("lastName", { required: "Vui lòng nhập họ" })}
                 type="text"
                 placeholder="Họ"
-                className={`h-12 px-4 rounded-xl border ${errors.lastName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+                className={`h-12 px-4 rounded-xl border bg-white shadow-sm ${errors.lastName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
               />
             </div>
             {(errors.firstName || errors.lastName) && (
@@ -155,9 +155,9 @@ export default function Register() {
               })}
               type="email"
               placeholder="Email"
-              className={`w-full h-12 px-4 rounded-xl border ${
+              className={`w-full h-12 px-4 rounded-xl border bg-white shadow-sm ${
                 errors.email ? "border-red-300" : "border-gray-200"
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
             />
             {errors.email && (
               <p className="text-xs text-red-600 -mt-1">{errors.email.message as string}</p>
@@ -177,9 +177,9 @@ export default function Register() {
               })}
               type="text"
               placeholder="Tên đăng nhập"
-              className={`w-full h-12 px-4 rounded-xl border ${
+              className={`w-full h-12 px-4 rounded-xl border bg-white shadow-sm ${
                 errors.username ? "border-red-300" : "border-gray-200"
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
             />
             {errors.username && (
               <p className="text-xs text-red-600 -mt-1">{errors.username.message as string}</p>
@@ -195,9 +195,9 @@ export default function Register() {
               })}
               type="password"
               placeholder="Mật khẩu mới"
-              className={`w-full h-12 px-4 rounded-xl border ${
+              className={`w-full h-12 px-4 rounded-xl border bg-white shadow-sm ${
                 errors.password ? "border-red-300" : "border-gray-200"
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all`}
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
             />
             {errors.password && (
               <p className="text-xs text-red-600 -mt-1">{errors.password.message as string}</p>
@@ -212,7 +212,7 @@ export default function Register() {
               <div className="grid grid-cols-3 gap-2">
                 <select
                   {...register("month", { required: "Vui lòng chọn tháng" })}
-                  className="h-11 px-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50"
+                  className="h-11 px-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
                 >
                   <option value="">Tháng</option>
                   {months.map((m) => (
@@ -221,7 +221,7 @@ export default function Register() {
                 </select>
                 <select
                   {...register("day", { required: "Vui lòng chọn ngày" })}
-                  className="h-11 px-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50"
+                  className="h-11 px-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
                 >
                   <option value="">Ngày</option>
                   {days.map((d) => (
@@ -230,7 +230,7 @@ export default function Register() {
                 </select>
                 <select
                   {...register("year", { required: "Vui lòng chọn năm" })}
-                  className="h-11 px-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50"
+                  className="h-11 px-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
                 >
                   <option value="">Năm</option>
                   {years.map((y) => (
@@ -248,7 +248,7 @@ export default function Register() {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-2">Giới tính</label>
               <div className="grid grid-cols-3 gap-2">
-                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50">
                   <input
                     {...register("gender", { required: "Vui lòng chọn giới tính" })}
                     type="radio"
@@ -257,7 +257,7 @@ export default function Register() {
                   />
                   <span className="text-sm text-gray-700">Nữ</span>
                 </label>
-                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50">
                   <input
                     {...register("gender", { required: "Vui lòng chọn giới tính" })}
                     type="radio"
@@ -266,7 +266,7 @@ export default function Register() {
                   />
                   <span className="text-sm text-gray-700">Nam</span>
                 </label>
-                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50">
                   <input
                     {...register("gender", { required: "Vui lòng chọn giới tính" })}
                     type="radio"
@@ -281,7 +281,7 @@ export default function Register() {
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600">
+            <div className="p-3 rounded-2xl bg-slate-50/80 border border-gray-200 text-sm text-gray-600">
               <p className="font-semibold text-gray-700 mb-1">Xác nhận thông tin</p>
               <p>Họ tên: {watch("lastName") || "-"} {watch("firstName") || "-"}</p>
               <p>Email: {watch("email") || "-"}</p>
@@ -291,7 +291,7 @@ export default function Register() {
         )}
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+          <div className="p-3 bg-red-50/90 border border-red-200 rounded-2xl">
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
@@ -305,7 +305,7 @@ export default function Register() {
             <button
               type="button"
               onClick={previousStep}
-              className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm hover:bg-gray-50 transition-colors"
             >
               Quay lại
             </button>
@@ -313,7 +313,7 @@ export default function Register() {
             <button
               type="button"
               onClick={() => navigate("/auth/login")}
-              className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm hover:bg-gray-50 transition-colors"
             >
               Đăng nhập
             </button>
@@ -323,7 +323,7 @@ export default function Register() {
             <button
               type="button"
               onClick={nextStep}
-              className="flex-1 h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+              className="flex-1 h-11 bg-blue-600 text-white font-semibold rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
             >
               Tiếp tục
             </button>

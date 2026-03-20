@@ -42,16 +42,16 @@ export default function AuthFrame({
   }, [introSlides.length]);
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+    <div className="relative w-full min-h-screen flex items-center justify-center bg-linear-to-b from-slate-50 via-white to-blue-50/50 px-4 py-12">
       <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div className="hidden lg:flex flex-col items-center justify-start text-center pt-4 min-h-155">
-          <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-2xl border border-gray-100 overflow-hidden">
+          <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-xl border border-gray-200/70 overflow-hidden">
             <img src={logo} alt="TTVV Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-6xl font-bold text-gray-900 mb-6">{brandHeading}</h1>
           <p className="text-2xl text-gray-600 leading-relaxed max-w-lg mb-8">{brandDescription}</p>
 
-          <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
+          <div className="w-full max-w-lg rounded-[24px] border border-gray-200/80 bg-white shadow-sm p-5">
             <div className="mb-4 flex items-center justify-between">
               <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                 Giới thiệu hệ thống
@@ -90,7 +90,7 @@ export default function AuthFrame({
         </div>
 
         <div className="w-full flex items-center justify-center">
-          <div className="w-full max-w-125 bg-white rounded-3xl shadow-xl p-8 lg:p-10 border border-gray-100">
+          <div className="w-full max-w-125 bg-white rounded-[28px] shadow-lg p-8 lg:p-10 border border-gray-200/80">
             {(cardTitle || cardSubtitle) && (
               <div className="text-center mb-6">
                 {cardTitle && <h2 className="text-3xl font-bold text-gray-900">{cardTitle}</h2>}
@@ -102,7 +102,7 @@ export default function AuthFrame({
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-0 right-0 text-center">
+      <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center">
         <p className="text-sm text-gray-500">
           TTVV © 2026 · Quyền riêng tư · Điều khoản · Trợ giúp
         </p>

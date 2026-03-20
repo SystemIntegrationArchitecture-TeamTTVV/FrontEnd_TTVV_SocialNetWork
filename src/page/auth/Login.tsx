@@ -55,9 +55,9 @@ export default function Login() {
                   type="text"
                   placeholder="Tên đăng nhập"
                   autoComplete="username"
-                  className={`w-full h-16 px-6 rounded-2xl border-2 ${
+                  className={`w-full h-16 px-6 rounded-2xl border bg-white shadow-sm ${
                     errors.username ? 'border-red-300' : 'border-gray-200'
-                  } focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all`}
+                  } focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-lg transition-all`}
                 />
                 {errors.username && (
                   <p className="mt-2 text-sm text-red-600">{errors.username.message as string}</p>
@@ -76,9 +76,9 @@ export default function Login() {
                   type="password"
                   placeholder="Mật khẩu"
                   autoComplete="current-password"
-                  className={`w-full h-16 px-6 rounded-2xl border-2 ${
+                  className={`w-full h-16 px-6 rounded-2xl border bg-white shadow-sm ${
                     errors.password ? 'border-red-300' : 'border-gray-200'
-                  } focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg bg-gray-50 focus:bg-white transition-all`}
+                  } focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-lg transition-all`}
                 />
                 {errors.password && (
                   <p className="mt-2 text-sm text-red-600">{errors.password.message as string}</p>
@@ -86,7 +86,7 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div className="p-4 bg-red-50/90 border border-red-200 rounded-2xl">
                   <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
@@ -94,7 +94,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={isSubmitting || isLoading}
-                className="w-full h-16 bg-blue-600 text-white font-bold text-xl rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-16 bg-blue-600 text-white font-bold text-xl rounded-2xl shadow-md transition-all hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting || isLoading ? 'Đang đăng nhập…' : 'Đăng nhập'}
               </button>
@@ -116,7 +116,7 @@ export default function Login() {
 
               <Link
                 to="/auth/register"
-                className="w-full h-16 bg-green-600 text-white font-bold text-lg rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center"
+                className="w-full h-16 bg-green-600 text-white font-bold text-lg rounded-2xl shadow-sm transition-all hover:bg-green-700 active:scale-[0.98] flex items-center justify-center"
               >
                 Tạo tài khoản mới
               </Link>

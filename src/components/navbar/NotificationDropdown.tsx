@@ -423,10 +423,10 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full right-0 mt-2 w-[480px] bg-white rounded-xl shadow-xl border border-gray-100/50 z-50 max-h-[600px] flex flex-col overflow-hidden"
+      className="absolute top-full right-0 mt-2 w-[480px] bg-white rounded-2xl shadow-xl border border-gray-200/80 z-80 max-h-[600px] flex flex-col overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-gray-100/50">
+      <div className="flex items-center justify-between p-5 border-b border-gray-100/80">
         <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
@@ -602,7 +602,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-100/50">
+      <div className="p-3 border-t border-gray-100/80">
         <Link
           to="/notifications"
           onClick={onClose}
