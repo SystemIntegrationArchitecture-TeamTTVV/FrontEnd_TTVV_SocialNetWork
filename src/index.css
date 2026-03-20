@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 html {
-  font-size: 16px;           /* pin cứng base, tránh production build scale khác local */
+  font-size: 14px;           /* 14px base = compact desktop UI, tránh "zoom in" trên Vercel */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
