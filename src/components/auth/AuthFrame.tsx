@@ -1,4 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 import logo from '../../assets/logo-favicon.png';
 
 type AuthFrameProps = {
@@ -32,6 +34,7 @@ export default function AuthFrame({
   ];
 
   const [activeSlide, setActiveSlide] = useState(0);
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -42,7 +45,18 @@ export default function AuthFrame({
   }, [introSlides.length]);
 
   return (
-    <div className="relative w-full min-h-screen flex items-center justify-center bg-linear-to-b from-slate-50 via-white to-blue-50/50 px-4 py-12">
+    <div className="relative w-full min-h-screen flex items-center justify-center bg-linear-to-b from-slate-50 via-white to-blue-50/50 dark:from-[#0c0e14] dark:via-[#12151f] dark:to-[#0c0e14] px-4 py-12">
+      {/* Theme toggle */}
+      <button
+        onClick={(e) => toggleTheme(e)}
+        aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+        className="absolute top-5 right-5 z-10 w-11 h-11 rounded-2xl bg-white/80 dark:bg-[#1e2133] border border-gray-200 dark:border-[#2b2f45] shadow-sm backdrop-blur-sm flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#22263a] transition-all"
+      >
+        {isDark
+          ? <Sun className="w-5 h-5 text-amber-400" />
+          : <Moon className="w-5 h-5 text-gray-500" />
+        }
+      </button>
       <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div className="hidden lg:flex flex-col items-center justify-start text-center pt-4 min-h-155">
           <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-xl border border-gray-200/70 overflow-hidden">
