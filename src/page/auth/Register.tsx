@@ -110,16 +110,16 @@ export default function Register() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-3">
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 rounded-full bg-gray-100 dark:bg-[#22263a] overflow-hidden">
             <div
               className="h-full bg-blue-500 transition-all duration-300"
               style={{ width: `${(step / totalSteps) * 100}%` }}
             />
           </div>
           <div className="grid grid-cols-3 gap-2 text-xs">
-            <p className={`text-center ${step >= 1 ? "text-blue-600 font-semibold" : "text-gray-400"}`}>Bước 1</p>
-            <p className={`text-center ${step >= 2 ? "text-blue-600 font-semibold" : "text-gray-400"}`}>Bước 2</p>
-            <p className={`text-center ${step >= 3 ? "text-blue-600 font-semibold" : "text-gray-400"}`}>Bước 3</p>
+            <p className={`text-center ${step >= 1 ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-400 dark:text-[#5a6278]"}`}>Bước 1</p>
+            <p className={`text-center ${step >= 2 ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-400 dark:text-[#5a6278]"}`}>Bước 2</p>
+            <p className={`text-center ${step >= 3 ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-400 dark:text-[#5a6278]"}`}>Bước 3</p>
           </div>
         </div>
 
@@ -130,17 +130,17 @@ export default function Register() {
                 {...register("firstName", { required: "Vui lòng nhập tên" })}
                 type="text"
                 placeholder="Tên"
-                className={`h-12 px-4 rounded-xl border bg-white shadow-sm ${errors.firstName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
+                className={`h-12 px-4 rounded-xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${errors.firstName ? "border-red-300 dark:border-red-500/40" : "border-gray-200 dark:border-[#2b2f45]"} focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all`}
               />
               <input
                 {...register("lastName", { required: "Vui lòng nhập họ" })}
                 type="text"
                 placeholder="Họ"
-                className={`h-12 px-4 rounded-xl border bg-white shadow-sm ${errors.lastName ? "border-red-300" : "border-gray-200"} focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
+                className={`h-12 px-4 rounded-xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${errors.lastName ? "border-red-300 dark:border-red-500/40" : "border-gray-200 dark:border-[#2b2f45]"} focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all`}
               />
             </div>
             {(errors.firstName || errors.lastName) && (
-              <p className="text-xs text-red-600">
+              <p className="text-xs text-red-600 dark:text-red-400">
                 {(errors.firstName?.message || errors.lastName?.message) as string}
               </p>
             )}
@@ -155,12 +155,12 @@ export default function Register() {
               })}
               type="email"
               placeholder="Email"
-              className={`w-full h-12 px-4 rounded-xl border bg-white shadow-sm ${
-                errors.email ? "border-red-300" : "border-gray-200"
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
+              className={`w-full h-12 px-4 rounded-xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
+                errors.email ? "border-red-300 dark:border-red-500/40" : "border-gray-200 dark:border-[#2b2f45]"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all`}
             />
             {errors.email && (
-              <p className="text-xs text-red-600 -mt-1">{errors.email.message as string}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 -mt-1">{errors.email.message as string}</p>
             )}
           </div>
         )}
@@ -177,12 +177,12 @@ export default function Register() {
               })}
               type="text"
               placeholder="Tên đăng nhập"
-              className={`w-full h-12 px-4 rounded-xl border bg-white shadow-sm ${
-                errors.username ? "border-red-300" : "border-gray-200"
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
+              className={`w-full h-12 px-4 rounded-xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
+                errors.username ? "border-red-300 dark:border-red-500/40" : "border-gray-200 dark:border-[#2b2f45]"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all`}
             />
             {errors.username && (
-              <p className="text-xs text-red-600 -mt-1">{errors.username.message as string}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 -mt-1">{errors.username.message as string}</p>
             )}
 
             <input
@@ -195,12 +195,12 @@ export default function Register() {
               })}
               type="password"
               placeholder="Mật khẩu mới"
-              className={`w-full h-12 px-4 rounded-xl border bg-white shadow-sm ${
-                errors.password ? "border-red-300" : "border-gray-200"
-              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
+              className={`w-full h-12 px-4 rounded-xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
+                errors.password ? "border-red-300 dark:border-red-500/40" : "border-gray-200 dark:border-[#2b2f45]"
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all`}
             />
             {errors.password && (
-              <p className="text-xs text-red-600 -mt-1">{errors.password.message as string}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 -mt-1">{errors.password.message as string}</p>
             )}
           </div>
         )}
@@ -208,11 +208,11 @@ export default function Register() {
         {step === 3 && (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">Ngày sinh</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-[#7e89a6] mb-2">Ngày sinh</label>
               <div className="grid grid-cols-3 gap-2">
                 <select
                   {...register("month", { required: "Vui lòng chọn tháng" })}
-                  className="h-11 px-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
+                  className="h-11 px-3 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="">Tháng</option>
                   {months.map((m) => (
@@ -221,7 +221,7 @@ export default function Register() {
                 </select>
                 <select
                   {...register("day", { required: "Vui lòng chọn ngày" })}
-                  className="h-11 px-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
+                  className="h-11 px-3 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="">Ngày</option>
                   {days.map((d) => (
@@ -230,7 +230,7 @@ export default function Register() {
                 </select>
                 <select
                   {...register("year", { required: "Vui lòng chọn năm" })}
-                  className="h-11 px-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
+                  className="h-11 px-3 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="">Năm</option>
                   {years.map((y) => (
@@ -239,50 +239,50 @@ export default function Register() {
                 </select>
               </div>
               {(errors.month || errors.day || errors.year) && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                   {(errors.month?.message || errors.day?.message || errors.year?.message) as string}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">Giới tính</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-[#7e89a6] mb-2">Giới tính</label>
               <div className="grid grid-cols-3 gap-2">
-                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2b2f45]">
                   <input
                     {...register("gender", { required: "Vui lòng chọn giới tính" })}
                     type="radio"
                     value="female"
                     className="w-4 h-4 text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">Nữ</span>
+                  <span className="text-sm text-gray-700 dark:text-[#c0c8de]">Nữ</span>
                 </label>
-                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2b2f45]">
                   <input
                     {...register("gender", { required: "Vui lòng chọn giới tính" })}
                     type="radio"
                     value="male"
                     className="w-4 h-4 text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">Nam</span>
+                  <span className="text-sm text-gray-700 dark:text-[#c0c8de]">Nam</span>
                 </label>
-                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50">
+                <label className="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2b2f45]">
                   <input
                     {...register("gender", { required: "Vui lòng chọn giới tính" })}
                     type="radio"
                     value="custom"
                     className="w-4 h-4 text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">Khác</span>
+                  <span className="text-sm text-gray-700 dark:text-[#c0c8de]">Khác</span>
                 </label>
               </div>
               {errors.gender && (
-                <p className="text-xs text-red-600 mt-1">{errors.gender.message as string}</p>
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.gender.message as string}</p>
               )}
             </div>
 
-            <div className="p-3 rounded-2xl bg-slate-50/80 border border-gray-200 text-sm text-gray-600">
-              <p className="font-semibold text-gray-700 mb-1">Xác nhận thông tin</p>
+            <div className="p-3 rounded-2xl bg-slate-50/80 dark:bg-[#22263a] border border-gray-200 dark:border-[#2b2f45] text-sm text-gray-600 dark:text-[#7e89a6]">
+              <p className="font-semibold text-gray-700 dark:text-[#c0c8de] mb-1">Xác nhận thông tin</p>
               <p>Họ tên: {watch("lastName") || "-"} {watch("firstName") || "-"}</p>
               <p>Email: {watch("email") || "-"}</p>
               <p>Tên đăng nhập: {watch("username") || "-"}</p>
@@ -291,12 +291,12 @@ export default function Register() {
         )}
 
         {error && (
-          <div className="p-3 bg-red-50/90 border border-red-200 rounded-2xl">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-3 bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
-        <p className="text-xs text-gray-500 leading-relaxed">
+        <p className="text-xs text-gray-500 dark:text-[#5a6278] leading-relaxed">
           Bằng việc tạo tài khoản, bạn đồng ý với Điều khoản, Chính sách quyền riêng tư và Chính sách cookie của chúng tôi.
         </p>
 
@@ -305,7 +305,7 @@ export default function Register() {
             <button
               type="button"
               onClick={previousStep}
-              className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm hover:bg-gray-50 transition-colors"
+              className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-700 dark:text-[#c0c8de] font-medium shadow-sm hover:bg-gray-50 dark:hover:bg-[#2b2f45] transition-colors"
             >
               Quay lại
             </button>
@@ -313,7 +313,7 @@ export default function Register() {
             <button
               type="button"
               onClick={() => navigate("/auth/login")}
-              className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm hover:bg-gray-50 transition-colors"
+              className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-700 dark:text-[#c0c8de] font-medium shadow-sm hover:bg-gray-50 dark:hover:bg-[#2b2f45] transition-colors"
             >
               Đăng nhập
             </button>

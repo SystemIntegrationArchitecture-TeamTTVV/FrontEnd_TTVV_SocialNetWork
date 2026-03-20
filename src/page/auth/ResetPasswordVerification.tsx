@@ -65,44 +65,38 @@ export default function ResetPasswordVerification() {
 
   return (
     <div className="w-full max-w-[500px] mx-auto">
-      <div className="bg-white rounded-lg shadow-xl p-8 relative">
-        {/* Close Button */}
+      <div className="bg-white dark:bg-[#1a1d28] rounded-[28px] shadow-xl p-8 relative border border-gray-200/80 dark:border-[#2b2f45]">
         <button
           onClick={() => navigate('/auth/login')}
-          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-[#E4E6EB] flex items-center justify-center hover:bg-[#D8DADF] transition-colors"
+          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors"
         >
-          <X className="w-5 h-5 text-[#8A8D91]" />
+          <X className="w-5 h-5 text-gray-500 dark:text-[#5a6278]" />
         </button>
 
-        {/* Icon */}
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-[#E7F3FF] flex items-center justify-center">
-            <Mail className="w-10 h-10 text-[#1877F2]" />
+          <div className="w-20 h-20 rounded-full bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+            <Mail className="w-10 h-10 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
 
-        {/* Header */}
-        <h2 className="text-2xl font-bold text-[#1C1E21] text-center mb-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] text-center mb-4">
           Xác minh tài khoản
         </h2>
 
-        {/* Description */}
-        <p className="text-center text-[#606770] mb-2">
+        <p className="text-center text-gray-600 dark:text-[#7e89a6] mb-2">
           Chúng tôi đã gửi mã xác minh đến
         </p>
-        <p className="text-center font-semibold text-[#1C1E21] mb-4">
+        <p className="text-center font-semibold text-gray-900 dark:text-[#edf0fa] mb-4">
           s***h@example.com
         </p>
-        <p className="text-center text-[#606770] mb-6">
+        <p className="text-center text-gray-600 dark:text-[#7e89a6] mb-6">
           Vui lòng nhập mã để tiếp tục.
         </p>
 
-        {/* Divider */}
-        <div className="border-t border-[#DFE1E6] mb-6"></div>
+        <div className="border-t border-gray-200 dark:border-[#2b2f45] mb-6"></div>
 
-        {/* Verification Code Input */}
         <div className="space-y-4">
-          <label className="block text-sm font-semibold text-[#050505]">Mã xác minh</label>
+          <label className="block text-sm font-semibold text-gray-900 dark:text-[#c0c8de]">Mã xác minh</label>
           
           <div className="flex gap-3 justify-center" onPaste={handlePaste}>
             {code.map((digit, index) => (
@@ -116,28 +110,26 @@ export default function ResetPasswordVerification() {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className={`w-16 h-18 text-center text-3xl font-bold rounded-lg border-2 transition-colors ${
+                className={`w-16 h-18 text-center text-3xl font-bold rounded-xl border-2 transition-colors bg-white dark:bg-[#22263a] ${
                   digit
-                    ? 'border-[#1877F2] text-[#1C1E21]'
-                    : 'border-[#DFE1E6] text-[#BCC0C4]'
-                } focus:outline-none focus:ring-2 focus:ring-[#1877F2]`}
+                    ? 'border-blue-500 text-gray-900 dark:text-[#edf0fa]'
+                    : 'border-gray-200 dark:border-[#2b2f45] text-gray-300 dark:text-[#353a54]'
+                } focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20`}
               />
             ))}
           </div>
 
-          {/* Resend Code */}
           <div className="text-center space-y-2">
-            <p className="text-sm text-[#65676B]">Không nhận được mã?</p>
-            <button className="text-sm text-[#1877F2] hover:underline">
+            <p className="text-sm text-gray-500 dark:text-[#5a6278]">Không nhận được mã?</p>
+            <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
               Gửi lại mã
             </button>
           </div>
 
-          {/* Timer */}
           {timer > 0 && (
             <div className="flex justify-center">
-              <div className="px-6 py-2 rounded-full bg-[#E7F3FF]">
-                <span className="text-sm font-semibold text-[#1877F2]">
+              <div className="px-6 py-2 rounded-full bg-blue-50 dark:bg-blue-500/15">
+                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   ⏱️ {formatTime(timer)}
                 </span>
               </div>
@@ -145,21 +137,20 @@ export default function ResetPasswordVerification() {
           )}
         </div>
 
-        {/* Buttons */}
         <div className="flex gap-4 pt-6">
           <button
             onClick={() => navigate('/auth/forgot-password')}
-            className="flex-1 h-12 bg-[#E4E6EB] text-[#050505] font-semibold rounded-md hover:bg-[#D8DADF] transition-colors"
+            className="flex-1 h-12 bg-gray-100 dark:bg-[#22263a] text-gray-900 dark:text-[#c0c8de] font-semibold rounded-xl border border-gray-200 dark:border-[#2b2f45] hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors"
           >
             Quay lại
           </button>
           <button
             onClick={handleContinue}
             disabled={!isCodeComplete}
-            className={`flex-1 h-12 font-semibold rounded-md transition-colors ${
+            className={`flex-1 h-12 font-semibold rounded-xl transition-colors ${
               isCodeComplete
-                ? 'bg-[#1877F2] text-white hover:bg-[#166FE5]'
-                : 'bg-[#BCC0C4] text-white cursor-not-allowed'
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-300 dark:bg-[#353a54] text-white dark:text-[#5a6278] cursor-not-allowed'
             }`}
           >
             Tiếp tục

@@ -59,18 +59,18 @@ export default function AuthFrame({
       </button>
       <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div className="hidden lg:flex flex-col items-center justify-start text-center pt-4 min-h-155">
-          <div className="w-32 h-32 rounded-3xl bg-white flex items-center justify-center mb-8 shadow-xl border border-gray-200/70 overflow-hidden">
+          <div className="w-32 h-32 rounded-3xl bg-white dark:bg-[#1a1d28] flex items-center justify-center mb-8 shadow-xl border border-gray-200/70 dark:border-[#2b2f45] overflow-hidden">
             <img src={logo} alt="TTVV Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-6xl font-bold text-gray-900 mb-6">{brandHeading}</h1>
-          <p className="text-2xl text-gray-600 leading-relaxed max-w-lg mb-8">{brandDescription}</p>
+          <h1 className="text-6xl font-bold text-gray-900 dark:text-[#edf0fa] mb-6">{brandHeading}</h1>
+          <p className="text-2xl text-gray-600 dark:text-[#7e89a6] leading-relaxed max-w-lg mb-8">{brandDescription}</p>
 
-          <div className="w-full max-w-lg rounded-[24px] border border-gray-200/80 bg-white shadow-sm p-5">
+          <div className="w-full max-w-lg rounded-[24px] border border-gray-200/80 dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] shadow-sm p-5">
             <div className="mb-4 flex items-center justify-between">
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-500/15 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-400">
                 Giới thiệu hệ thống
               </span>
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-500 dark:text-[#5a6278]">
                 {activeSlide + 1}/{introSlides.length}
               </span>
             </div>
@@ -82,8 +82,8 @@ export default function AuthFrame({
               >
                 {introSlides.map((slide) => (
                   <div key={slide.title} className="w-full shrink-0 px-1">
-                    <p className="text-base font-semibold text-gray-900 mb-2">{slide.title}</p>
-                    <p className="text-sm leading-relaxed text-gray-600 min-h-11">{slide.description}</p>
+                    <p className="text-base font-semibold text-gray-900 dark:text-[#edf0fa] mb-2">{slide.title}</p>
+                    <p className="text-sm leading-relaxed text-gray-600 dark:text-[#7e89a6] min-h-11">{slide.description}</p>
                   </div>
                 ))}
               </div>
@@ -96,7 +96,7 @@ export default function AuthFrame({
                   type="button"
                   onClick={() => setActiveSlide(idx)}
                   aria-label={`Chuyển tới slide ${idx + 1}`}
-                  className={`h-2 rounded-full transition-all ${idx === activeSlide ? 'w-6 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-gray-400'}`}
+                  className={`h-2 rounded-full transition-all ${idx === activeSlide ? 'w-6 bg-blue-600 dark:bg-blue-500' : 'w-2 bg-gray-300 dark:bg-[#353a54] hover:bg-gray-400 dark:hover:bg-[#4e5870]'}`}
                 />
               ))}
             </div>
@@ -104,11 +104,11 @@ export default function AuthFrame({
         </div>
 
         <div className="w-full flex items-center justify-center">
-          <div className="w-full max-w-125 bg-white rounded-[28px] shadow-lg p-8 lg:p-10 border border-gray-200/80">
+          <div className="w-full max-w-125 bg-white dark:bg-[#1a1d28] rounded-[28px] shadow-lg p-8 lg:p-10 border border-gray-200/80 dark:border-[#2b2f45]">
             {(cardTitle || cardSubtitle) && (
               <div className="text-center mb-6">
-                {cardTitle && <h2 className="text-3xl font-bold text-gray-900">{cardTitle}</h2>}
-                {cardSubtitle && <p className="text-sm text-gray-500 mt-1">{cardSubtitle}</p>}
+                {cardTitle && <h2 className="text-3xl font-bold text-gray-900 dark:text-[#edf0fa]">{cardTitle}</h2>}
+                {cardSubtitle && <p className="text-sm text-gray-500 dark:text-[#7e89a6] mt-1">{cardSubtitle}</p>}
               </div>
             )}
             {children}
@@ -117,7 +117,7 @@ export default function AuthFrame({
       </div>
 
       <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-[#5a6278]">
           TTVV © 2026 · Quyền riêng tư · Điều khoản · Trợ giúp
         </p>
       </div>

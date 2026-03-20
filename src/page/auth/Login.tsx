@@ -55,12 +55,12 @@ export default function Login() {
                   type="text"
                   placeholder="Tên đăng nhập"
                   autoComplete="username"
-                  className={`w-full h-16 px-6 rounded-2xl border bg-white shadow-sm ${
-                    errors.username ? 'border-red-300' : 'border-gray-200'
-                  } focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-lg transition-all`}
+                  className={`w-full h-16 px-6 rounded-2xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
+                    errors.username ? 'border-red-300 dark:border-red-500/40' : 'border-gray-200 dark:border-[#2b2f45]'
+                  } focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 text-lg transition-all`}
                 />
                 {errors.username && (
-                  <p className="mt-2 text-sm text-red-600">{errors.username.message as string}</p>
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.username.message as string}</p>
                 )}
               </div>
 
@@ -76,18 +76,18 @@ export default function Login() {
                   type="password"
                   placeholder="Mật khẩu"
                   autoComplete="current-password"
-                  className={`w-full h-16 px-6 rounded-2xl border bg-white shadow-sm ${
-                    errors.password ? 'border-red-300' : 'border-gray-200'
-                  } focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-lg transition-all`}
+                  className={`w-full h-16 px-6 rounded-2xl border bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
+                    errors.password ? 'border-red-300 dark:border-red-500/40' : 'border-gray-200 dark:border-[#2b2f45]'
+                  } focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500 text-lg transition-all`}
                 />
                 {errors.password && (
-                  <p className="mt-2 text-sm text-red-600">{errors.password.message as string}</p>
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.password.message as string}</p>
                 )}
               </div>
 
               {error && (
-                <div className="p-4 bg-red-50/90 border border-red-200 rounded-2xl">
-                  <p className="text-sm text-red-600">{error}</p>
+                <div className="p-4 bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                 </div>
               )}
 
@@ -102,7 +102,7 @@ export default function Login() {
               <div className="text-center pt-2">
                 <Link
                   to="/auth/forgot-password"
-                  className="text-blue-600 text-base hover:underline font-semibold transition-colors"
+                  className="text-blue-600 dark:text-blue-400 text-base hover:underline font-semibold transition-colors"
                 >
                   Quên mật khẩu?
                 </Link>
@@ -110,7 +110,7 @@ export default function Login() {
 
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+                  <div className="w-full border-t border-gray-200 dark:border-[#2b2f45]"></div>
                 </div>
               </div>
 

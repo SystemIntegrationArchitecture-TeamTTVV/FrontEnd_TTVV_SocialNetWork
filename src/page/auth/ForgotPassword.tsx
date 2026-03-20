@@ -61,14 +61,14 @@ export default function ForgotPassword() {
         brandDescription="Khôi phục tài khoản an toàn, nhanh chóng chỉ với email của bạn."
       >
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-500/15 rounded-full mb-4">
+            <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Kiểm tra email</h2>
-          <p className="text-gray-600 mb-4 leading-relaxed">
-            Nếu tài khoản tồn tại với email <strong>{email}</strong>, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu trong ít phút.
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">Kiểm tra email</h2>
+          <p className="text-gray-600 dark:text-[#7e89a6] mb-4 leading-relaxed">
+            Nếu tài khoản tồn tại với email <strong className="text-gray-900 dark:text-[#c0c8de]">{email}</strong>, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu trong ít phút.
           </p>
-          <p className="text-sm text-gray-500 mb-8">
+          <p className="text-sm text-gray-500 dark:text-[#5a6278] mb-8">
             Chưa thấy email? Hãy kiểm tra thư rác hoặc thử lại.
           </p>
           <button
@@ -91,39 +91,39 @@ export default function ForgotPassword() {
     >
       <div className="space-y-5">
         <div className="space-y-3">
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 rounded-full bg-gray-100 dark:bg-[#22263a] overflow-hidden">
             <div
               className="h-full bg-blue-600 transition-all duration-300"
               style={{ width: `${(step / 2) * 100}%` }}
             />
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <p className={`text-center ${step >= 1 ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>Nhập email</p>
-            <p className={`text-center ${step >= 2 ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>Xác nhận gửi</p>
+            <p className={`text-center ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>Nhập email</p>
+            <p className={`text-center ${step >= 2 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>Xác nhận gửi</p>
           </div>
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#c0c8de] mb-2">
                 Địa chỉ email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-[#5a6278]" />
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full h-12 pl-10 pr-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full h-12 pl-10 pr-4 border border-gray-200 dark:border-[#2b2f45] rounded-xl bg-gray-50 dark:bg-[#22263a] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white dark:focus:bg-[#2b2f45] transition-all"
                   disabled={isLoading}
                   required
                 />
@@ -133,7 +133,7 @@ export default function ForgotPassword() {
             <div className="flex gap-3">
               <Link
                 to="/auth/login"
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
+                className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-700 dark:text-[#c0c8de] font-medium hover:bg-gray-50 dark:hover:bg-[#2b2f45] transition-colors inline-flex items-center justify-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Đăng nhập
@@ -151,11 +151,11 @@ export default function ForgotPassword() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-sm text-gray-700">
+            <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#22263a] border border-gray-200 dark:border-[#2b2f45]">
+              <p className="text-sm text-gray-700 dark:text-[#7e89a6]">
                 Chúng tôi sẽ gửi liên kết đặt lại mật khẩu đến email:
               </p>
-              <p className="text-base font-semibold text-gray-900 mt-1">{email}</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-[#edf0fa] mt-1">{email}</p>
             </div>
 
             <div className="flex gap-3">
@@ -165,7 +165,7 @@ export default function ForgotPassword() {
                   setError(null);
                   setStep(1);
                 }}
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-700 dark:text-[#c0c8de] font-medium hover:bg-gray-50 dark:hover:bg-[#2b2f45] transition-colors"
               >
                 Chỉnh sửa email
               </button>
@@ -175,7 +175,7 @@ export default function ForgotPassword() {
                 disabled={isLoading}
                 className={`flex-1 h-11 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors ${
                   isLoading
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? 'bg-gray-300 dark:bg-[#353a54] text-gray-500 dark:text-[#5a6278] cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
