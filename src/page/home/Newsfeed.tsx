@@ -792,35 +792,35 @@ export default function Newsfeed() {
       <div className="space-y-6">
         {/* Loading State */}
         {isLoadingPosts && (
-          <div className="bg-white rounded-2xl p-12 border border-gray-200 flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-            <p className="text-gray-500">Loading posts...</p>
+          <div className="bg-white rounded-[28px] p-12 border border-gray-100 shadow-sm flex flex-col items-center justify-center">
+            <Loader2 className="w-7 h-7 text-blue-500 animate-spin mb-3" />
+            <p className="text-gray-400 text-[15px]">Đang tải bài viết...</p>
           </div>
         )}
 
         {/* Error State */}
         {error && !isLoadingPosts && (
-          <div className="bg-white rounded-2xl p-8 border border-red-200">
-            <p className="text-red-600 text-center">{error}</p>
+          <div className="bg-white rounded-[28px] p-8 border border-red-100 shadow-sm">
+            <p className="text-red-500 text-center text-[15px]">{error}</p>
           </div>
         )}
 
         {/* Empty State */}
         {!isLoadingPosts && !error && posts.length === 0 && (
-          <div className="bg-white rounded-2xl p-12 border border-gray-200 text-center">
-            <p className="text-gray-500 text-lg">No posts yet. Be the first to post!</p>
+          <div className="bg-white rounded-[28px] p-12 border border-gray-100 shadow-sm text-center">
+            <p className="text-gray-400 text-[15px]">Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!</p>
             {currentUser ? (
               <Link
                 to="/post/create"
-                className="mt-4 inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                className="mt-5 inline-block px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors text-[15px] font-medium shadow-sm"
               >
-                Create Post
+                Tạo bài viết
               </Link>
             ) : (
               <button
                 type="button"
                 onClick={requestLogin}
-                className="mt-4 inline-block px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                className="mt-5 inline-block px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors text-[15px] font-medium shadow-sm"
               >
                 Đăng nhập để đăng bài
               </button>
@@ -834,11 +834,11 @@ export default function Newsfeed() {
           const commentInput = commentInputs[post.id!] || '';
 
           return (
-            <div key={post.id} className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors relative">
+            <div key={post.id} className="bg-white rounded-[28px] border border-gray-100 shadow-sm transition-all relative">
               {/* Post Header */}
               <div className="p-5 flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-base flex-shrink-0 bg-blue-500">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 bg-linear-to-br from-blue-500 to-blue-600 shadow-sm">
                     {post.authorAvatar ? (
                       <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover rounded-full" />
                     ) : (
@@ -875,46 +875,46 @@ export default function Newsfeed() {
                   </button>
 
                   {openMenuId === post.id && (
-                    <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-20">
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-20">
                       {currentUser?.id === post.authorId && (
                         <>
                           <button
                             onClick={() => handlePostAction(post.id!, 'edit')}
-                            className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                            className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                           >
-                            <Edit className="w-5 h-5 text-gray-600" />
-                            <span className="text-gray-900 font-medium">Edit post</span>
+                            <Edit className="w-[18px] h-[18px] text-gray-500" />
+                            <span className="text-gray-800 text-[15px] font-medium">Chỉnh sửa</span>
                           </button>
                           <button
                             onClick={() => handlePostAction(post.id!, 'delete')}
-                            className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                            className="w-full px-4 py-2.5 hover:bg-red-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                           >
-                            <Trash2 className="w-5 h-5 text-red-600" />
-                            <span className="text-red-600 font-medium">Delete post</span>
+                            <Trash2 className="w-[18px] h-[18px] text-red-500" />
+                            <span className="text-red-500 text-[15px] font-medium">Xóa bài viết</span>
                           </button>
-                          <div className="h-px bg-gray-200 my-2" />
+                          <div className="h-px bg-gray-100 my-1.5 mx-3" />
                         </>
                       )}
                       <button
                         onClick={() => handlePostAction(post.id!, 'save')}
-                        className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                        className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                       >
-                        <Bookmark className="w-5 h-5 text-gray-600" />
-                        <span className="text-gray-900 font-medium">Save post</span>
+                        <Bookmark className="w-[18px] h-[18px] text-gray-500" />
+                        <span className="text-gray-800 text-[15px] font-medium">Lưu bài viết</span>
                       </button>
                       <button
                         onClick={() => handlePostAction(post.id!, 'hide')}
-                        className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                        className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                       >
-                        <EyeOff className="w-5 h-5 text-gray-600" />
-                        <span className="text-gray-900 font-medium">Hide post</span>
+                        <EyeOff className="w-[18px] h-[18px] text-gray-500" />
+                        <span className="text-gray-800 text-[15px] font-medium">Ẩn bài viết</span>
                       </button>
                       <button
                         onClick={() => handlePostAction(post.id!, 'report')}
-                        className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors"
+                        className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                       >
-                        <Flag className="w-5 h-5 text-gray-600" />
-                        <span className="text-gray-900 font-medium">Report post</span>
+                        <Flag className="w-[18px] h-[18px] text-gray-500" />
+                        <span className="text-gray-800 text-[15px] font-medium">Báo cáo</span>
                       </button>
                     </div>
                   )}
@@ -929,7 +929,7 @@ export default function Newsfeed() {
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-                      placeholder="What's on your mind?"
+                      placeholder="Bạn muốn viết gì?"
                       autoFocus
                     />
                     <div className="flex gap-2 justify-end">
@@ -937,14 +937,14 @@ export default function Newsfeed() {
                         onClick={handleCancelEdit}
                         className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
                       >
-                        Cancel
+                        Hủy
                       </button>
                       <button
                         onClick={() => handleUpdatePost(post.id!)}
                         disabled={!editContent.trim()}
                         className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Save Changes
+                        Lưu thay đổi
                       </button>
                     </div>
                   </div>
@@ -958,7 +958,7 @@ export default function Newsfeed() {
                 <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-30 rounded-2xl">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto mb-2" />
-                    <p className="text-gray-700 font-medium">Deleting post...</p>
+                    <p className="text-gray-700 font-medium">Đang xóa bài viết...</p>
                   </div>
                 </div>
               )}
@@ -1045,47 +1045,47 @@ export default function Newsfeed() {
               <div className="px-5 pb-3">
                 <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-semibold">{post.likeCount || 0} likes</span>
+                    <span className="font-medium">{post.likeCount || 0} lượt thích</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">{post.commentCount || 0} comments</span>
+                  <div className="flex items-center gap-3 text-gray-400">
+                    <span className="font-medium">{post.commentCount || 0} bình luận</span>
                     <span>·</span>
-                    <span className="font-medium">{post.shareCount || 0} shares</span>
+                    <span className="font-medium">{post.shareCount || 0} chia sẻ</span>
                   </div>
                 </div>
 
                 {/* Post Actions */}
-                <div className="border-t border-gray-200 pt-3 flex items-center">
+                <div className="border-t border-gray-100 pt-2 flex items-center gap-1">
                   <button
                     onClick={() => handleLikePost(post.id!)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors group ${likedPosts.has(post.id!) ? 'text-red-500' : 'hover:bg-gray-50'
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl transition-all group ${likedPosts.has(post.id!) ? 'text-red-500 bg-red-50/60' : 'hover:bg-gray-50'
                       }`}
                   >
-                    <Heart className={`w-6 h-6 transition-colors ${likedPosts.has(post.id!)
+                    <Heart className={`w-5 h-5 transition-colors ${likedPosts.has(post.id!)
                         ? 'text-red-500 fill-red-500'
                         : 'text-gray-500 group-hover:text-red-500 group-hover:fill-red-500'
                       }`} />
-                    <span className={`text-base font-medium ${likedPosts.has(post.id!) ? 'text-red-500' : 'text-gray-700 group-hover:text-red-500'
+                    <span className={`text-[15px] font-medium ${likedPosts.has(post.id!) ? 'text-red-500' : 'text-gray-600 group-hover:text-red-500'
                       }`}>
-                      {likedPosts.has(post.id!) ? 'Liked' : 'Like'}
+                      {likedPosts.has(post.id!) ? 'Đã thích' : 'Thích'}
                     </span>
                   </button>
                   <button
                     onClick={() => toggleComments(post.id!)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-colors ${isCommentsExpanded
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-gray-50 text-gray-700'
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl transition-all ${isCommentsExpanded
+                      ? 'bg-blue-50/70 text-blue-600'
+                      : 'hover:bg-gray-50 text-gray-600'
                       }`}
                   >
-                    <MessageCircle className={`w-6 h-6 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
-                    <span className="text-base font-medium">Comment</span>
+                    <MessageCircle className={`w-5 h-5 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
+                    <span className="text-[15px] font-medium">Bình luận</span>
                   </button>
                   <Link
                     to={`/post/${post.id}/share`}
-                    className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl hover:bg-gray-50 transition-all group"
                   >
-                    <Share2 className="w-6 h-6 text-gray-500 group-hover:text-green-600 transition-colors" />
-                    <span className="text-base text-gray-700 font-medium group-hover:text-green-600">Share</span>
+                    <Share2 className="w-5 h-5 text-gray-500 group-hover:text-green-600 transition-colors" />
+                    <span className="text-[15px] text-gray-600 font-medium group-hover:text-green-600">Chia sẻ</span>
                   </Link>
                 </div>
 
@@ -1147,20 +1147,20 @@ export default function Newsfeed() {
                                         : 'text-gray-600 hover:text-blue-600'
                                       }`}
                                   >
-                                    {likedComments.has(comment.id!) ? 'Liked' : 'Like'}
+                                    {likedComments.has(comment.id!) ? 'Đã thích' : 'Thích'}
                                     {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
                                   </button>                                <button
                                     onClick={() => handleReplyToComment(comment.id!)}
                                     className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
                                   >
-                                    Reply
+                                    Trả lời
                                   </button>
                                   {comment.replyCount && comment.replyCount > 0 && (
                                     <button
                                       onClick={() => toggleReplies(comment.id!)}
                                       className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                                     >
-                                      {expandedReplies.has(comment.id!) ? 'Hide' : 'View'} {comment.replyCount} {comment.replyCount === 1 ? 'reply' : 'replies'}
+                                      {expandedReplies.has(comment.id!) ? 'Ẩn' : 'Xem'} {comment.replyCount} trả lời
                                     </button>
                                   )}
                                   <span className="text-xs text-gray-500">

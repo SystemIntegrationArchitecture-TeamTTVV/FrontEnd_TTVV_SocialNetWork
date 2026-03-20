@@ -32,13 +32,13 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="h-screen bg-[#E9EAEC] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
+    <div className="h-screen bg-slate-50 dark:bg-[#0c0e14] flex flex-col overflow-hidden">
       <Navbar />
       
       <div className="flex flex-1 overflow-hidden pt-20">
         {/* LEFT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-r-2 border-gray-300 dark:border-[#22263a]">
+          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-r border-gray-200 dark:border-[#22263a]">
             <LeftSidebar />
           </aside>
         )}
@@ -56,7 +56,7 @@ export default function MainLayout() {
         
         {/* RIGHT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide border-l-2 border-gray-300 dark:border-[#22263a]">
+          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide border-l border-gray-200 dark:border-[#22263a]">
             <RightSidebar />
           </aside>
         )}
