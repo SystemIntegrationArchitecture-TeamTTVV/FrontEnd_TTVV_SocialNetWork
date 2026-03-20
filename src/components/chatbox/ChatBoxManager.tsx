@@ -12,11 +12,12 @@ export default function ChatBoxManager() {
   if (openChatBoxes.length === 0 || isMessengerPage) return null;
 
   return (
-    <>
+    /* hidden on mobile — use Messenger page instead */
+    <div className="hidden md:contents">
       {openChatBoxes.map((contact, index) => (
         <ChatBox key={contact.id} contact={contact} index={index} />
       ))}
-    </>
+    </div>
   );
 }
 

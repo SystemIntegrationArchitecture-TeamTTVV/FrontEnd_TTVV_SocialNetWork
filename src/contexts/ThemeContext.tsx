@@ -40,22 +40,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     const applyTheme = () => setTheme(newTheme);
 
-    /* ── View Transitions API: GPU-accelerated circular reveal ── */
+    /* ── Mobile: instant switch — no animation, no VT overhead ── */
+    const isMobile = window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches;
+    if (isMobile) {
+      applyTheme();
+      return;
+    }
+
+    /* ── Desktop: View Transitions API — circular reveal ── */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const startVT: StartVT | undefined = (document as any).startViewTransition?.bind(document);
 
     if (!startVT || !e) {
-      /* Fallback: CSS transition (browsers without VT support) */
+      /* Fallback: CSS fade for Firefox */
       const html = document.documentElement;
       html.setAttribute('data-theme-switching', 'true');
       applyTheme();
-      const t = setTimeout(() => html.removeAttribute('data-theme-switching'), 450);
+      const t = setTimeout(() => html.removeAttribute('data-theme-switching'), 350);
       return () => clearTimeout(t);
     }
 
     const x = e.clientX;
     const y = e.clientY;
-    /* Radius large enough to cover the farthest corner of the viewport */
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y),
@@ -73,8 +79,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         },
         {
           duration: 650,
-          easing: 'cubic-bezier(0.25, 1, 0.35, 1)', /* gentle spring ease-out */
+          easing: 'cubic-bezier(0.25, 1, 0.35, 1)',
           pseudoElement: '::view-transition-new(root)',
+          composite: 'replace',
         },
       );
     });

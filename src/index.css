@@ -61,20 +61,24 @@ body {
    VIEW TRANSITIONS API — circular ripple theme switch
    Chrome 111+  |  Edge 111+  |  Safari 18+
    Firefox: falls back to CSS transition above.
+   Mobile / touch: JS skips VT entirely — no CSS needed.
 ───────────────────────────────────────────────── */
-::view-transition-old(root),
-::view-transition-new(root) {
-  /* Disable the default cross-fade; we drive our own clip-path animation */
-  animation: none;
-  mix-blend-mode: normal;
-}
+@media (hover: hover) and (pointer: fine) {
+  /* Desktop only — disable default cross-fade; drive our own clip-path */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
 
-/* New theme slides in on top; old stays underneath */
-::view-transition-new(root) {
-  z-index: 9999;
-}
-::view-transition-old(root) {
-  z-index: 1;
+  /* New theme on top; hint GPU to prepare clip-path compositing */
+  ::view-transition-new(root) {
+    z-index: 9999;
+    will-change: clip-path;
+  }
+  ::view-transition-old(root) {
+    z-index: 1;
+  }
 }
 
 /* Better focus styles */

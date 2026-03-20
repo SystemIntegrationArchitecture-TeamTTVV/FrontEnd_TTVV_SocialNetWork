@@ -103,7 +103,7 @@ export default function AIChatWidget() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 flex items-center justify-center text-gray-800 transition-colors hover:bg-gray-50 active:scale-95 z-50"
+        className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 items-center justify-center text-gray-800 transition-colors hover:bg-gray-50 active:scale-95 z-50"
         title="Hỗ trợ"
         aria-label="Mở trợ lý"
       >
@@ -116,7 +116,7 @@ export default function AIChatWidget() {
     return (
       <button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 flex items-center justify-center text-gray-800 hover:bg-gray-50 transition-colors active:scale-95 z-50"
+        className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 items-center justify-center text-gray-800 hover:bg-gray-50 transition-colors active:scale-95 z-50"
         title="Mở hỗ trợ"
         aria-label="Mở lại trợ lý"
       >
@@ -126,7 +126,7 @@ export default function AIChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 w-[380px] h-[560px] bg-white rounded-2xl shadow-xl flex flex-col z-50 border border-gray-200 overflow-hidden">
+    <div className="hidden md:flex fixed bottom-6 left-6 w-[380px] h-[560px] bg-white rounded-2xl shadow-xl flex-col z-50 border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="bg-white text-gray-900 px-4 py-3 flex items-center justify-between border-b border-gray-200">
         <div className="flex items-center gap-3">
