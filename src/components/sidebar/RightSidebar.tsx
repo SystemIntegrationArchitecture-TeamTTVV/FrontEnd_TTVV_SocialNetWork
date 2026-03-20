@@ -151,7 +151,7 @@ export default function RightSidebar() {
   }, [allContacts, searchQuery]);
 
   return (
-    <aside className="hidden xl:flex xl:flex-col w-80 border-l border-gray-200 dark:border-[#22263a] bg-white dark:bg-[#13151f]">
+    <aside className="hidden xl:flex xl:flex-col w-80 border-l border-gray-200 dark:border-[#1e2130] bg-white dark:bg-[#13151f]">
       {/* Header */}
       <div className="px-5 py-4 bg-white dark:bg-[#13151f]">
         <h2 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-[#edf0fa] mb-3">
@@ -161,7 +161,7 @@ export default function RightSidebar() {
         {/* Search Bar */}
         <div className="relative">
           <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-[#6a7494]"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-[#5a6278]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -178,11 +178,11 @@ export default function RightSidebar() {
             placeholder="Tìm theo tên…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 h-10 rounded-full text-sm transition-all
-                       bg-gray-50 border border-gray-200/90 placeholder-gray-400 text-gray-900
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white
-                       dark:bg-[#1e2133] dark:border-[#2b2f45] dark:text-[#edf0fa] dark:placeholder-[#6a7494]
-                       dark:focus:bg-[#22263a] dark:focus:border-[#6366f1] dark:focus:ring-indigo-500/20"
+            className="w-full pl-10 pr-4 h-10 rounded-2xl text-sm transition-all
+                       bg-gray-100 border-none placeholder-gray-400 text-gray-900
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:bg-white
+                       dark:bg-[#1e2133] dark:border-none dark:text-[#edf0fa] dark:placeholder-[#5a6278]
+                       dark:focus:bg-[#22263a] dark:focus:ring-indigo-500/15"
           />
           {searchQuery && (
             <button
@@ -196,18 +196,16 @@ export default function RightSidebar() {
             </button>
           )}
         </div>
-
-        <div className="mt-4 -mx-5 border-t border-gray-200 dark:border-[#22263a]" />
       </div>
 
       {/* Contacts List */}
       <div className="flex-1 overflow-y-auto bg-white dark:bg-[#13151f]">
         {filteredContacts.length === 0 ? (
-          <div className="flex min-h-full items-center justify-center px-6 py-10">
+          <div className="flex items-start justify-center px-5 pt-8 pb-10">
             {searchQuery ? (
-              <div className="w-full max-w-63 rounded-2xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] p-6 text-center shadow-sm">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-gray-50 dark:bg-[#22263a] border border-gray-200 dark:border-[#2b2f45] flex items-center justify-center mb-4 shadow-sm">
-                  <svg className="w-8 h-8 text-gray-300 dark:text-[#4e5870]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-full rounded-[24px] bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-4">
+                  <svg className="w-7 h-7 text-gray-300 dark:text-[#4e5870]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -215,14 +213,14 @@ export default function RightSidebar() {
                 <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] mb-1">
                   Không có kết quả
                 </p>
-                <p className="text-xs text-gray-500 dark:text-[#7e89a6] leading-relaxed">
+                <p className="text-xs text-gray-400 dark:text-[#5a6278] leading-relaxed">
                   Thử từ khóa khác hoặc kiểm tra lại chính tả.
                 </p>
               </div>
             ) : (
-              <div className="w-full max-w-63 rounded-2xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] p-6 text-center shadow-sm">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-gray-50 dark:bg-[#22263a] border border-gray-200 dark:border-[#2b2f45] flex items-center justify-center mb-4 shadow-sm">
-                  <svg className="w-8 h-8 text-gray-300 dark:text-[#4e5870]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-full rounded-[24px] bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-4">
+                  <svg className="w-7 h-7 text-gray-300 dark:text-[#4e5870]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -230,7 +228,7 @@ export default function RightSidebar() {
                 <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] mb-1">
                   Chưa có cuộc trò chuyện
                 </p>
-                <p className="text-xs text-gray-500 dark:text-[#7e89a6] leading-relaxed">
+                <p className="text-xs text-gray-400 dark:text-[#5a6278] leading-relaxed">
                   Hãy bắt đầu nhắn tin để hiện danh sách liên hệ ở đây.
                 </p>
               </div>

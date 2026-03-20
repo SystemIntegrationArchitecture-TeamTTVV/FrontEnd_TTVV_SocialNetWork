@@ -706,7 +706,7 @@ export default function Newsfeed() {
           {currentUser ? (
             <Link
               to="/post/create"
-              className="flex-1 h-14 px-5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-transparent text-left flex items-center text-gray-500 hover:text-gray-800 cursor-pointer text-base font-medium transition-colors"
+              className="flex-1 h-14 px-5 rounded-2xl bg-gray-100 dark:bg-[#22263a] hover:bg-gray-200 dark:hover:bg-[#2b2f45] border border-transparent text-left flex items-center text-gray-500 dark:text-[#7e89a6] hover:text-gray-800 dark:hover:text-[#c8ccde] cursor-pointer text-base font-medium transition-colors"
             >
               {`Bạn muốn chia sẻ gì hôm nay, ${currentUser.fullName.split(' ')[0]}?`}
             </Link>
@@ -714,41 +714,41 @@ export default function Newsfeed() {
             <button
               type="button"
               onClick={requestLogin}
-              className="flex-1 h-14 px-5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-transparent text-left flex items-center text-gray-500 hover:text-gray-800 cursor-pointer text-base font-medium transition-colors"
+              className="flex-1 h-14 px-5 rounded-2xl bg-gray-100 dark:bg-[#22263a] hover:bg-gray-200 dark:hover:bg-[#2b2f45] border border-transparent text-left flex items-center text-gray-500 dark:text-[#7e89a6] hover:text-gray-800 dark:hover:text-[#c8ccde] cursor-pointer text-base font-medium transition-colors"
             >
               Đăng nhập để chia sẻ bài viết...
             </button>
           )}
         </div>
-        <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-100 dark:border-[#22263a]">
           {currentUser ? (
             <>
               <Link
                 to="/post/create"
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-green-50/70 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-green-50/70 dark:hover:bg-green-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50">
-                  <Image className="w-5 h-5 text-green-600" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15">
+                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 font-medium">Ảnh</span>
+                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Ảnh</span>
               </Link>
               <Link
                 to="/post/create"
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-amber-50/80 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-amber-50/80 dark:hover:bg-amber-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50">
-                  <Smile className="w-5 h-5 text-amber-500" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/15">
+                  <Smile className="w-5 h-5 text-amber-500 dark:text-amber-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 font-medium">Cảm xúc</span>
+                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Cảm xúc</span>
               </Link>
               <Link
                 to="/post/create"
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-rose-50/80 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50">
-                  <Activity className="w-5 h-5 text-rose-500" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/15">
+                  <Activity className="w-5 h-5 text-rose-500 dark:text-rose-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 font-medium">Hoạt động</span>
+                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Hoạt động</span>
               </Link>
             </>
           ) : (
@@ -756,32 +756,32 @@ export default function Newsfeed() {
               <button
                 type="button"
                 onClick={requestLogin}
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-green-50/70 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-green-50/70 dark:hover:bg-green-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50">
-                  <Image className="w-5 h-5 text-green-600" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15">
+                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 font-medium">Ảnh</span>
+                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Ảnh</span>
               </button>
               <button
                 type="button"
                 onClick={requestLogin}
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-amber-50/80 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-amber-50/80 dark:hover:bg-amber-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50">
-                  <Smile className="w-5 h-5 text-amber-500" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/15">
+                  <Smile className="w-5 h-5 text-amber-500 dark:text-amber-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 font-medium">Cảm xúc</span>
+                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Cảm xúc</span>
               </button>
               <button
                 type="button"
                 onClick={requestLogin}
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-rose-50/80 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50">
-                  <Activity className="w-5 h-5 text-rose-500" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/15">
+                  <Activity className="w-5 h-5 text-rose-500 dark:text-rose-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 font-medium">Hoạt động</span>
+                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Hoạt động</span>
               </button>
             </>
           )}
