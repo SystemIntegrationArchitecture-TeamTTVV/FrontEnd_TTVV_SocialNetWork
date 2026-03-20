@@ -45,9 +45,9 @@ export default function MainLayout() {
         
         {/* MAIN CONTENT */}
         <main className={`flex-1 h-full overflow-y-auto scrollbar-hide ${
-          isMessengerPage 
-            ? 'px-0 max-w-full' 
-            : 'px-4 sm:px-8 lg:px-10 py-6 sm:py-10'
+          isMessengerPage
+            ? 'px-0 max-w-full pb-16 md:pb-0'
+            : 'px-4 sm:px-8 lg:px-10 pt-6 sm:pt-10 pb-20 md:pb-10'
         }`}>
           <div className={isMessengerPage ? 'w-full' : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'}>
             <Outlet />

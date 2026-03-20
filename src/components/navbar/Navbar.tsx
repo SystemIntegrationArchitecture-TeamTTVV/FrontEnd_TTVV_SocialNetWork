@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon } from 'lucide-react';
+import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -26,9 +26,11 @@ export default function Navbar() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { subscribe } = useSocket();
   const { user: currentUser } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
   const requestLogin = () => showAuthRequiredPrompt(location.pathname);
 
   // Function to reload unread notification count
@@ -136,7 +138,10 @@ export default function Navbar() {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const inDesktop = searchRef.current?.contains(target);
+      const inMobile = mobileSearchRef.current?.contains(target);
+      if (!inDesktop && !inMobile) {
         setShowSuggestions(false);
       }
     };
@@ -154,273 +159,310 @@ export default function Navbar() {
     navigate(`/profile/${user.id}`);
   };
 
+  /* ── Shared avatar renderer ── */
+  const renderAvatar = (size: 'sm' | 'md') => {
+    const dim = size === 'sm' ? 'w-9 h-9' : 'w-11 h-11';
+    const text = size === 'sm' ? 'text-xs' : 'text-sm';
+    const icon = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+    if (currentUser?.avatar)
+      return <img src={currentUser.avatar} alt={currentUser.fullName} className={`${dim} rounded-full object-cover`} />;
+    if (currentUser?.fullName)
+      return (
+        <div className={`${dim} rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold ${text}`}>
+          {currentUser.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+        </div>
+      );
+    return (
+      <div className={`${dim} rounded-full bg-gray-200 dark:bg-[#1e2130] flex items-center justify-center`}>
+        <UserIcon className={`${icon} text-gray-600 dark:text-gray-400`} />
+      </div>
+    );
+  };
+
   return (
-    <nav className="fixed top-0 left-0 right-0 h-20 bg-white border-b-2 border-gray-300 z-50 shadow-md">
-      <div className="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between gap-4">
-        
-        {/* LEFT - Logo & Search */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <Link to="/home" className="flex items-center hover:opacity-80 transition-opacity">
-            <img 
-              src={logo} 
-              alt="TTVV" 
-              className="w-12 h-12 rounded-full object-cover shadow-sm"
-            />
-          </Link>
-          
-          <div className="hidden md:block relative" ref={searchRef}>
+    <>
+      {/* ═══════════════════════════════════════════════════════
+          TOP NAVBAR  (fixed, h-20 on all breakpoints)
+      ═══════════════════════════════════════════════════════ */}
+      <nav className="fixed top-0 left-0 right-0 h-20 bg-white dark:bg-[#12151f] border-b-2 border-gray-300 dark:border-[#1e2130] z-50 shadow-md">
+
+        {/* ── DESKTOP layout (md+) ── */}
+        <div className="hidden md:flex max-w-[1920px] mx-auto px-6 h-full items-center justify-between gap-4">
+
+          {/* LEFT - Logo & Search */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/home" className="flex items-center hover:opacity-80 transition-opacity">
+              <img src={logo} alt="TTVV" className="w-12 h-12 rounded-full object-cover shadow-sm" />
+            </Link>
+
+            <div className="hidden md:block relative" ref={searchRef}>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setSearchQuery(next);
+                    if (!next.trim()) { setSuggestions([]); setShowSuggestions(false); }
+                  }}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      navigate(`/find-people?q=${encodeURIComponent(searchQuery)}`);
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  placeholder={t('navbar.searchPlaceholder')}
+                  className="w-64 lg:w-80 h-11 pl-11 pr-4 rounded-full bg-gray-50 text-sm border border-gray-200 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-gray-500"
+                />
+              </div>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 z-9999 max-h-96 overflow-y-auto">
+                  <div className="py-2">
+                    {suggestions.map((user) => {
+                      const safeUsername = user.username ?? 'U';
+                      const userInitials = user.fullName
+                        ? user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+                        : safeUsername.charAt(0).toUpperCase();
+                      return (
+                        <button key={user.id} onClick={() => handleSuggestionClick(user)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
+                          {user.avatar
+                            ? <img src={user.avatar} alt={user.fullName} className="w-10 h-10 rounded-full object-cover" />
+                            : <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">{userInitials}</div>
+                          }
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-gray-900 truncate">{user.fullName || safeUsername}</p>
+                            <p className="text-xs text-gray-500 truncate">@{safeUsername}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CENTER - Nav Icons */}
+          <div className="flex items-center justify-center flex-1 max-w-2xl gap-2">
+            {[
+              { to: '/home', icon: Home },
+              { to: '/watch', icon: Video },
+              { to: '/marketplace', icon: Store },
+              { to: '/groups', icon: Users },
+            ].map(({ to, icon: Icon }) => (
+              <Link key={to} to={to}
+                className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
+                  isActive(to) ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1e2130]'
+                }`}
+              >
+                <Icon className={`w-[26px] h-[26px] ${isActive(to) ? 'fill-current' : ''}`} />
+                {isActive(to) && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] h-1 bg-blue-600 rounded-t" />
+                )}
+              </Link>
+            ))}
+          </div>
+
+          {/* RIGHT - Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+
+            {/* Theme toggle */}
+            <button
+              onClick={(e) => toggleTheme(e)}
+              aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+              title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+              className="relative w-14 h-8 rounded-full theme-toggle-track flex items-center px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              <span className="absolute left-1.5 flex items-center justify-center">
+                <Sun className="w-4 h-4 text-amber-600"
+                  style={{ opacity: isDark ? 0.35 : 1, transform: isDark ? 'scale(0.7) rotate(-30deg)' : 'scale(1) rotate(0deg)', transition: 'opacity 350ms ease, transform 350ms ease' }}
+                />
+              </span>
+              <span className="absolute right-1.5 flex items-center justify-center">
+                <Moon className="w-4 h-4 text-indigo-200"
+                  style={{ opacity: isDark ? 1 : 0.35, transform: isDark ? 'scale(1) rotate(0deg)' : 'scale(0.7) rotate(30deg)', transition: 'opacity 350ms ease, transform 350ms ease' }}
+                />
+              </span>
+              <span className="relative z-10 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center"
+                style={{ transform: isDark ? 'translateX(20px)' : 'translateX(0px)', transition: 'transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+              />
+            </button>
+
+            <button className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors">
+              <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
+
+            {currentUser ? (
+              <Link to="/messenger" className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative">
+                <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              </Link>
+            ) : (
+              <button type="button" onClick={requestLogin}
+                className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
+                title="Đăng nhập để dùng Messenger">
+                <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              </button>
+            )}
+
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <button
+                onClick={() => { if (!currentUser) { requestLogin(); return; } setIsNotificationOpen(!isNotificationOpen); }}
+                className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
+              >
+                <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+                {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
+                  <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-[#12151f]" />
+                )}
+              </button>
+              <NotificationDropdown isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} onNotificationRead={loadUnreadCount} />
+            </div>
+
+            <div className="relative">
+              <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="w-11 h-11 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all shadow-sm">
+                {renderAvatar('md')}
+              </button>
+              <UserDropdown isOpen={isUserMenuOpen} onClose={() => setIsUserMenuOpen(false)} user={currentUser} />
+            </div>
+          </div>
+        </div>
+
+        {/* ── MOBILE layout (< md) ── */}
+        <div className="flex md:hidden h-full items-center justify-between px-3">
+
+          {/* Logo + app name */}
+          <Link to="/home" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <img src={logo} alt="TTVV" className="w-9 h-9 rounded-full object-cover shadow-sm" />
+            <span className="font-bold text-[15px] text-gray-900 dark:text-white tracking-tight">TTVV</span>
+          </Link>
+
+          {/* Right action icons */}
+          <div className="flex items-center gap-1.5">
+
+            {/* Theme toggle — icon only on mobile */}
+            <button onClick={(e) => toggleTheme(e)}
+              aria-label={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+              className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors">
+              {isDark
+                ? <Sun className="w-[18px] h-[18px] text-amber-400" />
+                : <Moon className="w-[18px] h-[18px] text-gray-600" />
+              }
+            </button>
+
+            {/* Search toggle */}
+            <button onClick={() => setIsMobileSearchOpen(v => !v)}
+              className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors">
+              {isMobileSearchOpen
+                ? <X className="w-[18px] h-[18px] text-gray-700 dark:text-gray-300" />
+                : <Search className="w-[18px] h-[18px] text-gray-700 dark:text-gray-300" />
+              }
+            </button>
+
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => { if (!currentUser) { requestLogin(); return; } setIsNotificationOpen(!isNotificationOpen); }}
+                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative">
+                <Bell className="w-[18px] h-[18px] text-gray-700 dark:text-gray-300" />
+                {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#12151f]" />
+                )}
+              </button>
+              <NotificationDropdown isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} onNotificationRead={loadUnreadCount} />
+            </div>
+
+            {/* Avatar */}
+            <div className="relative">
+              <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="w-9 h-9 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 shadow-sm">
+                {renderAvatar('sm')}
+              </button>
+              <UserDropdown isOpen={isUserMenuOpen} onClose={() => setIsUserMenuOpen(false)} user={currentUser} />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile search overlay — slides down from below the top bar */}
+        {isMobileSearchOpen && (
+          <div ref={mobileSearchRef}
+            className="absolute top-full left-0 right-0 md:hidden bg-white dark:bg-[#12151f] border-b-2 border-gray-200 dark:border-[#1e2130] shadow-lg px-4 py-3 z-50">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
+                autoFocus
                 value={searchQuery}
                 onChange={(e) => {
-                  const next = e.target.value;
-                  setSearchQuery(next);
-                  if (!next.trim()) {
-                    setSuggestions([]);
-                    setShowSuggestions(false);
-                  }
+                  const v = e.target.value;
+                  setSearchQuery(v);
+                  if (!v.trim()) { setSuggestions([]); setShowSuggestions(false); }
                 }}
-                onFocus={() => {
-                  if (suggestions.length > 0) {
-                    setShowSuggestions(true);
-                  }
-                }}
-                onKeyPress={(e) => {
+                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && searchQuery.trim()) {
                     navigate(`/find-people?q=${encodeURIComponent(searchQuery)}`);
                     setShowSuggestions(false);
+                    setIsMobileSearchOpen(false);
                   }
                 }}
-                placeholder={t('navbar.searchPlaceholder')}
-                className="w-64 lg:w-80 h-11 pl-11 pr-4 rounded-full bg-gray-50 text-sm border border-gray-200 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-gray-500"
+                placeholder="Tìm kiếm người dùng..."
+                className="w-full h-10 pl-9 pr-4 rounded-full bg-gray-100 dark:bg-[#1e2130] text-sm border border-gray-200 dark:border-[#2b2f45] focus:outline-none focus:border-blue-500 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
-
-            {/* Search Suggestions */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 z-[9999] max-h-96 overflow-y-auto">
-                <div className="py-2">
-                  {suggestions.map((user) => {
-                    const safeUsername = user.username ?? 'U';
-                    const userInitials = user.fullName
-                      ? user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-                      : safeUsername.charAt(0).toUpperCase();
-
-                    return (
-                      <button
-                        key={user.id}
-                        onClick={() => handleSuggestionClick(user)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                      >
-                        {user.avatar ? (
-                          <img
-                            src={user.avatar}
-                            alt={user.fullName}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                            {userInitials}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-gray-900 truncate">
-                            {user.fullName || safeUsername}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">@{safeUsername}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="mt-2 bg-white dark:bg-[#1a1d28] rounded-xl shadow-xl border border-gray-100 dark:border-[#2b2f45] max-h-64 overflow-y-auto">
+                {suggestions.map((user) => {
+                  const safeUsername = user.username ?? 'U';
+                  const initials = user.fullName
+                    ? user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    : safeUsername.charAt(0).toUpperCase();
+                  return (
+                    <button key={user.id}
+                      onClick={() => { handleSuggestionClick(user); setIsMobileSearchOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#1e2130] text-left">
+                      {user.avatar
+                        ? <img src={user.avatar} alt={user.fullName} className="w-9 h-9 rounded-full object-cover" />
+                        : <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs">{initials}</div>
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{user.fullName || safeUsername}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{safeUsername}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
-        </div>
+        )}
+      </nav>
 
-        {/* CENTER - Nav Icons */}
-        <div className="flex items-center justify-center flex-1 max-w-2xl gap-2">
-          <Link
-            to="/home"
-            className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-              isActive('/home') 
-                ? 'text-blue-600' 
-                : 'text-gray-500 hover:bg-gray-50'
+      {/* ═══════════════════════════════════════════════════════
+          MOBILE BOTTOM NAVIGATION  (md:hidden, fixed bottom)
+      ═══════════════════════════════════════════════════════ */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden bg-white dark:bg-[#12151f] border-t-2 border-gray-200 dark:border-[#1e2130] flex items-stretch z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+        {[
+          { to: '/home',        icon: Home,          label: 'Trang chủ' },
+          { to: '/watch',       icon: Video,         label: 'Video'     },
+          { to: '/marketplace', icon: Store,         label: 'Chợ'       },
+          { to: '/groups',      icon: Users,         label: 'Nhóm'      },
+          { to: '/messenger',   icon: MessageCircle, label: 'Tin nhắn'  },
+        ].map(({ to, icon: Icon, label }) => (
+          <Link key={to} to={to}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 transition-colors ${
+              isActive(to)
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
-            <Home className={`w-[26px] h-[26px] ${isActive('/home') ? 'fill-current' : ''}`} />
-            {isActive('/home') && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] h-1 bg-blue-600 rounded-t"></div>
-            )}
+            <Icon className={`w-[22px] h-[22px] ${isActive(to) ? 'fill-current' : ''}`} />
+            <span className="text-[10px] font-medium leading-none">{label}</span>
           </Link>
-          
-          <Link
-            to="/watch"
-            className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-              isActive('/watch') 
-                ? 'text-blue-600' 
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            <Video className={`w-[26px] h-[26px] ${isActive('/watch') ? 'fill-current' : ''}`} />
-            {isActive('/watch') && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] h-1 bg-blue-600 rounded-t"></div>
-            )}
-          </Link>
-
-          <Link
-            to="/marketplace"
-            className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-              isActive('/marketplace') 
-                ? 'text-blue-600' 
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            <Store className={`w-[26px] h-[26px] ${isActive('/marketplace') ? 'fill-current' : ''}`} />
-            {isActive('/marketplace') && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] h-1 bg-blue-600 rounded-t"></div>
-            )}
-          </Link>
-
-          <Link
-            to="/groups"
-            className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-              isActive('/groups') 
-                ? 'text-blue-600' 
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            <Users className={`w-[26px] h-[26px] ${isActive('/groups') ? 'fill-current' : ''}`} />
-            {isActive('/groups') && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] h-1 bg-blue-600 rounded-t"></div>
-            )}
-          </Link>
-        </div>
-
-        {/* RIGHT - Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-
-          {/* ── Dark / Light theme toggle ── */}
-          <button
-            onClick={(e) => toggleTheme(e)}
-            aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
-            title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
-            className="relative w-14 h-8 rounded-full theme-toggle-track flex items-center px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          >
-            {/* Sun icon (light mode side) */}
-            <span
-              className="absolute left-1.5 flex items-center justify-center"
-              style={{ transition: 'opacity 300ms ease, transform 300ms ease' }}
-            >
-              <Sun
-                className="w-4 h-4 text-amber-600"
-                style={{
-                  opacity: isDark ? 0.35 : 1,
-                  transform: isDark ? 'scale(0.7) rotate(-30deg)' : 'scale(1) rotate(0deg)',
-                  transition: 'opacity 350ms ease, transform 350ms ease',
-                }}
-              />
-            </span>
-
-            {/* Moon icon (dark mode side) */}
-            <span className="absolute right-1.5 flex items-center justify-center">
-              <Moon
-                className="w-4 h-4 text-indigo-200"
-                style={{
-                  opacity: isDark ? 1 : 0.35,
-                  transform: isDark ? 'scale(1) rotate(0deg)' : 'scale(0.7) rotate(30deg)',
-                  transition: 'opacity 350ms ease, transform 350ms ease',
-                }}
-              />
-            </span>
-
-            {/* Sliding knob */}
-            <span
-              className="relative z-10 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center"
-              style={{
-                transform: isDark ? 'translateX(24px)' : 'translateX(0px)',
-                transition: 'transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-              }}
-            />
-          </button>
-
-          <button className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-            <Menu className="w-5 h-5 text-gray-700" />
-          </button>
-
-          {currentUser ? (
-            <Link
-              to="/messenger"
-              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-            >
-              <MessageCircle className="w-5 h-5 text-gray-700" />
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={requestLogin}
-              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-              title="Đăng nhập để dùng Messenger"
-            >
-              <MessageCircle className="w-5 h-5 text-gray-700" />
-            </button>
-          )}
-          
-          <div className="relative">
-            <button
-              onClick={() => {
-                if (!currentUser) {
-                  requestLogin();
-                  return;
-                }
-                setIsNotificationOpen(!isNotificationOpen);
-              }}
-              className="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors relative"
-              title={!currentUser ? 'Đăng nhập để xem thông báo' : undefined}
-            >
-              <Bell className="w-6 h-6 text-gray-700" />
-              {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
-                <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-              )}
-            </button>
-            <NotificationDropdown 
-              isOpen={isNotificationOpen} 
-              onClose={() => setIsNotificationOpen(false)}
-              onNotificationRead={loadUnreadCount}
-            />
-          </div>
-          
-          <div className="relative">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-11 h-11 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all shadow-sm"
-            >
-              {currentUser?.avatar ? (
-                <img 
-                  src={currentUser.avatar} 
-                  alt={currentUser.fullName}
-                  className="w-full h-full object-cover"
-                />
-              ) : currentUser?.fullName ? (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                  {currentUser.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </div>
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <UserIcon className="w-5 h-5 text-gray-700" />
-                </div>
-              )}
-            </button>
-            <UserDropdown 
-              isOpen={isUserMenuOpen} 
-              onClose={() => setIsUserMenuOpen(false)}
-              user={currentUser}
-            />
-          </div>
-        </div>
-      </div>
-    </nav>
+        ))}
+      </nav>
+    </>
   );
 }
