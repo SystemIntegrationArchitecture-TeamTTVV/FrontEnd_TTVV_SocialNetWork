@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import logo from '../../assets/logo-favicon.png';
+import logo from '../../assets/logo1.png';
 
 type AuthFrameProps = {
   brandHeading: string;

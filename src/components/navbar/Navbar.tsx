@@ -10,7 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { usersApi, type User } from '../../apis/users';
 import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
-import logo from '../../assets/logo-favicon.png';
+import logo from '../../assets/logo1.png';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
 export default function Navbar() {
