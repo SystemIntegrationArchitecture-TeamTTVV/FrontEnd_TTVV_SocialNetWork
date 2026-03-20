@@ -53,8 +53,8 @@ body {
 [data-theme-switching] *,
 [data-theme-switching] *::before,
 [data-theme-switching] *::after {
-  transition-duration: 260ms !important;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-duration: 420ms !important;
+  transition-timing-function: cubic-bezier(0.25, 1, 0.35, 1) !important;
 }
 
 /* ─────────────────────────────────────────────────

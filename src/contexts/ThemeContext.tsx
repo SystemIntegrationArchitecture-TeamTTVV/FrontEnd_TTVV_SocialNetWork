@@ -49,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const html = document.documentElement;
       html.setAttribute('data-theme-switching', 'true');
       applyTheme();
-      const t = setTimeout(() => html.removeAttribute('data-theme-switching'), 280);
+      const t = setTimeout(() => html.removeAttribute('data-theme-switching'), 450);
       return () => clearTimeout(t);
     }
 
@@ -72,8 +72,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           ],
         },
         {
-          duration: 420,
-          easing: 'cubic-bezier(0.22, 1, 0.36, 1)', /* spring-like ease-out */
+          duration: 650,
+          easing: 'cubic-bezier(0.25, 1, 0.35, 1)', /* gentle spring ease-out */
           pseudoElement: '::view-transition-new(root)',
         },
       );
