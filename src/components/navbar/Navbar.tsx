@@ -318,7 +318,7 @@ export default function Navbar() {
 
             <div className="relative">
               <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="w-11 h-11 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all shadow-sm">
+                className="w-12 h-12 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all shadow-sm flex items-center justify-center p-0">
                 {renderAvatar('md')}
               </button>
               <UserDropdown isOpen={isUserMenuOpen} onClose={() => setIsUserMenuOpen(false)} user={currentUser} />
@@ -373,7 +373,7 @@ export default function Navbar() {
             {/* Avatar */}
             <div className="relative">
               <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="w-9 h-9 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 shadow-sm">
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 shadow-sm flex items-center justify-center p-0">
                 {renderAvatar('sm')}
               </button>
               <UserDropdown isOpen={isUserMenuOpen} onClose={() => setIsUserMenuOpen(false)} user={currentUser} />
