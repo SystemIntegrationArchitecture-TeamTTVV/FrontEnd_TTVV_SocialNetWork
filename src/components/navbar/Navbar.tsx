@@ -10,7 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { usersApi, type User } from '../../apis/users';
 import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
-import logo from '../../assets/logo1.png';
+import logo from '../../assets/logo-favicon.png';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
 export default function Navbar() {
@@ -203,7 +203,7 @@ export default function Navbar() {
           {/* LEFT - Logo & Search */}
           <div className="flex items-center gap-3 shrink-0">
             <Link to="/home" className="flex items-center hover:opacity-80 transition-opacity">
-              <img src={logo} alt="TTVV" className="w-10 h-10 rounded-xl object-contain" />
+              <img src={logo} alt="TTVV" className="w-12 h-12 rounded-full object-cover shadow-sm" />
             </Link>
 
             <div className="hidden md:block relative" ref={searchRef}>
@@ -348,7 +348,7 @@ export default function Navbar() {
 
           {/* Logo + app name */}
           <Link to="/home" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src={logo} alt="TTVV" className="w-8 h-8 rounded-lg object-contain" />
+            <img src={logo} alt="TTVV" className="w-9 h-9 rounded-full object-cover shadow-sm" />
             <span className="font-bold text-[15px] text-gray-900 dark:text-white tracking-tight">TTVV</span>
           </Link>
 

@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import logo from '../../assets/logo1.png';
+import logo from '../../assets/logo-favicon.png';
 
 type AuthFrameProps = {
   brandHeading: string;
@@ -59,8 +59,8 @@ export default function AuthFrame({
       </button>
       <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div className="hidden lg:flex flex-col items-center justify-start text-center pt-4 min-h-155">
-          <div className="w-28 h-28 rounded-3xl flex items-center justify-center mb-8 overflow-hidden">
-            <img src={logo} alt="TTVV Logo" className="w-full h-full object-contain" />
+          <div className="w-32 h-32 rounded-3xl bg-white dark:bg-[#1a1d28] flex items-center justify-center mb-8 shadow-xl border border-gray-200/70 dark:border-[#2b2f45] overflow-hidden">
+            <img src={logo} alt="TTVV Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-6xl font-bold text-gray-900 dark:text-[#edf0fa] mb-6">{brandHeading}</h1>
           <p className="text-2xl text-gray-600 dark:text-[#7e89a6] leading-relaxed max-w-lg mb-8">{brandDescription}</p>
