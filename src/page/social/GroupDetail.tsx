@@ -139,7 +139,6 @@ export default function GroupDetail() {
 
   const gradient = getGradient(group.category);
   const isPending = myRole === "PENDING" || myStatus === "PENDING";
-  const isMember = !!myRole && !isPending;
   const isAdmin = myRole === "ADMIN";
 
   const tabList = [

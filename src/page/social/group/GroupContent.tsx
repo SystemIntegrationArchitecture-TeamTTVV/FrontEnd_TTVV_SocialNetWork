@@ -8,7 +8,7 @@ import { groupsApi } from "../../../apis/groupsApi";
 import { authApi } from "../../../apis/auth";
 import PostsTab from "./tabs/PostsTab";
 import { useEffect, useState } from "react";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock } from "lucide-react";
 
 interface Props {
   activeTab: string;
