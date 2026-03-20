@@ -4,6 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 html {
+  font-size: 16px;           /* pin cứng base, tránh production build scale khác local */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
