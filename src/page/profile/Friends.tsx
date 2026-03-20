@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Home, UserPlus, Lightbulb, Users, Calendar,
   MapPin, Check, X, Loader2, UserCheck, Undo2,
+  HandMetal, Handshake, UserRound, Cake, ListTodo,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../apis/auth';
@@ -211,10 +212,10 @@ export default function Friends() {
             {loadingRequests ? (
               <SkeletonGrid count={3} />
             ) : requests.length === 0 ? (
-              <EmptyState icon="👋" text="Không có lời mời kết bạn nào" />
+              <EmptyState icon={HandMetal} text="Không có lời mời kết bạn nào" />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {requests.map(req => {
+                {requests.map((req, i) => {
                   const name  = req.senderName || 'Người dùng';
                   const color = getAvatarColor(name);
                   return (
@@ -224,6 +225,7 @@ export default function Friends() {
                       avatar={req.senderAvatar}
                       color={color}
                       subtitle="Đã gửi lời mời kết bạn"
+                      index={i}
                       onNameClick={() => req.senderId && navigate(`/profile/${req.senderId}`)}
                     >
                       <button
@@ -257,10 +259,10 @@ export default function Friends() {
             {loadingSuggestions ? (
               <SkeletonGrid count={6} />
             ) : suggestions.length === 0 ? (
-              <EmptyState icon="🤝" text="Không có gợi ý nào" />
+              <EmptyState icon={Handshake} text="Không có gợi ý nào" />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {suggestions.map(user => {
+                {suggestions.map((user, i) => {
                   const name  = user.fullName || user.username || 'Người dùng';
                   const color = getAvatarColor(name);
                   const sent  = sentRequests.has(user.id!);
@@ -271,6 +273,7 @@ export default function Friends() {
                       avatar={user.avatar}
                       color={color}
                       subtitle={user.city || user.workPlace || undefined}
+                      index={i}
                       onNameClick={() => navigate(`/profile/${user.id}`)}
                     >
                       {sent ? (
@@ -316,10 +319,10 @@ export default function Friends() {
             {loadingFriends ? (
               <SkeletonGrid count={6} />
             ) : friends.length === 0 ? (
-              <EmptyState icon="👥" text="Chưa có bạn bè nào" />
+              <EmptyState icon={UserRound} text="Chưa có bạn bè nào" />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {friends.map(f => {
+                {friends.map((f, i) => {
                   const name  = f.name || 'Người dùng';
                   const color = getAvatarColor(name);
                   return (
@@ -329,6 +332,7 @@ export default function Friends() {
                       avatar={f.avatar}
                       color={color}
                       subtitle="Bạn bè"
+                      index={i}
                       onNameClick={() => navigate(`/profile/${f.id}`)}
                     >
                       <button
@@ -346,8 +350,8 @@ export default function Friends() {
           </section>
         )}
 
-        {activeTab === 'birthdays' && <EmptyState icon="🎂" text="Không có sinh nhật nào sắp tới" />}
-        {activeTab === 'custom'    && <EmptyState icon="📋" text="Chưa có danh sách tùy chỉnh" />}
+        {activeTab === 'birthdays' && <EmptyState icon={Cake} text="Không có sinh nhật nào sắp tới" />}
+        {activeTab === 'custom'    && <EmptyState icon={ListTodo} text="Chưa có danh sách tùy chỉnh" />}
 
       </main>
     </div>
@@ -364,13 +368,16 @@ interface PersonCardProps {
   children?: React.ReactNode;
 }
 
-function PersonCard({ name, avatar, color, subtitle, onNameClick, children }: PersonCardProps) {
+function PersonCard({ name, avatar, color, subtitle, onNameClick, children, index = 0 }: PersonCardProps & { index?: number }) {
   const r = parseInt(color.slice(1, 3), 16);
   const g = parseInt(color.slice(3, 5), 16);
   const b = parseInt(color.slice(5, 7), 16);
 
   return (
-    <div className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
+    <div
+      className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group animate-card-in"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
       {/* Banner */}
       <div
         className="h-[72px] relative"
@@ -435,32 +442,46 @@ function SectionHeader({ title, badge }: { title: string; badge?: string }) {
 /* ─── Skeleton ─── */
 function SkeletonGrid({ count }: { count: number }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] overflow-hidden shadow-sm">
-          <div className="h-[72px] bg-linear-to-r from-gray-100 to-gray-50 dark:from-[#22263a] dark:to-[#1e2133] animate-pulse" />
-          <div className="pt-9 px-4 pb-4 space-y-2">
-            <div className="h-3.5 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse w-2/3" />
-            <div className="h-2.5 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse w-1/2" />
-            <div className="pt-1 space-y-1.5">
-              <div className="h-9 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse" />
-              <div className="h-9 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse opacity-60" />
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-center gap-3 py-4">
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 rounded-full border-[2.5px] border-gray-200 dark:border-[#2b2f45]" />
+          <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-blue-500 animate-spin" />
+        </div>
+        <span className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">Đang tải...</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: count }).map((_, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] overflow-hidden shadow-sm"
+            style={{ animationDelay: `${i * 80}ms` }}
+          >
+            <div className="h-[72px] bg-linear-to-r from-gray-100 via-gray-50 to-gray-100 dark:from-[#22263a] dark:via-[#1e2133] dark:to-[#22263a] animate-shimmer bg-size-[200%_100%]" />
+            <div className="pt-9 px-4 pb-4 space-y-2">
+              <div className="h-3.5 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse w-2/3" />
+              <div className="h-2.5 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse w-1/2" />
+              <div className="pt-1 space-y-1.5">
+                <div className="h-9 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse" />
+                <div className="h-9 bg-gray-100 dark:bg-[#22263a] rounded-lg animate-pulse opacity-60" />
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
 /* ─── Empty State ─── */
-function EmptyState({ icon, text }: { icon: string; text: string }) {
+function EmptyState({ icon: Icon, text }: { icon: React.ComponentType<{ className?: string }>; text: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20">
+    <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
       <div className="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-[#1a1d28] flex items-center justify-center mb-4 shadow-sm">
-        <span className="text-4xl">{icon}</span>
+        <Icon className="w-9 h-9 text-gray-300 dark:text-[#4a5270]" />
       </div>
       <p className="text-gray-500 dark:text-[#7e89a6] font-medium text-sm">{text}</p>
     </div>
   );
 }
+

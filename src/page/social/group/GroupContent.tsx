@@ -8,6 +8,7 @@ import { groupsApi } from "../../../apis/groupsApi";
 import { authApi } from "../../../apis/auth";
 import PostsTab from "./tabs/PostsTab";
 import { useEffect, useState } from "react";
+import { Lock, Loader2 } from "lucide-react";
 
 interface Props {
   activeTab: string;
@@ -45,8 +46,12 @@ export default function GroupContent({ activeTab, group }: Props) {
   /* ---------------- Loading ---------------- */
   if (isMember === null) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-10 text-center">
-        Đang kiểm tra quyền truy cập...
+      <div className="bg-white dark:bg-[#1a1d28] rounded-2xl shadow-sm border border-gray-100 dark:border-[#22263a] p-10 flex flex-col items-center justify-center gap-3 animate-fade-in">
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 rounded-full border-[2.5px] border-gray-200 dark:border-[#2b2f45]" />
+          <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-blue-500 animate-spin" />
+        </div>
+        <p className="text-sm text-gray-400 dark:text-[#7e89a6]">Đang kiểm tra quyền truy cập...</p>
       </div>
     );
   }
@@ -57,12 +62,14 @@ export default function GroupContent({ activeTab, group }: Props) {
 
 if (!canView && activeTab !== "about") {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-10 text-center">
-      <div className="text-4xl mb-3">🔒</div>
-      <h3 className="text-lg font-bold mb-2">
+    <div className="bg-white dark:bg-[#1a1d28] rounded-2xl shadow-sm border border-gray-100 dark:border-[#22263a] p-10 flex flex-col items-center animate-fade-in">
+      <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-4">
+        <Lock className="w-6 h-6 text-gray-300 dark:text-[#4e5870]" />
+      </div>
+      <h3 className="text-base font-bold text-gray-900 dark:text-[#edf0fa] mb-1">
         {group.privacy === "PUBLIC" ? "Nhóm công khai" : "Bạn chưa tham gia nhóm"}
       </h3>
-      <p className="text-gray-500">
+      <p className="text-sm text-gray-400 dark:text-[#7e89a6]">
         {group.privacy === "PUBLIC"
           ? "Bạn có thể xem bài viết công khai của nhóm"
           : "Hãy tham gia nhóm để xem nội dung và thảo luận"}

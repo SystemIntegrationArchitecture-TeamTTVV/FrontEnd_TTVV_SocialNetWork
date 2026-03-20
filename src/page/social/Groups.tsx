@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Settings, Users, Compass, Crown } from "lucide-react";
+import { Search, Plus, Settings, Users, Compass, Crown, SearchX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { authApi } from "../../apis/auth";
@@ -16,22 +16,13 @@ import {
 import CreateGroupModal from "../social/group/CreateGroupModal";
 import GroupManageModal from "../social/group/GroupManageModal";
 
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; gradient: string }> = {
-  travel:      { bg: "#fff7ed", text: "#f97316", gradient: "linear-gradient(135deg,#fb923c,#f97316)" },
-  photography: { bg: "#fdf4ff", text: "#a855f7", gradient: "linear-gradient(135deg,#c084fc,#a855f7)" },
-  gaming:      { bg: "#eff6ff", text: "#3b82f6", gradient: "linear-gradient(135deg,#60a5fa,#3b82f6)" },
-  book:        { bg: "#f0fdf4", text: "#22c55e", gradient: "linear-gradient(135deg,#4ade80,#22c55e)" },
-  food:        { bg: "#fff1f2", text: "#f43f5e", gradient: "linear-gradient(135deg,#fb7185,#f43f5e)" },
-  default:     { bg: "#f5f3ff", text: "#6c63ff", gradient: "linear-gradient(135deg,#818cf8,#6c63ff)" },
-};
-
-const CATEGORY_STYLES_DARK: Record<string, { bg: string; text: string; gradient: string }> = {
-  travel:      { bg: "rgba(249,115,22,0.15)",  text: "#fb923c", gradient: "linear-gradient(135deg,#fb923c,#f97316)" },
-  photography: { bg: "rgba(168,85,247,0.15)",  text: "#c084fc", gradient: "linear-gradient(135deg,#c084fc,#a855f7)" },
-  gaming:      { bg: "rgba(59,130,246,0.15)",  text: "#60a5fa", gradient: "linear-gradient(135deg,#60a5fa,#3b82f6)" },
-  book:        { bg: "rgba(34,197,94,0.15)",   text: "#4ade80", gradient: "linear-gradient(135deg,#4ade80,#22c55e)" },
-  food:        { bg: "rgba(244,63,94,0.15)",   text: "#fb7185", gradient: "linear-gradient(135deg,#fb7185,#f43f5e)" },
-  default:     { bg: "rgba(129,140,248,0.15)", text: "#818cf8", gradient: "linear-gradient(135deg,#818cf8,#6c63ff)" },
+const CATEGORY_COLORS: Record<string, { from: string; to: string; bg: string; bgDark: string; text: string; textDark: string }> = {
+  travel:      { from: "#fb923c", to: "#f97316", bg: "#fff7ed",                   bgDark: "rgba(249,115,22,0.15)",  text: "#f97316", textDark: "#fb923c" },
+  photography: { from: "#c084fc", to: "#a855f7", bg: "#fdf4ff",                   bgDark: "rgba(168,85,247,0.15)",  text: "#a855f7", textDark: "#c084fc" },
+  gaming:      { from: "#60a5fa", to: "#3b82f6", bg: "#eff6ff",                   bgDark: "rgba(59,130,246,0.15)",  text: "#3b82f6", textDark: "#60a5fa" },
+  book:        { from: "#4ade80", to: "#22c55e", bg: "#f0fdf4",                   bgDark: "rgba(34,197,94,0.15)",   text: "#22c55e", textDark: "#4ade80" },
+  food:        { from: "#fb7185", to: "#f43f5e", bg: "#fff1f2",                   bgDark: "rgba(244,63,94,0.15)",   text: "#f43f5e", textDark: "#fb7185" },
+  default:     { from: "#60a5fa", to: "#3b82f6", bg: "#eff6ff",                   bgDark: "rgba(59,130,246,0.15)",  text: "#3b82f6", textDark: "#60a5fa" },
 };
 
 export default function Groups() {
@@ -47,7 +38,7 @@ export default function Groups() {
   const [selectedGroup, setSelectedGroup] = useState<GroupData | null>(null);
   const [isLoading, setIsLoading]         = useState(true);
   const [isSearching, setIsSearching]     = useState(false);
-  const [gridKey, setGridKey]             = useState(0); // triggers re-animation
+  const [gridKey, setGridKey]             = useState(0);
 
   const [currentUser] = useState(() => authApi.getCurrentUser());
   const userId = currentUser?.id;
@@ -103,24 +94,23 @@ export default function Groups() {
 
   const getAvatarIcon = (category?: string) => {
     switch (category) {
-      case "travel":      return <PlaneIcon className="w-7 h-7" />;
-      case "photography": return <CameraIcon className="w-7 h-7" />;
-      case "gaming":      return <GamepadIcon className="w-7 h-7" />;
-      case "book":        return <BookIcon className="w-7 h-7" />;
-      case "food":        return <ChefHatIcon className="w-7 h-7" />;
-      default:            return <PlaneIcon className="w-7 h-7" />;
+      case "travel":      return <PlaneIcon className="w-6 h-6" />;
+      case "photography": return <CameraIcon className="w-6 h-6" />;
+      case "gaming":      return <GamepadIcon className="w-6 h-6" />;
+      case "book":        return <BookIcon className="w-6 h-6" />;
+      case "food":        return <ChefHatIcon className="w-6 h-6" />;
+      default:            return <PlaneIcon className="w-6 h-6" />;
     }
   };
 
-  const getStyle = (category?: string) => {
-    const map = isDark ? CATEGORY_STYLES_DARK : CATEGORY_STYLES;
-    return map[category ?? "default"] ?? map.default;
+  const getColors = (category?: string) => {
+    return CATEGORY_COLORS[category ?? "default"] ?? CATEGORY_COLORS.default;
   };
 
   const tabs = [
-    { id: "your",     label: "Your Groups", icon: Crown,   count: yourGroups.length },
-    { id: "joined",   label: "Joined",      icon: Users,   count: joinedGroups.length },
-    { id: "discover", label: "Discover",    icon: Compass, count: discoverGroups.length },
+    { id: "your",     label: "Nhóm của bạn", icon: Crown,   count: yourGroups.length },
+    { id: "joined",   label: "Đã tham gia",  icon: Users,   count: joinedGroups.length },
+    { id: "discover", label: "Khám phá",     icon: Compass, count: discoverGroups.length },
   ] as const;
 
   const displayGroups: GroupData[] =
@@ -129,468 +119,150 @@ export default function Groups() {
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+      <div className="max-w-[1100px] mx-auto px-6 py-8">
 
-        .gp-wrap {
-          font-family: 'DM Sans', sans-serif;
-          max-width: 1100px;
-          margin: 0 auto;
-          padding: 36px 28px;
-        }
-
-        /* ── Top bar ── */
-        .gp-topbar {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          margin-bottom: 32px;
-          gap: 16px;
-        }
-
-        .gp-heading {
-          font-size: 28px; font-weight: 700;
-          color: #0f0f1a; letter-spacing: -0.5px; margin: 0;
-        }
-
-        .gp-heading span {
-          background: linear-gradient(135deg, #6c63ff, #a78bfa);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .gp-subtext {
-          font-size: 13.5px; color: #9b9bae; margin: 4px 0 0;
-        }
-
-        .gp-create-btn {
-          display: flex; align-items: center; gap: 8px;
-          padding: 10px 20px;
-          border: none; border-radius: 12px;
-          background: linear-gradient(135deg, #6c63ff, #8b82ff);
-          color: #fff;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px; font-weight: 600;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(108,99,255,0.35);
-          transition: all 0.2s;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-        .gp-create-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(108,99,255,0.45);
-        }
-
-        /* ── Tabs ── */
-        .gp-tabs {
-          display: flex; gap: 6px;
-          background: #f4f4f9;
-          border-radius: 16px;
-          padding: 6px;
-          margin-bottom: 24px;
-        }
-
-        .gp-tab {
-          flex: 1; display: flex; align-items: center; justify-content: center;
-          gap: 7px;
-          height: 42px;
-          border-radius: 11px;
-          border: none; background: transparent;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 13.5px; font-weight: 500;
-          color: #6b6b80;
-          cursor: pointer;
-          transition: all 0.18s;
-        }
-        .gp-tab:hover { background: #ececf5; color: #0f0f1a; }
-        .gp-tab.active {
-          background: #fff;
-          color: #6c63ff;
-          font-weight: 600;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
-
-        .gp-tab-icon { width: 15px; height: 15px; }
-
-        .gp-tab-count {
-          font-size: 11px; font-weight: 600;
-          padding: 1px 7px; border-radius: 20px;
-          background: #6c63ff18; color: #6c63ff;
-        }
-
-        .gp-tab:not(.active) .gp-tab-count {
-          background: #0f0f1a12; color: #6b6b80;
-        }
-
-        /* ── Search ── */
-        .gp-search-wrap {
-          position: relative; margin-bottom: 28px;
-        }
-
-        .gp-search-icon {
-          position: absolute; left: 14px; top: 50%;
-          transform: translateY(-50%);
-          width: 16px; height: 16px; color: #c4c4d0;
-          pointer-events: none;
-        }
-
-        .gp-search {
-          width: 100%; height: 44px;
-          padding: 0 16px 0 42px;
-          border: 1.5px solid #e8e8f0;
-          border-radius: 12px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px; color: #0f0f1a;
-          background: #fafafa;
-          outline: none;
-          transition: all 0.2s;
-          box-sizing: border-box;
-        }
-        .gp-search::placeholder { color: #c4c4d0; }
-        .gp-search:focus {
-          border-color: #6c63ff; background: #fff;
-          box-shadow: 0 0 0 4px rgba(108,99,255,0.1);
-        }
-
-        /* ── Grid ── */
-        .gp-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 16px;
-        }
-
-        /* ── Card ── */
-        .gp-card {
-          background: #fff;
-          border-radius: 18px;
-          border: 1.5px solid #ececf4;
-          padding: 24px 20px 20px;
-          cursor: pointer;
-          position: relative;
-          transition: all 0.2s;
-          display: flex; flex-direction: column; align-items: center;
-        }
-        .gp-card:hover {
-          border-color: #d8d4ff;
-          box-shadow: 0 8px 32px rgba(108,99,255,0.12);
-          transform: translateY(-2px);
-        }
-
-        .gp-card-manage {
-          position: absolute; top: 12px; right: 12px;
-          width: 30px; height: 30px;
-          border-radius: 8px; border: 1.5px solid #ececf4;
-          background: #fafafa; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          color: #9b9bae;
-          transition: all 0.15s;
-        }
-        .gp-card-manage:hover {
-          background: #f0f0f8; border-color: #d8d4ff; color: #6c63ff;
-        }
-
-        .gp-card-avatar {
-          width: 64px; height: 64px;
-          border-radius: 18px;
-          display: flex; align-items: center; justify-content: center;
-          margin-bottom: 14px;
-          transition: transform 0.2s;
-        }
-        .gp-card:hover .gp-card-avatar { transform: scale(1.08); }
-
-        .gp-card-name {
-          font-size: 15px; font-weight: 600;
-          color: #0f0f1a; text-align: center;
-          margin: 0 0 5px;
-          letter-spacing: -0.2px;
-        }
-
-        .gp-card-meta {
-          font-size: 12.5px; color: #9b9bae;
-          text-align: center; margin: 0 0 16px;
-        }
-
-        .gp-card-pill {
-          font-size: 11px; font-weight: 600;
-          letter-spacing: 0.3px;
-          padding: 3px 10px; border-radius: 20px;
-          text-transform: capitalize;
-        }
-
-        /* ── Empty state ── */
-        .gp-empty {
-          grid-column: 1 / -1;
-          text-align: center;
-          padding: 48px 0;
-          color: #c4c4d0;
-          font-size: 14px;
-        }
-        .gp-empty-icon {
-          font-size: 36px; margin-bottom: 10px;
-        }
-
-        /* ── Dark mode overrides ── */
-        html.dark .gp-heading          { color: #edf0fa; }
-        html.dark .gp-subtext          { color: #7e89a6; }
-
-        html.dark .gp-create-btn {
-          background: linear-gradient(135deg, #4f46e5, #6366f1);
-          box-shadow: 0 4px 14px rgba(99,102,241,0.4);
-        }
-
-        html.dark .gp-tabs             { background: #1a1d28; }
-        html.dark .gp-tab              { color: #9aa3bc; }
-        html.dark .gp-tab:hover        { background: #22263a; color: #edf0fa; }
-        html.dark .gp-tab.active {
-          background: #242838;
-          color: #818cf8;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.35);
-        }
-        html.dark .gp-tab-count        { background: rgba(129,140,248,0.15); color: #818cf8; }
-        html.dark .gp-tab:not(.active) .gp-tab-count { background: rgba(255,255,255,0.06); color: #6a7494; }
-
-        html.dark .gp-search {
-          background: #1e2133;
-          border-color: #2b2f45;
-          color: #edf0fa;
-        }
-        html.dark .gp-search::placeholder { color: #4e5870; }
-        html.dark .gp-search:focus {
-          border-color: #6366f1;
-          background: #22263a;
-          box-shadow: 0 0 0 4px rgba(99,102,241,0.15);
-        }
-        html.dark .gp-search-icon      { color: #4e5870; }
-
-        html.dark .gp-card {
-          background: #1a1d28;
-          border-color: #2b2f45;
-        }
-        html.dark .gp-card:hover {
-          border-color: #6366f1;
-          box-shadow: 0 8px 32px rgba(99,102,241,0.18);
-        }
-        html.dark .gp-card-manage {
-          background: #22263a;
-          border-color: #2b2f45;
-          color: #6a7494;
-        }
-        html.dark .gp-card-manage:hover {
-          background: #252940;
-          border-color: #6366f1;
-          color: #818cf8;
-        }
-        html.dark .gp-card-name        { color: #edf0fa; }
-        html.dark .gp-card-meta        { color: #6a7494; }
-        html.dark .gp-empty            { color: #4e5870; }
-        /* ── Animations ── */
-
-        @keyframes gp-card-in {
-          from { opacity: 0; transform: translateY(18px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0)   scale(1);    }
-        }
-
-        @keyframes gp-shimmer {
-          0%   { background-position: -600px 0; }
-          100% { background-position:  600px 0; }
-        }
-
-        @keyframes gp-fade-in {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-
-        .gp-card-animate {
-          animation: gp-card-in 0.38s cubic-bezier(0.34, 1.4, 0.64, 1) both;
-        }
-
-        /* Press / click feedback */
-        .gp-card:active {
-          transform: scale(0.96) translateY(0) !important;
-          transition: transform 0.08s ease !important;
-        }
-
-        /* ── Skeleton ── */
-        .gp-skeleton-card {
-          background: #fff;
-          border-radius: 18px;
-          border: 1.5px solid #ececf4;
-          padding: 24px 20px 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          animation: gp-fade-in 0.3s ease both;
-        }
-
-        .gp-shimmer {
-          background: linear-gradient(90deg,
-            #f0f0f5 25%,
-            #e4e4ec 50%,
-            #f0f0f5 75%
-          );
-          background-size: 800px 100%;
-          animation: gp-shimmer 1.4s ease-in-out infinite;
-          border-radius: 8px;
-        }
-
-        .gp-skeleton-avatar {
-          width: 64px; height: 64px;
-          border-radius: 18px;
-          margin-bottom: 4px;
-        }
-
-        .gp-skeleton-line {
-          height: 12px;
-          width: 80%;
-        }
-        .gp-skeleton-line.short {
-          width: 50%; height: 10px;
-        }
-        .gp-skeleton-pill {
-          height: 22px; width: 60px;
-          border-radius: 20px; margin-top: 4px;
-        }
-
-        /* Dark skeleton */
-        html.dark .gp-skeleton-card {
-          background: #1a1d28;
-          border-color: #2b2f45;
-        }
-        html.dark .gp-shimmer {
-          background: linear-gradient(90deg,
-            #22263a 25%,
-            #2b2f45 50%,
-            #22263a 75%
-          );
-          background-size: 800px 100%;
-        }
-
-        /* Search spinner */
-        @keyframes gp-spin {
-          to { transform: rotate(360deg); }
-        }
-        .gp-search-spinner {
-          position: absolute; right: 14px; top: 50%;
-          transform: translateY(-50%);
-          width: 16px; height: 16px;
-          border: 2px solid #e0e0f0;
-          border-top-color: #6c63ff;
-          border-radius: 50%;
-          animation: gp-spin 0.7s linear infinite;
-        }
-        html.dark .gp-search-spinner {
-          border-color: #2b2f45;
-          border-top-color: #818cf8;
-        }
-      `}</style>
-
-      <div className="gp-wrap">
-
-        {/* Top bar */}
-        <div className="gp-topbar">
+        {/* Header */}
+        <div className="flex items-end justify-between mb-7 gap-4">
           <div>
-            <h1 className="gp-heading">Your <span>Groups</span></h1>
-            <p className="gp-subtext">Connect and share with people who matter</p>
+            <h1 className="text-[22px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">
+              Nhóm
+            </h1>
+            <p className="text-sm text-gray-400 dark:text-[#7e89a6] mt-0.5">
+              Kết nối và chia sẻ cùng cộng đồng
+            </p>
           </div>
-          <button className="gp-create-btn" onClick={() => setShowCreateModal(true)}>
-            <Plus size={16} />
-            Create Group
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-[0.97] text-white text-sm font-semibold shadow-sm transition-all shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo nhóm
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="gp-tabs">
+        <div className="flex gap-1 bg-gray-100 dark:bg-[#1a1d28] rounded-2xl p-1.5 mb-6">
           {tabs.map(tab => {
             const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                className={`gp-tab ${activeTab === tab.id ? "active" : ""}`}
                 onClick={() => handleTabChange(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-white dark:bg-[#242838] text-blue-600 dark:text-blue-400 font-semibold shadow-sm"
+                    : "text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-gray-50 dark:hover:bg-[#22263a]"
+                }`}
               >
-                <Icon className="gp-tab-icon" />
-                {tab.label}
-                <span className="gp-tab-count">{tab.count}</span>
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  isActive
+                    ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                    : "bg-gray-200/60 dark:bg-[rgba(255,255,255,0.06)] text-gray-400 dark:text-[#6a7494]"
+                }`}>
+                  {tab.count}
+                </span>
               </button>
             );
           })}
         </div>
 
         {/* Search */}
-        <div className="gp-search-wrap">
-          <Search className="gp-search-icon" />
+        <div className="relative mb-7">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 dark:text-[#4e5870] pointer-events-none" />
           <input
-            className="gp-search"
             value={searchText}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search groups by name…"
+            placeholder="Tìm kiếm nhóm..."
+            className="w-full h-11 pl-10 pr-10 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#1e2133] text-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-300 dark:placeholder:text-[#4e5870] outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/15 focus:bg-white dark:focus:bg-[#22263a] transition-all"
           />
-          {isSearching && <span className="gp-search-spinner" />}
+          {isSearching && (
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4">
+              <div className="w-full h-full rounded-full border-2 border-gray-200 dark:border-[#2b2f45] border-t-blue-500 dark:border-t-blue-400 animate-spin" />
+            </div>
+          )}
         </div>
 
         {/* Grid */}
-        <div className="gp-grid" key={gridKey}>
+        <div
+          key={gridKey}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        >
 
-          {/* ── Skeleton loading ── */}
-          {isLoading && Array.from({ length: 6 }).map((_, i) => (
+          {/* Loading skeleton */}
+          {isLoading && Array.from({ length: 8 }).map((_, i) => (
             <div
-              key={i}
-              className="gp-skeleton-card"
+              key={`sk-${i}`}
+              className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] p-5 flex flex-col items-center animate-fade-in"
               style={{ animationDelay: `${i * 60}ms` }}
             >
-              <div className="gp-shimmer gp-skeleton-avatar" />
-              <div className="gp-shimmer gp-skeleton-line" />
-              <div className="gp-shimmer gp-skeleton-line short" />
-              <div className="gp-shimmer gp-skeleton-pill" />
+              <div className="w-14 h-14 rounded-2xl bg-linear-to-r from-gray-100 via-gray-50 to-gray-100 dark:from-[#22263a] dark:via-[#2b2f45] dark:to-[#22263a] animate-shimmer bg-size-[200%_100%] mb-3" />
+              <div className="h-3 w-3/4 rounded-md bg-gray-100 dark:bg-[#22263a] animate-pulse mb-2" />
+              <div className="h-2.5 w-1/2 rounded-md bg-gray-100 dark:bg-[#22263a] animate-pulse mb-3" />
+              <div className="h-6 w-16 rounded-full bg-gray-100 dark:bg-[#22263a] animate-pulse" />
             </div>
           ))}
 
-          {/* ── Empty state ── */}
+          {/* Empty */}
           {!isLoading && displayGroups.length === 0 && (
-            <div className="gp-empty">
-              <div className="gp-empty-icon">🔍</div>
-              No groups found
+            <div className="col-span-full flex flex-col items-center justify-center py-16 animate-fade-in">
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-[#1a1d28] flex items-center justify-center mb-4">
+                <SearchX className="w-7 h-7 text-gray-300 dark:text-[#4a5270]" />
+              </div>
+              <p className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">Không tìm thấy nhóm nào</p>
             </div>
           )}
 
-          {/* ── Group cards with staggered entry ── */}
+          {/* Group cards */}
           {!isLoading && displayGroups.map((group, index) => {
             const isOwner = group.adminId === userId;
-            const style = getStyle(group.category);
+            const colors = getColors(group.category);
+            const pillBg = isDark ? colors.bgDark : colors.bg;
+            const pillText = isDark ? colors.textDark : colors.text;
 
             return (
               <div
                 key={group.id}
-                className="gp-card gp-card-animate"
-                style={{ animationDelay: `${Math.min(index * 55, 400)}ms` }}
+                className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] p-5 flex flex-col items-center relative cursor-pointer group hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 animate-card-in"
+                style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
                 onClick={() => navigate(`/groups/${group.id}`)}
               >
+                {/* Manage button */}
                 {isOwner && (
                   <button
-                    className="gp-card-manage"
+                    className="absolute top-3 right-3 w-8 h-8 rounded-lg border border-gray-100 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#22263a] flex items-center justify-center text-gray-400 dark:text-[#6a7494] hover:border-blue-300 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
                     onClick={(e) => { e.stopPropagation(); setSelectedGroup(group); }}
-                    title="Manage group"
+                    title="Quản lý nhóm"
                   >
-                    <Settings size={13} />
+                    <Settings className="w-3.5 h-3.5" />
                   </button>
                 )}
 
+                {/* Avatar */}
                 <div
-                  className="gp-card-avatar"
-                  style={{ background: style.gradient, color: "#fff" }}
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-3 group-hover:scale-105 transition-transform duration-200"
+                  style={{ background: `linear-gradient(135deg, ${colors.from}, ${colors.to})` }}
                 >
                   {getAvatarIcon(group.category)}
                 </div>
 
-                <p className="gp-card-name">{group.name}</p>
-                <p className="gp-card-meta">{group.memberCount ?? 0} members</p>
+                {/* Name */}
+                <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] text-center truncate w-full mb-1">
+                  {group.name}
+                </p>
 
+                {/* Member count */}
+                <p className="text-xs text-gray-400 dark:text-[#6a7494] mb-3">
+                  {group.memberCount ?? 0} thành viên
+                </p>
+
+                {/* Category pill */}
                 {group.category && (
                   <span
-                    className="gp-card-pill"
-                    style={{ background: style.bg, color: style.text }}
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize"
+                    style={{ background: pillBg, color: pillText }}
                   >
                     {group.category}
                   </span>

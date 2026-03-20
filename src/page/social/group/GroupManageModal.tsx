@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { groupsApi, type GroupData } from "../../../apis/groupsApi";
-import { Trash2, Users, Edit3, Settings, ChevronRight, Check, X, UserMinus, Shield, Clock, CheckCircle, XCircle, Lock, Globe } from "lucide-react";
-import { authApi } from '../../../apis/auth';
+import {
+  Trash2, Users, Edit3, Settings, ChevronRight, Check, X,
+  UserMinus, Shield, Clock, CheckCircle, XCircle, Lock, Globe, Loader2,
+} from "lucide-react";
+import { authApi } from "../../../apis/auth";
 
 interface Props {
   group: GroupData;
@@ -120,7 +123,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
   };
 
   const handleDeleteGroup = async () => {
-    const confirm = window.confirm("Are you sure you want to delete this group?");
+    const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
     if (!confirm) return;
     try {
       await groupsApi.deleteGroup(group.id!);
@@ -135,7 +138,6 @@ export default function GroupManageModal({ group, onClose }: Props) {
       setProcessingIds((prev) => new Set(prev).add(userId));
       await groupsApi.approveMember(group.id!, userId);
       setPendingMembers((prev) => prev.filter((m) => m.userId !== userId));
-      // Reload members list to reflect new approved member
       loadMembers();
     } catch (error) {
       console.error(error);
@@ -165,575 +167,359 @@ export default function GroupManageModal({ group, onClose }: Props) {
   };
 
   const tabs = [
-    { id: "members" as Tab, label: "Members", icon: Users, count: members.length },
-    { id: "pending" as Tab, label: "Pending", icon: Clock, count: pendingMembers.length },
-    { id: "settings" as Tab, label: "Settings", icon: Settings, count: null },
+    { id: "members" as Tab, label: "Thành viên", icon: Users, count: members.length },
+    { id: "pending" as Tab, label: "Chờ duyệt", icon: Clock, count: pendingMembers.length },
+    { id: "settings" as Tab, label: "Cài đặt", icon: Settings, count: null },
   ];
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+    <div
+      className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-1000 animate-fade-in"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="flex w-[780px] max-h-[82vh] bg-white dark:bg-[#1a1d28] rounded-2xl overflow-hidden shadow-2xl animate-card-in">
 
-        .gmm-overlay {
-          position: fixed; inset: 0;
-          background: rgba(8, 8, 18, 0.6);
-          backdrop-filter: blur(8px);
-          display: flex; align-items: center; justify-content: center;
-          z-index: 1000;
-          animation: gmm-fadein 0.2s ease;
-        }
-        @keyframes gmm-fadein { from { opacity:0 } to { opacity:1 } }
-        @keyframes gmm-slideup {
-          from { opacity:0; transform: translateY(24px) scale(0.97) }
-          to   { opacity:1; transform: translateY(0)   scale(1)    }
-        }
-        @keyframes gmm-spin { to { transform: rotate(360deg) } }
+        {/* Sidebar */}
+        <div className="w-[220px] shrink-0 bg-gray-50 dark:bg-[#13151f] border-r border-gray-100 dark:border-[#22263a] flex flex-col">
 
-        .gmm-modal {
-          font-family: 'DM Sans', sans-serif;
-          display: flex; width: 780px; max-height: 82vh;
-          background: #ffffff; border-radius: 22px; overflow: hidden;
-          box-shadow: 0 40px 100px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06);
-          animation: gmm-slideup 0.25s ease;
-        }
-
-        .gmm-sidebar {
-          width: 220px; flex-shrink: 0; background: #f7f7fb;
-          border-right: 1px solid #ececf4; display: flex; flex-direction: column;
-        }
-        .gmm-sidebar-top { padding: 24px 20px 20px; border-bottom: 1px solid #ececf4; }
-        .gmm-group-avatar {
-          width: 48px; height: 48px; border-radius: 14px;
-          background: linear-gradient(135deg, #6c63ff, #a78bfa);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 20px; margin-bottom: 10px;
-          box-shadow: 0 4px 12px rgba(108,99,255,0.3);
-        }
-        .gmm-group-name {
-          font-size: 14px; font-weight: 600; color: #0f0f1a;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 0 2px;
-        }
-        .gmm-group-meta { font-size: 12px; color: #9b9bae; margin: 0; }
-        .gmm-nav { padding: 12px 10px; flex: 1; }
-        .gmm-nav-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 9px 12px; border-radius: 10px; cursor: pointer;
-          font-size: 13.5px; font-weight: 500; color: #6b6b80;
-          transition: all 0.15s; border: none; background: transparent;
-          width: 100%; text-align: left;
-        }
-        .gmm-nav-item:hover { background: #ededf5; color: #0f0f1a; }
-        .gmm-nav-item.active { background: #fff; color: #6c63ff; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
-        .gmm-nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
-        .gmm-nav-count {
-          margin-left: auto; font-size: 11px; font-weight: 600;
-          background: #6c63ff18; color: #6c63ff; padding: 1px 7px; border-radius: 20px;
-        }
-        .gmm-nav-count.pending-count {
-          background: #fff7ed; color: #f59e0b;
-        }
-        .gmm-nav-arrow { margin-left: auto; width: 14px; height: 14px; opacity: 0.4; }
-
-        .gmm-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .gmm-content-header {
-          padding: 22px 28px 18px; border-bottom: 1px solid #f0f0f8;
-          display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-        }
-        .gmm-content-title { font-size: 17px; font-weight: 600; color: #0f0f1a; margin: 0; letter-spacing: -0.2px; }
-        .gmm-content-subtitle { font-size: 12.5px; color: #9b9bae; margin: 3px 0 0; }
-        .gmm-close-btn {
-          width: 34px; height: 34px; border-radius: 50%; border: none;
-          background: #f4f4f8; color: #6b6b80; font-size: 14px; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          transition: all 0.15s; flex-shrink: 0;
-        }
-        .gmm-close-btn:hover { background: #ececf2; color: #0f0f1a; }
-
-        .gmm-content-body {
-          flex: 1; overflow-y: auto; padding: 24px 28px;
-          scrollbar-width: thin; scrollbar-color: #e0e0f0 transparent;
-        }
-        .gmm-content-body::-webkit-scrollbar { width: 4px; }
-        .gmm-content-body::-webkit-scrollbar-thumb { background: #e0e0f0; border-radius: 4px; }
-
-        /* ── Members ── */
-        .gmm-member-row {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 10px 12px; border-radius: 12px; transition: background 0.15s;
-        }
-        .gmm-member-row:hover { background: #f7f7fb; }
-        .gmm-member-left { display: flex; align-items: center; gap: 12px; }
-        .gmm-avatar {
-          width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
-          flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        }
-        .gmm-avatar-placeholder {
-          width: 38px; height: 38px; border-radius: 50%;
-          background: linear-gradient(135deg, #e8e8f8, #d4d4f0);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 600; color: #8888b8; flex-shrink: 0;
-        }
-        .gmm-member-info { display: flex; flex-direction: column; gap: 3px; }
-        .gmm-member-name { font-size: 14px; font-weight: 500; color: #1a1a2e; line-height: 1; }
-
-        /* Role badge */
-        .gmm-role-badge {
-          display: inline-flex; align-items: center; gap: 3px;
-          font-size: 10.5px; font-weight: 600; letter-spacing: 0.2px;
-          padding: 2px 7px; border-radius: 20px; width: fit-content;
-        }
-        .gmm-role-badge.admin { background: #fef3c7; color: #d97706; }
-        .gmm-role-badge.member { background: #f0f0f8; color: #a0a0bc; }
-        .gmm-role-badge.pending-badge { background: #fff7ed; color: #f59e0b; }
-        .gmm-shield-icon { width: 10px; height: 10px; }
-
-        /* Remove button */
-        .gmm-remove-btn {
-          width: 32px; height: 32px; border-radius: 8px; border: none;
-          background: transparent; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          color: #c4c4d0; transition: all 0.15s; flex-shrink: 0;
-        }
-        .gmm-remove-btn:hover:not(:disabled) { background: #fff0f0; color: #ef4444; }
-        .gmm-remove-btn:disabled { opacity: 0.25; cursor: not-allowed; }
-
-        /* Pending action buttons */
-        .gmm-pending-actions { display: flex; align-items: center; gap: 6px; }
-        .gmm-approve-btn {
-          height: 30px; padding: 0 12px; border-radius: 8px; border: none;
-          background: #ecfdf5; color: #059669;
-          font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
-          cursor: pointer; display: flex; align-items: center; gap: 5px;
-          transition: all 0.15s; flex-shrink: 0;
-        }
-        .gmm-approve-btn:hover:not(:disabled) { background: #d1fae5; transform: translateY(-1px); }
-        .gmm-approve-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .gmm-reject-btn {
-          height: 30px; padding: 0 12px; border-radius: 8px; border: none;
-          background: #fff0f0; color: #ef4444;
-          font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
-          cursor: pointer; display: flex; align-items: center; gap: 5px;
-          transition: all 0.15s; flex-shrink: 0;
-        }
-        .gmm-reject-btn:hover:not(:disabled) { background: #fde8e8; transform: translateY(-1px); }
-        .gmm-reject-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Empty state */
-        .gmm-empty {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          padding: 48px 0; gap: 10px;
-        }
-        .gmm-empty-icon {
-          width: 44px; height: 44px; border-radius: 14px;
-          background: #f4f4f8; display: flex; align-items: center; justify-content: center;
-          color: #c4c4d0;
-        }
-        .gmm-empty-text { font-size: 13px; color: #c4c4d0; }
-
-        .gmm-loading {
-          display: flex; align-items: center; gap: 8px;
-          color: #9b9bae; font-size: 13px; padding: 12px 0;
-        }
-        .gmm-spinner {
-          width: 14px; height: 14px;
-          border: 2px solid #e0e0f0; border-top-color: #6c63ff;
-          border-radius: 50%; animation: gmm-spin 0.6s linear infinite;
-        }
-
-        /* ── Settings ── */
-        .gmm-field-label {
-          font-size: 11.5px; font-weight: 600; letter-spacing: 0.6px;
-          text-transform: uppercase; color: #9b9bae; margin-bottom: 8px;
-        }
-        .gmm-field { margin-bottom: 24px; }
-        .gmm-name-row { display: flex; gap: 8px; }
-        .gmm-name-input {
-          flex: 1; height: 42px; border: 1.5px solid #e8e8f0; border-radius: 11px;
-          padding: 0 14px; font-family: 'DM Sans', sans-serif;
-          font-size: 14px; color: #0f0f1a; background: #fafafa; outline: none; transition: all 0.2s;
-        }
-        .gmm-name-input:focus {
-          border-color: #6c63ff; background: #fff; box-shadow: 0 0 0 4px rgba(108,99,255,0.1);
-        }
-        .gmm-name-display {
-          flex: 1; height: 42px; border: 1.5px solid #e8e8f0; border-radius: 11px;
-          padding: 0 14px; font-size: 14px; color: #0f0f1a; background: #fafafa;
-          display: flex; align-items: center;
-        }
-        .gmm-icon-btn {
-          width: 42px; height: 42px; border-radius: 11px; border: 1.5px solid #e8e8f0;
-          background: #fafafa; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          color: #6b6b80; transition: all 0.15s; flex-shrink: 0;
-        }
-        .gmm-icon-btn:hover { background: #f0f0f8; border-color: #d8d8ee; }
-        .gmm-save-btn {
-          height: 42px; padding: 0 18px; border-radius: 11px; border: none;
-          background: linear-gradient(135deg, #6c63ff, #8b82ff); color: #fff;
-          font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
-          cursor: pointer; display: flex; align-items: center; gap: 6px;
-          box-shadow: 0 4px 14px rgba(108,99,255,0.35); transition: all 0.2s; flex-shrink: 0;
-        }
-        .gmm-save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(108,99,255,0.4); }
-        .gmm-save-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
-        .gmm-cancel-btn {
-          width: 42px; height: 42px; border-radius: 11px; border: 1.5px solid #e8e8f0;
-          background: #fafafa; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          color: #6b6b80; transition: all 0.15s; flex-shrink: 0;
-        }
-        .gmm-cancel-btn:hover { background: #fff0f0; border-color: #ffd0d0; color: #ef4444; }
-
-        /* ── Privacy Toggle ── */
-        .gmm-privacy-section {
-          margin-bottom: 24px; padding: 18px 20px; border-radius: 14px;
-          border: 1.5px solid #ececf4; background: #fafafa;
-          display: flex; align-items: center; justify-content: space-between; gap: 16px;
-        }
-        .gmm-privacy-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
-        .gmm-privacy-icon-wrap {
-          width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center;
-          transition: all 0.3s;
-        }
-        .gmm-privacy-icon-wrap.public { background: #ecfdf5; color: #059669; }
-        .gmm-privacy-icon-wrap.private { background: #f0f0f8; color: #6c63ff; }
-        .gmm-privacy-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-        .gmm-privacy-title { font-size: 14px; font-weight: 600; color: #0f0f1a; }
-        .gmm-privacy-desc { font-size: 12px; color: #9b9bae; line-height: 1.4; }
-
-        /* Toggle switch */
-        .gmm-toggle-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .gmm-toggle-label { font-size: 12px; font-weight: 600; color: #9b9bae; transition: color 0.2s; }
-        .gmm-toggle-label.active { color: #6c63ff; }
-        .gmm-toggle {
-          position: relative; width: 44px; height: 24px;
-          cursor: pointer; flex-shrink: 0;
-        }
-        .gmm-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-        .gmm-toggle-track {
-          position: absolute; inset: 0; border-radius: 24px;
-          background: #e0e0f0; transition: background 0.25s;
-        }
-        .gmm-toggle input:checked ~ .gmm-toggle-track { background: #6c63ff; }
-        .gmm-toggle-thumb {
-          position: absolute; top: 3px; left: 3px;
-          width: 18px; height: 18px; border-radius: 50%;
-          background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-          transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-        }
-        .gmm-toggle input:checked ~ .gmm-toggle-thumb { transform: translateX(20px); }
-        .gmm-toggle-spinner {
-          position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-          pointer-events: none;
-        }
-
-        .gmm-danger-zone {
-          margin-top: 32px; padding: 20px; border-radius: 14px;
-          border: 1.5px solid #fde8e8; background: #fff9f9;
-        }
-        .gmm-danger-title {
-          font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
-          text-transform: uppercase; color: #ef4444; margin: 0 0 6px;
-        }
-        .gmm-danger-desc { font-size: 13px; color: #9b9bae; margin: 0 0 16px; }
-        .gmm-delete-btn {
-          width: 100%; height: 42px; border-radius: 11px; border: none;
-          background: #ef4444; color: #fff;
-          font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-          cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-          transition: all 0.2s;
-        }
-        .gmm-delete-btn:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(239,68,68,0.35); }
-      `}</style>
-
-      <div className="gmm-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-        <div className="gmm-modal">
-
-          {/* Sidebar */}
-          <div className="gmm-sidebar">
-            <div className="gmm-sidebar-top">
-              <div className="gmm-group-avatar">👥</div>
-              <p className="gmm-group-name">{newName}</p>
-              <p className="gmm-group-meta">{members.length} members</p>
+          {/* Group info */}
+          <div className="p-5 pb-4 border-b border-gray-100 dark:border-[#22263a]">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center text-white mb-3 shadow-sm">
+              <Users className="w-5 h-5" />
             </div>
-            <nav className="gmm-nav">
-              {tabs.map(tab => {
-                const Icon = tab.icon;
-                const isPendingTab = tab.id === "pending";
-                return (
-                  <button
-                    key={tab.id}
-                    className={`gmm-nav-item ${activeTab === tab.id ? "active" : ""}`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    <Icon className="gmm-nav-icon" />
-                    {tab.label}
-                    {tab.count !== null
-                      ? <span className={`gmm-nav-count ${isPendingTab ? "pending-count" : ""}`}>{tab.count}</span>
-                      : <ChevronRight className="gmm-nav-arrow" />
-                    }
-                  </button>
-                );
-              })}
-            </nav>
+            <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] truncate">{newName}</p>
+            <p className="text-xs text-gray-400 dark:text-[#6a7494] mt-0.5">{members.length} thành viên</p>
           </div>
 
-          {/* Content */}
-          <div className="gmm-content">
-            <div className="gmm-content-header">
-              <div>
-                <p className="gmm-content-title">
-                  {activeTab === "members" ? "Members"
-                    : activeTab === "pending" ? "Pending Requests"
-                    : "Group Settings"}
-                </p>
-                <p className="gmm-content-subtitle">
-                  {activeTab === "members"
-                    ? `${members.length} people in this group`
-                    : activeTab === "pending"
-                    ? `${pendingMembers.length} request${pendingMembers.length !== 1 ? "s" : ""} waiting for approval`
-                    : "Manage group name and preferences"}
-                </p>
-              </div>
-              <button className="gmm-close-btn" onClick={onClose}>✕</button>
-            </div>
-
-            <div className="gmm-content-body">
-
-              {/* Members tab */}
-              {activeTab === "members" && (
-                <div>
-                  {loading ? (
-                    <div className="gmm-loading">
-                      <span className="gmm-spinner" /> Loading members…
-                    </div>
+          {/* Nav tabs */}
+          <nav className="p-2.5 flex-1 space-y-0.5">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const isPending = tab.id === "pending";
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 ${
+                    isActive
+                      ? "bg-white dark:bg-[#242838] text-blue-600 dark:text-blue-400 font-semibold shadow-sm"
+                      : "text-gray-500 dark:text-[#9aa3bc] hover:bg-gray-100 dark:hover:bg-[#1e2133] hover:text-gray-700 dark:hover:text-[#edf0fa]"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {tab.label}
+                  {tab.count !== null ? (
+                    <span className={`ml-auto text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      isPending
+                        ? "bg-amber-50 dark:bg-amber-500/15 text-amber-500 dark:text-amber-400"
+                        : isActive
+                          ? "bg-blue-50 dark:bg-blue-500/15 text-blue-500 dark:text-blue-400"
+                          : "bg-gray-100 dark:bg-[rgba(255,255,255,0.06)] text-gray-400 dark:text-[#6a7494]"
+                    }`}>
+                      {tab.count}
+                    </span>
                   ) : (
-                    <div>
-                      {members.length === 0 && (
-                        <div className="gmm-empty">
-                          <div className="gmm-empty-icon"><Users style={{ width: 20, height: 20 }} /></div>
-                          <span className="gmm-empty-text">No members yet</span>
-                        </div>
-                      )}
-                      {members.map((member) => {
-                        const isAdmin = member.role === "ADMIN";
-                        const isSelf  = member.id === currentUser?.id;
-                        const canRemove = !isAdmin && !isSelf;
+                    <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-30" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-                        return (
-                          <div key={member.id} className="gmm-member-row">
-                            <div className="gmm-member-left">
-                              {member.avatar
-                                ? <img src={member.avatar} className="gmm-avatar" alt={member.fullName} />
-                                : (
-                                  <div className="gmm-avatar-placeholder">
-                                    {member.fullName?.charAt(0).toUpperCase()}
-                                  </div>
-                                )
-                              }
-                              <div className="gmm-member-info">
-                                <span className="gmm-member-name">{member.fullName}</span>
-                                <span className={`gmm-role-badge ${isAdmin ? "admin" : "member"}`}>
-                                  {isAdmin && <Shield className="gmm-shield-icon" />}
-                                  {isAdmin ? "Admin" : "Member"}
-                                </span>
-                              </div>
+        {/* Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-[#22263a] shrink-0">
+            <div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-[#edf0fa]">
+                {activeTab === "members" ? "Thành viên"
+                  : activeTab === "pending" ? "Yêu cầu tham gia"
+                  : "Cài đặt nhóm"}
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-[#7e89a6] mt-0.5">
+                {activeTab === "members"
+                  ? `${members.length} người trong nhóm`
+                  : activeTab === "pending"
+                  ? `${pendingMembers.length} yêu cầu đang chờ duyệt`
+                  : "Quản lý tên nhóm và tùy chọn"}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#22263a] text-gray-400 dark:text-[#6a7494] hover:bg-gray-200 dark:hover:bg-[#2b2f45] hover:text-gray-600 dark:hover:text-[#edf0fa] flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-hide">
+
+            {/* === Members tab === */}
+            {activeTab === "members" && (
+              <div>
+                {loading ? (
+                  <LoadingSpinner text="Đang tải thành viên..." />
+                ) : members.length === 0 ? (
+                  <EmptyBlock icon={Users} text="Chưa có thành viên nào" />
+                ) : (
+                  <div className="space-y-1">
+                    {members.map((member) => {
+                      const isAdmin = member.role === "ADMIN";
+                      const isSelf = member.id === currentUser?.id;
+                      const canRemove = !isAdmin && !isSelf;
+
+                      return (
+                        <div key={member.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1e2133] transition-colors">
+                          <div className="flex items-center gap-3">
+                            <AvatarCircle src={member.avatar} name={member.fullName} />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-[#edf0fa]">{member.fullName}</p>
+                              <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full ${
+                                isAdmin
+                                  ? "bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  : "bg-gray-100 dark:bg-[#22263a] text-gray-400 dark:text-[#7e89a6]"
+                              }`}>
+                                {isAdmin && <Shield className="w-2.5 h-2.5" />}
+                                {isAdmin ? "Admin" : "Thành viên"}
+                              </span>
                             </div>
+                          </div>
+                          <button
+                            disabled={!canRemove}
+                            onClick={() => canRemove && handleRemoveMember(member.id)}
+                            title={isAdmin ? "Không thể xóa admin" : isSelf ? "Không thể xóa chính mình" : "Xóa thành viên"}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-[#4e5870] hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 transition-colors"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
+            {/* === Pending tab === */}
+            {activeTab === "pending" && (
+              <div>
+                {loadingPending ? (
+                  <LoadingSpinner text="Đang tải yêu cầu..." />
+                ) : pendingMembers.length === 0 ? (
+                  <EmptyBlock icon={Clock} text="Không có yêu cầu nào đang chờ" />
+                ) : (
+                  <div className="space-y-1">
+                    {pendingMembers.map((member) => {
+                      const isProcessing = processingIds.has(member.userId);
+                      return (
+                        <div key={member.userId} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1e2133] transition-colors">
+                          <div className="flex items-center gap-3">
+                            <AvatarCircle src={member.avatar} name={member.fullName} />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-[#edf0fa]">{member.fullName}</p>
+                              <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/15 text-amber-500 dark:text-amber-400">
+                                <Clock className="w-2.5 h-2.5" />
+                                Đang chờ
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
                             <button
-                              className="gmm-remove-btn"
-                              disabled={!canRemove}
-                              onClick={() => canRemove && handleRemoveMember(member.id)}
-                              title={
-                                isAdmin ? "Cannot remove admin"
-                                : isSelf  ? "Cannot remove yourself"
-                                : "Remove member"
-                              }
+                              disabled={isProcessing}
+                              onClick={() => handleApproveMember(member.userId)}
+                              className="h-8 px-3 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-semibold flex items-center gap-1.5 hover:bg-green-100 dark:hover:bg-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                              <UserMinus style={{ width: 15, height: 15 }} />
+                              {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                              Duyệt
+                            </button>
+                            <button
+                              disabled={isProcessing}
+                              onClick={() => handleRejectMember(member.userId)}
+                              className="h-8 px-3 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 text-xs font-semibold flex items-center gap-1.5 hover:bg-red-100 dark:hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                              Từ chối
                             </button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Pending tab */}
-              {activeTab === "pending" && (
-                <div>
-                  {loadingPending ? (
-                    <div className="gmm-loading">
-                      <span className="gmm-spinner" /> Loading requests…
-                    </div>
-                  ) : (
-                    <div>
-                      {pendingMembers.length === 0 && (
-                        <div className="gmm-empty">
-                          <div className="gmm-empty-icon"><Clock style={{ width: 20, height: 20 }} /></div>
-                          <span className="gmm-empty-text">No pending requests</span>
                         </div>
-                      )}
-                      {pendingMembers.map((member) => {
-                        const isProcessing = processingIds.has(member.userId);
-                        return (
-                          <div key={member.userId} className="gmm-member-row">
-                            <div className="gmm-member-left">
-                              {member.avatar
-                                ? <img src={member.avatar} className="gmm-avatar" alt={member.fullName} />
-                                : (
-                                  <div className="gmm-avatar-placeholder">
-                                    {member.fullName?.charAt(0).toUpperCase()}
-                                  </div>
-                                )
-                              }
-                              <div className="gmm-member-info">
-                                <span className="gmm-member-name">{member.fullName}</span>
-                                <span className="gmm-role-badge pending-badge">
-                                  <Clock style={{ width: 10, height: 10 }} />
-                                  Pending
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="gmm-pending-actions">
-                              <button
-                                className="gmm-approve-btn"
-                                disabled={isProcessing}
-                                onClick={() => handleApproveMember(member.userId)}
-                                title="Approve member"
-                              >
-                                {isProcessing
-                                  ? <span style={{ width:12,height:12,border:"2px solid rgba(5,150,105,0.3)",borderTopColor:"#059669",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
-                                  : <CheckCircle style={{ width: 13, height: 13 }} />
-                                }
-                                Approve
-                              </button>
-                              <button
-                                className="gmm-reject-btn"
-                                disabled={isProcessing}
-                                onClick={() => handleRejectMember(member.userId)}
-                                title="Reject request"
-                              >
-                                {isProcessing
-                                  ? <span style={{ width:12,height:12,border:"2px solid rgba(239,68,68,0.3)",borderTopColor:"#ef4444",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
-                                  : <XCircle style={{ width: 13, height: 13 }} />
-                                }
-                                Reject
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Settings tab */}
-              {activeTab === "settings" && (
-                <div>
-                  <div className="gmm-field">
-                    <div className="gmm-field-label">Group Name</div>
-                    <div className="gmm-name-row">
-                      {editingName ? (
-                        <>
-                          <input
-                            className="gmm-name-input"
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            autoFocus
-                          />
-                          <button className="gmm-save-btn" onClick={handleUpdateName} disabled={savingName}>
-                            {savingName
-                              ? <span style={{ width:14,height:14,border:"2px solid rgba(255,255,255,0.4)",borderTopColor:"#fff",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
-                              : <Check style={{ width:15, height:15 }} />
-                            }
-                            Save
-                          </button>
-                          <button className="gmm-cancel-btn" onClick={() => { setEditingName(false); setNewName(group.name); }}>
-                            <X style={{ width: 15, height: 15 }} />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <div className="gmm-name-display">{newName}</div>
-                          <button className="gmm-icon-btn" onClick={() => setEditingName(true)} title="Edit name">
-                            <Edit3 style={{ width: 15, height: 15 }} />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* Privacy toggle */}
-                  <div className="gmm-field">
-                    <div className="gmm-field-label">Privacy</div>
-                    <div className="gmm-privacy-section">
-                      <div className="gmm-privacy-left">
-                        <div className={`gmm-privacy-icon-wrap ${isPrivate ? "private" : "public"}`}>
+            {/* === Settings tab === */}
+            {activeTab === "settings" && (
+              <div>
+                {/* Group name */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#6a7494] mb-2">
+                    Tên nhóm
+                  </label>
+                  <div className="flex gap-2">
+                    {editingName ? (
+                      <>
+                        <input
+                          className="flex-1 h-10 px-3 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#1e2133] text-sm text-gray-900 dark:text-[#edf0fa] outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleUpdateName}
+                          disabled={savingName}
+                          className="h-10 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {savingName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-4 h-4" />}
+                          Lưu
+                        </button>
+                        <button
+                          onClick={() => { setEditingName(false); setNewName(group.name); }}
+                          className="w-10 h-10 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#22263a] text-gray-400 dark:text-[#6a7494] hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 hover:text-red-500 dark:hover:text-red-400 flex items-center justify-center transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex-1 h-10 px-3 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#1e2133] text-sm text-gray-900 dark:text-[#edf0fa] flex items-center">
+                          {newName}
+                        </div>
+                        <button
+                          onClick={() => setEditingName(true)}
+                          title="Sửa tên"
+                          className="w-10 h-10 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#22263a] text-gray-400 dark:text-[#6a7494] hover:bg-gray-100 dark:hover:bg-[#2b2f45] hover:text-gray-600 dark:hover:text-[#edf0fa] flex items-center justify-center transition-colors"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Privacy toggle */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#6a7494] mb-2">
+                    Quyền riêng tư
+                  </label>
+                  <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#13151f]">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isPrivate
+                          ? "bg-blue-50 dark:bg-blue-500/15 text-blue-500 dark:text-blue-400"
+                          : "bg-green-50 dark:bg-green-500/15 text-green-500 dark:text-green-400"
+                      }`}>
+                        {isPrivate ? <Lock className="w-[18px] h-[18px]" /> : <Globe className="w-[18px] h-[18px]" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa]">
+                          {isPrivate ? "Nhóm riêng tư" : "Nhóm công khai"}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-[#7e89a6] leading-relaxed">
                           {isPrivate
-                            ? <Lock style={{ width: 18, height: 18 }} />
-                            : <Globe style={{ width: 18, height: 18 }} />
-                          }
-                        </div>
-                        <div className="gmm-privacy-text">
-                          <span className="gmm-privacy-title">
-                            {isPrivate ? "Private Group" : "Public Group"}
-                          </span>
-                          <span className="gmm-privacy-desc">
-                            {isPrivate
-                              ? "Only approved members can see posts and join this group."
-                              : "Anyone can see the group and its posts. Members can join freely."}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="gmm-toggle-wrap">
-                        <span className={`gmm-toggle-label ${!isPrivate ? "active" : ""}`}>Public</span>
-                        <label className="gmm-toggle" title={togglingPrivacy ? "Updating…" : isPrivate ? "Switch to Public" : "Switch to Private"}>
-                          <input
-                            type="checkbox"
-                            checked={isPrivate}
-                            disabled={togglingPrivacy}
-                            onChange={handleTogglePrivacy}
-                          />
-                          <div className="gmm-toggle-track" />
-                          {togglingPrivacy
-                            ? (
-                              <div className="gmm-toggle-spinner">
-                                <span style={{ width:12,height:12,border:"2px solid rgba(108,99,255,0.25)",borderTopColor:"#6c63ff",borderRadius:"50%",animation:"gmm-spin 0.6s linear infinite",display:"inline-block" }} />
-                              </div>
-                            )
-                            : <div className="gmm-toggle-thumb" />
-                          }
-                        </label>
-                        <span className={`gmm-toggle-label ${isPrivate ? "active" : ""}`}>Private</span>
+                            ? "Chỉ thành viên được duyệt mới xem được bài viết."
+                            : "Ai cũng có thể xem nhóm và tham gia tự do."}
+                        </p>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="gmm-danger-zone">
-                    <p className="gmm-danger-title">Danger Zone</p>
-                    <p className="gmm-danger-desc">
-                      Permanently delete this group and remove all members. This action cannot be undone.
-                    </p>
-                    <button className="gmm-delete-btn" onClick={handleDeleteGroup}>
-                      <Trash2 style={{ width: 15, height: 15 }} />
-                      Delete Group
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs font-semibold transition-colors ${!isPrivate ? "text-blue-500 dark:text-blue-400" : "text-gray-300 dark:text-[#4e5870]"}`}>
+                        Công khai
+                      </span>
+                      <label className="relative inline-flex items-center w-11 h-6 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isPrivate}
+                          disabled={togglingPrivacy}
+                          onChange={handleTogglePrivacy}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 dark:bg-[#2b2f45] rounded-full peer-checked:bg-blue-500 dark:peer-checked:bg-blue-500 transition-colors" />
+                        {togglingPrivacy ? (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                          </div>
+                        ) : (
+                          <div className="absolute top-[3px] left-[3px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+                        )}
+                      </label>
+                      <span className={`text-xs font-semibold transition-colors ${isPrivate ? "text-blue-500 dark:text-blue-400" : "text-gray-300 dark:text-[#4e5870]"}`}>
+                        Riêng tư
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )}
 
-            </div>
+                {/* Danger zone */}
+                <div className="mt-8 p-5 rounded-2xl border border-red-100 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-red-500 dark:text-red-400 mb-1.5">
+                    Vùng nguy hiểm
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-[#7e89a6] mb-4">
+                    Xóa vĩnh viễn nhóm và tất cả thành viên. Hành động này không thể hoàn tác.
+                  </p>
+                  <button
+                    onClick={handleDeleteGroup}
+                    className="w-full h-10 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Xóa nhóm
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
-
         </div>
+
       </div>
-    </>
+    </div>
+  );
+}
+
+/* ─── Small helper components ─── */
+
+function AvatarCircle({ src, name }: { src?: string; name: string }) {
+  const initial = name?.charAt(0).toUpperCase() || "?";
+  return src ? (
+    <img
+      src={src}
+      alt={name}
+      className="w-9 h-9 rounded-full object-cover shrink-0 border-2 border-white dark:border-[#1a1d28] shadow-sm"
+    />
+  ) : (
+    <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-sm">
+      {initial}
+    </div>
+  );
+}
+
+function LoadingSpinner({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-2.5 py-6 justify-center animate-fade-in">
+      <div className="relative w-5 h-5">
+        <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-[#2b2f45]" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+      </div>
+      <span className="text-sm text-gray-400 dark:text-[#7e89a6]">{text}</span>
+    </div>
+  );
+}
+
+function EmptyBlock({ icon: Icon, text }: { icon: React.ComponentType<{ className?: string }>; text: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+      <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-3">
+        <Icon className="w-5 h-5 text-gray-300 dark:text-[#4e5870]" />
+      </div>
+      <p className="text-sm text-gray-400 dark:text-[#7e89a6]">{text}</p>
+    </div>
   );
 }

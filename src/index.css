@@ -42,49 +42,19 @@ html:not(.dark) #root {
 }
 
 /* ─────────────────────────────────────────────────
-   GLOBAL COLOR TRANSITION
-   Only transition color-related properties globally so
-   the browser doesn't compute transform/shadow transitions
-   on every element (causes jank).
-   Components handle their own transform/shadow transitions.
+   THEME SWITCH
+   Instant class toggle + View Transitions API crossfade.
+   No global * transition — that causes massive jank
+   by forcing the browser to animate every DOM node.
 ───────────────────────────────────────────────── */
-*, *::before, *::after {
-  transition-property: color, background-color, border-color,
-    text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 120ms;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 250ms;
+  animation-timing-function: ease;
 }
 
-/* CSS fallback for browsers without View Transitions API (Firefox) */
-[data-theme-switching] *,
-[data-theme-switching] *::before,
-[data-theme-switching] *::after {
-  transition-duration: 420ms !important;
-  transition-timing-function: cubic-bezier(0.25, 1, 0.35, 1) !important;
-}
-
-/* ─────────────────────────────────────────────────
-   VIEW TRANSITIONS API — circular ripple theme switch
-   Chrome 111+  |  Edge 111+  |  Safari 18+
-   Firefox: falls back to CSS transition above.
-   Mobile / touch: JS skips VT entirely — no CSS needed.
-───────────────────────────────────────────────── */
-@media (hover: hover) and (pointer: fine) {
-  /* Desktop only — disable default cross-fade; drive our own clip-path */
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
-    mix-blend-mode: normal;
-  }
-
-  /* New theme on top; hint GPU to prepare clip-path compositing */
-  ::view-transition-new(root) {
-    z-index: 9999;
-    will-change: clip-path;
-  }
-  ::view-transition-old(root) {
-    z-index: 1;
-  }
+::view-transition-new(root) {
+  z-index: 9999;
 }
 
 /* Better focus styles */
@@ -298,4 +268,34 @@ html.dark .min-h-screen.bg-\[\#F0F2F5\] { background-color: #0c0e14; }
 }
 html.dark .theme-toggle-track {
   background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%);
+}
+
+/* ─────────────────────────────────────────────────
+   CUSTOM ANIMATIONS
+───────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.animate-shimmer {
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.animate-card-in {
+  animation: card-in 0.35s ease-out both;
 }

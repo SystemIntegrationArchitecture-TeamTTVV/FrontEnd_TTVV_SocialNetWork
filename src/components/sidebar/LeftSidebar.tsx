@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, Store, Video, Bookmark, UserPlus, ChevronDown, Music2 } from 'lucide-react';
+import { User, Users, Store, Video, Bookmark, ChevronDown, Music2 } from 'lucide-react';
 import { authApi } from '../../apis/auth';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
@@ -27,11 +27,10 @@ export default function LeftSidebar() {
     : 'U';
   
   const menuItems: MenuItem[] = [
-    { icon: UserPlus, label: 'Tìm bạn bè', path: '/find-people' },
     { icon: Users, label: 'Bạn bè', path: '/friends', requireAuth: true },
-    { icon: Users, label: 'Nhóm', path: '/groups' },
-    { icon: Store, label: 'Chợ', path: '/marketplace' },
-    { icon: Video, label: 'Video', path: '/watch' },
+    { icon: Users, label: 'Nhóm', path: '/groups', requireAuth: true },
+    { icon: Store, label: 'Chợ', path: '/marketplace', requireAuth: true },
+    { icon: Video, label: 'Video', path: '/watch', requireAuth: true },
     { icon: Music2, label: 'Nhạc', path: '/music' },
     { icon: Bookmark, label: 'Đã lưu', path: '/saved', requireAuth: true },
   ];

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
@@ -48,6 +48,7 @@ export default function Newsfeed() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const nav = useNavigate();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
   // Load posts from API
   useEffect(() => {
@@ -1057,7 +1058,7 @@ export default function Newsfeed() {
                 {/* Post Actions */}
                 <div className="border-t border-gray-100 pt-2 flex items-center gap-1">
                   <button
-                    onClick={() => handleLikePost(post.id!)}
+                    onClick={() => currentUser ? handleLikePost(post.id!) : requestLogin()}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl transition-all group ${likedPosts.has(post.id!) ? 'text-red-500 bg-red-50/60' : 'hover:bg-gray-50'
                       }`}
                   >
@@ -1071,7 +1072,7 @@ export default function Newsfeed() {
                     </span>
                   </button>
                   <button
-                    onClick={() => toggleComments(post.id!)}
+                    onClick={() => currentUser ? toggleComments(post.id!) : requestLogin()}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl transition-all ${isCommentsExpanded
                       ? 'bg-blue-50/70 text-blue-600'
                       : 'hover:bg-gray-50 text-gray-600'
@@ -1080,13 +1081,13 @@ export default function Newsfeed() {
                     <MessageCircle className={`w-5 h-5 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
                     <span className="text-[15px] font-medium">Bình luận</span>
                   </button>
-                  <Link
-                    to={`/post/${post.id}/share`}
+                  <button
+                    onClick={() => currentUser ? nav(`/post/${post.id}/share`) : requestLogin()}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl hover:bg-gray-50 transition-all group"
                   >
                     <Share2 className="w-5 h-5 text-gray-500 group-hover:text-green-600 transition-colors" />
                     <span className="text-[15px] text-gray-600 font-medium group-hover:text-green-600">Chia sẻ</span>
-                  </Link>
+                  </button>
                 </div>
 
                 {/* Comments Section */}

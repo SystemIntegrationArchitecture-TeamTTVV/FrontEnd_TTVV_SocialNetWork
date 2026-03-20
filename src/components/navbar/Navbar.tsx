@@ -27,6 +27,7 @@ export default function Navbar() {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [loadingMessenger, setLoadingMessenger] = useState(false);
   const { subscribe } = useSocket();
   const { user: currentUser } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
@@ -159,6 +160,16 @@ export default function Navbar() {
     navigate(`/profile/${user.id}`);
   };
 
+  const handleMessengerClick = () => {
+    if (!currentUser) { requestLogin(); return; }
+    if (location.pathname === '/messenger') return;
+    setLoadingMessenger(true);
+    setTimeout(() => {
+      navigate('/messenger');
+      setLoadingMessenger(false);
+    }, 2000);
+  };
+
   /* ── Shared avatar renderer ── */
   const renderAvatar = (size: 'sm' | 'md') => {
     const dim = size === 'sm' ? 'w-9 h-9' : 'w-11 h-11';
@@ -248,35 +259,31 @@ export default function Navbar() {
           {/* CENTER - Nav Icons */}
           <div className="flex items-center justify-center flex-1 max-w-2xl gap-2">
             {[
-              { to: '/home', icon: Home },
-              { to: '/watch', icon: Video },
-              { to: '/marketplace', icon: Store },
-              { to: '/groups', icon: Users },
-            ].map(({ to, icon: Icon }) => (
-              <Link key={to} to={to}
-                className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-                  isActive(to)
-                    ? 'text-blue-600'
-                    : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1e2130] hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
-              >
-                <span
-                  className={`flex items-center justify-center rounded-2xl px-4 py-2 transition-all ${
-                    isActive(to)
-                      ? 'bg-blue-50 text-blue-600 shadow-sm dark:bg-blue-500/15 dark:text-blue-400'
-                      : ''
-                  }`}
-                >
-                  <Icon
-                    strokeWidth={isActive(to) ? 2.25 : 2}
-                    className="w-[25px] h-[25px]"
-                  />
-                </span>
-                {isActive(to) && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-28px)] h-[3px] bg-blue-500 rounded-full" />
-                )}
-              </Link>
-            ))}
+              { to: '/home', icon: Home, requireAuth: false },
+              { to: '/watch', icon: Video, requireAuth: true },
+              { to: '/marketplace', icon: Store, requireAuth: true },
+              { to: '/groups', icon: Users, requireAuth: true },
+            ].map(({ to, icon: Icon, requireAuth }) => {
+              const needsAuth = requireAuth && !currentUser;
+              const cls = `relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
+                isActive(to)
+                  ? 'text-blue-600'
+                  : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1e2130] hover:text-gray-700 dark:hover:text-gray-200'
+              }`;
+              const inner = (
+                <>
+                  <span className={`flex items-center justify-center rounded-2xl px-4 py-2 transition-all ${isActive(to) ? 'bg-blue-50 text-blue-600 shadow-sm dark:bg-blue-500/15 dark:text-blue-400' : ''}`}>
+                    <Icon strokeWidth={isActive(to) ? 2.25 : 2} className="w-[25px] h-[25px]" />
+                  </span>
+                  {isActive(to) && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-28px)] h-[3px] bg-blue-500 rounded-full" />}
+                </>
+              );
+
+              if (needsAuth) {
+                return <button key={to} type="button" onClick={requestLogin} className={cls}>{inner}</button>;
+              }
+              return <Link key={to} to={to} className={cls}>{inner}</Link>;
+            })}
           </div>
 
           {/* RIGHT - Actions */}
@@ -284,7 +291,7 @@ export default function Navbar() {
 
             {/* Theme toggle */}
             <button
-              onClick={(e) => toggleTheme(e)}
+              onClick={() => toggleTheme()}
               aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
               title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
               className="relative w-14 h-8 rounded-full theme-toggle-track flex items-center px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
@@ -304,17 +311,14 @@ export default function Navbar() {
               />
             </button>
 
-            {currentUser ? (
-              <Link to="/messenger" className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative">
-                <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </Link>
-            ) : (
-              <button type="button" onClick={requestLogin}
-                className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
-                title="Đăng nhập để dùng Messenger">
-                <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleMessengerClick}
+              className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
+              title={currentUser ? "Messenger" : "Đăng nhập để dùng Messenger"}
+            >
+              <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            </button>
 
             <div className="relative">
               <button
@@ -352,7 +356,7 @@ export default function Navbar() {
           <div className="flex items-center gap-1.5">
 
             {/* Theme toggle — icon only on mobile */}
-            <button onClick={(e) => toggleTheme(e)}
+            <button onClick={() => toggleTheme()}
               aria-label={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
               className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors">
               {isDark
@@ -454,33 +458,55 @@ export default function Navbar() {
       ═══════════════════════════════════════════════════════ */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden bg-white dark:bg-[#12151f] border-t border-gray-200 dark:border-[#1e2130] flex items-stretch z-50 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         {[
-          { to: '/home',        icon: Home,          label: 'Trang chủ' },
-          { to: '/watch',       icon: Video,         label: 'Video'     },
-          { to: '/marketplace', icon: Store,         label: 'Chợ'       },
-          { to: '/groups',      icon: Users,         label: 'Nhóm'      },
-          { to: '/messenger',   icon: MessageCircle, label: 'Tin nhắn'  },
-        ].map(({ to, icon: Icon, label }) => (
-          <Link key={to} to={to}
-            className={`flex flex-col items-center justify-center gap-1 flex-1 transition-all ${
-              isActive(to)
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-            }`}
-          >
-            <span
-              className={`flex items-center justify-center rounded-2xl px-3 py-1.5 transition-all ${
-                isActive(to) ? 'bg-blue-50 dark:bg-blue-500/15' : ''
-              }`}
-            >
-              <Icon
-                strokeWidth={isActive(to) ? 2.25 : 2}
-                className="w-[21px] h-[21px]"
-              />
-            </span>
-            <span className="text-[10px] font-medium leading-none">{label}</span>
-          </Link>
-        ))}
+          { to: '/home',        icon: Home,          label: 'Trang chủ', requireAuth: false },
+          { to: '/watch',       icon: Video,         label: 'Video',     requireAuth: true },
+          { to: '/marketplace', icon: Store,         label: 'Chợ',       requireAuth: true },
+          { to: '/groups',      icon: Users,         label: 'Nhóm',      requireAuth: true },
+          { to: '/messenger',   icon: MessageCircle, label: 'Tin nhắn',  requireAuth: true },
+        ].map(({ to, icon: Icon, label, requireAuth }) => {
+          const needsAuth = requireAuth && !currentUser;
+          const cls = `flex flex-col items-center justify-center gap-1 flex-1 transition-all ${
+            isActive(to)
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+          }`;
+          const inner = (
+            <>
+              <span className={`flex items-center justify-center rounded-2xl px-3 py-1.5 transition-all ${isActive(to) ? 'bg-blue-50 dark:bg-blue-500/15' : ''}`}>
+                <Icon strokeWidth={isActive(to) ? 2.25 : 2} className="w-[21px] h-[21px]" />
+              </span>
+              <span className="text-[10px] font-medium leading-none">{label}</span>
+            </>
+          );
+
+          if (to === '/messenger') {
+            return <button key={to} type="button" onClick={handleMessengerClick} className={cls}>{inner}</button>;
+          }
+          if (needsAuth) {
+            return <button key={to} type="button" onClick={requestLogin} className={cls}>{inner}</button>;
+          }
+          return <Link key={to} to={to} className={cls}>{inner}</Link>;
+        })}
       </nav>
+
+      {/* Messenger loading overlay */}
+      {loadingMessenger && (
+        <div className="fixed inset-0 z-9999 bg-white/80 dark:bg-[#0c0e14]/85 backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 animate-fade-in">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-[3px] border-gray-200 dark:border-[#2b2f45]" />
+              <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-blue-500 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-blue-500" />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa]">Đang tải Messenger</p>
+              <p className="text-xs text-gray-400 dark:text-[#7e89a6] mt-1">Vui lòng đợi trong giây lát...</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -48,7 +48,7 @@ export default function AuthFrame({
     <div className="relative w-full min-h-screen flex items-center justify-center bg-linear-to-b from-slate-50 via-white to-blue-50/50 dark:from-[#0c0e14] dark:via-[#12151f] dark:to-[#0c0e14] px-4 py-12">
       {/* Theme toggle */}
       <button
-        onClick={(e) => toggleTheme(e)}
+        onClick={() => toggleTheme()}
         aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
         className="absolute top-5 right-5 z-10 w-11 h-11 rounded-2xl bg-white/80 dark:bg-[#1e2133] border border-gray-200 dark:border-[#2b2f45] shadow-sm backdrop-blur-sm flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#22263a] transition-all"
       >
