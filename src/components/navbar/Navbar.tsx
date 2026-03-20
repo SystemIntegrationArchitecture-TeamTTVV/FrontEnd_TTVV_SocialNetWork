@@ -255,12 +255,25 @@ export default function Navbar() {
             ].map(({ to, icon: Icon }) => (
               <Link key={to} to={to}
                 className={`relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-                  isActive(to) ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1e2130]'
+                  isActive(to)
+                    ? 'text-blue-600'
+                    : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1e2130] hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
-                <Icon className={`w-[26px] h-[26px] ${isActive(to) ? 'fill-current' : ''}`} />
+                <span
+                  className={`flex items-center justify-center rounded-2xl px-4 py-2 transition-all ${
+                    isActive(to)
+                      ? 'bg-blue-50 text-blue-600 shadow-sm dark:bg-blue-500/15 dark:text-blue-400'
+                      : ''
+                  }`}
+                >
+                  <Icon
+                    strokeWidth={isActive(to) ? 2.25 : 2}
+                    className="w-[25px] h-[25px]"
+                  />
+                </span>
                 {isActive(to) && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] h-1 bg-blue-600 rounded-t" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-28px)] h-[3px] bg-blue-500 rounded-full" />
                 )}
               </Link>
             ))}
@@ -448,13 +461,22 @@ export default function Navbar() {
           { to: '/messenger',   icon: MessageCircle, label: 'Tin nhắn'  },
         ].map(({ to, icon: Icon, label }) => (
           <Link key={to} to={to}
-            className={`flex flex-col items-center justify-center gap-1 flex-1 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1 flex-1 transition-all ${
               isActive(to)
                 ? 'text-blue-600 dark:text-blue-400'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
-            <Icon className={`w-[22px] h-[22px] ${isActive(to) ? 'fill-current' : ''}`} />
+            <span
+              className={`flex items-center justify-center rounded-2xl px-3 py-1.5 transition-all ${
+                isActive(to) ? 'bg-blue-50 dark:bg-blue-500/15' : ''
+              }`}
+            >
+              <Icon
+                strokeWidth={isActive(to) ? 2.25 : 2}
+                className="w-[21px] h-[21px]"
+              />
+            </span>
             <span className="text-[10px] font-medium leading-none">{label}</span>
           </Link>
         ))}
