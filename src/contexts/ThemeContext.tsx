@@ -14,15 +14,13 @@ const ThemeContext = createContext<ThemeContextValue>({
   toggleTheme: () => {},
 });
 
-/* ─── View Transitions API type (Chrome 111+, Edge 111+) ─── */
-interface ViewTransition {
+/* ─── View Transitions API — narrow type assertion (Chrome 111+, Edge 111+) ─── */
+interface VTResult {
   ready: Promise<void>;
   finished: Promise<void>;
   updateCallbackDone: Promise<void>;
 }
-interface DocumentWithVT extends Document {
-  startViewTransition?: (cb: () => void | Promise<void>) => ViewTransition;
-}
+type StartVT = (cb: () => void | Promise<void>) => VTResult;
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -42,10 +40,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     const applyTheme = () => setTheme(newTheme);
 
-    const doc = document as DocumentWithVT;
-
     /* ── View Transitions API: GPU-accelerated circular reveal ── */
-    if (!doc.startViewTransition || !e) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const startVT: StartVT | undefined = (document as any).startViewTransition?.bind(document);
+
+    if (!startVT || !e) {
       /* Fallback: CSS transition (browsers without VT support) */
       const html = document.documentElement;
       html.setAttribute('data-theme-switching', 'true');
@@ -62,7 +61,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       Math.max(y, window.innerHeight - y),
     );
 
-    const transition = doc.startViewTransition(applyTheme);
+    const transition = startVT(applyTheme);
 
     transition.ready.then(() => {
       document.documentElement.animate(
