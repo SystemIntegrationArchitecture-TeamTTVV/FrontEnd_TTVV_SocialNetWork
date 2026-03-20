@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, Menu, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X } from 'lucide-react';
+import { Home, Video, Store, Users, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -289,10 +289,6 @@ export default function Navbar() {
               <span className="relative z-10 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center"
                 style={{ transform: isDark ? 'translateX(20px)' : 'translateX(0px)', transition: 'transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
               />
-            </button>
-
-            <button className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors">
-              <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
 
             {currentUser ? (
