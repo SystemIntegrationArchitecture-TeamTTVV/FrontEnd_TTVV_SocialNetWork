@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { postGroupApi, type PostGroupData } from "../../../../apis/postsGroup";
-import { groupsApi } from "../../../../apis/groupsApi";
 import { reactionsApi } from "../../../../apis/reactions";
 import { commentsApi, type CommentData } from "../../../../apis/comments";
 import { authApi } from "../../../../apis/auth";
@@ -16,9 +15,6 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   const [posts, setPosts] = useState<PostGroupData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // ── Current user role in this group ───────────────────
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   // ── Reactions ─────────────────────────────────────────
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -40,23 +36,27 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const normalizeVisibility = (visibility?: string): 'PUBLIC' | 'PRIVATE' => {
+    if (!visibility) return 'PUBLIC';
+    const normalized = visibility.toUpperCase();
+    if (normalized === 'PRIVATE' || normalized === 'ONLY_ME') return 'PRIVATE';
+    return 'PUBLIC';
+  };
 
   // ── Fetch Posts + Role ────────────────────────────────
   const fetchPosts = async () => {
     try {
       setIsLoadingPosts(true);
       setError(null);
-      const data = await postGroupApi.getPostsByGroupId(groupId);
+      const data = await postGroupApi.getPostsByGroupId(groupId, currentUser?.id);
       setPosts(data);
 
       if (currentUser?.id) {
-        // Fetch role in parallel with reactions
         const [reactions] = await Promise.allSettled([
           reactionsApi.getReactionsByUserId(currentUser.id),
-          groupsApi.getUserRole(groupId, currentUser.id).then(role => {
-            setCurrentUserRole(role ?? null);
-          }).catch(() => setCurrentUserRole(null)),
         ]);
 
         if (reactions.status === "fulfilled") {
@@ -180,7 +180,11 @@ export default function PostsTab({ groupId }: { groupId: string }) {
     setOpenMenuId(null);
     if (action === "edit") {
       const post = posts.find(p => p.id === postId);
-      if (post) { setEditingPostId(postId); setEditContent(post.content || ""); }
+      if (post) {
+        setEditingPostId(postId);
+        setEditContent(post.content || "");
+        setEditVisibility(normalizeVisibility(post.visibility));
+      }
     } else if (action === "delete") {
       if (window.confirm("Bạn có chắc muốn xóa bài viết này?")) {
         try {
@@ -204,10 +208,12 @@ export default function PostsTab({ groupId }: { groupId: string }) {
         content: editContent.trim(),
         images: current?.images,
         videos: current?.videos,
+        visibility: editVisibility,
       });
       setPosts(prev => prev.map(p => p.id === postId ? updated : p));
       setEditingPostId(null);
       setEditContent("");
+      setEditVisibility('PUBLIC');
     } catch {
       alert("Cập nhật thất bại. Vui lòng thử lại.");
     }
@@ -254,20 +260,25 @@ export default function PostsTab({ groupId }: { groupId: string }) {
             key={post.id}
             post={post}
             currentUserId={currentUser?.id}
-            currentUserRole={currentUserRole}
             isLiked={likedPosts.has(post.id)}
             isExpanded={isExpanded}
             isDeleting={isDeleting === post.id}
             editingPostId={editingPostId}
             editContent={editContent}
+            editVisibility={editVisibility}
             openMenuId={openMenuId}
             menuRef={el => { if (post.id) menuRefs.current[post.id] = el; }}
             onLike={handleLikePost}
             onToggleComments={toggleComments}
             onOpenMenu={id => setOpenMenuId(openMenuId === id ? null : id)}
             onEditChange={setEditContent}
+            onEditVisibilityChange={setEditVisibility}
             onEditSave={handleUpdatePost}
-            onEditCancel={() => { setEditingPostId(null); setEditContent(""); }}
+            onEditCancel={() => {
+              setEditingPostId(null);
+              setEditContent("");
+              setEditVisibility('PUBLIC');
+            }}
             onMenuAction={handleMenuAction}
           >
             {isExpanded && (

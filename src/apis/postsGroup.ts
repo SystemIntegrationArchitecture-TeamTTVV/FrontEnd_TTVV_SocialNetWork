@@ -11,7 +11,7 @@ export interface PostGroupData {
   location?: string;
   feeling?: string;
   activity?: string;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'ONLY_ME';
   allowComments?: boolean;
   allowSharing?: boolean;
   likeCount?: number;
@@ -30,7 +30,7 @@ export interface CreatePostGroupRequest {
   location?: string;
   feeling?: string;
   activity?: string;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'ONLY_ME';
   allowComments?: boolean;
   allowSharing?: boolean;
   groupId: string; // 🔥 bắt buộc vì post trong group
@@ -43,7 +43,7 @@ export interface UpdatePostGroupRequest {
   location?: string;
   feeling?: string;
   activity?: string;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'ONLY_ME';
 }
 
 class PostGroupApi {
@@ -52,11 +52,12 @@ class PostGroupApi {
   /**
    * 🔥 Get all posts in a group
    */
-  async getPostsByGroupId(groupId: string): Promise<PostGroupData[]> {
+  async getPostsByGroupId(groupId: string, viewerId?: string): Promise<PostGroupData[]> {
     try {
       console.log(`📡 [PostGroup API] Fetching posts for group ${groupId}...`);
+      const query = viewerId ? `?viewerId=${encodeURIComponent(viewerId)}` : '';
       const response = await httpClient.get<PostGroupData[]>(
-        `${this.baseUrl}/group/${groupId}`
+        `${this.baseUrl}/group/${groupId}${query}`
       );
       console.log('✅ [PostGroup API] Successfully fetched group posts:', response.length);
       return response;
@@ -69,11 +70,12 @@ class PostGroupApi {
   /**
    * 🔥 Get post detail
    */
-  async getPostById(postId: string): Promise<PostGroupData> {
+  async getPostById(postId: string, viewerId?: string): Promise<PostGroupData> {
     try {
       console.log(`📡 [PostGroup API] Fetching post ${postId}...`);
+      const query = viewerId ? `?viewerId=${encodeURIComponent(viewerId)}` : '';
       const response = await httpClient.get<PostGroupData>(
-        `${this.baseUrl}/${postId}`
+        `${this.baseUrl}/${postId}${query}`
       );
       console.log('✅ [PostGroup API] Successfully fetched post:', response);
       return response;

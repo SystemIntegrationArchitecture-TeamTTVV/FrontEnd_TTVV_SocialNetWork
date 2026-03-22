@@ -11,7 +11,7 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const [content, setContent] = useState('');
-  const [privacy, setPrivacy] = useState<'PUBLIC' | 'ONLY_ME'>('PUBLIC');
+  const [privacy, setPrivacy] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +85,7 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
     });
   };
 
-  const togglePrivacy = () => setPrivacy(prev => prev === 'PUBLIC' ? 'ONLY_ME' : 'PUBLIC');
+  const togglePrivacy = () => setPrivacy(prev => prev === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC');
 
   const handlePost = async () => {
     if (!content.trim() && imageUrls.length === 0 && videoUrls.length === 0) {
@@ -384,7 +384,7 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
                     <div className="cpg-user-name">{currentUser?.fullName}</div>
                     <button className="cpg-privacy-btn" onClick={togglePrivacy}>
                       {privacy === 'PUBLIC' ? <Globe /> : <Lock />}
-                      {privacy === 'PUBLIC' ? 'Công khai' : 'Ẩn danh'}
+                      {privacy === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
                       <span style={{ opacity: 0.5, fontSize: 9 }}>▾</span>
                     </button>
                   </div>

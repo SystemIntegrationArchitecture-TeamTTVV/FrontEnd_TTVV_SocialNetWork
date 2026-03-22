@@ -1,24 +1,25 @@
 import {
   Heart, MessageCircle, Share2, MoreHorizontal,
-  Edit, Trash2, Bookmark, EyeOff, Flag, Loader2
+  Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, Globe, Lock
 } from "lucide-react";
 import type { PostGroupData } from "../../../../apis/postsGroup";
 
 interface PostCardProps {
   post: PostGroupData;
   currentUserId?: string;
-  currentUserRole?: string | null; // "ADMIN" | "MEMBER" | null
   isLiked: boolean;
   isExpanded: boolean;
   isDeleting: boolean;
   editingPostId: string | null;
   editContent: string;
+  editVisibility: 'PUBLIC' | 'PRIVATE';
   openMenuId: string | null;
   menuRef: (el: HTMLDivElement | null) => void;
   onLike: (postId: string) => void;
   onToggleComments: (postId: string) => void;
   onOpenMenu: (postId: string) => void;
   onEditChange: (value: string) => void;
+  onEditVisibilityChange: (value: 'PUBLIC' | 'PRIVATE') => void;
   onEditSave: (postId: string) => void;
   onEditCancel: () => void;
   onMenuAction: (postId: string, action: string) => void;
@@ -43,23 +44,23 @@ const getInitials = (name?: string) => {
 };
 
 export default function PostCard({
-  post, currentUserId, currentUserRole, isLiked, isExpanded, isDeleting,
-  editingPostId, editContent, openMenuId, menuRef,
+  post, currentUserId, isLiked, isExpanded, isDeleting,
+  editingPostId, editContent, editVisibility, openMenuId, menuRef,
   onLike, onToggleComments, onOpenMenu,
-  onEditChange, onEditSave, onEditCancel, onMenuAction,
+  onEditChange, onEditVisibilityChange, onEditSave, onEditCancel, onMenuAction,
   children,
 }: PostCardProps) {
   const isEditing = editingPostId === post.id;
   const isMenuOpen = openMenuId === post.id;
 
-  // Ẩn danh nếu bài ONLY_ME và người xem không phải ADMIN
-  const isAnonymous =
-    post.visibility === "ONLY_ME" &&
-    currentUserRole !== "ADMIN" &&
-    currentUserId !== post.authorId;
-
-  const displayName = isAnonymous ? "Ẩn danh" : (post.authorName || "Người dùng");
-  const displayAvatar = isAnonymous ? null : post.authorAvatar;
+  const normalizedVisibility = (() => {
+    const visibility = (post.visibility || 'PUBLIC').toUpperCase();
+    return visibility === 'ONLY_ME' ? 'PRIVATE' : visibility;
+  })();
+  const isPrivate = normalizedVisibility === 'PRIVATE';
+  const isAnonymousToViewer = isPrivate && currentUserId !== post.authorId;
+  const displayName = isAnonymousToViewer ? "Ẩn danh" : (post.authorName || "Người dùng");
+  const displayAvatar = isAnonymousToViewer ? undefined : post.authorAvatar;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-colors relative">
@@ -86,7 +87,14 @@ export default function PostCard({
           </div>
           <div>
             <p className="font-semibold text-gray-900 text-base">{displayName}</p>
-            <p className="text-sm text-gray-500">{getTimeAgo(post.createdAt)}</p>
+            <div className="text-sm text-gray-500 flex items-center gap-2">
+              <span>{getTimeAgo(post.createdAt)}</span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                {isPrivate ? <Lock className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                {isPrivate ? 'Riêng tư' : 'Công khai'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -150,6 +158,16 @@ export default function PostCard({
       <div className="px-5 pb-4">
         {isEditing ? (
           <div className="space-y-3">
+            <div className="flex items-center justify-end">
+              <select
+                value={editVisibility}
+                onChange={e => onEditVisibilityChange(e.target.value as 'PUBLIC' | 'PRIVATE')}
+                className="h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="PUBLIC">Công khai</option>
+                <option value="PRIVATE">Riêng tư</option>
+              </select>
+            </div>
             <textarea
               value={editContent}
               onChange={e => onEditChange(e.target.value)}

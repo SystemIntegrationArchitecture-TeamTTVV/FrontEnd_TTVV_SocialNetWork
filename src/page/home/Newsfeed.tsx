@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2 } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, Globe, UserCheck, Lock } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
@@ -47,6 +47,7 @@ export default function Newsfeed() {
   const [showCreateStory, setShowCreateStory] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const nav = useNavigate();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
@@ -56,7 +57,7 @@ export default function Newsfeed() {
       try {
         setIsLoadingPosts(true);
         setError(null);
-        const data = await postsApi.getAllPosts();
+        const data = await postsApi.getAllPosts(currentUser?.id);
         setPosts(Array.isArray(data) ? data : []);
         console.log('✅ Loaded posts:', Array.isArray(data) ? data.length : 0, '(raw type:', typeof data, ')');
 
@@ -492,6 +493,7 @@ export default function Newsfeed() {
       if (post) {
         setEditingPostId(postId);
         setEditContent(post.content);
+        setEditVisibility(normalizeVisibility(post.visibility));
       }
     } else if (action === 'delete') {
       if (window.confirm('Are you sure you want to delete this post?')) {
@@ -534,7 +536,7 @@ export default function Newsfeed() {
         images: currentPost?.images, // Preserve existing images
         videos: currentPost?.videos, // Preserve existing videos
         location: currentPost?.location, // Preserve location
-        visibility: currentPost?.visibility, // Preserve visibility
+        visibility: editVisibility,
       });
 
       setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
@@ -550,6 +552,7 @@ export default function Newsfeed() {
   const handleCancelEdit = () => {
     setEditingPostId(null);
     setEditContent('');
+    setEditVisibility('PUBLIC');
   };
 
   const getTimeAgo = (dateString?: string) => {
@@ -575,6 +578,25 @@ export default function Newsfeed() {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const normalizeVisibility = (visibility?: string): 'PUBLIC' | 'FRIENDS' | 'PRIVATE' => {
+    if (!visibility) return 'PUBLIC';
+    const normalized = visibility.toUpperCase();
+    if (normalized === 'FRIENDS' || normalized === 'FRIEND') return 'FRIENDS';
+    if (normalized === 'PRIVATE' || normalized === 'ONLY_ME') return 'PRIVATE';
+    return 'PUBLIC';
+  };
+
+  const getVisibilityMeta = (visibility?: string) => {
+    const mode = normalizeVisibility(visibility);
+    if (mode === 'FRIENDS') {
+      return { label: 'Bạn bè', Icon: UserCheck };
+    }
+    if (mode === 'PRIVATE') {
+      return { label: 'Riêng tư', Icon: Lock };
+    }
+    return { label: 'Công khai', Icon: Globe };
   };
 
   return (
@@ -833,6 +855,8 @@ export default function Newsfeed() {
         {!isLoadingPosts && !error && posts.map((post) => {
           const isCommentsExpanded = expandedComments.has(post.id!);
           const commentInput = commentInputs[post.id!] || '';
+          const visibilityMeta = getVisibilityMeta(post.visibility);
+          const VisibilityIcon = visibilityMeta.Icon;
 
           return (
             <div key={post.id} className="bg-white rounded-[28px] border border-gray-100 shadow-sm transition-all relative">
@@ -850,6 +874,11 @@ export default function Newsfeed() {
                     <p className="font-semibold text-gray-900 text-base">{post.authorName || 'Unknown User'}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span>{getTimeAgo(post.createdAt)}</span>
+                      <span>·</span>
+                      <div className="flex items-center gap-1">
+                        <VisibilityIcon className="w-3.5 h-3.5" />
+                        <span>{visibilityMeta.label}</span>
+                      </div>
                       {post.location && (
                         <>
                           <span>·</span>
@@ -926,6 +955,17 @@ export default function Newsfeed() {
               <div className="px-5 pb-4">
                 {editingPostId === post.id ? (
                   <div className="space-y-3">
+                    <div className="flex items-center justify-end">
+                      <select
+                        value={editVisibility}
+                        onChange={(e) => setEditVisibility(e.target.value as 'PUBLIC' | 'FRIENDS' | 'PRIVATE')}
+                        className="h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="PUBLIC">Công khai</option>
+                        <option value="FRIENDS">Bạn bè</option>
+                        <option value="PRIVATE">Riêng tư</option>
+                      </select>
+                    </div>
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
