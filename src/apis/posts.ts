@@ -11,7 +11,7 @@ export interface PostData {
   location?: string;
   feeling?: string;
   activity?: string;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE' | 'ONLY_ME';
   allowComments?: boolean;
   allowSharing?: boolean;
   likeCount?: number;
@@ -31,7 +31,7 @@ export interface CreatePostRequest {
   location?: string;
   feeling?: string;
   activity?: string;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE' | 'ONLY_ME';
   allowComments?: boolean;
   allowSharing?: boolean;
   groupId?: string;
@@ -45,7 +45,7 @@ export interface UpdatePostRequest {
   location?: string;
   feeling?: string;
   activity?: string;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE' | 'ONLY_ME';
 }
 
 class PostsApi {
@@ -54,10 +54,11 @@ class PostsApi {
   /**
    * Get all posts (newsfeed)
    */
-  async getAllPosts(): Promise<PostData[]> {
+  async getAllPosts(viewerId?: string): Promise<PostData[]> {
     try {
       console.log('📡 [Posts API] Fetching all posts...');
-      const response = await httpClient.get<PostData[]>(this.baseUrl);
+      const query = viewerId ? `?viewerId=${encodeURIComponent(viewerId)}` : '';
+      const response = await httpClient.get<PostData[]>(`${this.baseUrl}${query}`);
       console.log('✅ [Posts API] Successfully fetched posts:', response.length);
       return response;
     } catch (error) {
@@ -173,7 +174,7 @@ class PostsApi {
   /**
    * Share a post
    */
-  async sharePost(postId: string, userId: string, content?: string, visibility?: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME'): Promise<PostData> {
+  async sharePost(postId: string, userId: string, content?: string, visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE' | 'ONLY_ME'): Promise<PostData> {
     try {
       console.log(`📡 [Posts API] Sharing post ${postId}...`);
       const shareData: CreatePostRequest = {

@@ -7,6 +7,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import { friendRequestsApi } from '../../apis/friendRequests';
 import { conversationsApi } from '../../apis/conversations';
 import { usersApi } from '../../apis/users';
+import { groupsApi } from '../../apis/groupsApi';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ const getNotificationIcon = (type: string) => {
     case 'FRIEND_REQUEST':
     case 'FRIEND_ACCEPTED':
       return UserPlus;
+    case 'GROUP_INVITE':
+      return Users;
     case 'LIKE_POST':
     case 'LIKE_COMMENT':
       return Heart;
@@ -379,6 +382,38 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
     }
   };
 
+  const handleAcceptGroupInvite = async (notification: NotificationData) => {
+    if (!currentUser?.id || !notification.relatedId) return;
+
+    try {
+      await groupsApi.joinGroup(notification.relatedId, currentUser.id);
+      await notificationsApi.markAsRead(notification.id);
+      setNotifications((prev) =>
+        prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+      );
+      onNotificationRead?.();
+    } catch (error) {
+      console.error('Failed to accept group invite:', error);
+      alert('Không thể chấp nhận lời mời vào nhóm');
+    }
+  };
+
+  const handleRejectGroupInvite = async (notification: NotificationData) => {
+    if (!currentUser?.id || !notification.relatedId) return;
+
+    try {
+      await groupsApi.rejectGroupInvite(notification.relatedId, currentUser.id);
+      await notificationsApi.markAsRead(notification.id);
+      setNotifications((prev) =>
+        prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+      );
+      onNotificationRead?.();
+    } catch (error) {
+      console.error('Failed to reject group invite:', error);
+      alert('Không thể từ chối lời mời vào nhóm');
+    }
+  };
+
   const handleNotificationClick = (notification: NotificationData) => {
     // Mark as read if not read
     if (!notification.isRead) {
@@ -394,6 +429,12 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
     // Navigate based on notification type
     if (notification.type === 'FRIEND_REQUEST' && notification.actorId) {
       navigate(`/profile/${notification.actorId}`);
+      onClose();
+      return;
+    }
+
+    if (notification.type === 'GROUP_INVITE' && notification.relatedId) {
+      navigate(`/groups/${notification.relatedId}`);
       onClose();
     }
   };
@@ -423,7 +464,9 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full right-0 mt-2 w-[480px] bg-white rounded-2xl shadow-xl border border-gray-200/80 z-80 max-h-[600px] flex flex-col overflow-hidden"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      className="absolute top-full right-0 mt-2 w-120 bg-white rounded-2xl shadow-xl border border-gray-200/80 z-80 max-h-150 flex flex-col overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-5 border-b border-gray-100/80">
@@ -505,14 +548,26 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                         {!joinRequest.isRead && (
                           <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => handleAcceptJoinRequest(joinRequest)}
+                              type="button"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAcceptJoinRequest(joinRequest);
+                              }}
                               className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
                             >
                               <Check className="w-3 h-3" />
                               Chấp nhận
                             </button>
                             <button
-                              onClick={() => handleRejectJoinRequest(joinRequest)}
+                              type="button"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleRejectJoinRequest(joinRequest);
+                              }}
                               className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
                             >
                               Từ chối
@@ -575,17 +630,59 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                       {notification.type === 'FRIEND_REQUEST' && !notification.isRead && notification.relatedId && (
                         <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => handleAcceptFriendRequest(notification)}
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAcceptFriendRequest(notification);
+                            }}
                             className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
                           >
                             <Check className="w-3 h-3" />
                             Accept
                           </button>
                           <button
-                            onClick={() => handleRejectFriendRequest(notification)}
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRejectFriendRequest(notification);
+                            }}
                             className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
                           >
                             Delete
+                          </button>
+                        </div>
+                      )}
+
+                      {notification.type === 'GROUP_INVITE' && !notification.isRead && notification.relatedId && (
+                        <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAcceptGroupInvite(notification);
+                            }}
+                            className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" />
+                            Tham gia
+                          </button>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRejectGroupInvite(notification);
+                            }}
+                            className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+                          >
+                            Từ chối
                           </button>
                         </div>
                       )}

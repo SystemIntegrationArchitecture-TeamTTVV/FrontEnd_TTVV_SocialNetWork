@@ -343,6 +343,10 @@ class GroupsApi {
     async rejectMember(groupId: string, userId: string): Promise<void> {
         await httpClient.post(`${this.baseUrl}/${groupId}/members/${userId}/reject`);
     }
+
+    async rejectGroupInvite(groupId: string, userId: string): Promise<void> {
+        await httpClient.post(`${this.baseUrl}/${groupId}/invite/${userId}/reject`);
+    }
 }
 
 export const groupsApi = new GroupsApi();

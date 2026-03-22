@@ -10,7 +10,7 @@ import { uploadApi } from '../../apis/upload';
 export default function CreatePost() {
   const navigate = useNavigate();
   const [content, setContent] = useState('');
-  const [privacy, setPrivacy] = useState<'PUBLIC' | 'FRIENDS' | 'ONLY_ME'>('PUBLIC');
+  const [privacy, setPrivacy] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -143,14 +143,14 @@ export default function CreatePost() {
         return { icon: Globe, text: 'Public' };
       case 'FRIENDS':
         return { icon: UserCheck, text: 'Friends' };
-      case 'ONLY_ME':
-        return { icon: Lock, text: 'Only me' };
+      case 'PRIVATE':
+        return { icon: Lock, text: 'Private' };
     }
   };
 
   const cyclePrivacy = () => {
     if (privacy === 'PUBLIC') setPrivacy('FRIENDS');
-    else if (privacy === 'FRIENDS') setPrivacy('ONLY_ME');
+    else if (privacy === 'FRIENDS') setPrivacy('PRIVATE');
     else setPrivacy('PUBLIC');
   };
 
@@ -161,7 +161,7 @@ export default function CreatePost() {
     <>
       <Newsfeed />
       <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] max-h-[90vh] overflow-y-auto border border-gray-200 pointer-events-auto">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-125 max-h-[90vh] overflow-y-auto border border-gray-200 pointer-events-auto">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Create Post</h2>
             <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
@@ -169,7 +169,7 @@ export default function CreatePost() {
             </button>
           </div>
           <div className="p-4 border-b border-gray-200 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
               <span className="text-white font-semibold text-sm">{currentUser?.fullName?.charAt(0) || 'U'}</span>
             </div>
             <div className="flex-1">
@@ -185,7 +185,7 @@ export default function CreatePost() {
               value={content} 
               onChange={(e) => setContent(e.target.value)} 
               placeholder={`What's on your mind, ${currentUser?.fullName || 'there'}?`}
-              className="w-full min-h-[120px] p-3 border-none focus:outline-none resize-none text-sm placeholder:text-gray-400" 
+              className="w-full min-h-30 p-3 border-none focus:outline-none resize-none text-sm placeholder:text-gray-400"
               disabled={isLoading || isUploading} 
             />
             {imagePreviews.length > 0 && (

@@ -123,6 +123,17 @@ export default function GroupDetail() {
     }
   };
 
+  const handleInviteModalClose = async () => {
+    setOpenInvite(false);
+    if (!id) return;
+    try {
+      const refreshed = await groupsApi.getGroupById(id);
+      setGroup(refreshed);
+    } catch (error) {
+      console.error("Refresh group after invite failed", error);
+    }
+  };
+
   if (isLoading || !group) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0c0e14] flex items-center justify-center">
@@ -313,7 +324,7 @@ export default function GroupDetail() {
         <InviteFriendsModal
           groupId={group.id!}
           userId={userId}
-          onClose={() => setOpenInvite(false)}
+          onClose={handleInviteModalClose}
         />
       )}
     </div>

@@ -11,16 +11,27 @@ interface Props {
   groupId: string;
   userId: string;
   onClose: () => void;
+  onInvited?: () => void;
 }
 
 export default function InviteFriendsModal({
   groupId,
   userId,
-  onClose
+  onClose,
+  onInvited
 }: Props) {
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [invitingIds, setInvitingIds] = useState<string[]>([]);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+    window.setTimeout(() => {
+      setToast(prev => (prev?.message === message ? null : prev));
+    }, 2200);
+  };
 
   useEffect(() => {
 
@@ -47,31 +58,54 @@ export default function InviteFriendsModal({
 
   }, [groupId, userId]);
 
-//   const invite = async (friendId: string) => {
+  const invite = async (friendId: string) => {
 
-//     try {
+    if (invitingIds.includes(friendId)) return;
 
-//       await groupsApi.inviteFriend(groupId, friendId);
+    try {
 
-//       setFriends(prev => prev.filter(f => f.id !== friendId));
+      setInvitingIds(prev => [...prev, friendId]);
 
-//     } catch (e) {
+      await groupsApi.addMembers(groupId, [friendId]);
 
-//       console.error("Invite failed", e);
+      setFriends(prev => prev.filter(f => f.id !== friendId));
+      onInvited?.();
+      showToast("success", "Đã mời thành công");
 
-//     }
+    } catch (e) {
 
-//   };
+      console.error("Invite failed", e);
+      showToast("error", "Mời thất bại, vui lòng thử lại");
+
+    } finally {
+
+      setInvitingIds(prev => prev.filter(id => id !== friendId));
+
+    }
+
+  };
 
   return (
 
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-      <div className="bg-white w-[420px] rounded-lg shadow-lg p-6">
+      <div className="bg-white w-105 rounded-lg shadow-lg p-6">
 
         <h2 className="text-xl font-bold mb-4">
           Mời bạn bè vào nhóm
         </h2>
+
+        {toast && (
+          <div
+            className={`mb-3 px-3 py-2 rounded-md text-sm font-medium ${
+              toast.type === "success"
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-red-50 text-red-700 border border-red-200"
+            }`}
+          >
+            {toast.message}
+          </div>
+        )}
 
         {loading ? (
 
@@ -85,7 +119,7 @@ export default function InviteFriendsModal({
 
         ) : (
 
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+          <div className="space-y-3 max-h-100 overflow-y-auto">
 
             {friends.map(friend => (
 
@@ -106,10 +140,11 @@ export default function InviteFriendsModal({
                 </div>
 
                 <button
-                //   onClick={() => invite(friend.id)}
+                  onClick={() => invite(friend.id)}
+                  disabled={invitingIds.includes(friend.id)}
                   className="px-3 py-1 bg-[#1877F2] text-white rounded-md text-sm"
                 >
-                  Mời
+                  {invitingIds.includes(friend.id) ? "Đang mời..." : "Mời"}
                 </button>
 
               </div>
