@@ -10,7 +10,8 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
+  /** DOM: number | Node: Timeout — dùng ReturnType để khớp cả hai môi trường */
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {

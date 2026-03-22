@@ -252,7 +252,11 @@ export default function PostsTab({ groupId }: { groupId: string }) {
       {error && !isLoadingPosts && (
         <div className="bg-white rounded-2xl p-8 border border-red-200 text-center">
           <p className="text-red-600">{error}</p>
-          <button onClick={fetchPosts} className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
+          <button
+            type="button"
+            onClick={() => void fetchPosts()}
+            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+          >
             Thử lại
           </button>
         </div>
