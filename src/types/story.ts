@@ -12,6 +12,8 @@ export type Story = {
   contentType: 'image' | 'video' | 'text';
   content: string;              // image/video URL hoặc text
   background?: string;           // dùng cho text story
+  /** Chú thích trên ảnh/video (tuỳ chọn) */
+  caption?: string;
   duration?: number;             // giây (video hoặc text) – FE dùng progress
 
   /* ===== META ===== */

@@ -634,10 +634,18 @@ export default function Newsfeed() {
                   <div className="w-full h-full rounded-2xl overflow-hidden relative">
                     {/* Story preview */}
                     {firstStory.contentType === 'image' && (
-                      <img
-                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="relative h-full w-full">
+                        <img
+                          src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                          className="h-full w-full object-cover"
+                          alt=""
+                        />
+                        {firstStory.caption?.trim() ? (
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
+                            {firstStory.caption.trim()}
+                          </div>
+                        ) : null}
+                      </div>
                     )}
 
                     {firstStory.contentType === 'text' && (
@@ -651,16 +659,23 @@ export default function Newsfeed() {
                     )}
 
                     {firstStory.contentType === 'video' && (
-                      <video
-                        src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                        onLoadedMetadata={(e) => {
-                          e.currentTarget.currentTime = 0;
-                        }}
-                      />
+                      <div className="relative h-full w-full">
+                        <video
+                          src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="h-full w-full object-cover"
+                          onLoadedMetadata={(e) => {
+                            e.currentTarget.currentTime = 0;
+                          }}
+                        />
+                        {firstStory.caption?.trim() ? (
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
+                            {firstStory.caption.trim()}
+                          </div>
+                        ) : null}
+                      </div>
                     )}
 
 

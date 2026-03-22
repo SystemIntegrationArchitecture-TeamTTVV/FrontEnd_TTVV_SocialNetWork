@@ -47,9 +47,11 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   };
 
   // ── Fetch Posts + Role ────────────────────────────────
-  const fetchPosts = async () => {
+  const fetchPosts = async (opts?: { silent?: boolean }) => {
     try {
-      setIsLoadingPosts(true);
+      if (!opts?.silent) {
+        setIsLoadingPosts(true);
+      }
       setError(null);
       const data = await postGroupApi.getPostsByGroupId(groupId, currentUser?.id);
       setPosts(data);
@@ -67,7 +69,9 @@ export default function PostsTab({ groupId }: { groupId: string }) {
     } catch {
       setError("Không thể tải bài viết. Vui lòng thử lại.");
     } finally {
-      setIsLoadingPosts(false);
+      if (!opts?.silent) {
+        setIsLoadingPosts(false);
+      }
     }
   };
 
@@ -227,7 +231,16 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   // ── Render ────────────────────────────────────────────
   return (
     <div className="space-y-6 pb-8">
-      <CreatePostGroup groupId={groupId} />
+      <CreatePostGroup
+        groupId={groupId}
+        onPostCreated={(post) => {
+          if (post?.id) {
+            setPosts((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
+          } else {
+            void fetchPosts({ silent: true });
+          }
+        }}
+      />
 
       {isLoadingPosts && (
         <div className="bg-white rounded-2xl p-12 border border-gray-200 flex flex-col items-center justify-center">

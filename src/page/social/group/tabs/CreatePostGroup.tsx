@@ -1,13 +1,18 @@
-import { useNavigate } from 'react-router-dom';
 import { Image, X, Globe, Lock, Loader2, Video, Trash2, Smile, MapPin } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { postGroupApi } from '../../../../apis/postsGroup';
-import type { CreatePostGroupRequest } from '../../../../apis/postsGroup';
+import type { CreatePostGroupRequest, PostGroupData } from '../../../../apis/postsGroup';
 import { authApi } from '../../../../apis/auth';
 import { uploadApi } from '../../../../apis/upload';
 
-export default function CreatePostGroup({ groupId }: { groupId: string }) {
-  const navigate = useNavigate();
+export default function CreatePostGroup({
+  groupId,
+  onPostCreated,
+}: {
+  groupId: string;
+  /** Gọi sau khi tạo bài thành công — tránh navigate(0) reload cả trang */
+  onPostCreated?: (post: PostGroupData) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   const [content, setContent] = useState('');
@@ -34,12 +39,12 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
       const urls = await Promise.all(
         Array.from(files).map(async (file) => {
           const preview = URL.createObjectURL(file);
-          setImagePreviews(prev => [...prev, preview]);
+          setImagePreviews((prev) => [...prev, preview]);
           const res = await uploadApi.uploadFile(file);
           return res.url;
         })
       );
-      setImageUrls(prev => [...prev, ...urls]);
+      setImageUrls((prev) => [...prev, ...urls]);
     } catch {
       setError('Lỗi tải ảnh lên');
     } finally {
@@ -56,12 +61,12 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
       const urls = await Promise.all(
         Array.from(files).map(async (file) => {
           const preview = URL.createObjectURL(file);
-          setVideoPreviews(prev => [...prev, preview]);
+          setVideoPreviews((prev) => [...prev, preview]);
           const res = await uploadApi.uploadFile(file);
           return res.url;
         })
       );
-      setVideoUrls(prev => [...prev, ...urls]);
+      setVideoUrls((prev) => [...prev, ...urls]);
     } catch {
       setError('Lỗi tải video lên');
     } finally {
@@ -70,22 +75,22 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
   };
 
   const removeImage = (index: number) => {
-    setImageUrls(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => {
       URL.revokeObjectURL(prev[index]);
       return prev.filter((_, i) => i !== index);
     });
   };
 
   const removeVideo = (index: number) => {
-    setVideoUrls(prev => prev.filter((_, i) => i !== index));
-    setVideoPreviews(prev => {
+    setVideoUrls((prev) => prev.filter((_, i) => i !== index));
+    setVideoPreviews((prev) => {
       URL.revokeObjectURL(prev[index]);
       return prev.filter((_, i) => i !== index);
     });
   };
 
-  const togglePrivacy = () => setPrivacy(prev => prev === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC');
+  const togglePrivacy = () => setPrivacy((prev) => (prev === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC'));
 
   const handlePost = async () => {
     if (!content.trim() && imageUrls.length === 0 && videoUrls.length === 0) {
@@ -102,16 +107,21 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
         allowSharing: true,
         images: imageUrls,
         videos: videoUrls,
-        authorId: currentUser?.id || ''
+        authorId: currentUser?.id || '',
       };
-      await postGroupApi.createPost(data);
+      const created = await postGroupApi.createPost(data);
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+      videoPreviews.forEach((url) => URL.revokeObjectURL(url));
       setIsOpen(false);
       setContent('');
+      setImageUrls([]);
+      setVideoUrls([]);
       setImagePreviews([]);
       setVideoPreviews([]);
-      navigate(0);
-    } catch (err: any) {
-      setError(err.message || 'Tạo bài viết thất bại');
+      onPostCreated?.(created);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Tạo bài viết thất bại';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -122,352 +132,225 @@ export default function CreatePostGroup({ groupId }: { groupId: string }) {
   const initial = currentUser?.fullName?.charAt(0)?.toUpperCase() || 'U';
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
-
-        .cpg-root * { font-family: 'Be Vietnam Pro', sans-serif; box-sizing: border-box; }
-
-        /* Trigger card */
-        .cpg-trigger-card {
-          background: #ffffff;
-          border: 1px solid #e8eaf0;
-          border-radius: 18px;
-          padding: 14px 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          max-width: 600px;
-          margin: 0 auto 24px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
-
-        .cpg-avatar {
-          width: 42px; height: 42px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          display: flex; align-items: center; justify-content: center;
-          color: white; font-weight: 700; font-size: 16px;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(102,126,234,0.35);
-        }
-
-        .cpg-trigger-btn {
-          flex: 1; background: #f4f6fb; border: none; cursor: pointer;
-          border-radius: 24px; padding: 10px 18px; text-align: left;
-          color: #9aa0b0; font-size: 14px; font-weight: 500;
-          transition: background 0.15s, color 0.15s;
-          outline: none;
-        }
-        .cpg-trigger-btn:hover { background: #eceef5; color: #7a8299; }
-
-        .cpg-trigger-actions {
-          display: flex; gap: 4px;
-        }
-        .cpg-icon-btn {
-          width: 36px; height: 36px; border-radius: 10px; border: none;
-          background: transparent; cursor: pointer; display: flex;
-          align-items: center; justify-content: center;
-          color: #adb5c9; transition: background 0.15s, color 0.15s;
-        }
-        .cpg-icon-btn:hover { background: #f0f2f8; color: #6674e8; }
-        .cpg-icon-btn.green:hover { color: #22c55e; background: #f0fdf4; }
-        .cpg-icon-btn.red:hover { color: #ef4444; background: #fef2f2; }
-
-        /* Overlay */
-        .cpg-overlay {
-          position: fixed; inset: 0; z-index: 9999;
-          background: rgba(15, 17, 26, 0.65);
-          backdrop-filter: blur(6px);
-          display: flex; align-items: center; justify-content: center;
-          padding: 20px;
-          animation: cpgFadeIn 0.18s ease;
-        }
-        @keyframes cpgFadeIn { from { opacity: 0 } to { opacity: 1 } }
-
-        /* Modal */
-        .cpg-modal {
-          background: #ffffff;
-          border-radius: 24px;
-          width: 100%; max-width: 520px;
-          overflow: hidden;
-          box-shadow: 0 24px 64px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
-          animation: cpgSlideUp 0.22s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        @keyframes cpgSlideUp {
-          from { transform: translateY(24px) scale(0.97); opacity: 0 }
-          to { transform: translateY(0) scale(1); opacity: 1 }
-        }
-
-        /* Modal header */
-        .cpg-modal-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 18px 20px 16px;
-          border-bottom: 1px solid #f0f2f8;
-        }
-        .cpg-modal-title {
-          font-size: 16px; font-weight: 700; color: #1a1d2e;
-          letter-spacing: -0.3px;
-        }
-        .cpg-close-btn {
-          width: 32px; height: 32px; border-radius: 10px; border: none;
-          background: #f4f6fb; cursor: pointer; display: flex;
-          align-items: center; justify-content: center; color: #8a90a8;
-          transition: background 0.15s, color 0.15s;
-        }
-        .cpg-close-btn:hover { background: #eceef5; color: #1a1d2e; }
-
-        /* User row */
-        .cpg-user-row {
-          display: flex; align-items: center; gap: 12px;
-          padding: 16px 20px 8px;
-        }
-        .cpg-avatar-lg {
-          width: 46px; height: 46px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          display: flex; align-items: center; justify-content: center;
-          color: white; font-weight: 700; font-size: 18px;
-          flex-shrink: 0;
-          box-shadow: 0 2px 10px rgba(102,126,234,0.3);
-        }
-        .cpg-user-name {
-          font-size: 14px; font-weight: 700; color: #1a1d2e; line-height: 1.2;
-        }
-        .cpg-privacy-btn {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 3px 10px 3px 8px; border-radius: 8px; border: none; cursor: pointer;
-          background: #f4f6fb; color: #5a607a;
-          font-size: 11px; font-weight: 600; margin-top: 4px;
-          transition: background 0.15s; letter-spacing: 0.1px;
-        }
-        .cpg-privacy-btn:hover { background: #eceef5; }
-        .cpg-privacy-btn svg { width: 11px; height: 11px; }
-
-        /* Textarea */
-        .cpg-textarea {
-          width: 100%; min-height: 130px; padding: 12px 20px;
-          border: none; outline: none; resize: none; background: transparent;
-          font-size: 16px; color: #1a1d2e; line-height: 1.6;
-          font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400;
-        }
-        .cpg-textarea::placeholder { color: #c2c8db; }
-
-        /* Media grid */
-        .cpg-media-grid {
-          display: grid; gap: 6px; padding: 0 20px 16px;
-        }
-        .cpg-media-grid.cols-1 { grid-template-columns: 1fr; }
-        .cpg-media-grid.cols-2 { grid-template-columns: 1fr 1fr; }
-        .cpg-media-item {
-          position: relative; border-radius: 14px; overflow: hidden;
-          background: #f4f6fb; aspect-ratio: 1;
-        }
-        .cpg-media-item img,
-        .cpg-media-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .cpg-media-item video { object-fit: contain; background: #0f111a; }
-        .cpg-media-remove {
-          position: absolute; top: 8px; right: 8px;
-          width: 28px; height: 28px; border-radius: 8px;
-          background: rgba(15,17,26,0.55); border: none; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          color: white; opacity: 0; transition: opacity 0.15s, background 0.15s;
-          backdrop-filter: blur(4px);
-        }
-        .cpg-media-item:hover .cpg-media-remove { opacity: 1; }
-        .cpg-media-remove:hover { background: rgba(239,68,68,0.8); }
-
-        /* Divider */
-        .cpg-divider { height: 1px; background: #f0f2f8; margin: 0 20px; }
-
-        /* Bottom bar */
-        .cpg-bottom { padding: 14px 20px; }
-
-        .cpg-actions-row {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 8px 14px; background: #f8f9fd; border-radius: 14px;
-          border: 1px solid #eceef5; margin-bottom: 12px;
-        }
-        .cpg-actions-label {
-          font-size: 12px; font-weight: 600; color: #8a90a8; letter-spacing: 0.3px;
-        }
-        .cpg-actions-icons { display: flex; gap: 2px; }
-        .cpg-action-icon-btn {
-          width: 34px; height: 34px; border-radius: 10px; border: none;
-          background: transparent; cursor: pointer; display: flex;
-          align-items: center; justify-content: center;
-          transition: background 0.15s, color 0.15s;
-        }
-        .cpg-action-icon-btn.img { color: #22c55e; }
-        .cpg-action-icon-btn.vid { color: #f97316; }
-        .cpg-action-icon-btn.emoji { color: #eab308; }
-        .cpg-action-icon-btn.loc { color: #3b82f6; }
-        .cpg-action-icon-btn:hover { background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-
-        /* Error / uploading */
-        .cpg-error {
-          margin-bottom: 10px; font-size: 12px; color: #ef4444;
-          background: #fef2f2; padding: 8px 12px; border-radius: 10px;
-          border: 1px solid #fecaca;
-        }
-        .cpg-uploading {
-          margin-bottom: 10px; font-size: 12px; color: #6674e8;
-          display: flex; align-items: center; gap: 6px;
-          font-weight: 500;
-        }
-
-        /* Post button */
-        .cpg-post-btn {
-          width: 100%; padding: 12px; border-radius: 14px; border: none;
-          font-size: 14px; font-weight: 700; cursor: pointer;
-          transition: all 0.15s; display: flex; align-items: center;
-          justify-content: center; gap: 6px; letter-spacing: 0.2px;
-        }
-        .cpg-post-btn.active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          box-shadow: 0 4px 16px rgba(102,126,234,0.35);
-        }
-        .cpg-post-btn.active:hover {
-          box-shadow: 0 6px 20px rgba(102,126,234,0.45);
-          transform: translateY(-1px);
-        }
-        .cpg-post-btn.active:active { transform: translateY(0); }
-        .cpg-post-btn.disabled {
-          background: #f0f2f8; color: #c2c8db; cursor: not-allowed;
-        }
-        .cpg-post-btn svg { animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Scrollable body */
-        .cpg-modal-body { max-height: 62vh; overflow-y: auto; }
-        .cpg-modal-body::-webkit-scrollbar { width: 4px; }
-        .cpg-modal-body::-webkit-scrollbar-thumb { background: #e0e3ef; border-radius: 4px; }
-      `}</style>
-
-      <div className="cpg-root">
-        {/* Trigger */}
-        <div className="cpg-trigger-card">
-          <div className="cpg-avatar">{initial}</div>
-          <button className="cpg-trigger-btn" onClick={() => setIsOpen(true)}>
-            {currentUser?.fullName} ơi, bạn đang nghĩ gì thế?
-          </button>
-          <div className="cpg-trigger-actions">
-            <button className="cpg-icon-btn green" onClick={() => { setIsOpen(true); setTimeout(() => imageInputRef.current?.click(), 100); }}>
-              <Image size={18} />
-            </button>
-            <button className="cpg-icon-btn red" onClick={() => { setIsOpen(true); setTimeout(() => videoInputRef.current?.click(), 100); }}>
-              <Video size={18} />
-            </button>
-          </div>
+    <div className="font-sans">
+      {/* Trigger */}
+      <div
+        className="flex max-w-[600px] items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm mx-auto mb-6
+          dark:border-[#2b2f45] dark:bg-[#1a1d28] dark:shadow-none"
+      >
+        <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#667eea] to-[#764ba2] text-base font-bold text-white shadow-md">
+          {initial}
         </div>
+        <button
+          type="button"
+          className="min-w-0 flex-1 cursor-pointer rounded-full border-none bg-gray-100 px-[18px] py-2.5 text-left text-sm font-medium text-gray-500 outline-none transition-colors
+            hover:bg-gray-200 hover:text-gray-600
+            dark:bg-[#252836] dark:text-gray-400 dark:hover:bg-[#2f3344] dark:hover:text-gray-300"
+          onClick={() => setIsOpen(true)}
+        >
+          {currentUser?.fullName} ơi, bạn đang nghĩ gì thế?
+        </button>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-[#adb5c9] transition-colors
+              hover:bg-gray-100 hover:text-emerald-500 dark:hover:bg-[#252836] dark:hover:text-emerald-400"
+            onClick={() => {
+              setIsOpen(true);
+              setTimeout(() => imageInputRef.current?.click(), 100);
+            }}
+            aria-label="Thêm ảnh"
+          >
+            <Image size={18} />
+          </button>
+          <button
+            type="button"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-[#adb5c9] transition-colors
+              hover:bg-gray-100 hover:text-orange-500 dark:hover:bg-[#252836] dark:hover:text-orange-400"
+            onClick={() => {
+              setIsOpen(true);
+              setTimeout(() => videoInputRef.current?.click(), 100);
+            }}
+            aria-label="Thêm video"
+          >
+            <Video size={18} />
+          </button>
+        </div>
+      </div>
 
-        {/* Modal */}
-        {isOpen && (
-          <div className="cpg-overlay" onClick={() => setIsOpen(false)}>
-            <div className="cpg-modal" onClick={e => e.stopPropagation()}>
+      {/* Modal */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-[rgba(15,17,26,0.65)] p-5 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl
+              dark:border-[#2b2f45] dark:bg-[#1a1d28]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cpg-modal-title"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-[#2b2f45]">
+              <div className="w-8 shrink-0" />
+              <span id="cpg-modal-title" className="text-base font-bold text-gray-900 dark:text-gray-100">
+                Tạo bài viết
+              </span>
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border-none bg-gray-100 text-gray-500 transition-colors
+                  hover:bg-gray-200 hover:text-gray-900 dark:bg-[#252836] dark:text-gray-400 dark:hover:bg-[#2f3344] dark:hover:text-white"
+                onClick={() => setIsOpen(false)}
+                aria-label="Đóng"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-              {/* Header */}
-              <div className="cpg-modal-header">
-                <div style={{ width: 32 }} />
-                <span className="cpg-modal-title">Tạo bài viết</span>
-                <button className="cpg-close-btn" onClick={() => setIsOpen(false)}>
-                  <X size={16} />
-                </button>
+            <div className="max-h-[62vh] overflow-y-auto [scrollbar-width:thin]">
+              <div className="flex items-center gap-3 px-5 pb-2 pt-4">
+                <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#667eea] to-[#764ba2] text-lg font-bold text-white shadow-md">
+                  {initial}
+                </div>
+                <div>
+                  <div className="text-sm font-bold leading-tight text-gray-900 dark:text-gray-100">{currentUser?.fullName}</div>
+                  <button
+                    type="button"
+                    className="mt-1 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-none bg-gray-100 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-gray-600 transition-colors
+                      hover:bg-gray-200 dark:bg-[#252836] dark:text-gray-300 dark:hover:bg-[#2f3344]"
+                    onClick={togglePrivacy}
+                  >
+                    {privacy === 'PUBLIC' ? <Globe className="size-[11px]" /> : <Lock className="size-[11px]" />}
+                    {privacy === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
+                    <span className="text-[9px] opacity-50">▾</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="cpg-modal-body">
-                {/* User row */}
-                <div className="cpg-user-row">
-                  <div className="cpg-avatar-lg">{initial}</div>
-                  <div>
-                    <div className="cpg-user-name">{currentUser?.fullName}</div>
-                    <button className="cpg-privacy-btn" onClick={togglePrivacy}>
-                      {privacy === 'PUBLIC' ? <Globe /> : <Lock />}
-                      {privacy === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
-                      <span style={{ opacity: 0.5, fontSize: 9 }}>▾</span>
-                    </button>
-                  </div>
-                </div>
+              <textarea
+                className="min-h-[130px] w-full resize-none border-none bg-transparent px-5 py-3 text-base leading-relaxed text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500"
+                autoFocus
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Chia sẻ điều gì đó với nhóm..."
+              />
 
-                {/* Textarea */}
-                <textarea
-                  className="cpg-textarea"
-                  autoFocus
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  placeholder="Chia sẻ điều gì đó với nhóm..."
-                />
-
-                {/* Media grid */}
-                {mediaCount > 0 && (
-                  <div className={`cpg-media-grid ${mediaCount > 1 ? 'cols-2' : 'cols-1'}`}>
-                    {imagePreviews.map((src, i) => (
-                      <div className="cpg-media-item" key={`img-${i}`}>
-                        <img src={src} alt="" />
-                        <button className="cpg-media-remove" onClick={() => removeImage(i)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                    {videoPreviews.map((src, i) => (
-                      <div className="cpg-media-item" key={`vid-${i}`}>
-                        <video src={src} />
-                        <button className="cpg-media-remove" onClick={() => removeVideo(i)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="cpg-divider" />
-
-              {/* Bottom */}
-              <div className="cpg-bottom">
-                <input ref={imageInputRef} type="file" hidden multiple onChange={handleImageSelect} accept="image/*" />
-                <input ref={videoInputRef} type="file" hidden multiple onChange={handleVideoSelect} accept="video/*" />
-
-                <div className="cpg-actions-row">
-                  <span className="cpg-actions-label">Thêm vào bài viết</span>
-                  <div className="cpg-actions-icons">
-                    <button className="cpg-action-icon-btn img" onClick={() => imageInputRef.current?.click()} title="Ảnh">
-                      <Image size={20} />
-                    </button>
-                    <button className="cpg-action-icon-btn vid" onClick={() => videoInputRef.current?.click()} title="Video">
-                      <Video size={20} />
-                    </button>
-                    <button className="cpg-action-icon-btn emoji" title="Cảm xúc">
-                      <Smile size={20} />
-                    </button>
-                    <button className="cpg-action-icon-btn loc" title="Địa điểm">
-                      <MapPin size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                {error && <div className="cpg-error">{error}</div>}
-                {isUploading && (
-                  <div className="cpg-uploading">
-                    <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} />
-                    Đang tải lên...
-                  </div>
-                )}
-
-                <button
-                  className={`cpg-post-btn ${canPost ? 'active' : 'disabled'}`}
-                  onClick={handlePost}
-                  disabled={!canPost}
+              {mediaCount > 0 && (
+                <div
+                  className={`grid gap-1.5 px-5 pb-4 ${mediaCount > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
                 >
-                  {isLoading ? <Loader2 size={18} /> : 'Đăng bài'}
-                </button>
+                  {imagePreviews.map((src, i) => (
+                    <div
+                      key={`img-${i}`}
+                      className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100 dark:bg-[#252836]"
+                    >
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border-none bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-red-500/80 group-hover:opacity-100"
+                        onClick={() => removeImage(i)}
+                        aria-label="Xóa ảnh"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  {videoPreviews.map((src, i) => (
+                    <div
+                      key={`vid-${i}`}
+                      className="group relative aspect-square overflow-hidden rounded-2xl bg-[#0f111a]"
+                    >
+                      <video src={src} className="h-full w-full object-contain" />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border-none bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-red-500/80 group-hover:opacity-100"
+                        onClick={() => removeVideo(i)}
+                        aria-label="Xóa video"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mx-5 h-px bg-gray-100 dark:bg-[#2b2f45]" />
+
+            <div className="px-5 py-3.5">
+              <input ref={imageInputRef} type="file" hidden multiple onChange={handleImageSelect} accept="image/*" />
+              <input ref={videoInputRef} type="file" hidden multiple onChange={handleVideoSelect} accept="video/*" />
+
+              <div
+                className="mb-3 flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50/80 px-3.5 py-2
+                  dark:border-[#2b2f45] dark:bg-[#14161f]"
+              >
+                <span className="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">Thêm vào bài viết</span>
+                <div className="flex gap-0.5">
+                  <button
+                    type="button"
+                    className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-emerald-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
+                    onClick={() => imageInputRef.current?.click()}
+                    title="Ảnh"
+                  >
+                    <Image size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-orange-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
+                    onClick={() => videoInputRef.current?.click()}
+                    title="Video"
+                  >
+                    <Video size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-yellow-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
+                    title="Cảm xúc"
+                  >
+                    <Smile size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-blue-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
+                    title="Địa điểm"
+                  >
+                    <MapPin size={20} />
+                  </button>
+                </div>
               </div>
 
+              {error && (
+                <div className="mb-2.5 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400">
+                  {error}
+                </div>
+              )}
+              {isUploading && (
+                <div className="mb-2.5 flex items-center gap-1.5 text-xs font-medium text-indigo-500 dark:text-indigo-400">
+                  <Loader2 size={13} className="animate-spin" />
+                  Đang tải lên...
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={`flex w-full items-center justify-center gap-1.5 rounded-[14px] border-none py-3 text-sm font-bold tracking-wide transition-all ${
+                  canPost
+                    ? 'cursor-pointer bg-linear-to-br from-[#667eea] to-[#764ba2] text-white shadow-lg shadow-indigo-500/30 hover:-translate-y-px hover:shadow-xl active:translate-y-0'
+                    : 'cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-[#252836] dark:text-gray-500'
+                }`}
+                onClick={handlePost}
+                disabled={!canPost}
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Đăng bài'}
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      )}
+    </div>
   );
 }

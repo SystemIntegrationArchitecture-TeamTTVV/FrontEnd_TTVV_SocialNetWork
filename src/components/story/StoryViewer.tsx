@@ -114,32 +114,47 @@ export default function StoryViewer({
         </div>
 
         {/* Content */}
-        <div className="w-full h-full flex items-center justify-center">
+        <div className="relative flex h-full w-full items-center justify-center">
           {/* IMAGE */}
           {story.contentType === 'image' && (
-            <img
-              src={`${API_CONFIG.COMMON_SERVICE_URL}${story.content}`}
-              className="w-full h-full object-cover"
-            />
+            <>
+              <img
+                src={`${API_CONFIG.COMMON_SERVICE_URL}${story.content}`}
+                className="h-full w-full object-cover"
+                alt=""
+              />
+              {story.caption?.trim() ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/75 to-transparent px-4 pb-8 pt-16 text-center text-base font-medium leading-snug text-white drop-shadow-lg">
+                  {story.caption.trim()}
+                </div>
+              ) : null}
+            </>
           )}
 
           {/* VIDEO */}
           {story.contentType === 'video' && (
-            <video
-              ref={videoRef}
-              src={story.content}
-              className="w-full h-full object-cover"
-              autoPlay
-              muted
-              playsInline
-              onTimeUpdate={(e) => {
-                const video = e.currentTarget;
-                const percent =
-                  (video.currentTime / video.duration) * 100;
-                setProgress(percent || 0);
-              }}
-              onEnded={next}
-            />
+            <>
+              <video
+                ref={videoRef}
+                src={story.content}
+                className="h-full w-full object-cover"
+                autoPlay
+                muted
+                playsInline
+                onTimeUpdate={(e) => {
+                  const video = e.currentTarget;
+                  const percent =
+                    (video.currentTime / video.duration) * 100;
+                  setProgress(percent || 0);
+                }}
+                onEnded={next}
+              />
+              {story.caption?.trim() ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/75 to-transparent px-4 pb-8 pt-16 text-center text-base font-medium leading-snug text-white drop-shadow-lg">
+                  {story.caption.trim()}
+                </div>
+              ) : null}
+            </>
           )}
 
           {/* TEXT */}

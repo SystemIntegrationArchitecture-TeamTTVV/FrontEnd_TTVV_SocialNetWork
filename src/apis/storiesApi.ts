@@ -46,6 +46,8 @@ class StoriesApi {
         contentType: 'text' | 'image' | 'video';
         content?: string;
         background?: string;
+        /** Chú thích khi đăng ảnh/video */
+        caption?: string;
         duration: number;
         file?: File;
     }): Promise<Story> {
@@ -62,6 +64,10 @@ class StoriesApi {
 
         if (params.background) {
             formData.append('background', params.background);
+        }
+
+        if (params.caption?.trim()) {
+            formData.append('caption', params.caption.trim());
         }
 
         if (params.file) {
