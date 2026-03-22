@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import logo from '../../assets/logo-favicon.png';
 
@@ -46,6 +47,16 @@ export default function AuthFrame({
 
   return (
     <div className="relative w-full min-h-screen flex items-center justify-center bg-linear-to-b from-slate-50 via-white to-blue-50/50 dark:from-[#0c0e14] dark:via-[#12151f] dark:to-[#0c0e14] px-4 py-12">
+      {/* Về feed — không bắt buộc đăng nhập */}
+      <Link
+        to="/home"
+        className="absolute top-5 left-5 z-10 inline-flex items-center gap-2 rounded-2xl border border-gray-200/90 bg-white/85 px-3.5 py-2.5 text-sm font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-gray-900 dark:border-[#2b2f45] dark:bg-[#1a1d28]/90 dark:text-[#c8d0e6] dark:hover:bg-[#22263a] dark:hover:text-white"
+      >
+        <ArrowLeft className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+        <span className="hidden min-[380px]:inline">Về trang chủ</span>
+        <span className="min-[380px]:hidden">Trang chủ</span>
+      </Link>
+
       {/* Theme toggle */}
       <button
         onClick={() => toggleTheme()}
