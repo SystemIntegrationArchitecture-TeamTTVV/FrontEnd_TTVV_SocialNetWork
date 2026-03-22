@@ -277,8 +277,9 @@ export default function FindPeople() {
             onKeyPress={handleKeyPress}
             onFocus={handleInputFocus}
             placeholder="Tìm theo tên hoặc tên đăng nhập..."
-            className="w-full h-12 pl-12 pr-24 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full h-14 pl-14 pr-24 rounded-2xl border border-gray-100/50 dark:border-white/5 bg-gray-100/50 dark:bg-[#1e2133]/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-[#22263a] transition-all text-gray-900 dark:text-gray-100"
           />
+
           <button
             onClick={() => {
               handleSearch();
@@ -362,8 +363,9 @@ export default function FindPeople() {
               return (
                 <div
                   key={user.id}
-                  className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-6 border border-gray-100/50 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300"
                 >
+
                   <div className="flex items-center gap-4">
                     {/* Avatar */}
                     <div 

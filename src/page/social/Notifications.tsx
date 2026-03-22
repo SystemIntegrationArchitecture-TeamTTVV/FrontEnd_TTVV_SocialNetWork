@@ -76,8 +76,9 @@ export default function Notifications() {
   return (
     <div className="max-w-2xl mx-auto p-6 pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa]">Thông báo</h1>
+
         {unreadCount > 0 && (
           <button className="text-sm text-blue-600 hover:underline font-semibold">
             Mark all as read
@@ -86,32 +87,34 @@ export default function Notifications() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl p-1.5 mb-6 flex gap-2 border border-gray-100 shadow-sm">
+      <div className="bg-gray-100/50 dark:bg-[#1a1d28]/50 glass-surface rounded-[24px] p-1.5 mb-8 flex gap-2 shadow-sm">
         <button
           onClick={() => setActiveTab('all')}
-          className={`flex-1 h-10 rounded-lg font-semibold transition-all relative ${
+          className={`flex-1 h-11 rounded-[18px] font-semibold transition-all relative ${
             activeTab === 'all'
-              ? 'bg-blue-50 text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-white dark:bg-[#242838] text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-white/50 dark:hover:bg-[#22263a]'
           }`}
         >
-          All
+          Tất cả
         </button>
+
         <button
           onClick={() => setActiveTab('unread')}
-          className={`flex-1 h-10 rounded-lg font-semibold transition-all relative ${
+          className={`flex-1 h-11 rounded-[18px] font-semibold transition-all relative ${
             activeTab === 'unread'
-              ? 'bg-blue-50 text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50'
+              ? 'bg-white dark:bg-[#242838] text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-white/50 dark:hover:bg-[#22263a]'
           }`}
         >
-          Unread
+          Chưa đọc
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-6 w-5 h-5 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">
+            <span className="absolute top-2 right-4 w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
               {unreadCount}
             </span>
           )}
         </button>
+
       </div>
 
       {/* Notifications List */}
@@ -128,8 +131,9 @@ export default function Notifications() {
                   return (
                     <div
                       key={notification.id}
-                      className="bg-blue-50 rounded-xl p-4 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-100"
+                      className="bg-blue-50/50 dark:bg-blue-500/10 rounded-[28px] p-5 hover:bg-blue-100/50 dark:hover:bg-blue-500/20 transition-all cursor-pointer border border-blue-100/30 dark:border-blue-500/10 shadow-sm group"
                     >
+
                       <div className="flex items-start gap-3">
                         {notification.user ? (
                           <div className="relative shrink-0">
@@ -192,8 +196,9 @@ export default function Notifications() {
                   return (
                     <div
                       key={notification.id}
-                      className="bg-white rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer border border-gray-100"
+                      className="bg-white dark:bg-[#1a1d28] rounded-[28px] p-5 hover:bg-gray-50 dark:hover:bg-[#1e212b] transition-all cursor-pointer border border-gray-100/50 dark:border-white/5 shadow-sm group"
                     >
+
                       <div className="flex items-start gap-3">
                         {notification.user ? (
                           <div

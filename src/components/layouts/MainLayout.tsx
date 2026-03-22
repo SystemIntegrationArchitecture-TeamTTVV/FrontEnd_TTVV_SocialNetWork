@@ -38,10 +38,11 @@ export default function MainLayout() {
       <div className="flex flex-1 overflow-hidden pt-20">
         {/* LEFT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-r border-gray-200 dark:border-[#22263a]">
+          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide glass-surface border-r border-gray-200/50 dark:border-white/5">
             <LeftSidebar />
           </aside>
         )}
+
         
         {/* MAIN CONTENT */}
         <main className={`flex-1 h-full overflow-y-auto scrollbar-hide ${
@@ -56,10 +57,11 @@ export default function MainLayout() {
         
         {/* RIGHT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide border-l border-gray-200 dark:border-[#22263a]">
+          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide glass-surface border-l border-gray-200/50 dark:border-white/5">
             <RightSidebar />
           </aside>
         )}
+
       </div>
       
       <ChatBoxManager />

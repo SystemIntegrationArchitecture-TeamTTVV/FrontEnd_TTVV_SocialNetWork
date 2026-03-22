@@ -195,7 +195,8 @@ export default function Navbar() {
       {/* ═══════════════════════════════════════════════════════
           TOP NAVBAR  (fixed, h-20 on all breakpoints)
       ═══════════════════════════════════════════════════════ */}
-      <nav className="fixed top-0 left-0 right-0 h-20 bg-white/95 dark:bg-[#12151f] border-b border-gray-200 dark:border-[#1e2130] z-50 shadow-sm backdrop-blur-md">
+      <nav className="fixed top-0 left-0 right-0 h-20 glass-surface z-50 shadow-sm">
+
 
         {/* ── DESKTOP layout (md+) ── */}
         <div className="hidden md:flex max-w-[1920px] mx-auto px-6 h-full items-center justify-between gap-4">
@@ -225,7 +226,8 @@ export default function Navbar() {
                     }
                   }}
                   placeholder={t('navbar.searchPlaceholder')}
-                  className="w-64 lg:w-80 h-11 pl-11 pr-4 rounded-full bg-gray-50 text-sm border border-gray-200 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-gray-500"
+                  className="w-64 lg:w-80 h-11 pl-11 pr-4 rounded-2xl bg-gray-100/50 dark:bg-[#1e2130]/50 text-sm border border-transparent focus:outline-none focus:bg-white dark:focus:bg-[#1a1d28] focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-500 dark:text-gray-200"
+
                 />
               </div>
               {showSuggestions && suggestions.length > 0 && (

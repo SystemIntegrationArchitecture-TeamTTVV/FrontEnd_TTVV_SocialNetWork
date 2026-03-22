@@ -141,7 +141,8 @@ export default function Groups() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-[#1a1d28] rounded-2xl p-1.5 mb-6">
+        <div className="flex gap-1 bg-gray-100/50 dark:bg-[#1a1d28]/50 glass-surface rounded-[24px] p-1.5 mb-8">
+
           {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -149,12 +150,13 @@ export default function Groups() {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-[18px] text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-white dark:bg-[#242838] text-blue-600 dark:text-blue-400 font-semibold shadow-sm"
-                    : "text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-gray-50 dark:hover:bg-[#22263a]"
+                    : "text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-white/50 dark:hover:bg-[#22263a]"
                 }`}
               >
+
                 <Icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
@@ -176,8 +178,9 @@ export default function Groups() {
             value={searchText}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Tìm kiếm nhóm..."
-            className="w-full h-11 pl-10 pr-10 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#1e2133] text-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-300 dark:placeholder:text-[#4e5870] outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/15 focus:bg-white dark:focus:bg-[#22263a] transition-all"
+            className="w-full h-12 pl-12 pr-10 rounded-2xl border border-gray-200/50 dark:border-white/5 bg-gray-100/50 dark:bg-[#1e2133]/50 text-[15px] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#4e5870] outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#22263a] transition-all"
           />
+
           {isSearching && (
             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4">
               <div className="w-full h-full rounded-full border-2 border-gray-200 dark:border-[#2b2f45] border-t-blue-500 dark:border-t-blue-400 animate-spin" />
@@ -225,10 +228,11 @@ export default function Groups() {
             return (
               <div
                 key={group.id}
-                className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] p-5 flex flex-col items-center relative cursor-pointer group hover:shadow-md hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 animate-card-in"
+                className="bg-white dark:bg-[#1a1d28] rounded-[32px] border border-gray-100/50 dark:border-white/5 p-6 flex flex-col items-center relative cursor-pointer group hover:shadow-lg hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 animate-card-in"
                 style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
                 onClick={() => navigate(`/groups/${group.id}`)}
               >
+
                 {/* Manage button */}
                 {isOwner && (
                   <button

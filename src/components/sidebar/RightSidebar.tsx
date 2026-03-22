@@ -151,7 +151,8 @@ export default function RightSidebar() {
   }, [allContacts, searchQuery]);
 
   return (
-    <aside className="hidden xl:flex xl:flex-col w-80 border-l border-gray-200 dark:border-[#1e2130] bg-white dark:bg-[#13151f]">
+    <aside className="hidden xl:flex xl:flex-col w-80 glass-surface border-l border-gray-200/50 dark:border-white/5 transition-all duration-300 shadow-sm relative z-40">
+
       {/* Header */}
       <div className="px-5 py-4 bg-white dark:bg-[#13151f]">
         <h2 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-[#edf0fa] mb-3">

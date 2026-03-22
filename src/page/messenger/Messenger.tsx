@@ -793,9 +793,10 @@ export default function Messenger() {
   }, [selectedMessage]);
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-gray-50 flex relative overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] bg-slate-50 dark:bg-[#0c0e14] flex relative overflow-hidden transition-colors duration-300">
+
       {/* Left Sidebar - Conversations */}
-      <div className={`border-r border-gray-200 bg-white flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
+      <div className={`border-r border-gray-200/50 dark:border-white/5 glass-surface flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
         leftSidebarCollapsed ? 'w-20' : 'w-[400px]'
       }`}>
         {/* Header */}
@@ -844,18 +845,17 @@ export default function Messenger() {
         </div>
 
         {/* Search */}
-        {!leftSidebarCollapsed && (
-          <div className="p-4 border-b border-gray-100">
+          <div className="p-4 border-b border-gray-100/50 dark:border-white/5">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search messages"
-                className="w-full h-11 pl-11 pr-4 rounded-lg bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm transition-all"
+                className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-200"
               />
             </div>
           </div>
-        )}
+
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
@@ -866,9 +866,11 @@ export default function Messenger() {
             <div
               key={conv.id}
               onClick={() => setActiveChat(conv.id)}
-              className={`cursor-pointer hover:bg-gray-50 transition-colors ${
-                activeChat === conv.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-              } ${leftSidebarCollapsed ? 'p-3 flex justify-center' : 'p-4'}`}
+              className={`cursor-pointer transition-all duration-200 mx-3 my-1 rounded-2xl flex items-center gap-3 ${
+                activeChat === conv.id 
+                  ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 shadow-sm' 
+                  : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
+              } ${leftSidebarCollapsed ? 'p-3 justify-center' : 'p-3'}`}
               title={leftSidebarCollapsed ? conv.name : ''}
             >
               {leftSidebarCollapsed ? (
@@ -1235,18 +1237,19 @@ export default function Messenger() {
 
                   {msg.content && (
                     <div
-                      className={`rounded-2xl px-5 py-3.5 mb-1 shadow-sm relative ${
+                      className={`relative px-5 py-3.5 shadow-sm transition-all hover:shadow-md ${
                         msg.isMe
-                          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
+                          ? 'bg-linear-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm'
                           : msg.senderId === 'ai'
-                          ? 'bg-white text-gray-900 border border-gray-100'
-                          : 'bg-white text-gray-900 border border-gray-100'
+                          ? 'bg-white dark:bg-[#1a1d28] text-gray-900 dark:text-gray-100 border border-gray-100/50 dark:border-white/5 rounded-2xl rounded-tl-sm'
+                          : 'bg-white dark:bg-[#1a1d28] text-gray-900 dark:text-gray-100 border border-gray-100/50 dark:border-white/5 rounded-2xl rounded-tl-sm'
                       }`}
                       onDoubleClick={() => handleReaction(msg.id, '❤️')}
                     >
-                      <p className="whitespace-pre-line text-base leading-relaxed">{msg.content}</p>
+                      <p className="whitespace-pre-line text-[15px] leading-[1.6] font-normal">{msg.content}</p>
                     </div>
                   )}
+
 
                   {/* Message Options */}
                   <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
@@ -1593,8 +1596,9 @@ export default function Messenger() {
               onFocus={() => setIsTyping(true)}
               onBlur={() => setTimeout(() => setIsTyping(false), 1000)}
               placeholder={replyTo ? `Replying to ${replyTo.sender}...` : "Type a message..."}
-              className="flex-1 h-10 md:h-11 lg:h-12 px-4 md:px-5 rounded-full bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm md:text-base transition-all"
+              className="flex-1 h-10 md:h-11 lg:h-12 px-4 md:px-5 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm md:text-[15px] transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
             />
+
             <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className={`w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
@@ -1627,7 +1631,8 @@ export default function Messenger() {
 
       {/* Right Sidebar - Conversation Info */}
       {activeConversation && !rightSidebarCollapsed && (
-        <div className="border-l border-gray-200 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-[360px] p-4 md:p-6">
+        <div className="border-l border-gray-200/50 dark:border-white/5 glass-surface overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-[360px] p-4 md:p-6 shadow-sm">
+
           {/* Profile Section */}
           <div className="text-center mb-6">
             <div

@@ -581,7 +581,8 @@ export default function Newsfeed() {
     <div className="space-y-6 pb-8">
       {/* Stories Section */}
       {/* Stories Section */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-200">
+      <div className="bg-white/50 dark:bg-[#1a1d28]/50 rounded-[32px] p-6 border border-gray-200/50 dark:border-white/5 shadow-sm">
+
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
 
           {/* Add Story (Facebook Web style) */}
@@ -668,7 +669,8 @@ export default function Newsfeed() {
 
 
       {/* Create Post */}
-      <div className="bg-white rounded-[28px] p-5 border border-gray-100 shadow-sm">
+      <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-6 border border-gray-100/50 dark:border-white/5 shadow-sm">
+
         <div className="flex items-center gap-4 mb-4">
           <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
             {currentUser?.avatar ? (
@@ -790,10 +792,12 @@ export default function Newsfeed() {
       </div>
 
       {/* Posts Feed */}
-      <div className="space-y-6">
+      <div className="space-y-8">
+
         {/* Loading State */}
         {isLoadingPosts && (
-          <div className="bg-white rounded-[28px] p-12 border border-gray-100 shadow-sm flex flex-col items-center justify-center">
+          <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-12 border border-gray-100/50 dark:border-white/5 shadow-sm flex flex-col items-center justify-center">
+
             <Loader2 className="w-7 h-7 text-blue-500 animate-spin mb-3" />
             <p className="text-gray-400 text-[15px]">Đang tải bài viết...</p>
           </div>
@@ -801,14 +805,16 @@ export default function Newsfeed() {
 
         {/* Error State */}
         {error && !isLoadingPosts && (
-          <div className="bg-white rounded-[28px] p-8 border border-red-100 shadow-sm">
+          <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-8 border border-red-100/50 dark:border-red-500/10 shadow-sm">
+
             <p className="text-red-500 text-center text-[15px]">{error}</p>
           </div>
         )}
 
         {/* Empty State */}
         {!isLoadingPosts && !error && posts.length === 0 && (
-          <div className="bg-white rounded-[28px] p-12 border border-gray-100 shadow-sm text-center">
+          <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-12 border border-gray-100/50 dark:border-white/5 shadow-sm text-center">
+
             <p className="text-gray-400 text-[15px]">Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!</p>
             {currentUser ? (
               <Link
@@ -835,7 +841,8 @@ export default function Newsfeed() {
           const commentInput = commentInputs[post.id!] || '';
 
           return (
-            <div key={post.id} className="bg-white rounded-[28px] border border-gray-100 shadow-sm transition-all relative">
+            <div key={post.id} className="bg-white dark:bg-[#1a1d28] rounded-[32px] border border-gray-100/50 dark:border-white/5 shadow-sm transition-all hover:shadow-md relative group/card">
+
               {/* Post Header */}
               <div className="p-5 flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-3.5">
@@ -1056,7 +1063,8 @@ export default function Newsfeed() {
                 </div>
 
                 {/* Post Actions */}
-                <div className="border-t border-gray-100 pt-2 flex items-center gap-1">
+                <div className="border-t border-gray-100/80 dark:border-white/5 pt-2 flex items-center gap-1">
+
                   <button
                     onClick={() => currentUser ? handleLikePost(post.id!) : requestLogin()}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl transition-all group ${likedPosts.has(post.id!) ? 'text-red-500 bg-red-50/60' : 'hover:bg-gray-50'
@@ -1092,7 +1100,8 @@ export default function Newsfeed() {
 
                 {/* Comments Section */}
                 {isCommentsExpanded && (
-                  <div className="border-t border-gray-200 pt-5 mt-3 space-y-4">
+                  <div className="border-t border-gray-100/80 dark:border-white/5 pt-5 mt-3 space-y-4">
+
                     {/* Comment Input */}
                     <div className="flex items-center gap-4 pt-2">
                       <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
@@ -1106,7 +1115,8 @@ export default function Newsfeed() {
                           onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment(post.id!)}
                           placeholder="Viết bình luận..."
                           disabled={isSubmittingComment[post.id!]}
-                          className="w-full h-12 px-4 pr-14 rounded-lg bg-gray-50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all disabled:opacity-50"
+                          className="w-full h-12 px-4 pr-14 rounded-xl bg-gray-100/50 dark:bg-[#22263a]/50 border-0 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1e2133] text-base transition-all disabled:opacity-50 dark:text-gray-200"
+
                         />
                         <button
                           onClick={() => handleSendComment(post.id!)}

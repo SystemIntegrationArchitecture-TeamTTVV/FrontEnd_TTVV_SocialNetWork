@@ -20,43 +20,50 @@ export default function FriendRequests() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-[#050505] mb-6">Friend Requests</h1>
+    <div className="max-w-7xl mx-auto p-8">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-8">Lời mời kết bạn</h1>
+
 
       {requests.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-          <p className="text-[#65676B] text-lg">No pending friend requests</p>
+        <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-16 text-center border border-gray-100/50 dark:border-white/5 shadow-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Không có lời mời kết bạn nào</p>
         </div>
+
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {requests.map((request) => (
             <div
               key={request.id}
-              className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-[#1a1d28] rounded-[32px] overflow-hidden border border-gray-100/50 dark:border-white/5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
             >
-              <div className="aspect-video bg-[#E4E6EB] flex items-center justify-center">
+
+              <div className="aspect-video bg-gray-100 dark:bg-[#1e212b] flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div
-                  className="w-24 h-24 rounded-full flex items-center justify-center text-white font-semibold text-xl"
+                  className="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-xl transform group-hover:scale-110 transition-transform duration-500 z-10"
                   style={{ backgroundColor: request.color }}
                 >
                   {request.avatar}
                 </div>
               </div>
+
               <div className="p-4">
                 <h3 className="text-base font-semibold text-[#050505] mb-1">{request.name}</h3>
                 <p className="text-sm text-[#65676B] mb-4">{request.mutual} mutual friends</p>
                 <div className="space-y-2">
                   <button
                     onClick={() => handleConfirm(request.id)}
-                    className="w-full h-10 bg-[#1877F2] text-white font-semibold rounded-md hover:bg-[#166FE5] transition-colors flex items-center justify-center gap-2"
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                   >
+
                     <Check className="w-4 h-4" />
                     <span>Confirm</span>
                   </button>
                   <button
                     onClick={() => handleDelete(request.id)}
-                    className="w-full h-10 bg-[#E4E6EB] text-[#050505] font-semibold rounded-md hover:bg-[#D8DADF] transition-colors flex items-center justify-center gap-2"
+                    className="w-full h-11 bg-gray-100 dark:bg-[#22263a] text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-[#2b2f45] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                   >
+
                     <X className="w-4 h-4" />
                     <span>Delete</span>
                   </button>
