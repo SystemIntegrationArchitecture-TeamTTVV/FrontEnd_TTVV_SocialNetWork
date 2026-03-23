@@ -1194,47 +1194,6 @@ export default function Messenger() {
                     </div>
                   ) : null}
 
-                  {/* Attachments */}
-                  {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mb-2 space-y-2">
-                      {msg.attachments.map((attachment, idx) => {
-                        console.log(`🎨 Rendering attachment in Messenger ${idx}:`, attachment);
-                        return (
-                        <div key={idx} className="rounded-2xl overflow-hidden shadow-sm max-w-sm">
-                          {attachment.type === 'image' && (
-                            <img 
-                              src={attachment.url} 
-                              alt={attachment.fileName} 
-                              className="w-full h-auto rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
-                              onError={(e) => console.log('❌ Image failed to load:', attachment.url, e)}
-                              onLoad={() => console.log('✅ Image loaded:', attachment.url)}
-                            />
-                          )}
-                          {attachment.type === 'video' && (
-                            <video 
-                              src={attachment.url} 
-                              controls 
-                              className="w-full h-auto rounded-2xl cursor-pointer"
-                              onError={(e) => console.log('❌ Video failed to load:', attachment.url, e)}
-                              onLoadedMetadata={() => console.log('✅ Video loaded:', attachment.url)}
-                            />
-                          )}
-                          {attachment.type === 'file' && (
-                            <a 
-                              href={attachment.url} 
-                              download 
-                              className="inline-flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors"
-                            >
-                              <FileText className="w-4 h-4 text-gray-600" />
-                              <span>{attachment.fileName}</span>
-                            </a>
-                          )}
-                        </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
                   {msg.content && (
                     <div
                       className={`relative px-5 py-3.5 shadow-sm transition-all hover:shadow-md ${
