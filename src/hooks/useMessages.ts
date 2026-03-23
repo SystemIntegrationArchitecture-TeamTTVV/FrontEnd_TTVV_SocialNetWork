@@ -149,8 +149,13 @@ export function useMessages() {
         if (message.senderId !== user.id) {
           // Check if current user is a participant of this conversation
           const conversation = conversations.find(conv => conv.id === message.conversationId);
-          const isParticipant = conversation && conversation.participantIds?.includes(user.id);
-          
+          // If `conversations` isn't loaded yet (or doesn't have participantIds populated),
+          // don't drop the message; the backend should already ensure only participants receive events.
+          const isParticipant =
+            conversation?.participantIds?.length
+              ? conversation.participantIds.includes(user.id)
+              : true;
+
           if (!isParticipant) {
             console.warn('🚫 SECURITY: Ignoring message - current user is not a participant of this conversation:', {
               conversationId: message.conversationId,

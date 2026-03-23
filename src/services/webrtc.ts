@@ -22,6 +22,12 @@ export interface IceCandidate {
   candidate: RTCIceCandidateInit;
 }
 
+type LegacyIceCandidatePayload = {
+  callId?: string;
+  iceCandidate?: RTCIceCandidateInit;
+  candidate?: RTCIceCandidateInit;
+};
+
 class WebRTCService {
   private peerConnection: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
@@ -218,21 +224,32 @@ class WebRTCService {
     await this.processQueuedIceCandidates();
   }
 
-  async addIceCandidate(candidate: IceCandidate): Promise<void> {
+  async addIceCandidate(candidate: IceCandidate | LegacyIceCandidatePayload): Promise<void> {
     if (!this.peerConnection) {
       // Silently ignore ICE candidates if no peer connection (call may have ended)
+      return;
+    }
+
+    const parsedCandidate: RTCIceCandidateInit | null = (() => {
+      if ('candidate' in candidate && candidate.candidate) return candidate.candidate;
+      if ('iceCandidate' in candidate && candidate.iceCandidate) return candidate.iceCandidate;
+      return null;
+    })();
+
+    if (!parsedCandidate) {
+      console.warn('⚠️ addIceCandidate: Unsupported ICE payload shape', candidate);
       return;
     }
 
     // If remote description is not set yet, queue the candidate
     if (!this.peerConnection.remoteDescription) {
       console.log('📦 Queueing ICE candidate (remote description not set yet)');
-      this.pendingIceCandidates.push(candidate.candidate);
+      this.pendingIceCandidates.push(parsedCandidate);
       return;
     }
 
     try {
-      await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate.candidate));
+      await this.peerConnection.addIceCandidate(new RTCIceCandidate(parsedCandidate));
       console.log('✅ Added ICE candidate');
     } catch (error) {
       console.error('❌ Failed to add ICE candidate:', error);
@@ -278,7 +295,20 @@ class WebRTCService {
           data: iceCandidate,
           timestamp: new Date().toISOString(),
         });
-        console.log('📤 Sent ICE candidate to:', this.remotePeerId);
+
+        // Send also using CALL_ICE_CANDIDATE event name to support older/other clients.
+        socketService.send('/app/webrtc/ice-candidate', {
+          type: 'CALL_ICE_CANDIDATE',
+          userId: this.remotePeerId, // Send to the other peer
+          data: {
+            callId: this.currentCallId,
+            iceCandidate: event.candidate.toJSON(),
+            candidate: event.candidate.toJSON(),
+          } as LegacyIceCandidatePayload,
+          timestamp: new Date().toISOString(),
+        });
+
+        console.log('📤 Sent ICE candidate to (both types):', this.remotePeerId);
       }
     };
 

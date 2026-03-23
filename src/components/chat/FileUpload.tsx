@@ -34,7 +34,7 @@ export default function FileUpload({ onFileSelect, accept = '*', multiple = fals
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
         title="Attach file"
       >
         <Paperclip className="w-5 h-5" />
@@ -68,7 +68,7 @@ export function ImageUpload({ onFileSelect }: FileUploadProps) {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
         title="Send image"
       >
         <Image className="w-5 h-5" />
@@ -102,7 +102,7 @@ export function VideoUpload({ onFileSelect }: FileUploadProps) {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
         title="Send video"
       >
         <Video className="w-5 h-5" />

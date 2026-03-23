@@ -5,12 +5,13 @@ import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } fro
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
+import { useSocket } from '../../contexts/SocketContext';
 import EmojiPicker from '../../components/chat/EmojiPicker';
 import { ImageUpload, VideoUpload } from '../../components/chat/FileUpload';
 import VoiceRecorder from '../../components/chat/VoiceRecorder';
 import { conversationsApi } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
-import { messagesApi, type MessageAttachment } from '../../apis/messages';
+import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
 import { aiApi, type AIChatRequest } from '../../apis/ai';
 
 interface MessengerLocationState {
@@ -22,6 +23,7 @@ export default function Messenger() {
   const location = useLocation() as Location & { state?: MessengerLocationState };
   const { user } = useAuth();
   const { startCall } = useCall();
+  const { isConnected, subscribe } = useSocket();
   const {
     conversations,
     messages: apiMessages,
@@ -81,6 +83,27 @@ export default function Messenger() {
       loadConversations();
     }
   }, [user?.id, loadConversations]);
+
+  // If user opens `/messenger` without selecting a conversation (activeChat === null),
+  // auto-open the incoming conversation so messages are visible immediately.
+  useEffect(() => {
+    if (!isConnected || !user?.id) return;
+
+    const unsubscribe = subscribe('MESSAGE_RECEIVED', (event) => {
+      if (event.type !== 'MESSAGE_RECEIVED' || !event.data) return;
+
+      const message = event.data as Message;
+      if (message.senderId === user.id) return;
+      if (!message.conversationId) return;
+
+      setActiveChat((prev) => {
+        if (prev) return prev;
+        return String(message.conversationId);
+      });
+    });
+
+    return unsubscribe;
+  }, [isConnected, user?.id, subscribe]);
 
   // Auto-open a conversation passed via navigation state (e.g., after creating new chat)
   useEffect(() => {

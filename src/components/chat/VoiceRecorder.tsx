@@ -119,7 +119,7 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     <button
       type="button"
       onClick={startRecording}
-      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+      className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
       title="Record voice message"
     >
       <Mic className="w-5 h-5" />

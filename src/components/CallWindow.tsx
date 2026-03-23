@@ -27,6 +27,8 @@ export default function CallWindow({
   const remoteAudioRef = useRef<HTMLAudioElement>(null); // Add audio ref for voice calls
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  // Used only to reflect remote peer track state (e.g., when peer disables mic/camera).
+  const [remoteVideoOff, setRemoteVideoOff] = useState(false);
 
   // Setup local video
   useEffect(() => {
@@ -102,6 +104,44 @@ export default function CallWindow({
     }
   };
 
+  // Keep remote playback in sync with remote track state.
+  // WebRTC track.enabled flips on the sender; on some browsers the "audio still plays"
+  // until the media element is muted/updated, so we mirror it on the receiver element.
+  useEffect(() => {
+    if (!remoteStream) return;
+
+    const syncRemotePlayback = () => {
+      const audioTracks = remoteStream.getAudioTracks();
+      const videoTracks = remoteStream.getVideoTracks();
+
+      const remoteAudioMuted = audioTracks.length > 0 && audioTracks.some(t => !t.enabled);
+      const remoteVideoDisabled = videoTracks.length > 0 && videoTracks.some(t => !t.enabled);
+
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.muted = remoteAudioMuted;
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.muted = remoteAudioMuted;
+        // Some browsers require re-assigning srcObject / calling play
+        // after tracks are added to the same MediaStream reference.
+        if (remoteVideoRef.current.srcObject !== remoteStream) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+
+        if (!remoteVideoDisabled) {
+          remoteVideoRef.current.play().catch(() => {
+            // Ignore autoplay/play errors; UI will update when browser allows playback.
+          });
+        }
+      }
+      setRemoteVideoOff(remoteVideoDisabled);
+    };
+
+    syncRemotePlayback();
+    const interval = window.setInterval(syncRemotePlayback, 300);
+    return () => window.clearInterval(interval);
+  }, [remoteStream]);
+
   return (
     <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col overflow-hidden">
       {/* Header - Only show for active calls, not incoming */}
@@ -155,12 +195,21 @@ export default function CallWindow({
         {!isIncoming && callType === 'video' && (
           <>
             {remoteStream ? (
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              <div className="w-full h-full relative">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                {remoteVideoOff && (
+                  <div className="absolute inset-0 bg-gray-900/60 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center">
+                      <VideoOff className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-800">
                 <div className="text-center">
