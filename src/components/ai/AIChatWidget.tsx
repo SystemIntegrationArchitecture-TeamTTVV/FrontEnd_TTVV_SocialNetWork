@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Minimize2, Send, Bot, Loader2 } from 'lucide-react';
-import { aiApi, type AIChatRequest } from '../../apis/ai';
+import { aiApi, type AIAutoPostRequest, type AIChatRequest } from '../../apis/ai';
 import { useAuth } from '../../contexts/AuthContext';
+import { postsApi } from '../../apis/posts';
 
 interface Message {
   id: string;
@@ -24,7 +25,13 @@ export default function AIChatWidget() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAutoPosting, setIsAutoPosting] = useState(false);
+  const [mode, setMode] = useState<'chat' | 'autopost'>('chat');
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [postPrompt, setPostPrompt] = useState('');
+  const [postVisibility, setPostVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
+  const [draftContent, setDraftContent] = useState('');
+  const [autoPostStatus, setAutoPostStatus] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +106,54 @@ export default function AIChatWidget() {
     }
   };
 
+  const handleGenerateDraft = async () => {
+    if (!user?.id || !postPrompt.trim() || isAutoPosting) return;
+
+    setIsAutoPosting(true);
+    setAutoPostStatus(null);
+    try {
+      const request: AIAutoPostRequest = {
+        prompt: postPrompt.trim(),
+        userId: user.id,
+        visibility: postVisibility,
+      };
+      const result = await aiApi.draftPost(request);
+      setDraftContent(result.generatedContent || '');
+      setAutoPostStatus('✅ Đã tạo bản nháp. Bạn có thể chỉnh sửa trước khi đăng.');
+    } catch (error: any) {
+      console.error('❌ Draft generation failed:', error);
+      setAutoPostStatus(`❌ ${error?.message || 'Tạo bản nháp thất bại. Vui lòng thử lại.'}`);
+    } finally {
+      setIsAutoPosting(false);
+    }
+  };
+
+  const handlePublishDraft = async () => {
+    if (!draftContent.trim() || isAutoPosting || !user?.id) return;
+
+    setIsAutoPosting(true);
+    setAutoPostStatus(null);
+    try {
+      const createdPost = await postsApi.createPost({
+        content: draftContent.trim(),
+        visibility: postVisibility,
+        allowComments: true,
+        allowSharing: true,
+      });
+
+      window.dispatchEvent(new CustomEvent('post-created', { detail: createdPost }));
+
+      setAutoPostStatus('✅ Đăng bài từ bản nháp thành công.');
+      setPostPrompt('');
+      setDraftContent('');
+    } catch (error: any) {
+      console.error('❌ Publish draft failed:', error);
+      setAutoPostStatus(`❌ ${error?.message || 'Đăng bài từ bản nháp thất bại. Vui lòng thử lại.'}`);
+    } finally {
+      setIsAutoPosting(false);
+    }
+  };
+
   if (!isOpen && !isMinimized) {
     return (
       <button
@@ -161,6 +216,23 @@ export default function AIChatWidget() {
         </div>
       </div>
 
+      <div className="px-3 py-2 border-b border-gray-100 bg-white flex items-center gap-2">
+        <button
+          onClick={() => setMode('chat')}
+          className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'chat' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          Chat
+        </button>
+        <button
+          onClick={() => setMode('autopost')}
+          className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'autopost' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          Tạo nháp bài viết
+        </button>
+      </div>
+
+      {mode === 'chat' ? (
+      <>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
         {messages.map((message) => (
@@ -244,6 +316,63 @@ export default function AIChatWidget() {
           </button>
         </div>
       </div>
+      </>
+      ) : (
+      <div className="flex-1 p-4 bg-white flex flex-col gap-3">
+        <label className="text-xs font-medium text-gray-600">Ý tưởng cần đăng</label>
+        <textarea
+          value={postPrompt}
+          onChange={(e) => setPostPrompt(e.target.value)}
+          placeholder="Ví dụ: Viết bài thông báo khai trương shop vào cuối tuần, tone vui vẻ, kêu gọi bạn bè ghé ủng hộ"
+          className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 text-sm placeholder:text-gray-400 resize-none"
+        />
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-gray-600">Chế độ đăng</span>
+          <select
+            value={postVisibility}
+            onChange={(e) => setPostVisibility(e.target.value as 'PUBLIC' | 'FRIENDS' | 'PRIVATE')}
+            className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+          >
+            <option value="PUBLIC">Công khai</option>
+            <option value="FRIENDS">Bạn bè</option>
+            <option value="PRIVATE">Riêng tư</option>
+          </select>
+        </div>
+
+        <button
+          onClick={handleGenerateDraft}
+          disabled={!postPrompt.trim() || isAutoPosting || !user?.id}
+          className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+        >
+          {isAutoPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {isAutoPosting ? 'Đang tạo bản nháp...' : 'AI tạo bản nháp'}
+        </button>
+
+        <label className="text-xs font-medium text-gray-600">Nội dung nháp (có thể chỉnh sửa)</label>
+        <textarea
+          value={draftContent}
+          onChange={(e) => setDraftContent(e.target.value)}
+          placeholder="Bản nháp AI sẽ xuất hiện ở đây để bạn chỉnh sửa trước khi đăng"
+          className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 text-sm placeholder:text-gray-400 resize-none"
+        />
+
+        <button
+          onClick={handlePublishDraft}
+          disabled={!draftContent.trim() || isAutoPosting || !user?.id}
+          className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+        >
+          {isAutoPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {isAutoPosting ? 'Đang đăng bài...' : 'Đăng bài từ bản nháp'}
+        </button>
+
+        {autoPostStatus && (
+          <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-2.5">
+            {autoPostStatus}
+          </div>
+        )}
+      </div>
+      )}
     </div>
   );
 }
