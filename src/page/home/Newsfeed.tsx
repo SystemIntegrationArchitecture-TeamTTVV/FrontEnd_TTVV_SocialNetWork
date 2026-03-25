@@ -214,6 +214,26 @@ export default function Newsfeed() {
       unsubscribers.forEach(unsub => unsub());
     };
   }, [currentUser?.id, subscribe]);
+
+  useEffect(() => {
+    const handleLocalPostCreated = (event: Event) => {
+      const customEvent = event as CustomEvent<PostData>;
+      const newPost = customEvent.detail;
+      if (!newPost || !newPost.id) return;
+
+      setPosts(prev => {
+        if (prev.some(post => post.id === newPost.id)) {
+          return prev;
+        }
+        return [newPost, ...prev];
+      });
+    };
+
+    window.addEventListener('post-created', handleLocalPostCreated);
+    return () => {
+      window.removeEventListener('post-created', handleLocalPostCreated);
+    };
+  }, []);
   const storiesByUser = stories.reduce<Record<string, Story[]>>((acc: any, story: any) => {
     const userId = story.user.id;
 
