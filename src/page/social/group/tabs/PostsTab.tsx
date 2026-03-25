@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { postGroupApi, type PostGroupData } from "../../../../apis/postsGroup";
 import { reactionsApi } from "../../../../apis/reactions";
 import { commentsApi, type CommentData } from "../../../../apis/comments";
+import { HttpError } from "../../../../apis/http";
 import { authApi } from "../../../../apis/auth";
 import CreatePostGroup from "./CreatePostGroup";
 import PostCard from "./Postcard";
@@ -15,6 +16,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   const [posts, setPosts] = useState<PostGroupData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
 
   // ── Reactions ─────────────────────────────────────────
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -38,6 +40,12 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   const [editContent, setEditContent] = useState("");
   const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 6500);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   const normalizeVisibility = (visibility?: string): 'PUBLIC' | 'PRIVATE' => {
     if (!visibility) return 'PUBLIC';
@@ -125,7 +133,15 @@ export default function PostsTab({ groupId }: { groupId: string }) {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
       setCommentInputs(prev => ({ ...prev, [postId]: "" }));
       if (!expandedComments.has(postId)) toggleComments(postId);
-    } catch { /* ignore */ }
+    } catch (error) {
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : error instanceof Error
+            ? error.message
+            : "Gửi bình luận thất bại. Vui lòng thử lại.";
+      setToast({ type: "error", message: msg });
+    }
     finally { setIsSubmittingComment(prev => ({ ...prev, [postId]: false })); }
   };
 
@@ -175,7 +191,15 @@ export default function PostsTab({ groupId }: { groupId: string }) {
       setCommentInputs(prev => ({ ...prev, [`reply-${parentCommentId}`]: "" }));
       setReplyingTo(null);
       if (!expandedReplies.has(parentCommentId)) setExpandedReplies(prev => new Set(prev).add(parentCommentId));
-    } catch { /* ignore */ }
+    } catch (error) {
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : error instanceof Error
+            ? error.message
+            : "Gửi phản hồi thất bại. Vui lòng thử lại.";
+      setToast({ type: "error", message: msg });
+    }
     finally { setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false })); }
   };
 
@@ -218,8 +242,14 @@ export default function PostsTab({ groupId }: { groupId: string }) {
       setEditingPostId(null);
       setEditContent("");
       setEditVisibility('PUBLIC');
-    } catch {
-      alert("Cập nhật thất bại. Vui lòng thử lại.");
+    } catch (error) {
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : error instanceof Error
+            ? error.message
+            : "Cập nhật thất bại. Vui lòng thử lại.";
+      setToast({ type: "error", message: msg });
     }
   };
 
@@ -231,6 +261,13 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   // ── Render ────────────────────────────────────────────
   return (
     <div className="space-y-6 pb-8">
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
+          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
+            {toast.message}
+          </div>
+        </div>
+      )}
       <CreatePostGroup
         groupId={groupId}
         onPostCreated={(post) => {

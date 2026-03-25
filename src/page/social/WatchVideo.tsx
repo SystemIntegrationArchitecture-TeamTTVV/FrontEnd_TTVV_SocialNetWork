@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import { videosApi, type VideoData } from "../../apis/video";
 import { reactionsApi, type ReactionData } from "../../apis/reactions";
 import { commentsApi, type CommentData } from "../../apis/comments";
+import { HttpError } from "../../apis/http";
 import { showAuthRequiredPrompt } from "../../utils/authPrompt";
 
 export default function WatchVideo() {
@@ -31,6 +32,7 @@ export default function WatchVideo() {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [featuredVideos, setFeaturedVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const [, setReactions] = useState<Record<string, ReactionData[]>>({});
   const [userReactions, setUserReactions] = useState<
     Record<string, ReactionData>
@@ -82,6 +84,12 @@ export default function WatchVideo() {
   useEffect(() => {
     loadVideos();
   }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 6500);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   const loadVideos = async () => {
     try {
@@ -155,7 +163,7 @@ export default function WatchVideo() {
           // Update reaction
           await reactionsApi.createReaction({
             userId: user.id,
-            type: reactionType as any,
+            type: reactionType as ReactionData["type"],
             videoId: videoId,
           });
         }
@@ -163,7 +171,7 @@ export default function WatchVideo() {
         // Create new reaction
         await reactionsApi.createReaction({
           userId: user.id,
-          type: reactionType as any,
+          type: reactionType as ReactionData["type"],
           videoId: videoId,
         });
       }
@@ -199,7 +207,13 @@ export default function WatchVideo() {
       // Reload comments
       await loadCommentsForVideo(videoId);
     } catch (error) {
-      console.error("Failed to create comment:", error);
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : error instanceof Error
+            ? error.message
+            : "Gửi bình luận thất bại. Vui lòng thử lại.";
+      setToast({ type: "error", message: msg });
     }
   };
 
@@ -299,6 +313,13 @@ export default function WatchVideo() {
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] text-gray-900">
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
+          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
+            {toast.message}
+          </div>
+        </div>
+      )}
       {/* Top Header */}
       <div className="bg-white border-b border-gray-300 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">

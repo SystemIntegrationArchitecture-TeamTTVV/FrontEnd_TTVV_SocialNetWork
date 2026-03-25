@@ -8,6 +8,7 @@ import type { PostData } from '../../apis/posts';
 import type { Story } from '../../types/story';
 import { reactionsApi } from '../../apis/reactions';
 import { commentsApi, type CommentData } from '../../apis/comments';
+import { HttpError } from '../../apis/http';
 import { useSocket } from '../../contexts/SocketContext';
 import { storiesApi } from '../../apis/storiesApi';
 import { API_CONFIG } from '../../apis/config';
@@ -41,6 +42,7 @@ export default function Newsfeed() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
@@ -51,6 +53,13 @@ export default function Newsfeed() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const nav = useNavigate();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 6500);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
   // Load posts from API
   useEffect(() => {
     const loadPosts = async () => {
@@ -290,7 +299,13 @@ export default function Newsfeed() {
         toggleComments(postId);
       }
     } catch (error) {
-      console.error('Failed to send comment:', error);
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : error instanceof Error
+            ? error.message
+            : 'Gửi bình luận thất bại. Vui lòng thử lại.';
+      setToast({ type: "error", message: msg });
     } finally {
       setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
     }
@@ -430,7 +445,13 @@ export default function Newsfeed() {
         setExpandedReplies(prev => new Set(prev).add(parentCommentId));
       }
     } catch (error) {
-      console.error('Failed to send reply:', error);
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : error instanceof Error
+            ? error.message
+            : 'Gửi phản hồi thất bại. Vui lòng thử lại.';
+      setToast({ type: "error", message: msg });
     } finally {
       setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false }));
     }
@@ -545,7 +566,11 @@ export default function Newsfeed() {
       console.log('✅ Post updated successfully');
     } catch (error) {
       console.error('❌ Failed to update post:', error);
-      alert('Failed to update post. Please try again.');
+      const msg =
+        error instanceof HttpError
+          ? error.data?.message || error.message
+          : 'Failed to update post. Please try again.';
+      setToast({ type: "error", message: msg });
     }
   };
 
@@ -601,6 +626,13 @@ export default function Newsfeed() {
 
   return (
     <div className="space-y-6 pb-8">
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
+          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
+            {toast.message}
+          </div>
+        </div>
+      )}
       {/* Stories Section */}
       {/* Stories Section */}
       <div className="bg-white/50 dark:bg-[#1a1d28]/50 rounded-[32px] p-6 border border-gray-200/50 dark:border-white/5 shadow-sm">
