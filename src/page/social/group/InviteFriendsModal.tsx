@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { groupsApi } from "../../../apis/groupsApi";
+import { useToast } from "../../../contexts/useToast";
 
 interface Friend {
   id: string;
@@ -24,14 +25,7 @@ export default function InviteFriendsModal({
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [invitingIds, setInvitingIds] = useState<string[]>([]);
-  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
-  const showToast = (type: "success" | "error", message: string) => {
-    setToast({ type, message });
-    window.setTimeout(() => {
-      setToast(prev => (prev?.message === message ? null : prev));
-    }, 2200);
-  };
+  const { showToast } = useToast();
 
   useEffect(() => {
 
@@ -70,12 +64,12 @@ export default function InviteFriendsModal({
 
       setFriends(prev => prev.filter(f => f.id !== friendId));
       onInvited?.();
-      showToast("success", "Đã mời thành công");
+      showToast("Đã mời thành công", "success");
 
     } catch (e) {
 
       console.error("Invite failed", e);
-      showToast("error", "Mời thất bại, vui lòng thử lại");
+      showToast("Mời thất bại, vui lòng thử lại", "error");
 
     } finally {
 
@@ -94,18 +88,6 @@ export default function InviteFriendsModal({
         <h2 className="text-xl font-bold mb-4">
           Mời bạn bè vào nhóm
         </h2>
-
-        {toast && (
-          <div
-            className={`mb-3 px-3 py-2 rounded-md text-sm font-medium ${
-              toast.type === "success"
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-red-50 text-red-700 border border-red-200"
-            }`}
-          >
-            {toast.message}
-          </div>
-        )}
 
         {loading ? (
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { postsApi, type PostData } from '../../apis/posts';
 import { authApi } from '../../apis/auth';
 import { HttpError } from '../../apis/http';
+import { useToast } from '../../contexts/useToast';
 
 export default function ShareDialog() {
   const navigate = useNavigate();
@@ -13,14 +14,8 @@ export default function ShareDialog() {
   const [originalPost, setOriginalPost] = useState<PostData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
-  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const currentUser = authApi.getCurrentUser();
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 6500);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const loadOriginalPost = async () => {
@@ -56,7 +51,7 @@ export default function ShareDialog() {
           : error instanceof Error
             ? error.message
             : 'Failed to share post. Please try again.';
-      setToast({ type: "error", message: msg });
+      showToast(msg, 'error');
     } finally {
       setIsSharing(false);
     }
@@ -97,13 +92,6 @@ export default function ShareDialog() {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
-          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
-            {toast.message}
-          </div>
-        </div>
-      )}
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-[540px] max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">

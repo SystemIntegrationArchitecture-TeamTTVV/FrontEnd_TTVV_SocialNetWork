@@ -5,6 +5,7 @@ import { reactionsApi } from "../../../../apis/reactions";
 import { commentsApi, type CommentData } from "../../../../apis/comments";
 import { HttpError } from "../../../../apis/http";
 import { authApi } from "../../../../apis/auth";
+import { useToast } from "../../../../contexts/useToast";
 import CreatePostGroup from "./CreatePostGroup";
 import PostCard from "./Postcard";
 import CommentSection from "./CommentSection";
@@ -16,7 +17,6 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   const [posts, setPosts] = useState<PostGroupData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
 
   // ── Reactions ─────────────────────────────────────────
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -40,12 +40,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   const [editContent, setEditContent] = useState("");
   const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 6500);
-    return () => window.clearTimeout(id);
-  }, [toast]);
+  const { showToast } = useToast();
 
   const normalizeVisibility = (visibility?: string): 'PUBLIC' | 'PRIVATE' => {
     if (!visibility) return 'PUBLIC';
@@ -140,7 +135,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           : error instanceof Error
             ? error.message
             : "Gửi bình luận thất bại. Vui lòng thử lại.";
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     }
     finally { setIsSubmittingComment(prev => ({ ...prev, [postId]: false })); }
   };
@@ -198,7 +193,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           : error instanceof Error
             ? error.message
             : "Gửi phản hồi thất bại. Vui lòng thử lại.";
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     }
     finally { setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false })); }
   };
@@ -219,8 +214,12 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           setIsDeleting(postId);
           await postGroupApi.deletePost(postId);
           setPosts(prev => prev.filter(p => p.id !== postId));
-        } catch {
-          alert("Xóa bài viết thất bại. Vui lòng thử lại.");
+        } catch (error) {
+          const msg =
+            error instanceof HttpError
+              ? error.data?.message || error.message
+              : "Xóa bài viết thất bại. Vui lòng thử lại.";
+          showToast(msg, "error");
         } finally {
           setIsDeleting(null);
         }
@@ -249,7 +248,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           : error instanceof Error
             ? error.message
             : "Cập nhật thất bại. Vui lòng thử lại.";
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     }
   };
 
@@ -261,13 +260,6 @@ export default function PostsTab({ groupId }: { groupId: string }) {
   // ── Render ────────────────────────────────────────────
   return (
     <div className="space-y-6 pb-8">
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
-          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
-            {toast.message}
-          </div>
-        </div>
-      )}
       <CreatePostGroup
         groupId={groupId}
         onPostCreated={(post) => {

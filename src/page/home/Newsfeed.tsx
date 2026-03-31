@@ -17,6 +17,7 @@ import StoryViewer from '../../components/story/StoryViewer';
 // import StoryViewer from './StoryViewer';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
+import { useToast } from '../../contexts/useToast';
 
 export default function Newsfeed() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -42,7 +43,6 @@ export default function Newsfeed() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewerUserIndex, setViewerUserIndex] = useState<number | null>(null);
@@ -52,13 +52,8 @@ export default function Newsfeed() {
   const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const nav = useNavigate();
+  const { showToast } = useToast();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 6500);
-    return () => window.clearTimeout(id);
-  }, [toast]);
 
   // Load posts from API
   useEffect(() => {
@@ -325,7 +320,7 @@ export default function Newsfeed() {
           : error instanceof Error
             ? error.message
             : 'Gửi bình luận thất bại. Vui lòng thử lại.';
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     } finally {
       setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
     }
@@ -471,7 +466,7 @@ export default function Newsfeed() {
           : error instanceof Error
             ? error.message
             : 'Gửi phản hồi thất bại. Vui lòng thử lại.';
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     } finally {
       setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false }));
     }
@@ -545,7 +540,7 @@ export default function Newsfeed() {
           console.log('✅ Post deleted successfully');
         } catch (error) {
           console.error('❌ Failed to delete post:', error);
-          alert('Failed to delete post. Please try again.');
+          showToast('Failed to delete post. Please try again.', 'error');
         } finally {
           setIsDeleting(null);
         }
@@ -564,7 +559,7 @@ export default function Newsfeed() {
 
   const handleUpdatePost = async (postId: string) => {
     if (!editContent.trim()) {
-      alert('Post content cannot be empty');
+      showToast('Post content cannot be empty', 'info');
       return;
     }
 
@@ -590,7 +585,7 @@ export default function Newsfeed() {
         error instanceof HttpError
           ? error.data?.message || error.message
           : 'Failed to update post. Please try again.';
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     }
   };
 
@@ -646,13 +641,6 @@ export default function Newsfeed() {
 
   return (
     <div className="space-y-6 pb-8">
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
-          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
-            {toast.message}
-          </div>
-        </div>
-      )}
       {/* Stories Section */}
       {/* Stories Section */}
       <div className="bg-white/50 dark:bg-[#1a1d28]/50 rounded-[32px] p-6 border border-gray-200/50 dark:border-white/5 shadow-sm">

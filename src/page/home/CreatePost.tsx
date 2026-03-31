@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { Image, X, Globe, UserCheck, Lock, Loader2, Video, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Newsfeed from './Newsfeed';
 import { postsApi } from '../../apis/posts';
 import type { CreatePostRequest } from '../../apis/posts';
 import { authApi } from '../../apis/auth';
 import { uploadApi } from '../../apis/upload';
 import { HttpError } from '../../apis/http';
+import { useToast } from '../../contexts/useToast';
 
 export default function CreatePost() {
   const navigate = useNavigate();
@@ -15,7 +16,6 @@ export default function CreatePost() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -23,6 +23,7 @@ export default function CreatePost() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const currentUser = authApi.getCurrentUser();
+  const { showToast } = useToast();
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -134,7 +135,7 @@ export default function CreatePost() {
 
       console.error('❌ Failed to create post:', err);
       setError(message);
-      setToast({ type: 'error', message });
+      showToast(message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -160,22 +161,9 @@ export default function CreatePost() {
   const privacyDisplay = getPrivacyDisplay();
   const PrivacyIcon = privacyDisplay.icon;
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 6500);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
   return (
     <>
       <Newsfeed />
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
-          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
-            {toast.message}
-          </div>
-        </div>
-      )}
       <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-125 max-h-[90vh] overflow-y-auto border border-gray-200 pointer-events-auto">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">

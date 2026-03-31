@@ -1,10 +1,11 @@
 import { Image, X, Globe, Lock, Loader2, Video, Trash2, Smile, MapPin } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { postGroupApi } from '../../../../apis/postsGroup';
 import type { CreatePostGroupRequest, PostGroupData } from '../../../../apis/postsGroup';
 import { authApi } from '../../../../apis/auth';
 import { uploadApi } from '../../../../apis/upload';
 import { HttpError } from '../../../../apis/http';
+import { useToast } from '../../../../contexts/useToast';
 
 export default function CreatePostGroup({
   groupId,
@@ -21,7 +22,6 @@ export default function CreatePostGroup({
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
 
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
@@ -31,12 +31,7 @@ export default function CreatePostGroup({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const currentUser = authApi.getCurrentUser();
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 6500);
-    return () => window.clearTimeout(id);
-  }, [toast]);
+  const { showToast } = useToast();
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -135,7 +130,7 @@ export default function CreatePostGroup({
             ? err.message
             : 'Tạo bài viết thất bại';
       setError(msg);
-      setToast({ type: "error", message: msg });
+      showToast(msg, "error");
     } finally {
       setIsLoading(false);
     }
@@ -147,13 +142,6 @@ export default function CreatePostGroup({
 
   return (
     <div className="font-sans">
-      {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 pointer-events-none">
-          <div className="bg-yellow-400 text-black rounded-xl shadow-lg px-4 py-3 text-sm pointer-events-auto border border-yellow-300">
-            {toast.message}
-          </div>
-        </div>
-      )}
       {/* Trigger */}
       <div
         className="flex max-w-[600px] items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm mx-auto mb-6
