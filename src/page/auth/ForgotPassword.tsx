@@ -46,9 +46,9 @@ export default function ForgotPassword() {
       const response = await passwordResetApi.forgotPassword(email);
       console.log('✅ Password reset email sent:', response.message);
       setSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to send reset email:', err);
-      setError(err.message || 'Không gửi được email đặt lại mật khẩu. Vui lòng thử lại.');
+      setError(err instanceof Error ? err.message : 'Không gửi được email đặt lại mật khẩu. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -86,8 +86,8 @@ export default function ForgotPassword() {
     <AuthFrame
       brandHeading="TTVV"
       brandDescription="Lấy lại mật khẩu để tiếp tục kết nối cùng mọi người."
-      cardTitle="Quên mật khẩu"
-      cardSubtitle="Thực hiện theo các bước để lấy lại tài khoản"
+      cardTitle="Forgot password"
+      cardSubtitle="Khôi phục tài khoản bằng email đã đăng ký"
     >
       <div className="space-y-5">
         <div className="space-y-3">

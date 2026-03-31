@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sun, Settings } from 'lucide-react';
+import { ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import logo from '../../assets/logo-favicon.png';
 
@@ -57,16 +57,23 @@ export default function AuthFrame({
         <span className="min-[380px]:hidden">Trang chủ</span>
       </Link>
 
-      {/* Top-right control */}
+      {/* Theme toggle */}
       <button
         onClick={() => toggleTheme()}
         aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
-        className="absolute top-5 right-5 z-20 w-10 h-10 rounded-full bg-white dark:bg-[#1e2133] border border-gray-200 dark:border-[#2b2f45] shadow-sm flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#22263a] transition-all"
+        className="absolute top-5 right-5 z-20 inline-flex items-center gap-2 rounded-full bg-white dark:bg-[#1e2133] border border-gray-200 dark:border-[#2b2f45] shadow-sm px-3 h-10 hover:bg-gray-50 dark:hover:bg-[#22263a] transition-all"
       >
-        {isDark
-          ? <Sun className="w-5 h-5 text-amber-400" />
-          : <Settings className="w-5 h-5 text-gray-600" />
-        }
+        {isDark ? (
+          <>
+            <Sun className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-medium text-gray-700 dark:text-[#c8d0e6]">Light</span>
+          </>
+        ) : (
+          <>
+            <Moon className="w-4 h-4 text-gray-600" />
+            <span className="text-xs font-medium text-gray-700">Dark</span>
+          </>
+        )}
       </button>
 
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">

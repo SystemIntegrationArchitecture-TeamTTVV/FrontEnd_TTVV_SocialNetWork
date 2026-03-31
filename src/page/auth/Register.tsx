@@ -105,8 +105,8 @@ export default function Register() {
     <AuthFrame
       brandHeading="TTVV"
       brandDescription="Tạo tài khoản để bắt đầu kết nối và chia sẻ cùng bạn bè."
-      cardTitle="Tạo tài khoản"
-      cardSubtitle="Quy trình 3 bước nhanh gọn và rõ ràng"
+      cardTitle="Get started"
+      cardSubtitle="Tạo tài khoản mới trong vài bước"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-3">
