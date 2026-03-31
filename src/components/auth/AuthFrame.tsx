@@ -99,21 +99,21 @@ export default function AuthFrame({
               </p>
             </div>
 
-            <div className="relative h-[440px]">
-              <div className="absolute left-0 top-0 w-[340px] h-[410px] rounded-[32px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
+            <div className="relative h-[560px]">
+              <div className="absolute left-0 top-0 w-[460px] h-[540px] rounded-[36px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
                 <img
                   src={FACEBOOK_STYLE_IMAGE_URL}
                   alt="Login visual"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -left-6 top-16 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-md px-3 py-2">
-                <span className="text-2xl">😂</span>
+              <div className="absolute -left-8 top-24 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-md px-4 py-3">
+                <span className="text-3xl">😂</span>
               </div>
-              <div className="absolute right-0 bottom-20 rounded-full bg-[#ff2d87] text-white w-14 h-14 flex items-center justify-center shadow-lg text-2xl">
+              <div className="absolute right-1 bottom-26 rounded-full bg-[#ff2d87] text-white w-18 h-18 flex items-center justify-center shadow-lg text-3xl">
                 ❤
               </div>
-              <div className="absolute left-24 bottom-0 w-20 h-20 rounded-full border-4 border-[#f5f7fb] dark:border-[#141826] shadow-md overflow-hidden bg-white">
+              <div className="absolute left-32 bottom-0 w-24 h-24 rounded-full border-4 border-[#f5f7fb] dark:border-[#141826] shadow-md overflow-hidden bg-white">
                 <img src={logo} alt="TTVV Logo mini" className="w-full h-full object-cover" />
               </div>
             </div>
