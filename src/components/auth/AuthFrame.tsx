@@ -123,9 +123,11 @@ export default function AuthFrame({
         {/* Right auth panel */}
         <div className="relative flex items-center justify-center px-4 py-20">
           <div className="w-full max-w-[540px] bg-white dark:bg-[#1a1d28] rounded-3xl shadow-xl border border-gray-200/90 dark:border-[#2b2f45] p-8 lg:p-10">
-            <div className="lg:hidden flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-[#1877f2] text-white flex items-center justify-center font-bold text-xl">f</div>
-              <div>
+            <div className="lg:hidden mb-6 relative">
+              <div className="absolute -top-3 -left-1 w-11 h-11 rounded-full bg-[#1877f2] text-white flex items-center justify-center font-bold text-[10px] leading-none text-center shadow-sm">
+                TTVV
+              </div>
+              <div className="pl-13">
                 <p className="font-bold text-gray-900 dark:text-[#edf0fa]">{brandHeading}</p>
                 <p className="text-xs text-gray-500 dark:text-[#7e89a6]">{brandDescription}</p>
               </div>
