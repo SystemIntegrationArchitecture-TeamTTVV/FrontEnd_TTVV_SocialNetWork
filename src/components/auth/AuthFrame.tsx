@@ -4,6 +4,9 @@ import { ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import logo from '../../assets/logo-favicon.png';
 
+const FACEBOOK_STYLE_IMAGE_URL =
+  "https://static.xx.fbcdn.net/rsrc.php/yb/r/HpEiFYDux5j.webp";
+
 type AuthFrameProps = {
   brandHeading: string;
   brandDescription: string;
@@ -78,32 +81,41 @@ export default function AuthFrame({
 
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
         {/* Left visual panel */}
-        <div className="hidden lg:flex relative bg-[#f5f7fb] dark:bg-[#141826] px-12 py-20 overflow-hidden">
-          <div className="max-w-xl">
-            <div className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center text-white text-2xl font-bold shadow-sm mb-8">
-              f
+        <div className="hidden lg:flex relative bg-[#f5f7fb] dark:bg-[#141826] px-10 py-16 overflow-hidden">
+          <div className="w-full max-w-[680px] mx-auto grid grid-cols-2 gap-8 items-center">
+            <div>
+              <div className="w-11 h-11 rounded-full bg-[#1877f2] flex items-center justify-center text-white text-xl font-bold shadow-sm mb-7">
+              TTVV
+              </div>
+              <h1 className="text-[56px] font-extrabold leading-[1.05] tracking-tight text-gray-900 dark:text-[#edf0fa]">
+                Explore the
+                <br />
+                things
+                <br />
+                <span className="text-[#1877f2]">you love.</span>
+              </h1>
+              <p className="mt-6 text-[22px] leading-relaxed text-gray-600 dark:text-[#93a0c0] max-w-sm">
+                {brandDescription}
+              </p>
             </div>
-            <h1 className="text-6xl font-extrabold leading-tight text-gray-900 dark:text-[#edf0fa]">
-              Explore the
-              <br />
-              things
-              <br />
-              <span className="text-[#1877f2]">you love.</span>
-            </h1>
-            <p className="mt-8 text-xl text-gray-600 dark:text-[#93a0c0] max-w-lg">
-              {brandDescription}
-            </p>
-          </div>
 
-          <div className="absolute right-10 top-24 w-[360px] h-[360px]">
-            <div className="absolute inset-0 rounded-[36px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
-              <img src={logo} alt="TTVV Logo" className="w-full h-full object-cover opacity-95" />
-            </div>
-            <div className="absolute -left-8 top-12 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-lg px-4 py-3">
-              <span className="text-2xl">😂</span>
-            </div>
-            <div className="absolute -right-5 bottom-8 rounded-full bg-[#ff2d87] text-white w-14 h-14 flex items-center justify-center shadow-lg text-2xl">
-              ❤
+            <div className="relative h-[360px]">
+              <div className="absolute left-4 top-2 w-[250px] h-[305px] rounded-[28px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
+                <img
+                  src={FACEBOOK_STYLE_IMAGE_URL}
+                  alt="Login visual"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="absolute -left-2 top-14 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-md px-3 py-2">
+                <span className="text-xl">😂</span>
+              </div>
+              <div className="absolute right-3 bottom-10 rounded-full bg-[#ff2d87] text-white w-12 h-12 flex items-center justify-center shadow-lg text-xl">
+                ❤
+              </div>
+              <div className="absolute left-20 bottom-0 w-16 h-16 rounded-full border-4 border-[#f5f7fb] dark:border-[#141826] shadow-md overflow-hidden bg-white">
+                <img src={logo} alt="TTVV Logo mini" className="w-full h-full object-cover" />
+              </div>
             </div>
           </div>
         </div>
