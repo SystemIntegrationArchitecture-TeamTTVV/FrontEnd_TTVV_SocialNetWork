@@ -84,8 +84,8 @@ export default function AuthFrame({
         <div className="hidden lg:flex relative bg-[#f5f7fb] dark:bg-[#141826] px-10 py-16 overflow-hidden">
           <div className="w-full max-w-[680px] mx-auto grid grid-cols-2 gap-8 items-center">
             <div>
-              <div className="w-11 h-11 rounded-full bg-[#1877f2] flex items-center justify-center text-white text-xl font-bold shadow-sm mb-7">
-              TTVV
+              <div className="w-14 h-14 rounded-full bg-[#1877f2] flex items-center justify-center text-white text-[11px] font-bold leading-[1.05] shadow-sm mb-7 text-center">
+                TTVV
               </div>
               <h1 className="text-[56px] font-extrabold leading-[1.05] tracking-tight text-gray-900 dark:text-[#edf0fa]">
                 Explore the
@@ -99,21 +99,21 @@ export default function AuthFrame({
               </p>
             </div>
 
-            <div className="relative h-[360px]">
-              <div className="absolute left-4 top-2 w-[250px] h-[305px] rounded-[28px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
+            <div className="relative h-[440px]">
+              <div className="absolute left-0 top-0 w-[340px] h-[410px] rounded-[32px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
                 <img
                   src={FACEBOOK_STYLE_IMAGE_URL}
                   alt="Login visual"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -left-2 top-14 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-md px-3 py-2">
-                <span className="text-xl">😂</span>
+              <div className="absolute -left-6 top-16 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-md px-3 py-2">
+                <span className="text-2xl">😂</span>
               </div>
-              <div className="absolute right-3 bottom-10 rounded-full bg-[#ff2d87] text-white w-12 h-12 flex items-center justify-center shadow-lg text-xl">
+              <div className="absolute right-0 bottom-20 rounded-full bg-[#ff2d87] text-white w-14 h-14 flex items-center justify-center shadow-lg text-2xl">
                 ❤
               </div>
-              <div className="absolute left-20 bottom-0 w-16 h-16 rounded-full border-4 border-[#f5f7fb] dark:border-[#141826] shadow-md overflow-hidden bg-white">
+              <div className="absolute left-24 bottom-0 w-20 h-20 rounded-full border-4 border-[#f5f7fb] dark:border-[#141826] shadow-md overflow-hidden bg-white">
                 <img src={logo} alt="TTVV Logo mini" className="w-full h-full object-cover" />
               </div>
             </div>
