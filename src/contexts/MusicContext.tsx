@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, useEffect } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
 export interface Song {
@@ -42,6 +42,17 @@ interface MusicContextType {
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
+
+const MINI_PLAYER_SESSION_KEY = 'ttvv-music-mini-player';
+
+function readMiniPlayerOpen(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(MINI_PLAYER_SESSION_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 const defaultPlaylist: Song[] = [
   {
@@ -95,8 +106,21 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [isMuted, setIsMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
-  const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  const [showMiniPlayer, setShowMiniPlayerState] = useState(readMiniPlayerOpen);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const setShowMiniPlayer = useCallback((show: boolean) => {
+    setShowMiniPlayerState(show);
+    try {
+      if (show) {
+        sessionStorage.setItem(MINI_PLAYER_SESSION_KEY, '1');
+      } else {
+        sessionStorage.removeItem(MINI_PLAYER_SESSION_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const currentSong = defaultPlaylist[currentIndex];
   const isSoundCloudOnly = Boolean(currentSong.soundcloudUrl && !currentSong.url);

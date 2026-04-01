@@ -1,5 +1,18 @@
 import { useState } from 'react';
-import { Music2, Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Shuffle, Repeat, Heart, ExternalLink } from 'lucide-react';
+import {
+  Music2,
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Volume2,
+  VolumeX,
+  Shuffle,
+  Repeat,
+  Heart,
+  ExternalLink,
+  Minimize2,
+} from 'lucide-react';
 import { useMusic } from '../../contexts/MusicContext';
 import { soundCloudWidgetSrc } from '../../utils/soundCloudPlayer';
 
@@ -80,63 +93,92 @@ export default function MusicEDM() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Side - Player */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-[#1a1d28] rounded-2xl shadow-sm border border-gray-200 dark:border-[#2b2f45] p-6">
           <div className="w-full">
-            {/* Album Art */}
-            <div className="relative mb-6">
-              <div className="w-full aspect-square rounded-2xl overflow-hidden bg-linear-to-br from-blue-100 to-purple-100">
-                {currentSong.cover ? (
-                  <img
-                    src={currentSong.cover}
-                    alt={currentSong.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Music2 className="w-24 h-24 text-blue-400" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Song Info */}
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-1 truncate">
-                {currentSong.title}
-              </h2>
-              <p className="text-gray-600 truncate">{currentSong.artist}</p>
-            </div>
-
             {isSoundCloudOnly && currentSong.soundcloudUrl ? (
-              <div className="mb-2 space-y-3">
-                <p className="text-sm text-gray-600 text-center">
-                  Bài này phát qua SoundCloud (nhúng chính thức). Dùng nút trên khung bên dưới để play/pause.
-                </p>
-                <iframe
-                  title={`SoundCloud: ${currentSong.title}`}
-                  className="w-full rounded-xl border border-gray-200"
-                  height={360}
-                  src={soundCloudWidgetSrc(currentSong.soundcloudUrl, true)}
-                  allow="autoplay"
-                />
-                <div className="flex items-center justify-center gap-6 pt-2">
+              showMiniPlayer ? (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50/90 p-6 text-center dark:border-blue-500/30 dark:bg-blue-950/40">
+                  <p className="text-sm text-gray-700 dark:text-[#c8d0e6]">
+                    Player đang ở chế độ thu nhỏ — kéo góc màn hình, vẫn nghe khi chuyển trang (Trang chủ, Tin nhắn…).
+                  </p>
                   <button
                     type="button"
-                    onClick={previous}
-                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                    onClick={() => setShowMiniPlayer(false)}
+                    className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
                   >
-                    <SkipBack className="w-6 h-6" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={next}
-                    className="text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    <SkipForward className="w-6 h-6" />
+                    Mở player đầy đủ tại đây
                   </button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <iframe
+                    title={`SoundCloud: ${currentSong.title}`}
+                    className="w-full rounded-2xl border border-gray-200 dark:border-[#2b2f45]"
+                    height={400}
+                    src={soundCloudWidgetSrc(currentSong.soundcloudUrl, true)}
+                    allow="autoplay"
+                  />
+                  <div className="text-center mt-5 mb-1">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-[#edf0fa] mb-1 truncate">
+                      {currentSong.title}
+                    </h2>
+                    <p className="text-gray-600 dark:text-[#93a0c0] truncate">{currentSong.artist}</p>
+                  </div>
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={previous}
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-[#2b2f45] dark:text-[#edf0fa] dark:hover:bg-[#252940]"
+                    >
+                      <SkipBack className="w-6 h-6" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMiniPlayer(true)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
+                      title="Gắn player nổi, dùng khi rời trang Nhạc"
+                    >
+                      <Minimize2 className="w-4 h-4 shrink-0" />
+                      Thu nhỏ theo màn hình
+                    </button>
+                    <button
+                      type="button"
+                      onClick={next}
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-[#2b2f45] dark:text-[#edf0fa] dark:hover:bg-[#252940]"
+                    >
+                      <SkipForward className="w-6 h-6" />
+                    </button>
+                  </div>
+                </>
+              )
             ) : (
+              <>
+                <div className="relative mb-6">
+                  <div className="w-full aspect-square rounded-2xl overflow-hidden bg-linear-to-br from-blue-100 to-purple-100">
+                    {currentSong.cover ? (
+                      <img
+                        src={currentSong.cover}
+                        alt={currentSong.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Music2 className="w-24 h-24 text-blue-400" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-[#edf0fa] mb-1 truncate">
+                    {currentSong.title}
+                  </h2>
+                  <p className="text-gray-600 dark:text-[#93a0c0] truncate">{currentSong.artist}</p>
+                </div>
+              </>
+            )}
+
+            {!isSoundCloudOnly && (
               <>
                 <div className="mb-6">
                   <input
@@ -222,7 +264,7 @@ export default function MusicEDM() {
         </div>
 
         {/* Right Side - Playlist */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
+        <div className="bg-white dark:bg-[#1a1d28] rounded-2xl shadow-sm border border-gray-200 dark:border-[#2b2f45] p-6 flex flex-col">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Danh sách phát</h3>
           
           {/* Playlist */}
