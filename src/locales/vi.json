@@ -193,8 +193,8 @@
     "minutesAgo": "{{count}} phút trước",
     "hoursAgo": "{{count}} giờ trước",
     "daysAgo": "{{count}} ngày trước",
-    "views": "{{count}} lượt xem",
-    "likes": "{{count}} lượt thích"
+    "views": "{{value}} lượt xem",
+    "likes": "{{value}} lượt thích"
   },
   "pagesSocial": {
     "title": "Trang",

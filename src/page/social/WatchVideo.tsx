@@ -554,7 +554,7 @@ export default function WatchVideo() {
                     </>
                   )}
                   <div className="absolute bottom-4 left-4 text-sm font-semibold text-white">
-                    {t("watch.views", { count: formatNumber(video.viewCount) })}
+                    {t("watch.views", { value: formatNumber(video.viewCount) })}
                   </div>
                 </div>
 
@@ -901,13 +901,13 @@ export default function WatchVideo() {
                   <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                     <span>
                       {t("watch.views", {
-                        count: formatNumber(selectedVideoModal.viewCount),
+                        value: formatNumber(selectedVideoModal.viewCount),
                       })}
                     </span>
                     <span>•</span>
                     <span>
                       {t("watch.likes", {
-                        count: formatNumber(selectedVideoModal.likeCount),
+                        value: formatNumber(selectedVideoModal.likeCount),
                       })}
                     </span>
                   </div>

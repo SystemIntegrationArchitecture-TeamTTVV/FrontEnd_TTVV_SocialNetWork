@@ -193,8 +193,8 @@
     "minutesAgo": "{{count}} minutes ago",
     "hoursAgo": "{{count}} hours ago",
     "daysAgo": "{{count}} days ago",
-    "views": "{{count}} views",
-    "likes": "{{count}} likes"
+    "views": "{{value}} views",
+    "likes": "{{value}} likes"
   },
   "pagesSocial": {
     "title": "Pages",
