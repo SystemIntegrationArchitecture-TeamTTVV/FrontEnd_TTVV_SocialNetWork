@@ -181,43 +181,6 @@ export default function AuthFrame({
 
         <div className="relative flex items-center justify-center px-4 py-20">
           <div className="w-full max-w-[540px] bg-white dark:bg-[#1a1d28] rounded-3xl shadow-xl border border-gray-200/90 dark:border-[#2b2f45] p-8 lg:p-10">
-            <div
-              role="group"
-              aria-label={t('navbar.languageTitle')}
-              className="mb-6 flex flex-col gap-3 border-b border-gray-100 pb-6 dark:border-[#2b2f45] sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-[#93a0c0]">
-                <Globe className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                <span>{t('navbar.language')}</span>
-              </div>
-              <div className="inline-flex shrink-0 rounded-xl border border-gray-200 bg-[#f8fafc] p-1 dark:border-[#2b2f45] dark:bg-[#13151f]">
-                <button
-                  type="button"
-                  onClick={() => setAppLanguage('vi')}
-                  aria-pressed={currentLang === 'vi'}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors min-[380px]:px-4 ${
-                    currentLang === 'vi'
-                      ? 'bg-white text-[#1877f2] shadow-sm dark:bg-[#1e2133] dark:text-[#4d9fff]'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-[#7e89a6] dark:hover:text-[#edf0fa]'
-                  }`}
-                >
-                  {t('navbar.vietnamese')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAppLanguage('en')}
-                  aria-pressed={currentLang === 'en'}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors min-[380px]:px-4 ${
-                    currentLang === 'en'
-                      ? 'bg-white text-[#1877f2] shadow-sm dark:bg-[#1e2133] dark:text-[#4d9fff]'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-[#7e89a6] dark:hover:text-[#edf0fa]'
-                  }`}
-                >
-                  {t('navbar.english')}
-                </button>
-              </div>
-            </div>
-
             <div className="lg:hidden mb-6 relative">
               <div className="absolute -top-3 -left-1 w-11 h-11 rounded-full bg-[#1877f2] text-white flex items-center justify-center font-bold text-[10px] leading-none text-center shadow-sm">
                 TTVV
