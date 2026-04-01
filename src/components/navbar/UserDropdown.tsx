@@ -65,12 +65,12 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
     onClose();
   };
 
-  /** Modal giữa màn hình ~5s (nền mờ + blur) rồi chuyển trang. */
+  /** Modal giữa màn hình ~3s (nền mờ + blur) rồi chuyển trang. */
   const handleAuthNavigate = (path: string, target: Exclude<AuthNavTarget, null>) => {
     if (pendingAuthNav !== null) return;
     setPendingAuthNav(target);
     onClose();
-    const displayMs = 5000;
+    const displayMs = 3000;
     if (authNavTimerRef.current !== null) window.clearTimeout(authNavTimerRef.current);
     authNavTimerRef.current = window.setTimeout(() => {
       authNavTimerRef.current = null;
