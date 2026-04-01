@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, Plus, Settings, Users, Compass, Crown, SearchX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 import { authApi } from "../../apis/auth";
 import { groupsApi, type GroupData } from "../../apis/groupsApi";
 
@@ -28,6 +29,7 @@ const CATEGORY_COLORS: Record<string, { from: string; to: string; bg: string; bg
 export default function Groups() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<"your" | "joined" | "discover">("your");
   const [yourGroups, setYourGroups]       = useState<GroupData[]>([]);
@@ -108,9 +110,9 @@ export default function Groups() {
   };
 
   const tabs = [
-    { id: "your",     label: "Nhóm của bạn", icon: Crown,   count: yourGroups.length },
-    { id: "joined",   label: "Đã tham gia",  icon: Users,   count: joinedGroups.length },
-    { id: "discover", label: "Khám phá",     icon: Compass, count: discoverGroups.length },
+    { id: "your",     label: t("groups.tabs.your"), icon: Crown,   count: yourGroups.length },
+    { id: "joined",   label: t("groups.tabs.joined"),  icon: Users,   count: joinedGroups.length },
+    { id: "discover", label: t("groups.tabs.discover"),     icon: Compass, count: discoverGroups.length },
   ] as const;
 
   const displayGroups: GroupData[] =
@@ -125,10 +127,10 @@ export default function Groups() {
         <div className="flex items-end justify-between mb-7 gap-4">
           <div>
             <h1 className="text-[22px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">
-              Nhóm
+              {t("groups.title")}
             </h1>
             <p className="text-sm text-gray-400 dark:text-[#7e89a6] mt-0.5">
-              Kết nối và chia sẻ cùng cộng đồng
+              {t("groups.subtitle")}
             </p>
           </div>
           <button
@@ -136,7 +138,7 @@ export default function Groups() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-[0.97] text-white text-sm font-semibold shadow-sm transition-all shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Tạo nhóm
+            {t("groups.create")}
           </button>
         </div>
 
@@ -177,7 +179,7 @@ export default function Groups() {
           <input
             value={searchText}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Tìm kiếm nhóm..."
+            placeholder={t("groups.searchPlaceholder")}
             className="w-full h-12 pl-12 pr-10 rounded-2xl border border-gray-200/50 dark:border-white/5 bg-gray-100/50 dark:bg-[#1e2133]/50 text-[15px] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#4e5870] outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#22263a] transition-all"
           />
 
@@ -214,7 +216,7 @@ export default function Groups() {
               <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-[#1a1d28] flex items-center justify-center mb-4">
                 <SearchX className="w-7 h-7 text-gray-300 dark:text-[#4a5270]" />
               </div>
-              <p className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">Không tìm thấy nhóm nào</p>
+              <p className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">{t("groups.empty")}</p>
             </div>
           )}
 
@@ -238,7 +240,7 @@ export default function Groups() {
                   <button
                     className="absolute top-3 right-3 w-8 h-8 rounded-lg border border-gray-100 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#22263a] flex items-center justify-center text-gray-400 dark:text-[#6a7494] hover:border-blue-300 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
                     onClick={(e) => { e.stopPropagation(); setSelectedGroup(group); }}
-                    title="Quản lý nhóm"
+                    title={t("groups.manage")}
                   >
                     <Settings className="w-3.5 h-3.5" />
                   </button>
@@ -259,7 +261,7 @@ export default function Groups() {
 
                 {/* Member count */}
                 <p className="text-xs text-gray-400 dark:text-[#6a7494] mb-3">
-                  {group.memberCount ?? 0} thành viên
+                  {t("groups.members", { count: group.memberCount ?? 0 })}
                 </p>
 
                 {/* Category pill */}

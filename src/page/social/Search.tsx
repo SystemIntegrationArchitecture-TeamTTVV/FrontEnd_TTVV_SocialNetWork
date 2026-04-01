@@ -1,35 +1,37 @@
 import { useState } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Search() {
-  const [searchQuery, setSearchQuery] = useState('travel photos');
+  const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = useState(t('searchSocial.defaultQuery'));
   const [activeFilter, setActiveFilter] = useState('all');
 
   const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'posts', label: 'Posts' },
-    { id: 'people', label: 'People' },
-    { id: 'photos', label: 'Photos' },
-    { id: 'videos', label: 'Videos' },
-    { id: 'groups', label: 'Groups' },
-    { id: 'pages', label: 'Pages' },
+    { id: 'all', label: t('searchSocial.filters.all') },
+    { id: 'posts', label: t('searchSocial.filters.posts') },
+    { id: 'people', label: t('searchSocial.filters.people') },
+    { id: 'photos', label: t('searchSocial.filters.photos') },
+    { id: 'videos', label: t('searchSocial.filters.videos') },
+    { id: 'groups', label: t('searchSocial.filters.groups') },
+    { id: 'pages', label: t('searchSocial.filters.pages') },
   ];
 
   const people = [
-    { id: 1, name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A', role: 'Travel photographer', mutual: 234 },
-    { id: 2, name: 'Mike Travel', avatar: 'MT', color: '#FF6B6B', role: 'World traveler', mutual: 89 },
+    { id: 1, name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A', role: t('searchSocial.people.1.role'), mutual: 234 },
+    { id: 2, name: 'Mike Travel', avatar: 'MT', color: '#FF6B6B', role: t('searchSocial.people.2.role'), mutual: 89 },
   ];
 
   const posts = [
-    { id: 1, author: 'Emma Davis', avatar: 'ED', color: '#4ECDC4', content: 'Amazing travel photos from my trip to Bali! 🌴\nThe sunsets were absolutely breathtaking...', time: 'March 15 at 2:30 PM', likes: 128, comments: 24 },
-    { id: 2, author: 'Travel Enthusiasts', avatar: 'TE', color: '#FFD93D', content: 'Share your best travel photos from 2026!\nWe\'d love to see where you\'ve been...', time: 'Group · March 10', members: '2.5k', posts: 145 },
+    { id: 1, author: 'Emma Davis', avatar: 'ED', color: '#4ECDC4', content: t('searchSocial.posts.1.content'), time: t('searchSocial.posts.1.time'), likes: 128, comments: 24 },
+    { id: 2, author: 'Travel Enthusiasts', avatar: 'TE', color: '#FFD93D', content: t('searchSocial.posts.2.content'), time: t('searchSocial.posts.2.time'), members: '2.5k', posts: 145 },
   ];
 
   const photos = [
-    { id: 1, emoji: '🏖️', title: 'Beach sunset' },
-    { id: 2, emoji: '🏔️', title: 'Mountain view' },
-    { id: 3, emoji: '🌴', title: 'Tropical paradise' },
-    { id: 4, emoji: '🗼', title: 'City landmarks' },
+    { id: 1, emoji: '🏖️', title: t('searchSocial.photos.1') },
+    { id: 2, emoji: '🏔️', title: t('searchSocial.photos.2') },
+    { id: 3, emoji: '🌴', title: t('searchSocial.photos.3') },
+    { id: 4, emoji: '🗼', title: t('searchSocial.photos.4') },
   ];
 
   const groups = [
@@ -49,7 +51,7 @@ export default function Search() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
+            placeholder={t('searchSocial.searchPlaceholder')}
             className="w-full h-12 pl-12 pr-4 rounded-full border-2 border-[#1877F2] bg-white focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
           />
         </div>
@@ -78,7 +80,7 @@ export default function Search() {
           {/* People Section */}
           {(activeFilter === 'all' || activeFilter === 'people') && (
             <div>
-              <h2 className="text-base font-semibold text-[#65676B] mb-3">People</h2>
+              <h2 className="text-base font-semibold text-[#65676B] mb-3">{t('searchSocial.sections.people')}</h2>
               <div className="space-y-3">
                 {people.map((person) => (
                   <div
@@ -94,11 +96,11 @@ export default function Search() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-[#050505] mb-1">{person.name}</p>
                       <p className="text-sm text-[#65676B]">
-                        {person.role} · {person.mutual} mutual friends
+                        {person.role} · {person.mutual} {t('searchSocial.mutualFriends')}
                       </p>
                     </div>
                     <button className="h-8 px-4 bg-[#1877F2] text-white text-sm font-semibold rounded-md hover:bg-[#166FE5] transition-colors shrink-0">
-                      Add Friend
+                      {t('searchSocial.addFriend')}
                     </button>
                   </div>
                 ))}
@@ -109,7 +111,7 @@ export default function Search() {
           {/* Posts Section */}
           {(activeFilter === 'all' || activeFilter === 'posts') && (
             <div>
-              <h2 className="text-base font-semibold text-[#65676B] mb-3">Posts</h2>
+              <h2 className="text-base font-semibold text-[#65676B] mb-3">{t('searchSocial.sections.posts')}</h2>
               <div className="space-y-4">
                 {posts.map((post) => (
                   <div key={post.id} className="bg-white rounded-lg shadow-sm p-4">
@@ -129,16 +131,16 @@ export default function Search() {
                     <div className="flex items-center gap-2 text-sm text-[#65676B]">
                       {post.likes && (
                         <>
-                          <span>❤️ 👍 {post.likes} likes</span>
+                          <span>❤️ 👍 {post.likes} {t('searchSocial.likes')}</span>
                           <span>·</span>
-                          <span>{post.comments} comments</span>
+                          <span>{post.comments} {t('searchSocial.comments')}</span>
                         </>
                       )}
                       {post.members && (
                         <>
-                          <span>👥 {post.members} members</span>
+                          <span>👥 {post.members} {t('searchSocial.members')}</span>
                           <span>·</span>
-                          <span>{post.posts} posts this week</span>
+                          <span>{post.posts} {t('searchSocial.postsThisWeek')}</span>
                         </>
                       )}
                     </div>
@@ -154,7 +156,7 @@ export default function Search() {
           {/* Photos Section */}
           {(activeFilter === 'all' || activeFilter === 'photos') && (
             <div>
-              <h2 className="text-base font-semibold text-[#65676B] mb-3">Photos</h2>
+              <h2 className="text-base font-semibold text-[#65676B] mb-3">{t('searchSocial.sections.photos')}</h2>
               <div className="grid grid-cols-2 gap-3">
                 {photos.map((photo) => (
                   <div key={photo.id} className="bg-[#E4E6EB] rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
@@ -169,7 +171,7 @@ export default function Search() {
           {/* Groups Section */}
           {(activeFilter === 'all' || activeFilter === 'groups') && (
             <div>
-              <h2 className="text-base font-semibold text-[#65676B] mb-3">Groups</h2>
+              <h2 className="text-base font-semibold text-[#65676B] mb-3">{t('searchSocial.sections.groups')}</h2>
               <div className="space-y-3">
                 {groups.map((group) => (
                   <div
@@ -185,11 +187,11 @@ export default function Search() {
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-[#050505]">{group.name}</p>
-                        <p className="text-xs text-[#65676B]">Public group · {group.members} members</p>
+                        <p className="text-xs text-[#65676B]">{t('searchSocial.publicGroup')} · {group.members} {t('searchSocial.members')}</p>
                       </div>
                     </div>
                     <button className="w-full h-8 bg-[#1877F2] text-white text-sm font-semibold rounded-md hover:bg-[#166FE5] transition-colors">
-                      Join Group
+                      {t('searchSocial.joinGroup')}
                     </button>
                   </div>
                 ))}

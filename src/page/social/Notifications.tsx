@@ -1,7 +1,9 @@
 import { Heart, MessageCircle, Share2, UserPlus, Tag, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function Notifications() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('all');
 
   const notifications = [
@@ -9,7 +11,7 @@ export default function Notifications() {
       id: 1,
       type: 'like',
       user: { name: 'Sarah Johnson', avatar: 'SJ', color: '#42B72A' },
-      action: 'liked your post.',
+      action: t('notificationsSocial.actions.likedPost'),
       time: '2m ago',
       read: false,
       icon: Heart,
@@ -18,7 +20,7 @@ export default function Notifications() {
       id: 2,
       type: 'comment',
       user: { name: 'Mike Chen', avatar: 'MC', color: '#FF6B6B' },
-      action: 'commented: "Awesome photo!"',
+      action: t('notificationsSocial.actions.commented'),
       time: '15m ago',
       read: false,
       icon: MessageCircle,
@@ -27,7 +29,7 @@ export default function Notifications() {
       id: 3,
       type: 'share',
       user: { name: 'Emma Davis', avatar: 'ED', color: '#4ECDC4' },
-      action: 'shared your post.',
+      action: t('notificationsSocial.actions.sharedPost'),
       time: '1h ago',
       read: false,
       icon: Share2,
@@ -36,7 +38,7 @@ export default function Notifications() {
       id: 4,
       type: 'friend_request',
       user: { name: 'Alex Rodriguez', avatar: 'AR', color: '#FFD93D' },
-      action: 'sent you a friend request.',
+      action: t('notificationsSocial.actions.friendRequest'),
       time: '3h ago',
       read: true,
       icon: UserPlus,
@@ -45,7 +47,7 @@ export default function Notifications() {
       id: 5,
       type: 'reaction',
       user: { name: 'Lisa Wang', avatar: 'LW', color: '#A8E6CF' },
-      action: 'reacted to your comment.',
+      action: t('notificationsSocial.actions.reactedComment'),
       time: '5h ago',
       read: true,
       icon: Heart,
@@ -54,7 +56,7 @@ export default function Notifications() {
       id: 6,
       type: 'tag',
       user: { name: 'Tom Brown', avatar: 'TB', color: '#FFB6B9' },
-      action: 'tagged you in a post.',
+      action: t('notificationsSocial.actions.taggedPost'),
       time: 'Yesterday',
       read: true,
       icon: Tag,
@@ -63,7 +65,7 @@ export default function Notifications() {
       id: 7,
       type: 'memory',
       user: null,
-      action: 'You have a memory from 3 years ago.',
+      action: t('notificationsSocial.actions.memory'),
       time: 'Yesterday',
       read: true,
       icon: Clock,
@@ -77,11 +79,11 @@ export default function Notifications() {
     <div className="max-w-2xl mx-auto p-6 pb-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa]">Thông báo</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa]">{t('notificationsSocial.title')}</h1>
 
         {unreadCount > 0 && (
           <button className="text-sm text-blue-600 hover:underline font-semibold">
-            Mark all as read
+            {t('notificationsSocial.markAllRead')}
           </button>
         )}
       </div>
@@ -96,7 +98,7 @@ export default function Notifications() {
               : 'text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-white/50 dark:hover:bg-[#22263a]'
           }`}
         >
-          Tất cả
+          {t('notificationsSocial.tabs.all')}
         </button>
 
         <button
@@ -107,7 +109,7 @@ export default function Notifications() {
               : 'text-gray-500 dark:text-[#9aa3bc] hover:text-gray-700 dark:hover:text-[#edf0fa] hover:bg-white/50 dark:hover:bg-[#22263a]'
           }`}
         >
-          Chưa đọc
+          {t('notificationsSocial.tabs.unread')}
           {unreadCount > 0 && (
             <span className="absolute top-2 right-4 w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
               {unreadCount}
@@ -122,7 +124,7 @@ export default function Notifications() {
         {/* New Section */}
         {displayedNotifications.filter((n) => !n.read).length > 0 && (
           <>
-            <h2 className="text-base font-bold text-gray-900 mb-3 px-2">New</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-3 px-2">{t('notificationsSocial.new')}</h2>
             <div className="space-y-2 mb-6">
               {displayedNotifications
                 .filter((n) => !n.read)
@@ -167,10 +169,10 @@ export default function Notifications() {
                           {notification.type === 'friend_request' && (
                             <div className="flex gap-2 mt-3">
                               <button className="h-8 px-4 bg-blue-500 text-white text-xs font-semibold rounded-lg hover:bg-blue-600 transition-colors">
-                                Confirm
+                                {t('notificationsSocial.confirm')}
                               </button>
                               <button className="h-8 px-4 bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors">
-                                Delete
+                                {t('notificationsSocial.delete')}
                               </button>
                             </div>
                           )}
@@ -187,7 +189,7 @@ export default function Notifications() {
         {/* Earlier Section */}
         {displayedNotifications.filter((n) => n.read).length > 0 && (
           <>
-            <h2 className="text-base font-bold text-gray-900 mb-3 px-2">Earlier</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-3 px-2">{t('notificationsSocial.earlier')}</h2>
             <div className="space-y-2">
               {displayedNotifications
                 .filter((n) => n.read)
@@ -227,10 +229,10 @@ export default function Notifications() {
                           {notification.type === 'friend_request' && (
                             <div className="flex gap-2 mt-3">
                               <button className="h-8 px-4 bg-blue-500 text-white text-xs font-semibold rounded-lg hover:bg-blue-600 transition-colors">
-                                Confirm
+                                {t('notificationsSocial.confirm')}
                               </button>
                               <button className="h-8 px-4 bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors">
-                                Delete
+                                {t('notificationsSocial.delete')}
                               </button>
                             </div>
                           )}

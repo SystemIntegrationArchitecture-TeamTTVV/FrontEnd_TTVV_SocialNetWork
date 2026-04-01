@@ -46,6 +46,278 @@
     "seeMore": "See more",
     "loginRequired": "Please log in"
   },
+  "marketplace": {
+    "title": "Marketplace",
+    "subtitle": "Discover products that fit you",
+    "searchPlaceholder": "Search marketplace",
+    "categoryTitle": "Categories",
+    "createListing": "Create new listing",
+    "todayPicks": "Today's picks",
+    "productSummary": "{{count}} products • {{category}}",
+    "clearFilters": "Clear filters",
+    "emptyTitle": "No matching products found",
+    "emptySubtitle": "Try another keyword or category.",
+    "currencySuffix": "VND",
+    "categories": {
+      "all": "All",
+      "vehicles": "Vehicles",
+      "property": "Rentals",
+      "clothing": "Fashion & accessories",
+      "electronics": "Electronics",
+      "home": "Home & living",
+      "hobbies": "Hobbies"
+    },
+    "products": {
+      "1": { "title": "MacBook Pro 2020", "location": "District 1, Ho Chi Minh City", "condition": "Excellent condition" },
+      "2": { "title": "Mountain bike", "location": "Thu Duc, Ho Chi Minh City", "condition": "Like new" },
+      "3": { "title": "Canon DSLR", "location": "Hai Chau, Da Nang", "condition": "Works well" },
+      "4": { "title": "2-seat sofa", "location": "Cau Giay, Hanoi", "condition": "Self-pickup" },
+      "5": { "title": "iPhone 14 Pro", "location": "Ninh Kieu, Can Tho", "condition": "International version" },
+      "6": { "title": "Acoustic guitar", "location": "Bien Hoa, Dong Nai", "condition": "Comes with gig bag" },
+      "7": { "title": "Smartwatch", "location": "Long Bien, Hanoi", "condition": "Has GPS" },
+      "8": { "title": "Game console", "location": "Binh Thanh, Ho Chi Minh City", "condition": "Includes 2 controllers" }
+    }
+  },
+  "saved": {
+    "title": "Saved items",
+    "subtitle": "Review posts, links, and content you saved",
+    "searchPlaceholder": "Search saved items...",
+    "emptyTitle": "No saved items",
+    "emptySubtitle": "You have not saved any content yet",
+    "filters": {
+      "all": "All",
+      "post": "Posts",
+      "link": "Links",
+      "image": "Images",
+      "video": "Videos"
+    },
+    "items": {
+      "1": {
+        "title": "Technology article",
+        "content": "Top technology trends in 2024...",
+        "savedAt": "2 days ago"
+      },
+      "2": { "title": "React Hooks guide", "savedAt": "5 days ago" },
+      "3": { "title": "Design System video", "savedAt": "1 week ago" },
+      "4": { "title": "Beautiful landscape photo", "savedAt": "2 weeks ago" }
+    }
+  },
+  "music": {
+    "title": "Music",
+    "subtitle": "Your music library",
+    "miniModeDescription": "Player is in mini mode — dock it to a screen corner and keep listening while navigating (Home, Messenger...).",
+    "openFullPlayer": "Open full player here",
+    "pinPlayerTitle": "Pin floating player when leaving Music",
+    "minimizeWithScreen": "Minimize to screen",
+    "playlist": "Playlist",
+    "shortcut": {
+      "enable": "Enable shortcut",
+      "disable": "Disable shortcut",
+      "active": "Shortcut is active",
+      "create": "Create shortcut"
+    },
+    "stats": {
+      "songs": "Songs",
+      "favorites": "Favorites",
+      "plays": "Plays"
+    }
+  },
+  "groups": {
+    "title": "Groups",
+    "subtitle": "Connect and share with the community",
+    "create": "Create group",
+    "searchPlaceholder": "Search groups...",
+    "empty": "No groups found",
+    "manage": "Manage group",
+    "members": "{{count}} members",
+    "tabs": {
+      "your": "Your groups",
+      "joined": "Joined",
+      "discover": "Discover"
+    }
+  },
+  "friends": {
+    "title": "Friends",
+    "subtitle": "Manage your connections",
+    "requestCount": "{{count}} requests",
+    "requestSent": "Sent you a friend request",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "addFriend": "Add friend",
+    "withdrawRequest": "Withdraw request",
+    "withdraw": "Withdraw",
+    "requestAlreadySent": "Request sent",
+    "userFallback": "User",
+    "friend": "Friend",
+    "profile": "Profile",
+    "loading": "Loading...",
+    "tabs": {
+      "home": "Home",
+      "requests": "Friend requests",
+      "suggestions": "Suggestions",
+      "all": "All friends",
+      "birthdays": "Birthdays",
+      "custom": "Custom lists"
+    },
+    "sections": {
+      "requests": "Friend requests",
+      "suggestions": "People you may know",
+      "all": "All friends"
+    },
+    "empty": {
+      "noRequests": "No friend requests",
+      "noSuggestions": "No suggestions",
+      "noFriends": "No friends yet",
+      "noBirthdays": "No upcoming birthdays",
+      "noCustomList": "No custom lists yet"
+    }
+  },
+  "watch": {
+    "title": "Video",
+    "loading": "Loading videos...",
+    "searchPlaceholder": "Search videos",
+    "featuredTitle": "New videos for you",
+    "viewAll": "View all",
+    "saveVideo": "Save video",
+    "hideVideo": "Hide video",
+    "report": "Report",
+    "seeMore": "See more",
+    "share": "Share",
+    "send": "Send",
+    "like": "Like",
+    "reply": "Reply",
+    "noComments": "No comments yet",
+    "commentPlaceholder": "Write a comment...",
+    "commentSendFailed": "Failed to send comment. Please try again.",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago",
+    "views": "{{count}} views",
+    "likes": "{{count}} likes"
+  },
+  "pagesSocial": {
+    "title": "Pages",
+    "subtitle": "Discover and follow your favorite pages",
+    "createPage": "Create page",
+    "searchPlaceholder": "Search Pages...",
+    "follow": "Follow",
+    "likes": "likes",
+    "followers": "followers",
+    "emptyTitle": "No Pages found",
+    "emptySubtitle": "Try a different keyword",
+    "tabs": {
+      "liked": "Liked",
+      "discover": "Discover"
+    },
+    "sample": {
+      "techCategory": "Technology",
+      "fashionCategory": "Fashion",
+      "foodTravelCategory": "Food & Travel",
+      "musicCategory": "Music",
+      "hanoiLocation": "Hanoi, Vietnam",
+      "hcmLocation": "Ho Chi Minh City, Vietnam",
+      "danangLocation": "Da Nang, Vietnam",
+      "techDescription": "Latest technology news in Vietnam",
+      "fashionDescription": "Latest fashion trends",
+      "foodTravelDescription": "Explore Vietnamese food and travel",
+      "musicDescription": "Share your favorite music"
+    }
+  },
+  "eventsSocial": {
+    "title": "Events",
+    "createEvent": "Create new event",
+    "calendarTitle": "January 2026",
+    "upcomingTitle": "Upcoming Events",
+    "suggestedTitle": "Suggested for you",
+    "seeAll": "See all",
+    "people": "people",
+    "going": "going",
+    "interested": "interested",
+    "invited": "invited",
+    "share": "Share",
+    "tabs": {
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "your": "Your Events",
+      "hosting": "Hosting",
+      "birthdays": "Birthdays"
+    },
+    "sample": {
+      "event1": { "time": "Today at 2:00 PM", "location": "Convention Center, San Francisco" },
+      "event2": { "time": "Wed, January 15 at 7:00 PM", "location": "The Garden Restaurant" },
+      "event3": { "time": "Wed, January 22 at 6:00 PM", "location": "Downtown Coffee Shop" },
+      "event4": { "time": "Tue, January 28 at 5:00 PM", "location": "City Hall Auditorium" }
+    }
+  },
+  "notificationsSocial": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "new": "New",
+    "earlier": "Earlier",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "actions": {
+      "likedPost": "liked your post.",
+      "commented": "commented: \"Awesome photo!\"",
+      "sharedPost": "shared your post.",
+      "friendRequest": "sent you a friend request.",
+      "reactedComment": "reacted to your comment.",
+      "taggedPost": "tagged you in a post.",
+      "memory": "You have a memory from 3 years ago."
+    }
+  },
+  "searchSocial": {
+    "defaultQuery": "travel photos",
+    "searchPlaceholder": "Search...",
+    "addFriend": "Add Friend",
+    "joinGroup": "Join Group",
+    "mutualFriends": "mutual friends",
+    "likes": "likes",
+    "comments": "comments",
+    "members": "members",
+    "postsThisWeek": "posts this week",
+    "publicGroup": "Public group",
+    "filters": {
+      "all": "All",
+      "posts": "Posts",
+      "people": "People",
+      "photos": "Photos",
+      "videos": "Videos",
+      "groups": "Groups",
+      "pages": "Pages"
+    },
+    "sections": {
+      "people": "People",
+      "posts": "Posts",
+      "photos": "Photos",
+      "groups": "Groups"
+    },
+    "people": {
+      "1": { "role": "Travel photographer" },
+      "2": { "role": "World traveler" }
+    },
+    "posts": {
+      "1": {
+        "content": "Amazing travel photos from my trip to Bali! 🌴\nThe sunsets were absolutely breathtaking...",
+        "time": "March 15 at 2:30 PM"
+      },
+      "2": {
+        "content": "Share your best travel photos from 2026!\nWe'd love to see where you've been...",
+        "time": "Group · March 10"
+      }
+    },
+    "photos": {
+      "1": "Beach sunset",
+      "2": "Mountain view",
+      "3": "Tropical paradise",
+      "4": "City landmarks"
+    }
+  },
   "rightSidebar": {
     "contacts": "Contacts",
     "searchPlaceholder": "Search by name…",

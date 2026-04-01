@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Search, Bookmark, Image, Video, Link as LinkIcon, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function SavedItems() {
+  const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -9,35 +11,35 @@ export default function SavedItems() {
     {
       id: 1,
       type: 'post',
-      title: 'Bài viết về công nghệ',
-      content: 'Những xu hướng công nghệ mới nhất trong năm 2024...',
+      title: t('saved.items.1.title'),
+      content: t('saved.items.1.content'),
       author: { name: 'Nguyễn Văn A', avatar: 'NA', color: '#1877F2' },
-      savedAt: '2 ngày trước',
+      savedAt: t('saved.items.1.savedAt'),
       image: '🖥️',
     },
     {
       id: 2,
       type: 'link',
-      title: 'Hướng dẫn React Hooks',
+      title: t('saved.items.2.title'),
       url: 'https://react.dev',
       author: { name: 'Trần Thị B', avatar: 'TB', color: '#42B72A' },
-      savedAt: '5 ngày trước',
+      savedAt: t('saved.items.2.savedAt'),
     },
     {
       id: 3,
       type: 'video',
-      title: 'Video về Design System',
+      title: t('saved.items.3.title'),
       thumbnail: '🎬',
       author: { name: 'Lê Văn C', avatar: 'LC', color: '#FF6B6B' },
-      savedAt: '1 tuần trước',
+      savedAt: t('saved.items.3.savedAt'),
     },
     {
       id: 4,
       type: 'image',
-      title: 'Ảnh phong cảnh đẹp',
+      title: t('saved.items.4.title'),
       image: '🏞️',
       author: { name: 'Phạm Thị D', avatar: 'PD', color: '#4ECDC4' },
-      savedAt: '2 tuần trước',
+      savedAt: t('saved.items.4.savedAt'),
     },
   ];
 
@@ -68,8 +70,8 @@ export default function SavedItems() {
     <div className="max-w-5xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Mục đã lưu</h1>
-        <p className="text-lg text-gray-600">Xem lại các bài viết, liên kết và nội dung bạn đã lưu</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('saved.title')}</h1>
+        <p className="text-lg text-gray-600">{t('saved.subtitle')}</p>
       </div>
 
       {/* Search and Filters */}
@@ -79,7 +81,7 @@ export default function SavedItems() {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm mục đã lưu..."
+              placeholder={t('saved.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-14 pr-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
@@ -90,11 +92,11 @@ export default function SavedItems() {
         {/* Filter Tabs */}
         <div className="flex items-center gap-3 mt-4 flex-wrap">
           {[
-            { id: 'all', label: 'Tất cả', icon: Bookmark },
-            { id: 'post', label: 'Bài viết', icon: FileText },
-            { id: 'link', label: 'Liên kết', icon: LinkIcon },
-            { id: 'image', label: 'Ảnh', icon: Image },
-            { id: 'video', label: 'Video', icon: Video },
+            { id: 'all', label: t('saved.filters.all'), icon: Bookmark },
+            { id: 'post', label: t('saved.filters.post'), icon: FileText },
+            { id: 'link', label: t('saved.filters.link'), icon: LinkIcon },
+            { id: 'image', label: t('saved.filters.image'), icon: Image },
+            { id: 'video', label: t('saved.filters.video'), icon: Video },
           ].map((filter) => {
             const Icon = filter.icon;
             return (
@@ -126,7 +128,7 @@ export default function SavedItems() {
             >
               <div className="flex items-start gap-4">
                 {/* Thumbnail/Icon */}
-                <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
                   {item.image ? (
                     <span className="text-4xl">{item.image}</span>
                   ) : item.thumbnail ? (
@@ -155,7 +157,7 @@ export default function SavedItems() {
                         </a>
                       )}
                     </div>
-                    <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0 ml-4">
+                    <button className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors shrink-0 ml-4">
                       <Bookmark className="w-5 h-5 text-blue-600 fill-current" />
                     </button>
                   </div>
@@ -183,8 +185,8 @@ export default function SavedItems() {
       {filteredItems.length === 0 && (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
           <Bookmark className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Không có mục đã lưu</h3>
-          <p className="text-base text-gray-600">Bạn chưa lưu bất kỳ nội dung nào</p>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">{t('saved.emptyTitle')}</h3>
+          <p className="text-base text-gray-600">{t('saved.emptySubtitle')}</p>
         </div>
       )}
     </div>

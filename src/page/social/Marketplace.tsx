@@ -2,33 +2,35 @@ import { useMemo, useState } from 'react';
 import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LaptopIcon, BikeIcon, CameraIcon, SofaIcon, PhoneIcon, GuitarIcon, WatchIcon, GamepadIcon } from '../../common/icons/IconComponents';
+import { useTranslation } from 'react-i18next';
 
 export default function Marketplace() {
+  const { t, i18n } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
-    { id: 'all', icon: Home, label: 'Tất cả' },
-    { id: 'vehicles', icon: Car, label: 'Xe cộ' },
-    { id: 'property', icon: Building, label: 'Nhà cho thuê' },
-    { id: 'clothing', icon: Shirt, label: 'Thời trang & phụ kiện' },
-    { id: 'electronics', icon: Smartphone, label: 'Điện tử' },
-    { id: 'home', icon: Sofa, label: 'Nhà cửa & đời sống' },
-    { id: 'hobbies', icon: Gamepad2, label: 'Sở thích' },
+    { id: 'all', icon: Home, label: t('marketplace.categories.all') },
+    { id: 'vehicles', icon: Car, label: t('marketplace.categories.vehicles') },
+    { id: 'property', icon: Building, label: t('marketplace.categories.property') },
+    { id: 'clothing', icon: Shirt, label: t('marketplace.categories.clothing') },
+    { id: 'electronics', icon: Smartphone, label: t('marketplace.categories.electronics') },
+    { id: 'home', icon: Sofa, label: t('marketplace.categories.home') },
+    { id: 'hobbies', icon: Gamepad2, label: t('marketplace.categories.hobbies') },
   ];
 
   const products = [
-    { id: 1, title: 'MacBook Pro 2020', price: 11500000, location: 'Quận 1, TP.HCM', icon: 'laptop', condition: 'Tình trạng rất tốt', category: 'electronics' },
-    { id: 2, title: 'Xe đạp địa hình', price: 4200000, location: 'Thủ Đức, TP.HCM', icon: 'bike', condition: 'Như mới', category: 'vehicles' },
-    { id: 3, title: 'Canon DSLR', price: 7900000, location: 'Hải Châu, Đà Nẵng', icon: 'camera', condition: 'Hoạt động ổn định', category: 'electronics' },
-    { id: 4, title: 'Ghế sofa 2 chỗ', price: 5100000, location: 'Cầu Giấy, Hà Nội', icon: 'sofa', condition: 'Tự vận chuyển', category: 'home' },
-    { id: 5, title: 'iPhone 14 Pro', price: 16900000, location: 'Ninh Kiều, Cần Thơ', icon: 'phone', condition: 'Máy quốc tế', category: 'electronics' },
-    { id: 6, title: 'Guitar acoustic', price: 3600000, location: 'Biên Hòa, Đồng Nai', icon: 'guitar', condition: 'Tặng kèm bao đàn', category: 'hobbies' },
-    { id: 7, title: 'Đồng hồ thông minh', price: 2800000, location: 'Long Biên, Hà Nội', icon: 'watch', condition: 'Có GPS', category: 'electronics' },
-    { id: 8, title: 'Máy chơi game', price: 9200000, location: 'Bình Thạnh, TP.HCM', icon: 'gamepad', condition: 'Kèm 2 tay cầm', category: 'hobbies' },
+    { id: 1, titleKey: 'marketplace.products.1.title', price: 11500000, locationKey: 'marketplace.products.1.location', icon: 'laptop', conditionKey: 'marketplace.products.1.condition', category: 'electronics' },
+    { id: 2, titleKey: 'marketplace.products.2.title', price: 4200000, locationKey: 'marketplace.products.2.location', icon: 'bike', conditionKey: 'marketplace.products.2.condition', category: 'vehicles' },
+    { id: 3, titleKey: 'marketplace.products.3.title', price: 7900000, locationKey: 'marketplace.products.3.location', icon: 'camera', conditionKey: 'marketplace.products.3.condition', category: 'electronics' },
+    { id: 4, titleKey: 'marketplace.products.4.title', price: 5100000, locationKey: 'marketplace.products.4.location', icon: 'sofa', conditionKey: 'marketplace.products.4.condition', category: 'home' },
+    { id: 5, titleKey: 'marketplace.products.5.title', price: 16900000, locationKey: 'marketplace.products.5.location', icon: 'phone', conditionKey: 'marketplace.products.5.condition', category: 'electronics' },
+    { id: 6, titleKey: 'marketplace.products.6.title', price: 3600000, locationKey: 'marketplace.products.6.location', icon: 'guitar', conditionKey: 'marketplace.products.6.condition', category: 'hobbies' },
+    { id: 7, titleKey: 'marketplace.products.7.title', price: 2800000, locationKey: 'marketplace.products.7.location', icon: 'watch', conditionKey: 'marketplace.products.7.condition', category: 'electronics' },
+    { id: 8, titleKey: 'marketplace.products.8.title', price: 9200000, locationKey: 'marketplace.products.8.location', icon: 'gamepad', conditionKey: 'marketplace.products.8.condition', category: 'hobbies' },
   ];
 
-  const activeCategoryLabel = categories.find((c) => c.id === activeCategory)?.label || 'Tất cả';
+  const activeCategoryLabel = categories.find((c) => c.id === activeCategory)?.label || t('marketplace.categories.all');
 
   const filteredProducts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -37,8 +39,8 @@ export default function Marketplace() {
       const matchCategory = activeCategory === 'all' || product.category === activeCategory;
       const matchSearch =
         !query ||
-        product.title.toLowerCase().includes(query) ||
-        product.location.toLowerCase().includes(query);
+        t(product.titleKey).toLowerCase().includes(query) ||
+        t(product.locationKey).toLowerCase().includes(query);
 
       return matchCategory && matchSearch;
     });
@@ -62,8 +64,8 @@ export default function Marketplace() {
     <div className="min-h-screen bg-gray-50 flex">
       {/* Left Sidebar */}
       <aside className="w-80 bg-white border-r border-gray-200 p-5 shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Chợ</h1>
-        <p className="text-sm text-gray-500 mb-4">Khám phá sản phẩm phù hợp với bạn</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('marketplace.title')}</h1>
+        <p className="text-sm text-gray-500 mb-4">{t('marketplace.subtitle')}</p>
 
         {/* Search */}
         <div className="relative mb-6">
@@ -72,14 +74,14 @@ export default function Marketplace() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm trên chợ"
+            placeholder={t('marketplace.searchPlaceholder')}
             className="w-full h-11 pl-10 pr-4 rounded-full bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
 
         {/* Categories */}
         <div className="mb-6">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Danh mục</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('marketplace.categoryTitle')}</p>
           <div className="space-y-2">
             {categories.map((category) => {
               const Icon = category.icon;
@@ -104,7 +106,7 @@ export default function Marketplace() {
         {/* Create Listing */}
         <button className="w-full h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
           <Plus className="w-5 h-5" />
-          <span>Tạo tin đăng mới</span>
+          <span>{t('marketplace.createListing')}</span>
         </button>
       </aside>
 
@@ -112,9 +114,9 @@ export default function Marketplace() {
       <main className="flex-1 p-6 lg:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Gợi ý hôm nay</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('marketplace.todayPicks')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              {filteredProducts.length} sản phẩm • {activeCategoryLabel}
+              {t('marketplace.productSummary', { count: filteredProducts.length, category: activeCategoryLabel })}
             </p>
           </div>
 
@@ -127,7 +129,7 @@ export default function Marketplace() {
               }}
               className="h-9 px-4 rounded-full bg-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
             >
-              Xóa bộ lọc
+              {t('marketplace.clearFilters')}
             </button>
           )}
         </div>
@@ -144,12 +146,14 @@ export default function Marketplace() {
                 {getProductIcon(product.icon)}
               </div>
               <div className="p-4">
-                <p className="text-xl font-bold text-gray-900 mb-1">{product.price.toLocaleString('vi-VN')} đ</p>
-                <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{product.title}</p>
-                <p className="text-sm text-gray-500 mb-2">{product.location}</p>
+                <p className="text-xl font-bold text-gray-900 mb-1">
+                  {product.price.toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')} {t('marketplace.currencySuffix')}
+                </p>
+                <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{t(product.titleKey)}</p>
+                <p className="text-sm text-gray-500 mb-2">{t(product.locationKey)}</p>
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                  {product.condition}
+                  {t(product.conditionKey)}
                 </p>
               </div>
             </Link>
@@ -158,8 +162,8 @@ export default function Marketplace() {
 
         {filteredProducts.length === 0 && (
           <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center">
-            <p className="text-base font-semibold text-gray-900">Không tìm thấy sản phẩm phù hợp</p>
-            <p className="text-sm text-gray-500 mt-1">Thử từ khóa khác hoặc chọn lại danh mục.</p>
+            <p className="text-base font-semibold text-gray-900">{t('marketplace.emptyTitle')}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('marketplace.emptySubtitle')}</p>
           </div>
         )}
       </main>

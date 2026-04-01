@@ -46,6 +46,278 @@
     "seeMore": "Xem thêm",
     "loginRequired": "Vui lòng đăng nhập"
   },
+  "marketplace": {
+    "title": "Chợ",
+    "subtitle": "Khám phá sản phẩm phù hợp với bạn",
+    "searchPlaceholder": "Tìm kiếm trên chợ",
+    "categoryTitle": "Danh mục",
+    "createListing": "Tạo tin đăng mới",
+    "todayPicks": "Gợi ý hôm nay",
+    "productSummary": "{{count}} sản phẩm • {{category}}",
+    "clearFilters": "Xóa bộ lọc",
+    "emptyTitle": "Không tìm thấy sản phẩm phù hợp",
+    "emptySubtitle": "Thử từ khóa khác hoặc chọn lại danh mục.",
+    "currencySuffix": "đ",
+    "categories": {
+      "all": "Tất cả",
+      "vehicles": "Xe cộ",
+      "property": "Nhà cho thuê",
+      "clothing": "Thời trang & phụ kiện",
+      "electronics": "Điện tử",
+      "home": "Nhà cửa & đời sống",
+      "hobbies": "Sở thích"
+    },
+    "products": {
+      "1": { "title": "MacBook Pro 2020", "location": "Quận 1, TP.HCM", "condition": "Tình trạng rất tốt" },
+      "2": { "title": "Xe đạp địa hình", "location": "Thủ Đức, TP.HCM", "condition": "Như mới" },
+      "3": { "title": "Canon DSLR", "location": "Hải Châu, Đà Nẵng", "condition": "Hoạt động ổn định" },
+      "4": { "title": "Ghế sofa 2 chỗ", "location": "Cầu Giấy, Hà Nội", "condition": "Tự vận chuyển" },
+      "5": { "title": "iPhone 14 Pro", "location": "Ninh Kiều, Cần Thơ", "condition": "Máy quốc tế" },
+      "6": { "title": "Guitar acoustic", "location": "Biên Hòa, Đồng Nai", "condition": "Tặng kèm bao đàn" },
+      "7": { "title": "Đồng hồ thông minh", "location": "Long Biên, Hà Nội", "condition": "Có GPS" },
+      "8": { "title": "Máy chơi game", "location": "Bình Thạnh, TP.HCM", "condition": "Kèm 2 tay cầm" }
+    }
+  },
+  "saved": {
+    "title": "Mục đã lưu",
+    "subtitle": "Xem lại các bài viết, liên kết và nội dung bạn đã lưu",
+    "searchPlaceholder": "Tìm kiếm mục đã lưu...",
+    "emptyTitle": "Không có mục đã lưu",
+    "emptySubtitle": "Bạn chưa lưu bất kỳ nội dung nào",
+    "filters": {
+      "all": "Tất cả",
+      "post": "Bài viết",
+      "link": "Liên kết",
+      "image": "Ảnh",
+      "video": "Video"
+    },
+    "items": {
+      "1": {
+        "title": "Bài viết về công nghệ",
+        "content": "Những xu hướng công nghệ mới nhất trong năm 2024...",
+        "savedAt": "2 ngày trước"
+      },
+      "2": { "title": "Hướng dẫn React Hooks", "savedAt": "5 ngày trước" },
+      "3": { "title": "Video về Design System", "savedAt": "1 tuần trước" },
+      "4": { "title": "Ảnh phong cảnh đẹp", "savedAt": "2 tuần trước" }
+    }
+  },
+  "music": {
+    "title": "Nhạc",
+    "subtitle": "Thư viện nhạc của bạn",
+    "miniModeDescription": "Player đang ở chế độ thu nhỏ — kéo góc màn hình, vẫn nghe khi chuyển trang (Trang chủ, Tin nhắn…).",
+    "openFullPlayer": "Mở player đầy đủ tại đây",
+    "pinPlayerTitle": "Gắn player nổi, dùng khi rời trang Nhạc",
+    "minimizeWithScreen": "Thu nhỏ theo màn hình",
+    "playlist": "Danh sách phát",
+    "shortcut": {
+      "enable": "Bật shortcut",
+      "disable": "Tắt shortcut",
+      "active": "Đang hiện shortcut",
+      "create": "Tạo shortcut"
+    },
+    "stats": {
+      "songs": "Bài hát",
+      "favorites": "Yêu thích",
+      "plays": "Lượt nghe"
+    }
+  },
+  "groups": {
+    "title": "Nhóm",
+    "subtitle": "Kết nối và chia sẻ cùng cộng đồng",
+    "create": "Tạo nhóm",
+    "searchPlaceholder": "Tìm kiếm nhóm...",
+    "empty": "Không tìm thấy nhóm nào",
+    "manage": "Quản lý nhóm",
+    "members": "{{count}} thành viên",
+    "tabs": {
+      "your": "Nhóm của bạn",
+      "joined": "Đã tham gia",
+      "discover": "Khám phá"
+    }
+  },
+  "friends": {
+    "title": "Bạn bè",
+    "subtitle": "Quản lý kết nối của bạn",
+    "requestCount": "{{count}} lời mời",
+    "requestSent": "Đã gửi lời mời kết bạn",
+    "confirm": "Xác nhận",
+    "delete": "Xóa",
+    "addFriend": "Thêm bạn bè",
+    "withdrawRequest": "Thu hồi lời mời",
+    "withdraw": "Thu hồi",
+    "requestAlreadySent": "Đã gửi lời mời",
+    "userFallback": "Người dùng",
+    "friend": "Bạn bè",
+    "profile": "Trang cá nhân",
+    "loading": "Đang tải...",
+    "tabs": {
+      "home": "Trang chủ",
+      "requests": "Lời mời kết bạn",
+      "suggestions": "Gợi ý",
+      "all": "Tất cả bạn bè",
+      "birthdays": "Sinh nhật",
+      "custom": "Danh sách tùy chỉnh"
+    },
+    "sections": {
+      "requests": "Lời mời kết bạn",
+      "suggestions": "Những người bạn có thể biết",
+      "all": "Tất cả bạn bè"
+    },
+    "empty": {
+      "noRequests": "Không có lời mời kết bạn nào",
+      "noSuggestions": "Không có gợi ý nào",
+      "noFriends": "Chưa có bạn bè nào",
+      "noBirthdays": "Không có sinh nhật nào sắp tới",
+      "noCustomList": "Chưa có danh sách tùy chỉnh"
+    }
+  },
+  "watch": {
+    "title": "Video",
+    "loading": "Đang tải video...",
+    "searchPlaceholder": "Tìm kiếm video",
+    "featuredTitle": "Video mới dành cho bạn",
+    "viewAll": "Xem tất cả",
+    "saveVideo": "Lưu video",
+    "hideVideo": "Ẩn video",
+    "report": "Báo cáo",
+    "seeMore": "Xem thêm",
+    "share": "Chia sẻ",
+    "send": "Gửi",
+    "like": "Thích",
+    "reply": "Phản hồi",
+    "noComments": "Chưa có bình luận nào",
+    "commentPlaceholder": "Viết bình luận...",
+    "commentSendFailed": "Gửi bình luận thất bại. Vui lòng thử lại.",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước",
+    "views": "{{count}} lượt xem",
+    "likes": "{{count}} lượt thích"
+  },
+  "pagesSocial": {
+    "title": "Trang",
+    "subtitle": "Khám phá và theo dõi các trang yêu thích",
+    "createPage": "Tạo trang",
+    "searchPlaceholder": "Tìm kiếm Trang...",
+    "follow": "Theo dõi",
+    "likes": "lượt thích",
+    "followers": "người theo dõi",
+    "emptyTitle": "Không tìm thấy Trang",
+    "emptySubtitle": "Thử tìm kiếm với từ khóa khác",
+    "tabs": {
+      "liked": "Đã thích",
+      "discover": "Khám phá"
+    },
+    "sample": {
+      "techCategory": "Công nghệ",
+      "fashionCategory": "Thời trang",
+      "foodTravelCategory": "Ẩm thực & Du lịch",
+      "musicCategory": "Âm nhạc",
+      "hanoiLocation": "Hà Nội, Việt Nam",
+      "hcmLocation": "TP.HCM, Việt Nam",
+      "danangLocation": "Đà Nẵng, Việt Nam",
+      "techDescription": "Tin tức công nghệ mới nhất tại Việt Nam",
+      "fashionDescription": "Xu hướng thời trang mới nhất",
+      "foodTravelDescription": "Khám phá ẩm thực và du lịch Việt Nam",
+      "musicDescription": "Chia sẻ âm nhạc yêu thích"
+    }
+  },
+  "eventsSocial": {
+    "title": "Sự kiện",
+    "createEvent": "Tạo sự kiện mới",
+    "calendarTitle": "Tháng 1 năm 2026",
+    "upcomingTitle": "Sự kiện sắp tới",
+    "suggestedTitle": "Gợi ý cho bạn",
+    "seeAll": "Xem tất cả",
+    "people": "người",
+    "going": "tham gia",
+    "interested": "quan tâm",
+    "invited": "được mời",
+    "share": "Chia sẻ",
+    "tabs": {
+      "today": "Hôm nay",
+      "upcoming": "Sắp tới",
+      "your": "Sự kiện của bạn",
+      "hosting": "Đang tổ chức",
+      "birthdays": "Sinh nhật"
+    },
+    "sample": {
+      "event1": { "time": "Hôm nay lúc 2:00 CH", "location": "Trung tâm Hội nghị, San Francisco" },
+      "event2": { "time": "Thứ Tư, 15 tháng 1 lúc 7:00 CH", "location": "Nhà hàng The Garden" },
+      "event3": { "time": "Thứ Tư, 22 tháng 1 lúc 6:00 CH", "location": "Quán cà phê trung tâm" },
+      "event4": { "time": "Thứ Ba, 28 tháng 1 lúc 5:00 CH", "location": "Hội trường Tòa thị chính" }
+    }
+  },
+  "notificationsSocial": {
+    "title": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "new": "Mới",
+    "earlier": "Trước đó",
+    "confirm": "Xác nhận",
+    "delete": "Xóa",
+    "tabs": {
+      "all": "Tất cả",
+      "unread": "Chưa đọc"
+    },
+    "actions": {
+      "likedPost": "đã thích bài viết của bạn.",
+      "commented": "đã bình luận: \"Ảnh đẹp quá!\"",
+      "sharedPost": "đã chia sẻ bài viết của bạn.",
+      "friendRequest": "đã gửi cho bạn lời mời kết bạn.",
+      "reactedComment": "đã bày tỏ cảm xúc với bình luận của bạn.",
+      "taggedPost": "đã gắn thẻ bạn trong một bài viết.",
+      "memory": "Bạn có một kỷ niệm từ 3 năm trước."
+    }
+  },
+  "searchSocial": {
+    "defaultQuery": "ảnh du lịch",
+    "searchPlaceholder": "Tìm kiếm...",
+    "addFriend": "Thêm bạn bè",
+    "joinGroup": "Tham gia nhóm",
+    "mutualFriends": "bạn chung",
+    "likes": "lượt thích",
+    "comments": "bình luận",
+    "members": "thành viên",
+    "postsThisWeek": "bài viết tuần này",
+    "publicGroup": "Nhóm công khai",
+    "filters": {
+      "all": "Tất cả",
+      "posts": "Bài viết",
+      "people": "Mọi người",
+      "photos": "Ảnh",
+      "videos": "Video",
+      "groups": "Nhóm",
+      "pages": "Trang"
+    },
+    "sections": {
+      "people": "Mọi người",
+      "posts": "Bài viết",
+      "photos": "Ảnh",
+      "groups": "Nhóm"
+    },
+    "people": {
+      "1": { "role": "Nhiếp ảnh gia du lịch" },
+      "2": { "role": "Người đam mê xê dịch" }
+    },
+    "posts": {
+      "1": {
+        "content": "Những bức ảnh du lịch tuyệt đẹp từ chuyến đi Bali của mình! 🌴\nHoàng hôn ở đó thực sự choáng ngợp...",
+        "time": "15 tháng 3 lúc 2:30 CH"
+      },
+      "2": {
+        "content": "Hãy chia sẻ những bức ảnh du lịch đẹp nhất của bạn trong năm 2026!\nChúng mình rất muốn thấy những nơi bạn đã đi...",
+        "time": "Nhóm · 10 tháng 3"
+      }
+    },
+    "photos": {
+      "1": "Hoàng hôn trên biển",
+      "2": "Khung cảnh núi",
+      "3": "Thiên đường nhiệt đới",
+      "4": "Biểu tượng thành phố"
+    }
+  },
   "rightSidebar": {
     "contacts": "Người liên hệ",
     "searchPlaceholder": "Tìm theo tên…",

@@ -25,8 +25,10 @@ import { commentsApi, type CommentData } from "../../apis/comments";
 import { HttpError } from "../../apis/http";
 import { showAuthRequiredPrompt } from "../../utils/authPrompt";
 import { useToast } from "../../contexts/useToast";
+import { useTranslation } from "react-i18next";
 
 export default function WatchVideo() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openReactionId, setOpenReactionId] = useState<string | null>(null);
@@ -207,7 +209,7 @@ export default function WatchVideo() {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : "Gửi bình luận thất bại. Vui lòng thử lại.";
+            : t("watch.commentSendFailed");
       showToast(msg, "error");
     }
   };
@@ -252,14 +254,14 @@ export default function WatchVideo() {
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return "Vừa xong";
+    if (diffInSeconds < 60) return t("watch.justNow");
     if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} phút trước`;
+      return t("watch.minutesAgo", { count: Math.floor(diffInSeconds / 60) });
     if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+      return t("watch.hoursAgo", { count: Math.floor(diffInSeconds / 3600) });
     if (diffInSeconds < 2592000)
-      return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
-    return date.toLocaleDateString("vi-VN");
+      return t("watch.daysAgo", { count: Math.floor(diffInSeconds / 86400) });
+    return date.toLocaleDateString();
   };
 
   // Get reaction icon
@@ -300,7 +302,7 @@ export default function WatchVideo() {
       <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải video...</p>
+          <p className="text-gray-600">{t("watch.loading")}</p>
         </div>
       </div>
     );
@@ -312,7 +314,7 @@ export default function WatchVideo() {
       <div className="bg-white border-b border-gray-300 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-2xl font-bold text-gray-900">Video</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("watch.title")}</h1>
             <button className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors">
               <Settings className="w-5 h-5 text-gray-700" />
             </button>
@@ -322,7 +324,7 @@ export default function WatchVideo() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="text"
-              placeholder="Tìm kiếm video"
+              placeholder={t("watch.searchPlaceholder")}
               className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -336,10 +338,10 @@ export default function WatchVideo() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-semibold text-gray-900">
-                Video mới dành cho bạn
+                {t("watch.featuredTitle")}
               </h2>
               <button className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-[15px] font-medium">
-                Xem tất cả
+                {t("watch.viewAll")}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -368,7 +370,7 @@ export default function WatchVideo() {
                   </div>
                   <div className="p-3">
                     <div className="flex items-start gap-2 mb-1">
-                      <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0 overflow-hidden">
+                      <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">
                         {video.authorAvatar ? (
                           <img
                             src={video.authorAvatar}
@@ -473,7 +475,7 @@ export default function WatchVideo() {
                           className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                           <Save className="w-4 h-4" />
-                          <span>Lưu video</span>
+                          <span>{t("watch.saveVideo")}</span>
                         </button>
                         <button
                           onClick={() => {
@@ -483,7 +485,7 @@ export default function WatchVideo() {
                           className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                           <EyeOff className="w-4 h-4" />
-                          <span>Ẩn video</span>
+                          <span>{t("watch.hideVideo")}</span>
                         </button>
                         <div className="border-t border-gray-200 my-1"></div>
                         <button
@@ -494,7 +496,7 @@ export default function WatchVideo() {
                           className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                           <Flag className="w-4 h-4" />
-                          <span>Báo cáo</span>
+                          <span>{t("watch.report")}</span>
                         </button>
                       </div>
                     )}
@@ -510,7 +512,7 @@ export default function WatchVideo() {
                     <p className="text-[15px] text-gray-700">
                       {video.description}{" "}
                       <button className="text-gray-600 hover:text-gray-800 font-medium">
-                        Xem thêm
+                        {t("watch.seeMore")}
                       </button>
                     </p>
                   )}
@@ -552,7 +554,7 @@ export default function WatchVideo() {
                     </>
                   )}
                   <div className="absolute bottom-4 left-4 text-sm font-semibold text-white">
-                    {formatNumber(video.viewCount)} lượt xem
+                    {t("watch.views", { count: formatNumber(video.viewCount) })}
                   </div>
                 </div>
 
@@ -624,7 +626,7 @@ export default function WatchVideo() {
                   <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                     <Share2 className="w-5 h-5 text-gray-600" />
                     <span className="text-sm font-semibold text-gray-700">
-                      Chia sẻ
+                      {t("watch.share")}
                     </span>
                   </button>
                 </div>
@@ -633,7 +635,7 @@ export default function WatchVideo() {
                 {/* Add interactive comment section */}
                 <div className="border-t border-gray-200 p-4">
                   <div className="flex gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0">
                       {user?.avatar ? (
                         <img
                           src={user.avatar}
@@ -647,7 +649,7 @@ export default function WatchVideo() {
                     <div className="flex-1 flex gap-2">
                       <input
                         type="text"
-                        placeholder="Viết bình luận..."
+                        placeholder={t("watch.commentPlaceholder")}
                         value={commentText[video.id!] || ""}
                         onChange={(e) =>
                           setCommentText((prev) => ({
@@ -667,19 +669,19 @@ export default function WatchVideo() {
                         disabled={!commentText[video.id!]?.trim()}
                         className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        Gửi
+                        {t("watch.send")}
                       </button>
                     </div>
                   </div>
                   <div className="space-y-3">
                     {videoComments.length === 0 ? (
                       <p className="text-center text-gray-500 text-sm py-4">
-                        Chưa có bình luận nào
+                        {t("watch.noComments")}
                       </p>
                     ) : (
                       videoComments.map((comment) => (
                         <div key={comment.id} className="flex gap-2">
-                          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0">
                             {comment.userAvatar ? (
                               <img
                                 src={comment.userAvatar}
@@ -701,10 +703,10 @@ export default function WatchVideo() {
                             </div>
                             <div className="flex items-center gap-4 mt-1 px-4">
                               <button className="text-xs text-gray-600 hover:text-gray-800 font-medium">
-                                Thích
+                                {t("watch.like")}
                               </button>
                               <button className="text-xs text-gray-600 hover:text-gray-800 font-medium">
-                                Phản hồi
+                                {t("watch.reply")}
                               </button>
                               <span className="text-xs text-gray-500">
                                 {formatTime(comment.createdAt)}
@@ -720,7 +722,7 @@ export default function WatchVideo() {
                   <div className="border-t border-gray-200 p-4">
                     {/* Comment Input */}
                     <div className="flex gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0">
                         {user?.avatar ? (
                           <img
                             src={user.avatar}
@@ -734,7 +736,7 @@ export default function WatchVideo() {
                       <div className="flex-1 flex gap-2">
                         <input
                           type="text"
-                          placeholder="Viết bình luận..."
+                          placeholder={t("watch.commentPlaceholder")}
                           value={commentText[video.id!] || ""}
                           onChange={(e) =>
                             setCommentText((prev) => ({
@@ -754,7 +756,7 @@ export default function WatchVideo() {
                           disabled={!commentText[video.id!]?.trim()}
                           className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Gửi
+                          {t("watch.send")}
                         </button>
                       </div>
                     </div>
@@ -763,12 +765,12 @@ export default function WatchVideo() {
                     <div className="space-y-3">
                       {videoComments.length === 0 ? (
                         <p className="text-center text-gray-500 text-sm py-4">
-                          Chưa có bình luận nào
+                          {t("watch.noComments")}
                         </p>
                       ) : (
                         videoComments.map((comment) => (
                           <div key={comment.id} className="flex gap-2">
-                            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0">
                               {comment.userAvatar ? (
                                 <img
                                   src={comment.userAvatar}
@@ -790,10 +792,10 @@ export default function WatchVideo() {
                               </div>
                               <div className="flex items-center gap-4 mt-1 px-4">
                                 <button className="text-xs text-gray-600 hover:text-gray-800 font-medium">
-                                  Thích
+                                  {t("watch.like")}
                                 </button>
                                 <button className="text-xs text-gray-600 hover:text-gray-800 font-medium">
-                                  Phản hồi
+                                  {t("watch.reply")}
                                 </button>
                                 <span className="text-xs text-gray-500">
                                   {formatTime(comment.createdAt)}
@@ -898,11 +900,15 @@ export default function WatchVideo() {
                   )}
                   <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                     <span>
-                      {formatNumber(selectedVideoModal.viewCount)} lượt xem
+                      {t("watch.views", {
+                        count: formatNumber(selectedVideoModal.viewCount),
+                      })}
                     </span>
                     <span>•</span>
                     <span>
-                      {formatNumber(selectedVideoModal.likeCount)} lượt thích
+                      {t("watch.likes", {
+                        count: formatNumber(selectedVideoModal.likeCount),
+                      })}
                     </span>
                   </div>
                 </div>
@@ -927,7 +933,7 @@ export default function WatchVideo() {
                   {/* Comment Input */}
                   <div className="p-4 border-b border-gray-700">
                     <div className="flex gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0">
                         {user?.avatar ? (
                           <img
                             src={user.avatar}
@@ -941,7 +947,7 @@ export default function WatchVideo() {
                       <div className="flex-1 flex gap-1">
                         <input
                           type="text"
-                          placeholder="Viết bình luận..."
+                          placeholder={t("watch.commentPlaceholder")}
                           value={commentText[selectedVideoModal.id!] || ""}
                           onChange={(e) =>
                             setCommentText((prev) => ({
@@ -963,7 +969,7 @@ export default function WatchVideo() {
                           }
                           className="px-3 py-2 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Gửi
+                          {t("watch.send")}
                         </button>
                       </div>
                     </div>
@@ -973,13 +979,13 @@ export default function WatchVideo() {
                   <div className="space-y-3 p-4">
                     {(comments[selectedVideoModal.id!] || []).length === 0 ? (
                       <p className="text-center text-gray-500 text-xs py-4">
-                        Chưa có bình luận nào
+                        {t("watch.noComments")}
                       </p>
                     ) : (
                       (comments[selectedVideoModal.id!] || []).map(
                         (comment) => (
                           <div key={comment.id} className="flex gap-2">
-                            <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0">
                               {comment.userAvatar ? (
                                 <img
                                   src={comment.userAvatar}
@@ -1001,7 +1007,7 @@ export default function WatchVideo() {
                               </div>
                               <div className="flex items-center gap-2 mt-1 px-2 text-xs text-gray-500">
                                 <button className="hover:text-gray-400">
-                                  Thích
+                                  {t("watch.like")}
                                 </button>
                                 <span>•</span>
                                 <span>{formatTime(comment.createdAt)}</span>

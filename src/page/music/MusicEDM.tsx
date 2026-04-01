@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { useMusic } from '../../contexts/MusicContext';
 import { soundCloudWidgetSrc } from '../../utils/soundCloudPlayer';
+import { useTranslation } from 'react-i18next';
 
 export default function MusicEDM() {
+  const { t } = useTranslation();
   const {
     currentSong,
     isPlaying,
@@ -67,8 +69,8 @@ export default function MusicEDM() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Nhạc</h1>
-          <p className="text-gray-600">Thư viện nhạc của bạn</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('music.title')}</h1>
+          <p className="text-gray-600">{t('music.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -80,11 +82,11 @@ export default function MusicEDM() {
                 ? 'bg-blue-500 text-white hover:bg-blue-600' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
-            title={showMiniPlayer ? 'Tắt shortcut' : 'Bật shortcut'}
+            title={showMiniPlayer ? t('music.shortcut.disable') : t('music.shortcut.enable')}
           >
             <ExternalLink className="w-4 h-4" />
             <span className="text-sm font-medium">
-              {showMiniPlayer ? 'Đang hiện shortcut' : 'Tạo shortcut'}
+              {showMiniPlayer ? t('music.shortcut.active') : t('music.shortcut.create')}
             </span>
           </button>
         </div>
@@ -99,14 +101,14 @@ export default function MusicEDM() {
               showMiniPlayer ? (
                 <div className="rounded-2xl border border-blue-200 bg-blue-50/90 p-6 text-center dark:border-blue-500/30 dark:bg-blue-950/40">
                   <p className="text-sm text-gray-700 dark:text-[#c8d0e6]">
-                    Player đang ở chế độ thu nhỏ — kéo góc màn hình, vẫn nghe khi chuyển trang (Trang chủ, Tin nhắn…).
+                    {t('music.miniModeDescription')}
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowMiniPlayer(false)}
                     className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
                   >
-                    Mở player đầy đủ tại đây
+                    {t('music.openFullPlayer')}
                   </button>
                 </div>
               ) : (
@@ -136,10 +138,10 @@ export default function MusicEDM() {
                       type="button"
                       onClick={() => setShowMiniPlayer(true)}
                       className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
-                      title="Gắn player nổi, dùng khi rời trang Nhạc"
+                      title={t('music.pinPlayerTitle')}
                     >
                       <Minimize2 className="w-4 h-4 shrink-0" />
-                      Thu nhỏ theo màn hình
+                      {t('music.minimizeWithScreen')}
                     </button>
                     <button
                       type="button"
@@ -265,7 +267,7 @@ export default function MusicEDM() {
 
         {/* Right Side - Playlist */}
         <div className="bg-white dark:bg-[#1a1d28] rounded-2xl shadow-sm border border-gray-200 dark:border-[#2b2f45] p-6 flex flex-col">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Danh sách phát</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-4">{t('music.playlist')}</h3>
           
           {/* Playlist */}
           <div className="flex-1 overflow-y-auto space-y-2 mb-6 max-h-125">
@@ -311,17 +313,17 @@ export default function MusicEDM() {
             <div className="bg-blue-50 rounded-xl p-3 text-center">
               <Music2 className="w-5 h-5 text-blue-500 mx-auto mb-1" />
               <div className="text-lg font-bold text-gray-900">{playlist.length}</div>
-              <div className="text-xs text-gray-600">Bài hát</div>
+              <div className="text-xs text-gray-600">{t('music.stats.songs')}</div>
             </div>
             <div className="bg-red-50 rounded-xl p-3 text-center">
               <Heart className="w-5 h-5 text-red-500 mx-auto mb-1" />
               <div className="text-lg font-bold text-gray-900">{favorites.length}</div>
-              <div className="text-xs text-gray-600">Yêu thích</div>
+              <div className="text-xs text-gray-600">{t('music.stats.favorites')}</div>
             </div>
             <div className="bg-green-50 rounded-xl p-3 text-center">
               <Play className="w-5 h-5 text-green-500 mx-auto mb-1" />
               <div className="text-lg font-bold text-gray-900">{(totalPlays / 1000).toFixed(1)}K</div>
-              <div className="text-xs text-gray-600">Lượt nghe</div>
+              <div className="text-xs text-gray-600">{t('music.stats.plays')}</div>
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import { friendRequestsApi, friendsApi, getFriends } from '../../apis/friendRequ
 import type { FriendRequest } from '../../apis/friendRequests';
 import { usersApi } from '../../apis/users';
 import type { User } from '../../apis/users';
+import { useTranslation } from 'react-i18next';
 
 /* ─── helpers ─── */
 function getAvatarColor(name: string): string {
@@ -31,6 +32,7 @@ interface Friend { id: string; name?: string; avatar?: string; }
 /* ─────────────────────────────────────────────────────────────────── */
 
 export default function Friends() {
+  const { t } = useTranslation();
   const navigate  = useNavigate();
   const [currentUser] = useState(() => authApi.getCurrentUser());
   const userId = currentUser?.id;
@@ -146,12 +148,12 @@ export default function Friends() {
   };
 
   const tabs = [
-    { id: 'home',        icon: Home,      label: 'Trang chủ' },
-    { id: 'requests',    icon: UserPlus,  label: 'Lời mời kết bạn', badge: requests.length || null },
-    { id: 'suggestions', icon: Lightbulb, label: 'Gợi ý' },
-    { id: 'all',         icon: Users,     label: 'Tất cả bạn bè' },
-    { id: 'birthdays',   icon: Calendar,  label: 'Sinh nhật' },
-    { id: 'custom',      icon: MapPin,    label: 'Danh sách tùy chỉnh' },
+    { id: 'home',        icon: Home,      label: t('friends.tabs.home') },
+    { id: 'requests',    icon: UserPlus,  label: t('friends.tabs.requests'), badge: requests.length || null },
+    { id: 'suggestions', icon: Lightbulb, label: t('friends.tabs.suggestions') },
+    { id: 'all',         icon: Users,     label: t('friends.tabs.all') },
+    { id: 'birthdays',   icon: Calendar,  label: t('friends.tabs.birthdays') },
+    { id: 'custom',      icon: MapPin,    label: t('friends.tabs.custom') },
   ];
 
   return (
@@ -160,8 +162,8 @@ export default function Friends() {
       {/* ── Left Sidebar ── */}
       <aside className="w-72 bg-white dark:bg-[#13151f] border-r border-gray-200 dark:border-[#22263a] p-4 shrink-0 shadow-sm">
         <div className="mb-6 px-1">
-          <h1 className="text-[22px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">Bạn bè</h1>
-          <p className="text-xs text-gray-400 dark:text-[#5a6278] mt-0.5">Quản lý kết nối của bạn</p>
+          <h1 className="text-[22px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{t('friends.title')}</h1>
+          <p className="text-xs text-gray-400 dark:text-[#5a6278] mt-0.5">{t('friends.subtitle')}</p>
         </div>
 
         <nav className="space-y-0.5">
@@ -206,17 +208,17 @@ export default function Friends() {
         {(activeTab === 'home' || activeTab === 'requests') && (
           <section className="mb-10">
             <SectionHeader
-              title="Lời mời kết bạn"
-              badge={requests.length > 0 ? `${requests.length} lời mời` : undefined}
+              title={t('friends.sections.requests')}
+              badge={requests.length > 0 ? t('friends.requestCount', { count: requests.length }) : undefined}
             />
             {loadingRequests ? (
               <SkeletonGrid count={3} />
             ) : requests.length === 0 ? (
-              <EmptyState icon={HandMetal} text="Không có lời mời kết bạn nào" />
+              <EmptyState icon={HandMetal} text={t('friends.empty.noRequests')} />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {requests.map((req, i) => {
-                  const name  = req.senderName || 'Người dùng';
+                  const name  = req.senderName || t('friends.userFallback');
                   const color = getAvatarColor(name);
                   return (
                     <PersonCard
@@ -224,7 +226,7 @@ export default function Friends() {
                       name={name}
                       avatar={req.senderAvatar}
                       color={color}
-                      subtitle="Đã gửi lời mời kết bạn"
+                      subtitle={t('friends.requestSent')}
                       index={i}
                       onNameClick={() => req.senderId && navigate(`/profile/${req.senderId}`)}
                     >
@@ -234,7 +236,7 @@ export default function Friends() {
                         className="w-full h-9 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-blue-200 disabled:opacity-60"
                       >
                         {accepting === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                        Xác nhận
+                        {t('friends.confirm')}
                       </button>
                       <button
                         onClick={() => handleReject(req)}
@@ -242,7 +244,7 @@ export default function Friends() {
                         className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#22263a] dark:hover:bg-[#2b2f45] text-gray-700 dark:text-[#c8ccde] text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
                         {rejecting === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                        Xóa
+                        {t('friends.delete')}
                       </button>
                     </PersonCard>
                   );
@@ -255,15 +257,15 @@ export default function Friends() {
         {/* === Gợi ý === */}
         {(activeTab === 'home' || activeTab === 'suggestions') && (
           <section>
-            <SectionHeader title="Những người bạn có thể biết" />
+            <SectionHeader title={t('friends.sections.suggestions')} />
             {loadingSuggestions ? (
               <SkeletonGrid count={6} />
             ) : suggestions.length === 0 ? (
-              <EmptyState icon={Handshake} text="Không có gợi ý nào" />
+              <EmptyState icon={Handshake} text={t('friends.empty.noSuggestions')} />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {suggestions.map((user, i) => {
-                  const name  = user.fullName || user.username || 'Người dùng';
+                  const name  = user.fullName || user.username || t('friends.userFallback');
                   const color = getAvatarColor(name);
                   const sent  = sentRequests.has(user.id!);
                   return (
@@ -280,16 +282,16 @@ export default function Friends() {
                         <div className="flex gap-2">
                           <div className="flex-1 h-9 bg-gray-100 dark:bg-[#22263a] text-gray-500 dark:text-[#7e89a6] text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5">
                             <UserCheck className="w-3.5 h-3.5" />
-                            Đã gửi lời mời
+                            {t('friends.requestAlreadySent')}
                           </div>
                           <button
                             onClick={() => handleCancelRequest(user.id!)}
                             disabled={cancelling === user.id}
-                            title="Thu hồi lời mời"
+                            title={t('friends.withdrawRequest')}
                             className="h-9 px-2.5 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 text-xs font-semibold rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center gap-1 disabled:opacity-60"
                           >
                             {cancelling === user.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
-                            Thu hồi
+                            {t('friends.withdraw')}
                           </button>
                         </div>
                       ) : (
@@ -300,7 +302,7 @@ export default function Friends() {
                         >
                           {adding === user.id
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <><UserPlus className="w-3.5 h-3.5" /><span>Thêm bạn bè</span></>
+                            : <><UserPlus className="w-3.5 h-3.5" /><span>{t('friends.addFriend')}</span></>
                           }
                         </button>
                       )}
@@ -315,15 +317,15 @@ export default function Friends() {
         {/* === Tất cả bạn bè === */}
         {activeTab === 'all' && (
           <section>
-            <SectionHeader title="Tất cả bạn bè" />
+            <SectionHeader title={t('friends.sections.all')} />
             {loadingFriends ? (
               <SkeletonGrid count={6} />
             ) : friends.length === 0 ? (
-              <EmptyState icon={UserRound} text="Chưa có bạn bè nào" />
+              <EmptyState icon={UserRound} text={t('friends.empty.noFriends')} />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {friends.map((f, i) => {
-                  const name  = f.name || 'Người dùng';
+                  const name  = f.name || t('friends.userFallback');
                   const color = getAvatarColor(name);
                   return (
                     <PersonCard
@@ -331,7 +333,7 @@ export default function Friends() {
                       name={name}
                       avatar={f.avatar}
                       color={color}
-                      subtitle="Bạn bè"
+                      subtitle={t('friends.friend')}
                       index={i}
                       onNameClick={() => navigate(`/profile/${f.id}`)}
                     >
@@ -340,7 +342,7 @@ export default function Friends() {
                         className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#22263a] dark:hover:bg-[#2b2f45] text-gray-700 dark:text-[#c8ccde] text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5"
                       >
                         <Users className="w-3.5 h-3.5" />
-                        Trang cá nhân
+                        {t('friends.profile')}
                       </button>
                     </PersonCard>
                   );
@@ -350,8 +352,8 @@ export default function Friends() {
           </section>
         )}
 
-        {activeTab === 'birthdays' && <EmptyState icon={Cake} text="Không có sinh nhật nào sắp tới" />}
-        {activeTab === 'custom'    && <EmptyState icon={ListTodo} text="Chưa có danh sách tùy chỉnh" />}
+        {activeTab === 'birthdays' && <EmptyState icon={Cake} text={t('friends.empty.noBirthdays')} />}
+        {activeTab === 'custom'    && <EmptyState icon={ListTodo} text={t('friends.empty.noCustomList')} />}
 
       </main>
     </div>
@@ -448,7 +450,7 @@ function SkeletonGrid({ count }: { count: number }) {
           <div className="absolute inset-0 rounded-full border-[2.5px] border-gray-200 dark:border-[#2b2f45]" />
           <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-blue-500 animate-spin" />
         </div>
-        <span className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">Đang tải...</span>
+        <span className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">{t('friends.loading')}</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {Array.from({ length: count }).map((_, i) => (
