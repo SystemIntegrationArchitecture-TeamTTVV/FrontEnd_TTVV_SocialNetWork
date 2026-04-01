@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { LogOut, User, Settings, X, LogIn, UserPlus } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import { LogOut, User, Settings, X, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,10 +15,17 @@ interface UserDropdownProps {
   } | null;
 }
 
+type AuthNavTarget = 'login' | 'register' | null;
+
 export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [pendingAuthNav, setPendingAuthNav] = useState<AuthNavTarget>(null);
+
+  useEffect(() => {
+    if (!isOpen) setPendingAuthNav(null);
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -44,9 +51,16 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
     onClose();
   };
 
-  const handleNavigate = (path: string) => {
-    navigate(path);
-    onClose();
+  /** Spinner hiển thị tối thiểu minSpinnerMs để người dùng thấy phản hồi trước khi chuyển trang. */
+  const handleAuthNavigate = (path: string, target: Exclude<AuthNavTarget, null>) => {
+    if (pendingAuthNav !== null) return;
+    setPendingAuthNav(target);
+    const minSpinnerMs = 300;
+    window.setTimeout(() => {
+      navigate(path);
+      onClose();
+      setPendingAuthNav(null);
+    }, minSpinnerMs);
   };
 
   const userInitials = user?.fullName
@@ -151,23 +165,37 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
           <>
             <button
               type="button"
-              onClick={() => handleNavigate('/auth/login')}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left"
+              disabled={pendingAuthNav !== null}
+              onClick={() => handleAuthNavigate('/auth/login', 'login')}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left disabled:pointer-events-none disabled:opacity-70"
             >
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                <LogIn className="w-5 h-5 text-gray-600" />
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                {pendingAuthNav === 'login' ? (
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" aria-hidden />
+                ) : (
+                  <LogIn className="w-5 h-5 text-gray-600" />
+                )}
               </div>
-              <span className="font-medium">Đăng nhập</span>
+              <span className="font-medium">
+                {pendingAuthNav === 'login' ? 'Đang chuyển tới đăng nhập…' : 'Đăng nhập'}
+              </span>
             </button>
             <button
               type="button"
-              onClick={() => handleNavigate('/auth/register')}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left"
+              disabled={pendingAuthNav !== null}
+              onClick={() => handleAuthNavigate('/auth/register', 'register')}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left disabled:pointer-events-none disabled:opacity-70"
             >
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-gray-600" />
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                {pendingAuthNav === 'register' ? (
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" aria-hidden />
+                ) : (
+                  <UserPlus className="w-5 h-5 text-gray-600" />
+                )}
               </div>
-              <span className="font-medium">Đăng ký</span>
+              <span className="font-medium">
+                {pendingAuthNav === 'register' ? 'Đang chuyển tới đăng ký…' : 'Đăng ký'}
+              </span>
             </button>
           </>
         )}
