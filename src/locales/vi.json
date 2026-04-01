@@ -46,6 +46,14 @@
     "seeMore": "Xem thêm",
     "loginRequired": "Vui lòng đăng nhập"
   },
+  "authRequiredModal": {
+    "closeAria": "Đóng thông báo",
+    "title": "Bạn đang ở chế độ khách",
+    "description": "Bạn đang xem ở chế độ khách chưa đăng nhập. Vui lòng đăng nhập để mang tới trải nghiệm cao hơn.",
+    "benefit": "Sau khi đăng nhập, bạn có thể nhắn tin, nhận thông báo theo thời gian thực và sử dụng đầy đủ tính năng hệ thống.",
+    "cancel": "Không",
+    "goToLogin": "Đi tới trang đăng nhập"
+  },
   "marketplace": {
     "title": "Chợ",
     "subtitle": "Khám phá sản phẩm phù hợp với bạn",

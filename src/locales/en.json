@@ -46,6 +46,14 @@
     "seeMore": "See more",
     "loginRequired": "Please log in"
   },
+  "authRequiredModal": {
+    "closeAria": "Close notice",
+    "title": "You are in guest mode",
+    "description": "You are browsing as a guest without signing in. Please log in for a better experience.",
+    "benefit": "After logging in, you can message, receive real-time notifications, and use all system features.",
+    "cancel": "No",
+    "goToLogin": "Go to login page"
+  },
   "marketplace": {
     "title": "Marketplace",
     "subtitle": "Discover products that fit you",
