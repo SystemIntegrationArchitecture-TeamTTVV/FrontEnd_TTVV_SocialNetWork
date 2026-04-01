@@ -1,0 +1,114 @@
+{
+  "common": {
+    "appName": "TTVV",
+    "loading": "Đang tải…",
+    "error": "Có lỗi xảy ra",
+    "retry": "Thử lại",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "close": "Đóng",
+    "search": "Tìm kiếm",
+    "back": "Quay lại",
+    "next": "Tiếp",
+    "submit": "Gửi"
+  },
+  "navbar": {
+    "searchPlaceholder": "Tìm kiếm trên TTVV",
+    "searchMobilePlaceholder": "Tìm kiếm người dùng…",
+    "language": "Ngôn ngữ",
+    "languageTitle": "Ngôn ngữ hiển thị",
+    "vietnamese": "Tiếng Việt",
+    "english": "Tiếng Anh",
+    "themeLight": "Chế độ sáng",
+    "themeDark": "Chế độ tối",
+    "messenger": "Messenger",
+    "messengerLogin": "Đăng nhập để dùng Messenger",
+    "notifications": "Thông báo",
+    "loadingMessenger": "Đang tải Messenger",
+    "loadingMessengerSub": "Vui lòng đợi trong giây lát…"
+  },
+  "mobileNav": {
+    "home": "Trang chủ",
+    "video": "Video",
+    "marketplace": "Chợ",
+    "groups": "Nhóm",
+    "messages": "Tin nhắn"
+  },
+  "leftSidebar": {
+    "friends": "Bạn bè",
+    "groups": "Nhóm",
+    "marketplace": "Chợ",
+    "video": "Video",
+    "music": "Nhạc",
+    "saved": "Đã lưu",
+    "seeMore": "Xem thêm",
+    "loginRequired": "Vui lòng đăng nhập"
+  },
+  "rightSidebar": {
+    "contacts": "Người liên hệ",
+    "searchPlaceholder": "Tìm theo tên…",
+    "noResults": "Không có kết quả",
+    "noResultsHint": "Thử từ khóa khác hoặc kiểm tra lại chính tả.",
+    "noConversations": "Chưa có cuộc trò chuyện",
+    "noConversationsHint": "Hãy bắt đầu nhắn tin để hiện danh sách liên hệ ở đây.",
+    "footerContacts": "{{count}} liên hệ",
+    "footerResults": "{{count}} kết quả"
+  },
+  "userDropdown": {
+    "account": "Tài khoản",
+    "notLoggedIn": "Bạn chưa đăng nhập.",
+    "profile": "Trang cá nhân",
+    "settings": "Cài đặt",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "loadingLogin": "Đang mở đăng nhập",
+    "loadingRegister": "Đang mở đăng ký",
+    "loadingAuthBody": "Vui lòng chờ trong giây lát, hệ thống đang chuyển bạn tới trang tương ứng."
+  },
+  "newsfeed": {
+    "createPostPlaceholder": "Bạn muốn chia sẻ gì hôm nay, {{name}}?",
+    "createPostPlaceholderGuest": "Đăng nhập để chia sẻ bài viết…",
+    "photoVideo": "Ảnh/video",
+    "feeling": "Cảm xúc",
+    "activity": "Hoạt động",
+    "loadingPosts": "Đang tải bài viết…",
+    "loadingStories": "Đang tải stories…",
+    "emptyFeed": "Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!",
+    "createPost": "Tạo bài viết",
+    "loginToPost": "Đăng nhập để đăng bài",
+    "editPlaceholder": "Bạn muốn viết gì?",
+    "deletingPost": "Đang xóa bài viết…"
+  },
+  "pages": {
+    "home": { "title": "Trang chủ" },
+    "watch": { "title": "Video" },
+    "marketplace": { "title": "Chợ" },
+    "groups": { "title": "Nhóm" },
+    "friends": { "title": "Bạn bè" },
+    "saved": { "title": "Đã lưu" },
+    "messenger": { "title": "Tin nhắn" },
+    "notifications": { "title": "Thông báo" },
+    "settings": { "title": "Cài đặt" },
+    "profile": { "title": "Trang cá nhân" },
+    "findPeople": { "title": "Tìm bạn" },
+    "auth": {
+      "login": "Đăng nhập",
+      "register": "Đăng ký",
+      "forgotPassword": "Quên mật khẩu"
+    },
+    "admin": {
+      "dashboard": "Quản trị",
+      "users": "Quản lý người dùng",
+      "posts": "Quản lý bài viết"
+    },
+    "group": {
+      "detail": "Nhóm",
+      "create": "Tạo nhóm"
+    },
+    "music": { "title": "Nhạc" },
+    "events": { "title": "Sự kiện" }
+  }
+}

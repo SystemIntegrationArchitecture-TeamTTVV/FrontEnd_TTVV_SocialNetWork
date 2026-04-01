@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X } from 'lucide-react';
+import { Home, Video, Store, Users, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -12,6 +12,7 @@ import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
+import i18n, { setAppLanguage } from '../../i18n';
 
 export default function Navbar() {
   const { t } = useTranslation();
@@ -32,7 +33,29 @@ export default function Navbar() {
   const { user: currentUser } = useAuth();
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const langMenuDesktopRef = useRef<HTMLDivElement>(null);
+  const langMenuMobileRef = useRef<HTMLDivElement>(null);
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const requestLogin = () => showAuthRequiredPrompt(location.pathname);
+
+  const currentLang: 'en' | 'vi' = i18n.language?.startsWith('en') ? 'en' : 'vi';
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        langMenuDesktopRef.current?.contains(target) ||
+        langMenuMobileRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setIsLangOpen(false);
+    };
+    if (isLangOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLangOpen]);
 
   // Function to reload unread notification count
   const loadUnreadCount = async () => {
@@ -294,11 +317,59 @@ export default function Navbar() {
           {/* RIGHT - Actions */}
           <div className="flex items-center gap-2 shrink-0">
 
+            {/* Language */}
+            <div className="relative" ref={langMenuDesktopRef}>
+              <button
+                type="button"
+                onClick={() => setIsLangOpen((v) => !v)}
+                aria-expanded={isLangOpen}
+                aria-haspopup="listbox"
+                aria-label={t('navbar.languageTitle')}
+                title={t('navbar.languageTitle')}
+                className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors text-[#050505] dark:text-gray-200"
+              >
+                <Globe className="w-[20px] h-[20px]" strokeWidth={2} />
+              </button>
+              {isLangOpen && (
+                <div
+                  role="listbox"
+                  className="absolute right-0 top-full mt-2 w-52 rounded-xl bg-white dark:bg-[#1a1d28] border border-[#e4e6eb] dark:border-[#2b2f45] shadow-lg z-90 py-1 overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={currentLang === 'vi'}
+                    onClick={() => {
+                      setAppLanguage('vi');
+                      setIsLangOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-[15px] hover:bg-[#f0f2f5] dark:hover:bg-[#252940] text-[#050505] dark:text-[#edf0fa]"
+                  >
+                    <span>{t('navbar.vietnamese')}</span>
+                    {currentLang === 'vi' && <Check className="w-4 h-4 text-[#1877F2] shrink-0" aria-hidden />}
+                  </button>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={currentLang === 'en'}
+                    onClick={() => {
+                      setAppLanguage('en');
+                      setIsLangOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-[15px] hover:bg-[#f0f2f5] dark:hover:bg-[#252940] text-[#050505] dark:text-[#edf0fa]"
+                  >
+                    <span>{t('navbar.english')}</span>
+                    {currentLang === 'en' && <Check className="w-4 h-4 text-[#1877F2] shrink-0" aria-hidden />}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Theme toggle */}
             <button
               onClick={() => toggleTheme()}
-              aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
-              title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+              aria-label={isDark ? t('navbar.themeLight') : t('navbar.themeDark')}
+              title={isDark ? t('navbar.themeLight') : t('navbar.themeDark')}
               className="relative w-14 h-8 rounded-full theme-toggle-track flex items-center px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               <span className="absolute left-1.5 flex items-center justify-center">
@@ -320,7 +391,7 @@ export default function Navbar() {
               type="button"
               onClick={handleMessengerClick}
               className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
-              title={currentUser ? "Messenger" : "Đăng nhập để dùng Messenger"}
+              title={currentUser ? t('navbar.messenger') : t('navbar.messengerLogin')}
             >
               <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </button>
@@ -360,9 +431,48 @@ export default function Navbar() {
           {/* Right action icons */}
           <div className="flex items-center gap-1.5">
 
+            {/* Language — mobile */}
+            <div className="relative" ref={langMenuMobileRef}>
+              <button
+                type="button"
+                onClick={() => setIsLangOpen((v) => !v)}
+                aria-label={t('navbar.languageTitle')}
+                title={t('navbar.languageTitle')}
+                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors text-gray-800 dark:text-gray-200"
+              >
+                <Globe className="w-[18px] h-[18px]" strokeWidth={2} />
+              </button>
+              {isLangOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-white dark:bg-[#1a1d28] border border-[#e4e6eb] dark:border-[#2b2f45] shadow-lg z-90 py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppLanguage('vi');
+                      setIsLangOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[#f0f2f5] dark:hover:bg-[#252940]"
+                  >
+                    {t('navbar.vietnamese')}
+                    {currentLang === 'vi' && <Check className="w-4 h-4 text-[#1877F2]" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppLanguage('en');
+                      setIsLangOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[#f0f2f5] dark:hover:bg-[#252940]"
+                  >
+                    {t('navbar.english')}
+                    {currentLang === 'en' && <Check className="w-4 h-4 text-[#1877F2]" />}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Theme toggle — icon only on mobile */}
             <button onClick={() => toggleTheme()}
-              aria-label={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+              aria-label={isDark ? t('navbar.themeLight') : t('navbar.themeDark')}
               className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors">
               {isDark
                 ? <Sun className="w-[18px] h-[18px] text-amber-400" />
@@ -426,7 +536,7 @@ export default function Navbar() {
                     setIsMobileSearchOpen(false);
                   }
                 }}
-                placeholder="Tìm kiếm người dùng..."
+                placeholder={t('navbar.searchMobilePlaceholder')}
                 className="w-full h-10 pl-9 pr-4 rounded-full bg-gray-100 dark:bg-[#1e2130] text-sm border border-gray-200 dark:border-[#2b2f45] focus:outline-none focus:border-blue-500 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
@@ -463,12 +573,12 @@ export default function Navbar() {
       ═══════════════════════════════════════════════════════ */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden bg-white dark:bg-[#12151f] border-t border-gray-200 dark:border-[#1e2130] flex items-stretch z-50 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         {[
-          { to: '/home',        icon: Home,          label: 'Trang chủ', requireAuth: false },
-          { to: '/watch',       icon: Video,         label: 'Video',     requireAuth: true },
-          { to: '/marketplace', icon: Store,         label: 'Chợ',       requireAuth: true },
-          { to: '/groups',      icon: Users,         label: 'Nhóm',      requireAuth: true },
-          { to: '/messenger',   icon: MessageCircle, label: 'Tin nhắn',  requireAuth: true },
-        ].map(({ to, icon: Icon, label, requireAuth }) => {
+          { to: '/home',        icon: Home,          labelKey: 'mobileNav.home' as const, requireAuth: false },
+          { to: '/watch',       icon: Video,         labelKey: 'mobileNav.video' as const, requireAuth: true },
+          { to: '/marketplace', icon: Store,         labelKey: 'mobileNav.marketplace' as const, requireAuth: true },
+          { to: '/groups',      icon: Users,         labelKey: 'mobileNav.groups' as const, requireAuth: true },
+          { to: '/messenger',   icon: MessageCircle, labelKey: 'mobileNav.messages' as const, requireAuth: true },
+        ].map(({ to, icon: Icon, labelKey, requireAuth }) => {
           const needsAuth = requireAuth && !currentUser;
           const cls = `flex flex-col items-center justify-center gap-1 flex-1 transition-all ${
             isActive(to)
@@ -480,7 +590,7 @@ export default function Navbar() {
               <span className={`flex items-center justify-center rounded-2xl px-3 py-1.5 transition-all ${isActive(to) ? 'bg-blue-50 dark:bg-blue-500/15' : ''}`}>
                 <Icon strokeWidth={isActive(to) ? 2.25 : 2} className="w-[21px] h-[21px]" />
               </span>
-              <span className="text-[10px] font-medium leading-none">{label}</span>
+              <span className="text-[10px] font-medium leading-none">{t(labelKey)}</span>
             </>
           );
 
@@ -506,8 +616,8 @@ export default function Navbar() {
               </div>
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa]">Đang tải Messenger</p>
-              <p className="text-xs text-gray-400 dark:text-[#7e89a6] mt-1">Vui lòng đợi trong giây lát...</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa]">{t('navbar.loadingMessenger')}</p>
+              <p className="text-xs text-gray-400 dark:text-[#7e89a6] mt-1">{t('navbar.loadingMessengerSub')}</p>
             </div>
           </div>
         </div>

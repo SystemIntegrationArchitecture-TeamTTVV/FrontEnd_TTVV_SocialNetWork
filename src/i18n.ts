@@ -1,44 +1,29 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import en from './locales/en.json';
+import vi from './locales/vi.json';
 
 const resources = {
-  en: {
-    translation: {
-      navbar: {
-        searchPlaceholder: 'Search TTVV',
-        language: 'Language',
-        english: 'English',
-        vietnamese: 'Vietnamese',
-      },
-    },
-  },
-  vi: {
-    translation: {
-      navbar: {
-        searchPlaceholder: 'Tìm kiếm trên TTVV',
-        language: 'Ngôn ngữ',
-        english: 'Tiếng Anh',
-        vietnamese: 'Tiếng Việt',
-      },
-    },
-  },
+  en: { translation: en },
+  vi: { translation: vi },
 } as const;
 
-const getInitialLanguage = () => {
+const getInitialLanguage = (): 'en' | 'vi' => {
   if (typeof window === 'undefined') return 'vi';
 
   const stored = window.localStorage.getItem('language');
-  if (stored && (stored === 'en' || stored === 'vi')) {
+  if (stored === 'en' || stored === 'vi') {
     return stored;
   }
 
   const browserLang = window.navigator.language?.toLowerCase() ?? 'vi';
   if (browserLang.startsWith('vi')) return 'vi';
+  if (browserLang.startsWith('en')) return 'en';
 
   return 'vi';
 };
 
-i18n
+void i18n
   .use(initReactI18next)
   .init({
     resources,
@@ -51,11 +36,17 @@ i18n
       useSuspense: false,
     },
   })
-  .catch((error) => {
-    // eslint-disable-next-line no-console
+  .catch((error: unknown) => {
     console.error('i18n initialization failed:', error);
   });
 
+export function setAppLanguage(lang: 'en' | 'vi') {
+  void i18n.changeLanguage(lang);
+  try {
+    window.localStorage.setItem('language', lang);
+  } catch {
+    /* ignore */
+  }
+}
+
 export default i18n;
-
-

@@ -18,8 +18,10 @@ import StoryViewer from '../../components/story/StoryViewer';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 import { useToast } from '../../contexts/useToast';
+import { useTranslation } from 'react-i18next';
 
 export default function Newsfeed() {
+  const { t } = useTranslation();
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -788,7 +790,7 @@ export default function Newsfeed() {
               to="/post/create"
               className="flex-1 h-10 px-4 rounded-full bg-[#f0f2f5] dark:bg-[#22263a] hover:bg-[#e4e6eb] dark:hover:bg-[#2b2f45] border-0 text-left flex items-center text-[#65676b] dark:text-[#7e89a6] hover:text-[#050505] dark:hover:text-[#c8ccde] cursor-pointer text-[15px] transition-colors"
             >
-              {`Bạn muốn chia sẻ gì hôm nay, ${currentUser.fullName.split(' ')[0]}?`}
+              {t('newsfeed.createPostPlaceholder', { name: currentUser.fullName.split(' ')[0] ?? '' })}
             </Link>
           ) : (
             <button
@@ -796,7 +798,7 @@ export default function Newsfeed() {
               onClick={requestLogin}
               className="flex-1 h-10 px-4 rounded-full bg-[#f0f2f5] dark:bg-[#22263a] hover:bg-[#e4e6eb] dark:hover:bg-[#2b2f45] text-left flex items-center text-[#65676b] dark:text-[#7e89a6] cursor-pointer text-[15px] transition-colors"
             >
-              Đăng nhập để chia sẻ bài viết...
+              {t('newsfeed.createPostPlaceholderGuest')}
             </button>
           )}
         </div>
@@ -810,7 +812,7 @@ export default function Newsfeed() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f3ff] dark:bg-green-500/15">
                   <Image className="w-[18px] h-[18px] text-[#1877F2] dark:text-green-400" />
                 </span>
-                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Ảnh/video</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.photoVideo')}</span>
               </Link>
               <Link
                 to="/post/create"
@@ -819,7 +821,7 @@ export default function Newsfeed() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff4d6] dark:bg-amber-500/15">
                   <Smile className="w-[18px] h-[18px] text-[#f7b928] dark:text-amber-400" />
                 </span>
-                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Cảm xúc</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.feeling')}</span>
               </Link>
               <Link
                 to="/post/create"
@@ -828,7 +830,7 @@ export default function Newsfeed() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe8ec] dark:bg-rose-500/15">
                   <Activity className="w-[18px] h-[18px] text-[#f3425f] dark:text-rose-400" />
                 </span>
-                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Hoạt động</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.activity')}</span>
               </Link>
             </>
           ) : (
@@ -841,7 +843,7 @@ export default function Newsfeed() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f3ff] dark:bg-green-500/15">
                   <Image className="w-[18px] h-[18px] text-[#1877F2] dark:text-green-400" />
                 </span>
-                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Ảnh/video</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.photoVideo')}</span>
               </button>
               <button
                 type="button"
@@ -851,7 +853,7 @@ export default function Newsfeed() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff4d6] dark:bg-amber-500/15">
                   <Smile className="w-[18px] h-[18px] text-[#f7b928] dark:text-amber-400" />
                 </span>
-                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Cảm xúc</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.feeling')}</span>
               </button>
               <button
                 type="button"
@@ -861,7 +863,7 @@ export default function Newsfeed() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe8ec] dark:bg-rose-500/15">
                   <Activity className="w-[18px] h-[18px] text-[#f3425f] dark:text-rose-400" />
                 </span>
-                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Hoạt động</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.activity')}</span>
               </button>
             </>
           )}
@@ -876,7 +878,7 @@ export default function Newsfeed() {
           <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-12 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col items-center justify-center">
 
             <Loader2 className="w-7 h-7 text-blue-500 animate-spin mb-3" />
-            <p className="text-gray-400 text-[15px]">Đang tải bài viết...</p>
+            <p className="text-gray-400 text-[15px]">{t('newsfeed.loadingPosts')}</p>
           </div>
         )}
 
@@ -892,13 +894,13 @@ export default function Newsfeed() {
         {!isLoadingPosts && !error && posts.length === 0 && (
           <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-12 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none text-center">
 
-            <p className="text-gray-400 text-[15px]">Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!</p>
+            <p className="text-gray-400 text-[15px]">{t('newsfeed.emptyFeed')}</p>
             {currentUser ? (
               <Link
                 to="/post/create"
                 className="mt-5 inline-block px-5 py-2.5 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors text-[15px] font-semibold"
               >
-                Tạo bài viết
+                {t('newsfeed.createPost')}
               </Link>
             ) : (
               <button
@@ -906,7 +908,7 @@ export default function Newsfeed() {
                 onClick={requestLogin}
                 className="mt-5 inline-block px-5 py-2.5 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors text-[15px] font-semibold"
               >
-                Đăng nhập để đăng bài
+                {t('newsfeed.loginToPost')}
               </button>
             )}
           </div>
@@ -1032,7 +1034,7 @@ export default function Newsfeed() {
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-                      placeholder="Bạn muốn viết gì?"
+                      placeholder={t('newsfeed.editPlaceholder')}
                       autoFocus
                     />
                     <div className="flex gap-2 justify-end">
@@ -1061,7 +1063,7 @@ export default function Newsfeed() {
                 <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-30 rounded-2xl">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto mb-2" />
-                    <p className="text-gray-700 font-medium">Đang xóa bài viết...</p>
+                    <p className="text-gray-700 font-medium">{t('newsfeed.deletingPost')}</p>
                   </div>
                 </div>
               )}

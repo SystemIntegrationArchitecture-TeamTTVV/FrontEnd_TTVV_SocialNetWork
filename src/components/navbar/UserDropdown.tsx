@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { LogOut, User, Settings, X, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface UserDropdownProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface UserDropdownProps {
 type AuthNavTarget = 'login' | 'register' | null;
 
 export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProps) {
+  const { t } = useTranslation();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -110,10 +112,10 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               id="auth-loading-title"
               className="text-lg font-semibold text-gray-900 dark:text-gray-100"
             >
-              {pendingAuthNav === 'login' ? 'Đang mở đăng nhập' : 'Đang mở đăng ký'}
+              {pendingAuthNav === 'login' ? t('userDropdown.loadingLogin') : t('userDropdown.loadingRegister')}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Vui lòng chờ trong giây lát, hệ thống đang chuyển bạn tới trang tương ứng.
+              {t('userDropdown.loadingAuthBody')}
             </p>
           </div>
         </div>
@@ -134,7 +136,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
       {/* Header */}
       <div className="p-4 border-b border-gray-100/80">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Tài khoản</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('userDropdown.account')}</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-md hover:bg-gray-100 flex items-center justify-center transition-colors"
@@ -170,7 +172,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
           </div>
         ) : (
           <div className="text-sm text-gray-600">
-            Bạn chưa đăng nhập.
+            {t('userDropdown.notLoggedIn')}
           </div>
         )}
       </div>
@@ -187,7 +189,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <User className="w-5 h-5 text-gray-600" />
               </div>
-              <span className="font-medium">Trang cá nhân</span>
+              <span className="font-medium">{t('userDropdown.profile')}</span>
             </Link>
 
             <Link
@@ -198,7 +200,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <Settings className="w-5 h-5 text-gray-600" />
               </div>
-              <span className="font-medium">Cài đặt</span>
+              <span className="font-medium">{t('userDropdown.settings')}</span>
             </Link>
 
             <div className="border-t border-gray-100 my-2"></div>
@@ -210,7 +212,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                 <LogOut className="w-5 h-5 text-red-600" />
               </div>
-              <span className="font-medium">Đăng xuất</span>
+              <span className="font-medium">{t('userDropdown.logout')}</span>
             </button>
           </>
         ) : (
@@ -224,7 +226,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                 <LogIn className="w-5 h-5 text-gray-600" />
               </div>
-              <span className="font-medium">Đăng nhập</span>
+              <span className="font-medium">{t('userDropdown.login')}</span>
             </button>
             <button
               type="button"
@@ -235,7 +237,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                 <UserPlus className="w-5 h-5 text-gray-600" />
               </div>
-              <span className="font-medium">Đăng ký</span>
+              <span className="font-medium">{t('userDropdown.register')}</span>
             </button>
           </>
         )}

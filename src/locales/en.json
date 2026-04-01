@@ -1,0 +1,114 @@
+{
+  "common": {
+    "appName": "TTVV",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit"
+  },
+  "navbar": {
+    "searchPlaceholder": "Search on TTVV",
+    "searchMobilePlaceholder": "Search users…",
+    "language": "Language",
+    "languageTitle": "Display language",
+    "vietnamese": "Vietnamese",
+    "english": "English",
+    "themeLight": "Light mode",
+    "themeDark": "Dark mode",
+    "messenger": "Messenger",
+    "messengerLogin": "Log in to use Messenger",
+    "notifications": "Notifications",
+    "loadingMessenger": "Loading Messenger",
+    "loadingMessengerSub": "Please wait a moment…"
+  },
+  "mobileNav": {
+    "home": "Home",
+    "video": "Video",
+    "marketplace": "Marketplace",
+    "groups": "Groups",
+    "messages": "Messages"
+  },
+  "leftSidebar": {
+    "friends": "Friends",
+    "groups": "Groups",
+    "marketplace": "Marketplace",
+    "video": "Video",
+    "music": "Music",
+    "saved": "Saved",
+    "seeMore": "See more",
+    "loginRequired": "Please log in"
+  },
+  "rightSidebar": {
+    "contacts": "Contacts",
+    "searchPlaceholder": "Search by name…",
+    "noResults": "No results",
+    "noResultsHint": "Try another keyword or check spelling.",
+    "noConversations": "No conversations yet",
+    "noConversationsHint": "Start chatting to see contacts here.",
+    "footerContacts": "{{count}} contacts",
+    "footerResults": "{{count}} results"
+  },
+  "userDropdown": {
+    "account": "Account",
+    "notLoggedIn": "You are not logged in.",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Log out",
+    "login": "Log in",
+    "register": "Sign up",
+    "loadingLogin": "Opening log in",
+    "loadingRegister": "Opening sign up",
+    "loadingAuthBody": "Please wait — we are taking you to the right page."
+  },
+  "newsfeed": {
+    "createPostPlaceholder": "What's on your mind, {{name}}?",
+    "createPostPlaceholderGuest": "Log in to share a post…",
+    "photoVideo": "Photo/video",
+    "feeling": "Feeling",
+    "activity": "Activity",
+    "loadingPosts": "Loading posts…",
+    "loadingStories": "Loading stories…",
+    "emptyFeed": "No posts yet. Be the first to share!",
+    "createPost": "Create post",
+    "loginToPost": "Log in to post",
+    "editPlaceholder": "What would you like to write?",
+    "deletingPost": "Deleting post…"
+  },
+  "pages": {
+    "home": { "title": "Home" },
+    "watch": { "title": "Video" },
+    "marketplace": { "title": "Marketplace" },
+    "groups": { "title": "Groups" },
+    "friends": { "title": "Friends" },
+    "saved": { "title": "Saved" },
+    "messenger": { "title": "Messenger" },
+    "notifications": { "title": "Notifications" },
+    "settings": { "title": "Settings" },
+    "profile": { "title": "Profile" },
+    "findPeople": { "title": "Find people" },
+    "auth": {
+      "login": "Log in",
+      "register": "Sign up",
+      "forgotPassword": "Forgot password"
+    },
+    "admin": {
+      "dashboard": "Admin dashboard",
+      "users": "User management",
+      "posts": "Post management"
+    },
+    "group": {
+      "detail": "Group",
+      "create": "Create group"
+    },
+    "music": { "title": "Music" },
+    "events": { "title": "Events" }
+  }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessages } from '../../hooks/useMessages';
@@ -72,6 +73,7 @@ function getAvatarColor(name: string) {
 }
 
 export default function RightSidebar() {
+  const { t } = useTranslation();
   const { openChatBox } = useChatBox();
   const { user } = useAuth();
   const { conversations, loadConversations } = useMessages();
@@ -156,7 +158,7 @@ export default function RightSidebar() {
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#e4e6eb] dark:border-[#22263a]">
         <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#edf0fa] mb-3">
-          Người liên hệ
+          {t('rightSidebar.contacts')}
         </h2>
 
         {/* Search Bar */}
@@ -176,7 +178,7 @@ export default function RightSidebar() {
           </svg>
           <input
             type="text"
-            placeholder="Tìm theo tên…"
+            placeholder={t('rightSidebar.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 h-9 rounded-full text-[15px] transition-all
@@ -212,10 +214,10 @@ export default function RightSidebar() {
                   </svg>
                 </div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] mb-1">
-                  Không có kết quả
+                  {t('rightSidebar.noResults')}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-[#5a6278] leading-relaxed">
-                  Thử từ khóa khác hoặc kiểm tra lại chính tả.
+                  {t('rightSidebar.noResultsHint')}
                 </p>
               </div>
             ) : (
@@ -227,10 +229,10 @@ export default function RightSidebar() {
                   </svg>
                 </div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] mb-1">
-                  Chưa có cuộc trò chuyện
+                  {t('rightSidebar.noConversations')}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-[#5a6278] leading-relaxed">
-                  Hãy bắt đầu nhắn tin để hiện danh sách liên hệ ở đây.
+                  {t('rightSidebar.noConversationsHint')}
                 </p>
               </div>
             )}
@@ -293,10 +295,9 @@ export default function RightSidebar() {
       {filteredContacts.length > 0 && (
         <div className="px-4 py-2 border-t border-[#e4e6eb] dark:border-[#22263a]">
           <p className="text-xs text-gray-500 dark:text-[#7e89a6] text-center">
-            {searchQuery 
-              ? `${filteredContacts.length} kết quả`
-              : `${filteredContacts.length} liên hệ`
-            }
+            {searchQuery
+              ? t('rightSidebar.footerResults', { count: filteredContacts.length })
+              : t('rightSidebar.footerContacts', { count: filteredContacts.length })}
           </p>
         </div>
       )}
