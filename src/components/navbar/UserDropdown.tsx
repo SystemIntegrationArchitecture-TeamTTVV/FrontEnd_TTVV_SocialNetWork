@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LogOut, User, Settings, X, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,10 +23,25 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [pendingAuthNav, setPendingAuthNav] = useState<AuthNavTarget>(null);
+  const authNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!isOpen) setPendingAuthNav(null);
-  }, [isOpen]);
+    return () => {
+      if (authNavTimerRef.current !== null) {
+        clearTimeout(authNavTimerRef.current);
+        authNavTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pendingAuthNav) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [pendingAuthNav]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -44,23 +60,23 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const handleLogout = () => {
     logout();
     onClose();
   };
 
-  /** Spinner hiển thị tối thiểu minSpinnerMs để người dùng thấy phản hồi trước khi chuyển trang. */
+  /** Modal giữa màn hình ~5s (nền mờ + blur) rồi chuyển trang. */
   const handleAuthNavigate = (path: string, target: Exclude<AuthNavTarget, null>) => {
     if (pendingAuthNav !== null) return;
     setPendingAuthNav(target);
-    const minSpinnerMs = 300;
-    window.setTimeout(() => {
+    onClose();
+    const displayMs = 5000;
+    if (authNavTimerRef.current !== null) clearTimeout(authNavTimerRef.current);
+    authNavTimerRef.current = window.setTimeout(() => {
+      authNavTimerRef.current = null;
       navigate(path);
-      onClose();
       setPendingAuthNav(null);
-    }, minSpinnerMs);
+    }, displayMs);
   };
 
   const userInitials = user?.fullName
@@ -72,7 +88,43 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
         .slice(0, 2)
     : 'U';
 
+  const authLoadingModal =
+    pendingAuthNav &&
+    createPortal(
+      <div
+        className="fixed inset-0 z-10050 flex items-center justify-center bg-slate-900/40 backdrop-blur-md px-4"
+        role="presentation"
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="auth-loading-title"
+          aria-busy="true"
+          className="w-full max-w-[340px] rounded-2xl bg-white p-8 shadow-2xl border border-gray-100 dark:bg-gray-900 dark:border-gray-700 flex flex-col items-center text-center gap-5"
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/50">
+            <Loader2 className="h-9 w-9 text-blue-600 dark:text-blue-400 animate-spin" aria-hidden />
+          </div>
+          <div className="space-y-1.5">
+            <p
+              id="auth-loading-title"
+              className="text-lg font-semibold text-gray-900 dark:text-gray-100"
+            >
+              {pendingAuthNav === 'login' ? 'Đang mở đăng nhập' : 'Đang mở đăng ký'}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+              Vui lòng chờ trong giây lát, hệ thống đang chuyển bạn tới trang tương ứng.
+            </p>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+
   return (
+    <>
+      {authLoadingModal}
+      {isOpen ? (
     <div
       ref={dropdownRef}
       onMouseDown={(event) => event.stopPropagation()}
@@ -170,15 +222,9 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left disabled:pointer-events-none disabled:opacity-70"
             >
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                {pendingAuthNav === 'login' ? (
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" aria-hidden />
-                ) : (
-                  <LogIn className="w-5 h-5 text-gray-600" />
-                )}
+                <LogIn className="w-5 h-5 text-gray-600" />
               </div>
-              <span className="font-medium">
-                {pendingAuthNav === 'login' ? 'Đang chuyển tới đăng nhập…' : 'Đăng nhập'}
-              </span>
+              <span className="font-medium">Đăng nhập</span>
             </button>
             <button
               type="button"
@@ -187,20 +233,16 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700 text-left disabled:pointer-events-none disabled:opacity-70"
             >
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                {pendingAuthNav === 'register' ? (
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" aria-hidden />
-                ) : (
-                  <UserPlus className="w-5 h-5 text-gray-600" />
-                )}
+                <UserPlus className="w-5 h-5 text-gray-600" />
               </div>
-              <span className="font-medium">
-                {pendingAuthNav === 'register' ? 'Đang chuyển tới đăng ký…' : 'Đăng ký'}
-              </span>
+              <span className="font-medium">Đăng ký</span>
             </button>
           </>
         )}
       </div>
     </div>
+      ) : null}
+    </>
   );
 }
 
