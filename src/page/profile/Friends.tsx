@@ -212,7 +212,7 @@ export default function Friends() {
               badge={requests.length > 0 ? t('friends.requestCount', { count: requests.length }) : undefined}
             />
             {loadingRequests ? (
-              <SkeletonGrid count={3} />
+              <SkeletonGrid count={3} loadingText={t('friends.loading')} />
             ) : requests.length === 0 ? (
               <EmptyState icon={HandMetal} text={t('friends.empty.noRequests')} />
             ) : (
@@ -259,7 +259,7 @@ export default function Friends() {
           <section>
             <SectionHeader title={t('friends.sections.suggestions')} />
             {loadingSuggestions ? (
-              <SkeletonGrid count={6} />
+              <SkeletonGrid count={6} loadingText={t('friends.loading')} />
             ) : suggestions.length === 0 ? (
               <EmptyState icon={Handshake} text={t('friends.empty.noSuggestions')} />
             ) : (
@@ -319,7 +319,7 @@ export default function Friends() {
           <section>
             <SectionHeader title={t('friends.sections.all')} />
             {loadingFriends ? (
-              <SkeletonGrid count={6} />
+              <SkeletonGrid count={6} loadingText={t('friends.loading')} />
             ) : friends.length === 0 ? (
               <EmptyState icon={UserRound} text={t('friends.empty.noFriends')} />
             ) : (
@@ -442,7 +442,7 @@ function SectionHeader({ title, badge }: { title: string; badge?: string }) {
 }
 
 /* ─── Skeleton ─── */
-function SkeletonGrid({ count }: { count: number }) {
+function SkeletonGrid({ count, loadingText }: { count: number; loadingText: string }) {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-center gap-3 py-4">
@@ -450,7 +450,7 @@ function SkeletonGrid({ count }: { count: number }) {
           <div className="absolute inset-0 rounded-full border-[2.5px] border-gray-200 dark:border-[#2b2f45]" />
           <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-blue-500 animate-spin" />
         </div>
-        <span className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">{t('friends.loading')}</span>
+        <span className="text-sm text-gray-400 dark:text-[#7e89a6] font-medium">{loadingText}</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {Array.from({ length: count }).map((_, i) => (
