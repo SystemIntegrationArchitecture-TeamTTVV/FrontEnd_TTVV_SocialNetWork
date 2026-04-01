@@ -23,12 +23,12 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [pendingAuthNav, setPendingAuthNav] = useState<AuthNavTarget>(null);
-  const authNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authNavTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (authNavTimerRef.current !== null) {
-        clearTimeout(authNavTimerRef.current);
+        window.clearTimeout(authNavTimerRef.current);
         authNavTimerRef.current = null;
       }
     };
@@ -71,7 +71,7 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
     setPendingAuthNav(target);
     onClose();
     const displayMs = 5000;
-    if (authNavTimerRef.current !== null) clearTimeout(authNavTimerRef.current);
+    if (authNavTimerRef.current !== null) window.clearTimeout(authNavTimerRef.current);
     authNavTimerRef.current = window.setTimeout(() => {
       authNavTimerRef.current = null;
       navigate(path);
