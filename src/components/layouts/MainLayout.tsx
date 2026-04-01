@@ -32,13 +32,13 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="h-screen bg-slate-50 dark:bg-[#0c0e14] flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#f0f2f5] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
       <Navbar />
       
-      <div className="flex flex-1 overflow-hidden pt-20">
-        {/* LEFT SIDEBAR */}
+      <div className="flex flex-1 overflow-hidden pt-14">
+        {/* LEFT SIDEBAR — cùng nền feed, viền tinh như Facebook */}
         {!isMessengerPage && (
-          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide glass-surface border-r border-gray-200/50 dark:border-white/5">
+          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-[#f0f2f5] dark:bg-[#13151f] border-r border-[#e4e6eb] dark:border-[#22263a]">
             <LeftSidebar />
           </aside>
         )}
@@ -48,7 +48,7 @@ export default function MainLayout() {
         <main className={`flex-1 h-full overflow-y-auto scrollbar-hide ${
           isMessengerPage
             ? 'px-0 max-w-full pb-16 md:pb-0'
-            : 'px-4 sm:px-8 lg:px-10 pt-6 sm:pt-10 pb-20 md:pb-10'
+            : 'px-3 sm:px-5 lg:px-6 pt-4 sm:pt-5 pb-20 md:pb-8'
         }`}>
           <div className={isMessengerPage ? 'w-full' : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'}>
             <Outlet />
@@ -57,7 +57,7 @@ export default function MainLayout() {
         
         {/* RIGHT SIDEBAR */}
         {!isMessengerPage && (
-          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide glass-surface border-l border-gray-200/50 dark:border-white/5">
+          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide bg-[#f0f2f5] dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a]">
             <RightSidebar />
           </aside>
         )}

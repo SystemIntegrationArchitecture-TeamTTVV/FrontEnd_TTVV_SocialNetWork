@@ -151,18 +151,18 @@ export default function RightSidebar() {
   }, [allContacts, searchQuery]);
 
   return (
-    <aside className="hidden xl:flex xl:flex-col w-80 glass-surface border-l border-gray-200/50 dark:border-white/5 transition-all duration-300 shadow-sm relative z-40">
+    <aside className="hidden xl:flex xl:flex-col w-80 bg-transparent relative z-40">
 
       {/* Header */}
-      <div className="px-5 py-4 bg-white dark:bg-[#13151f]">
-        <h2 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-[#edf0fa] mb-3">
-          Liên hệ
+      <div className="px-4 py-3 border-b border-[#e4e6eb] dark:border-[#22263a]">
+        <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#edf0fa] mb-3">
+          Người liên hệ
         </h2>
 
         {/* Search Bar */}
         <div className="relative">
           <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-[#5a6278]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#65676b] dark:text-[#5a6278]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -179,11 +179,11 @@ export default function RightSidebar() {
             placeholder="Tìm theo tên…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 h-10 rounded-2xl text-sm transition-all
-                       bg-gray-100 border-none placeholder-gray-400 text-gray-900
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:bg-white
-                       dark:bg-[#1e2133] dark:border-none dark:text-[#edf0fa] dark:placeholder-[#5a6278]
-                       dark:focus:bg-[#22263a] dark:focus:ring-indigo-500/15"
+            className="w-full pl-9 pr-4 h-9 rounded-full text-[15px] transition-all
+                       bg-[#f0f2f5] border-none placeholder-[#65676b] text-[#050505]
+                       focus:outline-none focus:bg-[#e4e6eb]
+                       dark:bg-[#1e2133] dark:text-[#edf0fa] dark:placeholder-[#5a6278]
+                       dark:focus:bg-[#22263a]"
           />
           {searchQuery && (
             <button
@@ -200,7 +200,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Contacts List */}
-      <div className="flex-1 overflow-y-auto bg-white dark:bg-[#13151f]">
+      <div className="flex-1 overflow-y-auto bg-transparent">
         {filteredContacts.length === 0 ? (
           <div className="flex items-start justify-center px-5 pt-8 pb-10">
             {searchQuery ? (
@@ -291,7 +291,7 @@ export default function RightSidebar() {
 
       {/* Footer Info */}
       {filteredContacts.length > 0 && (
-        <div className="px-5 py-3 border-t border-gray-200 dark:border-[#22263a] bg-white dark:bg-[#13151f]">
+        <div className="px-4 py-2 border-t border-[#e4e6eb] dark:border-[#22263a]">
           <p className="text-xs text-gray-500 dark:text-[#7e89a6] text-center">
             {searchQuery 
               ? `${filteredContacts.length} kết quả`

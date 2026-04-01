@@ -640,10 +640,10 @@ export default function Newsfeed() {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-8">
       {/* Stories Section */}
       {/* Stories Section */}
-      <div className="bg-white/50 dark:bg-[#1a1d28]/50 rounded-[32px] p-6 border border-gray-200/50 dark:border-white/5 shadow-sm">
+      <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-4 sm:p-5 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none">
 
         <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
 
@@ -746,10 +746,10 @@ export default function Newsfeed() {
 
 
       {/* Create Post */}
-      <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-6 border border-gray-100/50 dark:border-white/5 shadow-sm">
+      <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-4 sm:p-5 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none">
 
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#1877F2] to-[#166fe5] flex items-center justify-center shrink-0 overflow-hidden">
             {currentUser?.avatar ? (
               <img
                 src={currentUser.avatar}
@@ -786,7 +786,7 @@ export default function Newsfeed() {
           {currentUser ? (
             <Link
               to="/post/create"
-              className="flex-1 h-14 px-5 rounded-2xl bg-gray-100 dark:bg-[#22263a] hover:bg-gray-200 dark:hover:bg-[#2b2f45] border border-transparent text-left flex items-center text-gray-500 dark:text-[#7e89a6] hover:text-gray-800 dark:hover:text-[#c8ccde] cursor-pointer text-base font-medium transition-colors"
+              className="flex-1 h-10 px-4 rounded-full bg-[#f0f2f5] dark:bg-[#22263a] hover:bg-[#e4e6eb] dark:hover:bg-[#2b2f45] border-0 text-left flex items-center text-[#65676b] dark:text-[#7e89a6] hover:text-[#050505] dark:hover:text-[#c8ccde] cursor-pointer text-[15px] transition-colors"
             >
               {`Bạn muốn chia sẻ gì hôm nay, ${currentUser.fullName.split(' ')[0]}?`}
             </Link>
@@ -794,41 +794,41 @@ export default function Newsfeed() {
             <button
               type="button"
               onClick={requestLogin}
-              className="flex-1 h-14 px-5 rounded-2xl bg-gray-100 dark:bg-[#22263a] hover:bg-gray-200 dark:hover:bg-[#2b2f45] border border-transparent text-left flex items-center text-gray-500 dark:text-[#7e89a6] hover:text-gray-800 dark:hover:text-[#c8ccde] cursor-pointer text-base font-medium transition-colors"
+              className="flex-1 h-10 px-4 rounded-full bg-[#f0f2f5] dark:bg-[#22263a] hover:bg-[#e4e6eb] dark:hover:bg-[#2b2f45] text-left flex items-center text-[#65676b] dark:text-[#7e89a6] cursor-pointer text-[15px] transition-colors"
             >
               Đăng nhập để chia sẻ bài viết...
             </button>
           )}
         </div>
-        <div className="flex items-center justify-between gap-2 pt-4 border-t border-gray-100 dark:border-[#22263a]">
+        <div className="flex items-center justify-between gap-1 pt-3 border-t border-[#e4e6eb] dark:border-[#22263a]">
           {currentUser ? (
             <>
               <Link
                 to="/post/create"
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-green-50/70 dark:hover:bg-green-500/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-green-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15">
-                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f3ff] dark:bg-green-500/15">
+                  <Image className="w-[18px] h-[18px] text-[#1877F2] dark:text-green-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Ảnh</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Ảnh/video</span>
               </Link>
               <Link
                 to="/post/create"
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-amber-50/80 dark:hover:bg-amber-500/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-amber-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/15">
-                  <Smile className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff4d6] dark:bg-amber-500/15">
+                  <Smile className="w-[18px] h-[18px] text-[#f7b928] dark:text-amber-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Cảm xúc</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Cảm xúc</span>
               </Link>
               <Link
                 to="/post/create"
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-500/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-rose-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/15">
-                  <Activity className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe8ec] dark:bg-rose-500/15">
+                  <Activity className="w-[18px] h-[18px] text-[#f3425f] dark:text-rose-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Hoạt động</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Hoạt động</span>
               </Link>
             </>
           ) : (
@@ -836,32 +836,32 @@ export default function Newsfeed() {
               <button
                 type="button"
                 onClick={requestLogin}
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-green-50/70 dark:hover:bg-green-500/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-green-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15">
-                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f3ff] dark:bg-green-500/15">
+                  <Image className="w-[18px] h-[18px] text-[#1877F2] dark:text-green-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Ảnh</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Ảnh/video</span>
               </button>
               <button
                 type="button"
                 onClick={requestLogin}
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-amber-50/80 dark:hover:bg-amber-500/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-amber-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-500/15">
-                  <Smile className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff4d6] dark:bg-amber-500/15">
+                  <Smile className="w-[18px] h-[18px] text-[#f7b928] dark:text-amber-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Cảm xúc</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Cảm xúc</span>
               </button>
               <button
                 type="button"
                 onClick={requestLogin}
-                className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-2xl hover:bg-rose-50/80 dark:hover:bg-rose-500/10 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-rose-500/10 transition-colors"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/15">
-                  <Activity className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe8ec] dark:bg-rose-500/15">
+                  <Activity className="w-[18px] h-[18px] text-[#f3425f] dark:text-rose-400" />
                 </span>
-                <span className="text-[15px] text-gray-700 dark:text-[#c8ccde] font-medium">Hoạt động</span>
+                <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">Hoạt động</span>
               </button>
             </>
           )}
@@ -869,11 +869,11 @@ export default function Newsfeed() {
       </div>
 
       {/* Posts Feed */}
-      <div className="space-y-8">
+      <div className="space-y-4">
 
         {/* Loading State */}
         {isLoadingPosts && (
-          <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-12 border border-gray-100/50 dark:border-white/5 shadow-sm flex flex-col items-center justify-center">
+          <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-12 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col items-center justify-center">
 
             <Loader2 className="w-7 h-7 text-blue-500 animate-spin mb-3" />
             <p className="text-gray-400 text-[15px]">Đang tải bài viết...</p>
@@ -882,7 +882,7 @@ export default function Newsfeed() {
 
         {/* Error State */}
         {error && !isLoadingPosts && (
-          <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-8 border border-red-100/50 dark:border-red-500/10 shadow-sm">
+          <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-8 border border-red-200/80 dark:border-red-500/10 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none">
 
             <p className="text-red-500 text-center text-[15px]">{error}</p>
           </div>
@@ -890,13 +890,13 @@ export default function Newsfeed() {
 
         {/* Empty State */}
         {!isLoadingPosts && !error && posts.length === 0 && (
-          <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-12 border border-gray-100/50 dark:border-white/5 shadow-sm text-center">
+          <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-12 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none text-center">
 
             <p className="text-gray-400 text-[15px]">Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!</p>
             {currentUser ? (
               <Link
                 to="/post/create"
-                className="mt-5 inline-block px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors text-[15px] font-medium shadow-sm"
+                className="mt-5 inline-block px-5 py-2.5 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors text-[15px] font-semibold"
               >
                 Tạo bài viết
               </Link>
@@ -904,7 +904,7 @@ export default function Newsfeed() {
               <button
                 type="button"
                 onClick={requestLogin}
-                className="mt-5 inline-block px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors text-[15px] font-medium shadow-sm"
+                className="mt-5 inline-block px-5 py-2.5 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors text-[15px] font-semibold"
               >
                 Đăng nhập để đăng bài
               </button>
@@ -920,7 +920,7 @@ export default function Newsfeed() {
           const VisibilityIcon = visibilityMeta.Icon;
 
           return (
-            <div key={post.id} className="bg-white dark:bg-[#1a1d28] rounded-[32px] border border-gray-100/50 dark:border-white/5 shadow-sm transition-all hover:shadow-md relative group/card">
+            <div key={post.id} className="bg-white dark:bg-[#1a1d28] rounded-xl border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_2px_12px_rgba(0,0,0,0.08)] dark:shadow-none dark:hover:shadow-none relative group/card">
 
               {/* Post Header */}
               <div className="p-5 flex items-center justify-between relative z-10">

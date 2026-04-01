@@ -48,23 +48,23 @@ export default function LeftSidebar() {
     : menuItems;
 
   return (
-    <aside className="hidden lg:block w-72 px-3 py-4">
-      <div className="space-y-0.5">
+    <div className="w-full px-2 py-3">
+      <div className="space-y-1">
         {menuItemsWithUser.map((item, index) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           const isDisabled = !!item.requireAuth && !currentUser;
 
-          const rowBase = 'flex items-center gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-200 group';
-          const rowActive = 'bg-blue-50/80 dark:bg-blue-500/12';
-          const rowInactive = 'hover:bg-gray-100/80 dark:hover:bg-[#1e2133]';
+          const rowBase = 'flex items-center gap-3 px-2 py-2 rounded-lg transition-colors duration-150 group';
+          const rowActive = 'bg-[#e7f3ff] dark:bg-blue-500/12';
+          const rowInactive = 'hover:bg-[#f0f2f5] dark:hover:bg-[#1e2133]';
 
-          const iconWrap = 'w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0';
-          const iconActive = 'bg-blue-500 text-white shadow-sm';
-          const iconInactive = 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 dark:bg-[#22263a] dark:text-[#9aa3bc] dark:group-hover:bg-[#2b2f45]';
+          const iconWrap = 'w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0';
+          const iconActive = 'bg-[#1877F2] text-white';
+          const iconInactive = 'bg-[#e4e6eb] text-[#050505] group-hover:bg-[#d8dadf] dark:bg-[#22263a] dark:text-[#c8ccde] dark:group-hover:bg-[#2b2f45]';
 
-          const labelActive = 'text-blue-700 dark:text-blue-400';
-          const labelInactive = 'text-gray-700 group-hover:text-gray-900 dark:text-[#c8ccde] dark:group-hover:text-[#edf0fa]';
+          const labelActive = 'text-[#050505] font-semibold dark:text-[#edf0fa]';
+          const labelInactive = 'text-[#050505] font-medium group-hover:text-[#050505] dark:text-[#c8ccde] dark:group-hover:text-[#edf0fa]';
 
           return (
             isDisabled ? (
@@ -87,7 +87,7 @@ export default function LeftSidebar() {
                 className={`${rowBase} ${isActive ? rowActive : rowInactive}`}
               >
               {item.isUser ? (
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-blue-400 dark:ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-[#13151f]">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-[#1877F2]/30 dark:ring-blue-500 ring-offset-1 ring-offset-[#f0f2f5] dark:ring-offset-[#13151f]">
                   {userAvatar ? (
                     <img
                       src={userAvatar}
@@ -113,7 +113,7 @@ export default function LeftSidebar() {
                   <Icon className="w-5 h-5" />
                 </div>
               )}
-              <span className={`text-[15px] font-medium ${isActive ? labelActive : labelInactive}`}>
+              <span className={`text-[15px] ${isActive ? labelActive : labelInactive}`}>
                 {item.label}
               </span>
               </Link>
@@ -121,15 +121,18 @@ export default function LeftSidebar() {
           );
         })}
 
-        <button className={`w-full ${
-          'flex items-center gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-200 group hover:bg-gray-100/80 dark:hover:bg-[#1e2133]'
-        }`}>
-          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 dark:bg-[#22263a] dark:group-hover:bg-[#2b2f45] transition-colors shrink-0">
-            <ChevronDown className="w-5 h-5 text-gray-500 dark:text-[#9aa3bc]" />
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 px-2 py-2 rounded-lg transition-colors duration-150 group hover:bg-[#f0f2f5] dark:hover:bg-[#1e2133]"
+        >
+          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center group-hover:bg-[#d8dadf] dark:bg-[#22263a] dark:group-hover:bg-[#2b2f45] transition-colors shrink-0">
+            <ChevronDown className="w-5 h-5 text-[#65676b] dark:text-[#9aa3bc]" />
           </div>
-          <span className="text-[15px] font-medium text-gray-500 group-hover:text-gray-700 dark:text-[#9aa3bc] dark:group-hover:text-[#edf0fa]">Xem thêm</span>
+          <span className="text-[15px] font-medium text-[#65676b] group-hover:text-[#050505] dark:text-[#9aa3bc] dark:group-hover:text-[#edf0fa]">
+            Xem thêm
+          </span>
         </button>
       </div>
-    </aside>
+    </div>
   );
 }

@@ -172,7 +172,7 @@ export default function Navbar() {
 
   /* ── Shared avatar renderer ── */
   const renderAvatar = (size: 'sm' | 'md') => {
-    const dim = size === 'sm' ? 'w-9 h-9' : 'w-11 h-11';
+    const dim = size === 'sm' ? 'w-9 h-9' : 'w-10 h-10';
     const text = size === 'sm' ? 'text-xs' : 'text-sm';
     const icon = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
     if (currentUser?.avatar)
@@ -195,21 +195,21 @@ export default function Navbar() {
       {/* ═══════════════════════════════════════════════════════
           TOP NAVBAR  (fixed, h-20 on all breakpoints)
       ═══════════════════════════════════════════════════════ */}
-      <nav className="fixed top-0 left-0 right-0 h-20 glass-surface z-50 shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-white dark:bg-[#13151f] border-b border-[#e4e6eb] dark:border-[#22263a] shadow-none">
 
 
         {/* ── DESKTOP layout (md+) ── */}
-        <div className="hidden md:flex max-w-[1920px] mx-auto px-6 h-full items-center justify-between gap-4">
+        <div className="hidden md:flex max-w-[1920px] mx-auto px-4 lg:px-6 h-full items-center justify-between gap-3">
 
           {/* LEFT - Logo & Search */}
           <div className="flex items-center gap-3 shrink-0">
-            <Link to="/home" className="flex items-center hover:opacity-80 transition-opacity">
-              <img src={logo} alt="TTVV" className="w-12 h-12 rounded-full object-cover shadow-sm" />
+            <Link to="/home" className="flex items-center hover:opacity-90 transition-opacity">
+              <img src={logo} alt="TTVV" className="w-10 h-10 rounded-full object-cover" />
             </Link>
 
             <div className="hidden md:block relative" ref={searchRef}>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#65676b] dark:text-gray-500" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -226,7 +226,7 @@ export default function Navbar() {
                     }
                   }}
                   placeholder={t('navbar.searchPlaceholder')}
-                  className="w-64 lg:w-80 h-11 pl-11 pr-4 rounded-2xl bg-gray-100/50 dark:bg-[#1e2130]/50 text-sm border border-transparent focus:outline-none focus:bg-white dark:focus:bg-[#1a1d28] focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-500 dark:text-gray-200"
+                  className="w-56 lg:w-72 h-10 pl-10 pr-4 rounded-full bg-[#f0f2f5] dark:bg-[#1e2130] text-[15px] border-0 focus:outline-none focus:bg-[#e4e6eb] dark:focus:bg-[#252a3d] transition-colors placeholder:text-[#65676b] dark:text-gray-200"
 
                 />
               </div>
@@ -259,7 +259,7 @@ export default function Navbar() {
           </div>
 
           {/* CENTER - Nav Icons */}
-          <div className="flex items-center justify-center flex-1 max-w-2xl gap-2">
+          <div className="flex items-stretch justify-center flex-1 max-w-xl gap-0">
             {[
               { to: '/home', icon: Home, requireAuth: false },
               { to: '/watch', icon: Video, requireAuth: true },
@@ -267,17 +267,20 @@ export default function Navbar() {
               { to: '/groups', icon: Users, requireAuth: true },
             ].map(({ to, icon: Icon, requireAuth }) => {
               const needsAuth = requireAuth && !currentUser;
-              const cls = `relative flex-1 max-w-[140px] h-14 flex items-center justify-center rounded-lg transition-all ${
-                isActive(to)
-                  ? 'text-blue-600'
-                  : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-[#1e2130] hover:text-gray-700 dark:hover:text-gray-200'
+              const active = isActive(to);
+              const cls = `relative flex-1 max-w-[120px] min-h-12 flex items-center justify-center rounded-none transition-colors ${
+                active
+                  ? 'text-[#1877F2] dark:text-blue-400'
+                  : 'text-[#65676b] hover:bg-[#f0f2f5] dark:text-[#9aa3bc] dark:hover:bg-[#1e2130]'
               }`;
               const inner = (
                 <>
-                  <span className={`flex items-center justify-center rounded-2xl px-4 py-2 transition-all ${isActive(to) ? 'bg-blue-50 text-blue-600 shadow-sm dark:bg-blue-500/15 dark:text-blue-400' : ''}`}>
-                    <Icon strokeWidth={isActive(to) ? 2.25 : 2} className="w-[25px] h-[25px]" />
+                  <span className="flex items-center justify-center px-3 py-2">
+                    <Icon strokeWidth={active ? 2.5 : 2} className="w-[22px] h-[22px]" />
                   </span>
-                  {isActive(to) && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[calc(100%-28px)] h-[3px] bg-blue-500 rounded-full" />}
+                  {active && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1877F2] dark:bg-blue-500 rounded-t-sm" />
+                  )}
                 </>
               );
 
@@ -316,7 +319,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={handleMessengerClick}
-              className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
+              className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
               title={currentUser ? "Messenger" : "Đăng nhập để dùng Messenger"}
             >
               <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -325,9 +328,9 @@ export default function Navbar() {
             <div className="relative">
               <button
                 onClick={() => { if (!currentUser) { requestLogin(); return; } setIsNotificationOpen(!isNotificationOpen); }}
-                className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#1e2130] hover:bg-gray-200 dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
+                className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
               >
-                <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+                <Bell className="w-[22px] h-[22px] text-[#050505] dark:text-gray-300" />
                 {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
                   <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-[#12151f]" />
                 )}
@@ -337,7 +340,7 @@ export default function Navbar() {
 
             <div className="relative">
               <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="w-12 h-12 rounded-full overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all shadow-sm flex items-center justify-center p-0">
+                className="w-10 h-10 rounded-full overflow-hidden border border-[#e4e6eb] dark:border-[#2b2f45] hover:opacity-95 transition-opacity flex items-center justify-center p-0">
                 {renderAvatar('md')}
               </button>
               <UserDropdown isOpen={isUserMenuOpen} onClose={() => setIsUserMenuOpen(false)} user={currentUser} />
