@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { passwordResetApi } from '../../apis/passwordReset';
 import AuthFrame from '../../components/auth/AuthFrame';
 
 export default function ForgotPassword() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,12 +21,12 @@ export default function ForgotPassword() {
 
   const goNextStep = () => {
     if (!email.trim()) {
-      setError('Vui lòng nhập email của bạn');
+      setError(t('auth.forgot.emailRequired'));
       return;
     }
 
     if (!isValidEmail(email)) {
-      setError('Email không đúng định dạng');
+      setError(t('auth.forgot.emailInvalid'));
       return;
     }
 
@@ -34,7 +36,7 @@ export default function ForgotPassword() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !isValidEmail(email)) {
-      setError('Email không đúng định dạng');
+      setError(t('auth.forgot.emailInvalid'));
       setStep(1);
       return;
     }
@@ -48,7 +50,7 @@ export default function ForgotPassword() {
       setSuccess(true);
     } catch (err: unknown) {
       console.error('❌ Failed to send reset email:', err);
-      setError(err instanceof Error ? err.message : 'Không gửi được email đặt lại mật khẩu. Vui lòng thử lại.');
+      setError(err instanceof Error ? err.message : t('auth.forgot.errorSend'));
     } finally {
       setIsLoading(false);
     }
@@ -56,26 +58,24 @@ export default function ForgotPassword() {
 
   if (success) {
     return (
-      <AuthFrame
-        brandHeading="TTVV"
-        brandDescription="Khôi phục tài khoản an toàn, nhanh chóng chỉ với email của bạn."
-      >
+      <AuthFrame brandHeading={t('common.appName')} brandDescription={t('auth.forgot.brandDescriptionSuccess')}>
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-500/15 rounded-full mb-4">
             <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">Kiểm tra email</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">{t('auth.forgot.successTitle')}</h2>
           <p className="text-gray-600 dark:text-[#7e89a6] mb-4 leading-relaxed">
-            Nếu tài khoản tồn tại với email <strong className="text-gray-900 dark:text-[#c0c8de]">{email}</strong>, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu trong ít phút.
+            {t('auth.forgot.successBodyPrefix')}
+            <strong className="text-gray-900 dark:text-[#c0c8de]">{email}</strong>
+            {t('auth.forgot.successBodySuffix')}
           </p>
-          <p className="text-sm text-gray-500 dark:text-[#5a6278] mb-8">
-            Chưa thấy email? Hãy kiểm tra thư rác hoặc thử lại.
-          </p>
+          <p className="text-sm text-gray-500 dark:text-[#5a6278] mb-8">{t('auth.forgot.successSpam')}</p>
           <button
+            type="button"
             onClick={() => navigate('/auth/login')}
             className="w-full h-12 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
           >
-            Quay lại đăng nhập
+            {t('auth.forgot.backToLogin')}
           </button>
         </div>
       </AuthFrame>
@@ -84,22 +84,23 @@ export default function ForgotPassword() {
 
   return (
     <AuthFrame
-      brandHeading="TTVV"
-      brandDescription="Lấy lại mật khẩu để tiếp tục kết nối cùng mọi người."
-      cardTitle="Forgot password"
-      cardSubtitle="Khôi phục tài khoản bằng email đã đăng ký"
+      brandHeading={t('common.appName')}
+      brandDescription={t('auth.forgot.brandDescription')}
+      cardTitle={t('auth.forgot.cardTitle')}
+      cardSubtitle={t('auth.forgot.cardSubtitle')}
     >
       <div className="space-y-5">
         <div className="space-y-3">
           <div className="h-2 rounded-full bg-gray-100 dark:bg-[#22263a] overflow-hidden">
-            <div
-              className="h-full bg-blue-600 transition-all duration-300"
-              style={{ width: `${(step / 2) * 100}%` }}
-            />
+            <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${(step / 2) * 100}%` }} />
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <p className={`text-center ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>Nhập email</p>
-            <p className={`text-center ${step >= 2 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>Xác nhận gửi</p>
+            <p className={`text-center ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>
+              {t('auth.forgot.stepEmail')}
+            </p>
+            <p className={`text-center ${step >= 2 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>
+              {t('auth.forgot.stepConfirm')}
+            </p>
           </div>
         </div>
 
@@ -113,7 +114,7 @@ export default function ForgotPassword() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#c0c8de] mb-2">
-                Địa chỉ email
+                {t('auth.forgot.emailLabel')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-[#5a6278]" />
@@ -122,7 +123,7 @@ export default function ForgotPassword() {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={t('auth.forgot.emailPlaceholder')}
                   className="w-full h-12 pl-10 pr-4 border border-gray-200 dark:border-[#2b2f45] rounded-xl bg-gray-50 dark:bg-[#22263a] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white dark:focus:bg-[#2b2f45] transition-all"
                   disabled={isLoading}
                   required
@@ -136,14 +137,10 @@ export default function ForgotPassword() {
                 className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-700 dark:text-[#c0c8de] font-medium hover:bg-gray-50 dark:hover:bg-[#2b2f45] transition-colors inline-flex items-center justify-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Đăng nhập
+                {t('auth.forgot.login')}
               </Link>
-              <button
-                type="button"
-                onClick={goNextStep}
-                className="flex-1 h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
-              >
-                Tiếp tục
+              <button type="button" onClick={goNextStep} className="flex-1 h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+                {t('auth.forgot.continue')}
               </button>
             </div>
           </div>
@@ -152,9 +149,7 @@ export default function ForgotPassword() {
         {step === 2 && (
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#22263a] border border-gray-200 dark:border-[#2b2f45]">
-              <p className="text-sm text-gray-700 dark:text-[#7e89a6]">
-                Chúng tôi sẽ gửi liên kết đặt lại mật khẩu đến email:
-              </p>
+              <p className="text-sm text-gray-700 dark:text-[#7e89a6]">{t('auth.forgot.sendHint')}</p>
               <p className="text-base font-semibold text-gray-900 dark:text-[#edf0fa] mt-1">{email}</p>
             </div>
 
@@ -167,7 +162,7 @@ export default function ForgotPassword() {
                 }}
                 className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-700 dark:text-[#c0c8de] font-medium hover:bg-gray-50 dark:hover:bg-[#2b2f45] transition-colors"
               >
-                Chỉnh sửa email
+                {t('auth.forgot.editEmail')}
               </button>
               <button
                 type="button"
@@ -180,7 +175,7 @@ export default function ForgotPassword() {
                 }`}
               >
                 {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-                {isLoading ? 'Đang gửi...' : 'Gửi liên kết'}
+                {isLoading ? t('auth.forgot.sending') : t('auth.forgot.sendLink')}
               </button>
             </div>
           </div>
@@ -189,4 +184,3 @@ export default function ForgotPassword() {
     </AuthFrame>
   );
 }
-

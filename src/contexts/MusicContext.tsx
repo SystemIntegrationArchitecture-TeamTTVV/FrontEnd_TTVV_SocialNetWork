@@ -1,11 +1,14 @@
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
-interface Song {
+export interface Song {
   id: number;
   title: string;
   artist: string;
-  url: string;
+  /** Direct MP3/stream URL for the HTML audio element (omit if only SoundCloud). */
+  url?: string;
+  /** SoundCloud track page URL; playback uses the official embed widget. */
+  soundcloudUrl?: string;
   duration: string;
   cover?: string;
 }
@@ -22,6 +25,8 @@ interface MusicContextType {
   playlist: Song[];
   currentIndex: number;
   showMiniPlayer: boolean;
+  /** Tracks with only SoundCloud use the iframe player; HTML5 controls are skipped. */
+  isSoundCloudOnly: boolean;
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
@@ -44,8 +49,8 @@ const defaultPlaylist: Song[] = [
     title: 'Nơi Này Có Anh',
     artist: 'Sơn Tùng M-TP',
     duration: '4:27',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    cover: 'https://picsum.photos/seed/music1/400'
+    soundcloudUrl: 'https://soundcloud.com/trunghieumowo/noi-nao-co-anh-son-tung-mtp',
+    cover: 'https://picsum.photos/seed/music1/400',
   },
   {
     id: 2,
@@ -94,14 +99,31 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentSong = defaultPlaylist[currentIndex];
+  const isSoundCloudOnly = Boolean(currentSong.soundcloudUrl && !currentSong.url);
 
   useEffect(() => {
+    const song = defaultPlaylist[currentIndex];
+    const scOnly = Boolean(song.soundcloudUrl && !song.url);
+
     if (!audioRef.current) {
       audioRef.current = new Audio();
     }
 
     const audio = audioRef.current;
-    audio.src = currentSong.url;
+
+    if (scOnly) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      setProgress(0);
+      setDuration(0);
+      setIsPlaying(false);
+      return;
+    }
+
+    if (!song.url) return;
+
+    audio.src = song.url;
     audio.volume = isMuted ? 0 : volume;
 
     const updateProgress = () => {
@@ -140,6 +162,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   }, [volume, isMuted]);
 
   const play = () => {
+    if (isSoundCloudOnly) return;
     if (audioRef.current) {
       audioRef.current.play();
       setIsPlaying(true);
@@ -147,6 +170,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   };
 
   const pause = () => {
+    if (isSoundCloudOnly) return;
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -154,6 +178,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   };
 
   const togglePlay = () => {
+    if (isSoundCloudOnly) return;
     if (isPlaying) {
       pause();
     } else {
@@ -204,6 +229,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   };
 
   const seek = (time: number) => {
+    if (isSoundCloudOnly) return;
     if (audioRef.current) {
       audioRef.current.currentTime = time;
       setProgress(time);
@@ -224,6 +250,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         playlist: defaultPlaylist,
         currentIndex,
         showMiniPlayer,
+        isSoundCloudOnly,
         play,
         pause,
         togglePlay,

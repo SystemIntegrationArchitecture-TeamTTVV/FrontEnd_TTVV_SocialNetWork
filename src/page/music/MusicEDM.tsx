@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Music2, Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Shuffle, Repeat, Heart, ExternalLink } from 'lucide-react';
 import { useMusic } from '../../contexts/MusicContext';
+import { soundCloudWidgetSrc } from '../../utils/soundCloudPlayer';
 
 export default function MusicEDM() {
   const {
@@ -25,6 +26,7 @@ export default function MusicEDM() {
     toggleRepeat,
     seek,
     setShowMiniPlayer,
+    isSoundCloudOnly,
   } = useMusic();
 
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -105,81 +107,117 @@ export default function MusicEDM() {
               <p className="text-gray-600 truncate">{currentSong.artist}</p>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mb-6">
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={progress}
-                onChange={(e) => seek(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-lg"
-                style={{
-                  background: `linear-gradient(to right, #3B82F6 ${(progress / duration) * 100}%, #E5E7EB ${(progress / duration) * 100}%)`
-                }}
-              />
-              <div className="flex justify-between text-sm text-gray-500 mt-2">
-                <span>{formatTime(progress)}</span>
-                <span>{formatTime(duration)}</span>
+            {isSoundCloudOnly && currentSong.soundcloudUrl ? (
+              <div className="mb-2 space-y-3">
+                <p className="text-sm text-gray-600 text-center">
+                  Bài này phát qua SoundCloud (nhúng chính thức). Dùng nút trên khung bên dưới để play/pause.
+                </p>
+                <iframe
+                  title={`SoundCloud: ${currentSong.title}`}
+                  className="w-full rounded-xl border border-gray-200"
+                  height={360}
+                  src={soundCloudWidgetSrc(currentSong.soundcloudUrl, true)}
+                  allow="autoplay"
+                />
+                <div className="flex items-center justify-center gap-6 pt-2">
+                  <button
+                    type="button"
+                    onClick={previous}
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <SkipBack className="w-6 h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={next}
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <SkipForward className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 0}
+                    value={progress}
+                    onChange={(e) => seek(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-lg"
+                    style={{
+                      background: `linear-gradient(to right, #3B82F6 ${(progress / duration) * 100}%, #E5E7EB ${(progress / duration) * 100}%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-sm text-gray-500 mt-2">
+                    <span>{formatTime(progress)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
 
-            {/* Controls */}
-            <div className="flex items-center justify-center gap-6 mb-6">
-              <button
-                onClick={toggleShuffle}
-                className={`transition-colors ${shuffle ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <Shuffle className="w-5 h-5" />
-              </button>
-              <button
-                onClick={previous}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <SkipBack className="w-6 h-6" />
-              </button>
-              <button
-                onClick={togglePlay}
-                className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white hover:scale-105 transition-all shadow-lg"
-              >
-                {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
-              </button>
-              <button
-                onClick={next}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <SkipForward className="w-6 h-6" />
-              </button>
-              <button
-                onClick={toggleRepeat}
-                className={`transition-colors ${repeat ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <Repeat className="w-5 h-5" />
-              </button>
-            </div>
+                <div className="flex items-center justify-center gap-6 mb-6">
+                  <button
+                    type="button"
+                    onClick={toggleShuffle}
+                    className={`transition-colors ${shuffle ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <Shuffle className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={previous}
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <SkipBack className="w-6 h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={togglePlay}
+                    className="w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white hover:scale-105 transition-all shadow-lg"
+                  >
+                    {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={next}
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <SkipForward className="w-6 h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleRepeat}
+                    className={`transition-colors ${repeat ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <Repeat className="w-5 h-5" />
+                  </button>
+                </div>
 
-            {/* Volume Control */}
-            <div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-3">
-              <button
-                onClick={toggleMute}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="w-5 h-5" />
-                ) : (
-                  <Volume2 className="w-5 h-5" />
-                )}
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="flex-1 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500"
-              />
-            </div>
+                <div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={toggleMute}
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX className="w-5 h-5" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="flex-1 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
 

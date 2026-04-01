@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, X, Shuffle, Repeat, Heart, Music2 } from 'lucide-react';
+import { soundCloudWidgetSrc } from '../../utils/soundCloudPlayer';
 
 interface Song {
   id: number;
   title: string;
   artist: string;
-  url: string;
+  url?: string;
+  soundcloudUrl?: string;
   duration: string;
   cover?: string;
 }
@@ -16,8 +18,8 @@ const defaultPlaylist: Song[] = [
     title: 'Nơi Này Có Anh',
     artist: 'Sơn Tùng M-TP',
     duration: '4:27',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    cover: 'https://picsum.photos/seed/music1/400'
+    soundcloudUrl: 'https://soundcloud.com/trunghieumowo/noi-nao-co-anh-son-tung-mtp',
+    cover: 'https://picsum.photos/seed/music1/400',
   },
   {
     id: 2,
@@ -59,35 +61,83 @@ export default function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const currentSong = defaultPlaylist[currentSongIndex];
+  const isSoundCloudOnly = Boolean(currentSong.soundcloudUrl && !currentSong.url);
   const totalPlays = 1200;
+
+  const shuffleRef = useRef(shuffle);
+  const repeatRef = useRef(repeat);
+  const isPlayingRef = useRef(isPlaying);
+
+  useLayoutEffect(() => {
+    shuffleRef.current = shuffle;
+    repeatRef.current = repeat;
+    isPlayingRef.current = isPlaying;
+  });
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
+    const song = defaultPlaylist[currentSongIndex];
+    const scOnly = Boolean(song.soundcloudUrl && !song.url);
+
+    if (scOnly) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      setProgress(0);
+      setDuration(0);
+      setIsPlaying(false);
+      return;
+    }
+
+    if (!song.url) return;
+
+    audio.src = song.url;
 
     const updateProgress = () => {
       setProgress(audio.currentTime);
       setDuration(audio.duration);
     };
 
+    const onEnded = () => {
+      if (repeatRef.current) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      } else {
+        setCurrentSongIndex((prev) => {
+          if (shuffleRef.current) {
+            return Math.floor(Math.random() * defaultPlaylist.length);
+          }
+          return (prev + 1) % defaultPlaylist.length;
+        });
+        setIsPlaying(true);
+      }
+    };
+
     audio.addEventListener('timeupdate', updateProgress);
     audio.addEventListener('loadedmetadata', updateProgress);
-    audio.addEventListener('ended', handleNext);
+    audio.addEventListener('ended', onEnded);
+
+    if (isPlayingRef.current) {
+      audio.play().catch(() => {});
+    }
 
     return () => {
       audio.removeEventListener('timeupdate', updateProgress);
       audio.removeEventListener('loadedmetadata', updateProgress);
-      audio.removeEventListener('ended', handleNext);
+      audio.removeEventListener('ended', onEnded);
     };
-  }, [currentSongIndex]);
+  }, [currentSongIndex, repeat]);
 
   useEffect(() => {
-    if (audioRef.current) {
+    if (audioRef.current && !isSoundCloudOnly) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, isSoundCloudOnly]);
 
   const togglePlay = () => {
+    if (isSoundCloudOnly) return;
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -100,31 +150,24 @@ export default function MusicPlayer() {
 
   const handleNext = () => {
     if (shuffle) {
-      const randomIndex = Math.floor(Math.random() * defaultPlaylist.length);
-      setCurrentSongIndex(randomIndex);
+      setCurrentSongIndex(Math.floor(Math.random() * defaultPlaylist.length));
     } else {
       setCurrentSongIndex((prev) => (prev + 1) % defaultPlaylist.length);
     }
     setIsPlaying(true);
-    setTimeout(() => {
-      audioRef.current?.play();
-    }, 100);
   };
 
   const handlePrevious = () => {
     if (shuffle) {
-      const randomIndex = Math.floor(Math.random() * defaultPlaylist.length);
-      setCurrentSongIndex(randomIndex);
+      setCurrentSongIndex(Math.floor(Math.random() * defaultPlaylist.length));
     } else {
       setCurrentSongIndex((prev) => (prev - 1 + defaultPlaylist.length) % defaultPlaylist.length);
     }
     setIsPlaying(true);
-    setTimeout(() => {
-      audioRef.current?.play();
-    }, 100);
   };
 
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isSoundCloudOnly) return;
     const newTime = parseFloat(e.target.value);
     setProgress(newTime);
     if (audioRef.current) {
@@ -142,9 +185,6 @@ export default function MusicPlayer() {
   const selectSong = (index: number) => {
     setCurrentSongIndex(index);
     setIsPlaying(true);
-    setTimeout(() => {
-      audioRef.current?.play();
-    }, 100);
   };
 
   const toggleFavorite = (songId: number) => {
@@ -215,84 +255,120 @@ export default function MusicPlayer() {
               <p className="text-purple-200 text-lg truncate">{currentSong.artist}</p>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mb-8">
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={progress}
-                onChange={handleProgressChange}
-                className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg"
-                style={{
-                  background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(progress / duration) * 100}%, rgba(255,255,255,0.1) ${(progress / duration) * 100}%)`
-                }}
-              />
-              <div className="flex justify-between text-sm text-purple-200 mt-2">
-                <span>{formatTime(progress)}</span>
-                <span>{formatTime(duration)}</span>
+            {isSoundCloudOnly && currentSong.soundcloudUrl ? (
+              <div className="mb-6 space-y-4">
+                <p className="text-center text-sm text-purple-200">
+                  Phát qua SoundCloud — dùng điều khiển trong khung bên dưới.
+                </p>
+                <iframe
+                  title={`SoundCloud: ${currentSong.title}`}
+                  className="w-full rounded-2xl border border-white/10"
+                  height={360}
+                  src={soundCloudWidgetSrc(currentSong.soundcloudUrl, true)}
+                  allow="autoplay"
+                />
+                <div className="flex items-center justify-center gap-8">
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="text-white hover:text-purple-200 transition-colors"
+                  >
+                    <SkipBack className="w-7 h-7" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="text-white hover:text-purple-200 transition-colors"
+                  >
+                    <SkipForward className="w-7 h-7" />
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="mb-8">
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 0}
+                    value={progress}
+                    onChange={handleProgressChange}
+                    className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg"
+                    style={{
+                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(progress / duration) * 100}%, rgba(255,255,255,0.1) ${(progress / duration) * 100}%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-sm text-purple-200 mt-2">
+                    <span>{formatTime(progress)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
 
-            {/* Controls */}
-            <div className="flex items-center justify-center gap-6 mb-6">
-              <button
-                onClick={() => setShuffle(!shuffle)}
-                className={`transition-colors ${shuffle ? 'text-white' : 'text-white/50 hover:text-white'}`}
-              >
-                <Shuffle className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handlePrevious}
-                className="text-white hover:text-purple-200 transition-colors"
-              >
-                <SkipBack className="w-7 h-7" />
-              </button>
-              <button
-                onClick={togglePlay}
-                className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-purple-900 hover:scale-105 transition-transform shadow-2xl"
-              >
-                {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
-              </button>
-              <button
-                onClick={handleNext}
-                className="text-white hover:text-purple-200 transition-colors"
-              >
-                <SkipForward className="w-7 h-7" />
-              </button>
-              <button
-                onClick={() => setRepeat(!repeat)}
-                className={`transition-colors ${repeat ? 'text-white' : 'text-white/50 hover:text-white'}`}
-              >
-                <Repeat className="w-5 h-5" />
-              </button>
-            </div>
+                <div className="flex items-center justify-center gap-6 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setShuffle(!shuffle)}
+                    className={`transition-colors ${shuffle ? 'text-white' : 'text-white/50 hover:text-white'}`}
+                  >
+                    <Shuffle className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="text-white hover:text-purple-200 transition-colors"
+                  >
+                    <SkipBack className="w-7 h-7" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={togglePlay}
+                    className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-purple-900 hover:scale-105 transition-transform shadow-2xl"
+                  >
+                    {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="text-white hover:text-purple-200 transition-colors"
+                  >
+                    <SkipForward className="w-7 h-7" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRepeat(!repeat)}
+                    className={`transition-colors ${repeat ? 'text-white' : 'text-white/50 hover:text-white'}`}
+                  >
+                    <Repeat className="w-5 h-5" />
+                  </button>
+                </div>
 
-            {/* Volume Control */}
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full px-4 py-3">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="text-white hover:text-purple-200 transition-colors"
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="w-5 h-5" />
-                ) : (
-                  <Volume2 className="w-5 h-5" />
-                )}
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  setVolume(parseFloat(e.target.value));
-                  setIsMuted(false);
-                }}
-                className="flex-1 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-              />
-            </div>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="text-white hover:text-purple-200 transition-colors"
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX className="w-5 h-5" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => {
+                      setVolume(parseFloat(e.target.value));
+                      setIsMuted(false);
+                    }}
+                    className="flex-1 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -359,7 +435,7 @@ export default function MusicPlayer() {
         </div>
       </div>
 
-      <audio ref={audioRef} src={currentSong.url} />
+      <audio ref={audioRef} src={currentSong.url ?? undefined} />
     </div>
   );
 }
