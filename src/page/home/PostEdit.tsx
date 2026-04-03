@@ -1,8 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { X, Save, Image as ImageIcon, Globe, Users, Lock } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function PostEdit() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [content, setContent] = useState('Just finished an amazing hike! The view was breathtaking 🏔️');
@@ -18,7 +20,7 @@ export default function PostEdit() {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Chỉnh sửa bài viết</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('newsfeed.editPost')}</h2>
           <button
             onClick={() => navigate('/home')}
             className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
@@ -43,19 +45,19 @@ export default function PostEdit() {
               {privacy === 'public' && (
                 <>
                   <Globe className="w-4 h-4" />
-                  <span>Công khai</span>
+                  <span>{t('newsfeed.visibilityPublic')}</span>
                 </>
               )}
               {privacy === 'friends' && (
                 <>
                   <Users className="w-4 h-4" />
-                  <span>Bạn bè</span>
+                  <span>{t('newsfeed.visibilityFriends')}</span>
                 </>
               )}
               {privacy === 'onlyMe' && (
                 <>
                   <Lock className="w-4 h-4" />
-                  <span>Chỉ mình tôi</span>
+                  <span>{t('newsfeed.visibilityPrivate')}</span>
                 </>
               )}
             </button>
@@ -68,14 +70,14 @@ export default function PostEdit() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="w-full min-h-64 p-4 border-none focus:outline-none resize-none text-lg text-gray-900"
-            placeholder="Bạn đang nghĩ gì?"
+            placeholder={t('newsfeed.editPlaceholder')}
           />
         </div>
 
         {/* Actions */}
         <div className="p-6 border-t border-gray-200 space-y-4">
           <button className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-colors">
-            <span className="text-base font-semibold text-gray-900">Thêm vào bài viết</span>
+            <span className="text-base font-semibold text-gray-900">{t('newsfeed.addToPost')}</span>
             <div className="flex gap-2">
               <button className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
                 <ImageIcon className="w-5 h-5 text-green-600" />
@@ -88,7 +90,7 @@ export default function PostEdit() {
               onClick={() => navigate('/home')}
               className="flex-1 h-14 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg transition-colors"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -101,7 +103,7 @@ export default function PostEdit() {
             >
               <span className="flex items-center justify-center gap-2">
                 <Save className="w-5 h-5" />
-                Lưu thay đổi
+                {t('common.saveChanges')}
               </span>
             </button>
           </div>

@@ -155,7 +155,7 @@ export default function Profile() {
       const message =
         error instanceof Error
           ? error.message
-          : "Failed to send friend request";
+          : t("profilePage.actions.sendFriendRequestFailed");
       alert(message);
     } finally {
       setLoadingFriendRequest(false);
@@ -171,7 +171,7 @@ export default function Profile() {
       const message =
         error instanceof Error
           ? error.message
-          : "Failed to accept friend request";
+          : t("profilePage.actions.acceptFriendRequestFailed");
       alert(message);
     } finally {
       setLoadingFriendRequest(false);
@@ -187,7 +187,7 @@ export default function Profile() {
       const message =
         error instanceof Error
           ? error.message
-          : "Failed to reject friend request";
+          : t("profilePage.actions.rejectFriendRequestFailed");
       alert(message);
     } finally {
       setLoadingFriendRequest(false);
@@ -216,7 +216,7 @@ export default function Profile() {
     if (!file || !currentUser?.id) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("Kích thước ảnh không được vượt quá 5MB");
+      alert(t("profilePage.cover.maxSizeError"));
       return;
     }
 
@@ -236,17 +236,17 @@ export default function Profile() {
       const updatedUser = { ...currentUser, coverPhoto: uploadResponse.url };
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
-      alert("Cập nhật ảnh bìa thành công!");
+      alert(t("profilePage.cover.updateSuccess"));
     } catch (error) {
       console.error("Failed to upload cover photo:", error);
-      alert("Không thể tải ảnh bìa lên");
+      alert(t("profilePage.cover.updateFailed"));
     } finally {
       setUploadingCover(false);
     }
   };
 
   const displayUser = profileUser;
-  const displayName = displayUser?.fullName || "Loading...";
+  const displayName = displayUser?.fullName || t("common.loading");
   const displayAvatar = displayUser?.avatar || null;
   const displayInitials = displayName
     .split(" ")
@@ -285,7 +285,7 @@ export default function Profile() {
               ) : (
                 <Camera className="w-4 h-4" />
               )}
-              <span>{uploadingCover ? "Đang tải..." : "Sửa ảnh bìa"}</span>
+              <span>{uploadingCover ? t("common.loading") : t("profilePage.cover.edit")}</span>
             </button>
           </>
         )}
@@ -344,20 +344,20 @@ export default function Profile() {
               <h1 className="text-2xl font-semibold text-gray-900 mb-1">
                 {displayName}
               </h1>
-              <p className="text-sm text-gray-600">1,234 friends</p>
+              <p className="text-sm text-gray-600">{t("profilePage.friendsCount", { count: 1234 })}</p>
             </div>
           </div>
           {currentUser && currentUser.id === id && (
             <div className="flex gap-2 pb-1">
               <button className="h-10 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm">
                 <Plus className="w-4 h-4" />
-                <span>Add Story</span>
+                <span>{t("profilePage.actions.addStory")}</span>
               </button>
               <Link
                 to="/profile/edit"
                 className="h-10 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm"
               >
-                <span>Edit Profile</span>
+                <span>{t("profilePage.actions.editProfile")}</span>
               </Link>
             </div>
           )}
@@ -377,7 +377,7 @@ export default function Profile() {
                     className="h-10 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>Message</span>
+                    <span>{t("profilePage.actions.message")}</span>
                   </button>
 
                   {status === "none" && (
@@ -391,7 +391,7 @@ export default function Profile() {
                       ) : (
                         <UserPlus className="w-4 h-4" />
                       )}
-                      <span>Add Friend</span>
+                      <span>{t("profilePage.actions.addFriend")}</span>
                     </button>
                   )}
 
@@ -400,7 +400,7 @@ export default function Profile() {
                       disabled
                       className="h-10 px-4 bg-gray-200 text-gray-600 font-medium rounded-lg cursor-not-allowed flex items-center gap-2 text-sm"
                     >
-                      <span>Pending</span>
+                      <span>{t("profilePage.actions.pending")}</span>
                     </button>
                   )}
 
@@ -412,7 +412,7 @@ export default function Profile() {
                         className="h-10 px-4 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
                       >
                         <Check className="w-4 h-4" />
-                        <span>Accept</span>
+                        <span>{t("profilePage.actions.accept")}</span>
                       </button>
                       <button
                         onClick={() => handleRejectFriendRequest(requestId)}
@@ -420,7 +420,7 @@ export default function Profile() {
                         className="h-10 px-4 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
                       >
                         <X className="w-4 h-4" />
-                        <span>Reject</span>
+                        <span>{t("profilePage.actions.reject")}</span>
                       </button>
                     </div>
                   )}
@@ -431,7 +431,7 @@ export default function Profile() {
                       className="h-10 px-4 bg-green-100 text-green-700 font-medium rounded-lg cursor-not-allowed flex items-center gap-2 text-sm"
                     >
                       <Check className="w-4 h-4" />
-                      <span>Friends</span>
+                      <span>{t("profilePage.actions.friends")}</span>
                     </button>
                   )}
                 </div>
@@ -442,11 +442,11 @@ export default function Profile() {
         {/* Tabs */}
         <div className="flex items-center gap-1 border-t border-gray-200 pt-3 overflow-x-auto scrollbar-hide">
           {[
-            { id: "posts", label: "Posts" },
-            { id: "about", label: "About" },
-            { id: "friends", label: "Friends" },
-            { id: "photos", label: "Photos" },
-            { id: "videos", label: "Videos" },
+            { id: "posts", label: t("profilePage.tabs.posts") },
+            { id: "about", label: t("profilePage.tabs.about") },
+            { id: "friends", label: t("profilePage.tabs.friends") },
+            { id: "photos", label: t("profilePage.tabs.photos") },
+            { id: "videos", label: t("profilePage.tabs.videos") },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -472,9 +472,7 @@ export default function Profile() {
         <div className="lg:col-span-2 space-y-4">
           {activeTab === "posts" && (
             <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">
-                No posts to show
-              </p>
+              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.emptyPosts")}</p>
             </div>
           )}
 
@@ -484,25 +482,19 @@ export default function Profile() {
 
           {activeTab === "friends" && (
             <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">
-                Friends list coming soon
-              </p>
+              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.friendsComingSoon")}</p>
             </div>
           )}
 
           {activeTab === "photos" && (
             <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">
-                Photos coming soon
-              </p>
+              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.photosComingSoon")}</p>
             </div>
           )}
 
           {activeTab === "videos" && (
             <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">
-                Videos coming soon
-              </p>
+              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.videosComingSoon")}</p>
             </div>
           )}
         </div>
@@ -511,7 +503,7 @@ export default function Profile() {
         <div className="space-y-4">
           {/* Intro Card */}
           <div className="bg-white rounded-2xl p-4 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3 text-sm">Intro</h3>
+            <h3 className="font-semibold text-gray-900 mb-3 text-sm">{t("profilePage.introTitle")}</h3>
             <div className="space-y-2 text-xs text-gray-600">
               {displayUser?.bio && (
                 <p className="text-sm mb-3">{displayUser.bio}</p>
@@ -521,7 +513,7 @@ export default function Profile() {
                 <p className="flex items-center gap-2">
                   <span className="text-base">💼</span>
                   <span>
-                    Làm việc tại <strong>{displayUser.workPlace}</strong>
+                    {t("profilePage.workAt")} <strong>{displayUser.workPlace}</strong>
                   </span>
                 </p>
               )}
@@ -530,7 +522,7 @@ export default function Profile() {
                 <p className="flex items-center gap-2">
                   <span className="text-base">🎓</span>
                   <span>
-                    Học tại <strong>{displayUser.education}</strong>
+                    {t("profilePage.studiedAt")} <strong>{displayUser.education}</strong>
                   </span>
                 </p>
               )}
@@ -539,7 +531,7 @@ export default function Profile() {
                 <p className="flex items-center gap-2">
                   <span className="text-base">📍</span>
                   <span>
-                    Sống tại{" "}
+                    {t("profilePage.livesIn")}{" "}
                     <strong>
                       {[displayUser.city, displayUser.country]
                         .filter(Boolean)
@@ -586,7 +578,7 @@ export default function Profile() {
                 <div className="pt-2 border-t border-gray-100">
                   <p className="flex items-center gap-2 mb-2">
                     <span className="text-base">⭐</span>
-                    <strong>Sở thích:</strong>
+                    <strong>{t("profilePage.interestsLabel")}</strong>
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {displayUser.interests.map((interest, index) => (
@@ -607,14 +599,14 @@ export default function Profile() {
                 to="/profile/edit"
                 className="w-full h-9 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm mt-3 flex items-center justify-center"
               >
-                Edit Details
+                {t("profilePage.actions.editDetails")}
               </Link>
             )}
           </div>
 
           {/* Photos Card */}
           <div className="bg-white rounded-2xl p-4 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3 text-sm">Photos</h3>
+            <h3 className="font-semibold text-gray-900 mb-3 text-sm">{t("profilePage.photosTitle")}</h3>
             <div className="grid grid-cols-3 gap-2 mb-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
@@ -627,7 +619,7 @@ export default function Profile() {
               to={`/profile/${id}/photos`}
               className="block text-center text-blue-600 text-xs font-medium hover:underline"
             >
-              See All Photos
+              {t("profilePage.seeAllPhotos")}
             </Link>
           </div>
         </div>

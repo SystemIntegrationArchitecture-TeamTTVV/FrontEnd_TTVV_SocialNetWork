@@ -295,7 +295,7 @@ export default function CallWindow({
             <button
               onClick={toggleMute}
               className={`w-14 h-14 rounded-full ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} flex items-center justify-center text-white transition-all shadow-lg`}
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
+              aria-label={isMuted ? t('calls.unmute') : t('calls.mute')}
             >
               {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
             </button>
@@ -304,7 +304,7 @@ export default function CallWindow({
               <button
                 onClick={toggleVideo}
                 className={`w-14 h-14 rounded-full ${isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} flex items-center justify-center text-white transition-all shadow-lg`}
-                aria-label={isVideoOff ? 'Turn on video' : 'Turn off video'}
+                aria-label={isVideoOff ? t('calls.turnOnVideo') : t('calls.turnOffVideo')}
               >
                 {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
               </button>
@@ -313,7 +313,7 @@ export default function CallWindow({
             <button
               onClick={onEnd}
               className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all shadow-lg transform hover:scale-105"
-              aria-label="End call"
+              aria-label={t('calls.endCall')}
             >
               <PhoneOff className="w-8 h-8" />
             </button>

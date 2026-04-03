@@ -3,6 +3,7 @@ import { X, Image as ImageIcon, Video, Type, Upload, Loader2 } from 'lucide-reac
 import { authApi } from '../../apis/auth';
 import { storiesApi } from '../../apis/storiesApi';
 import { uploadApi } from '../../apis/upload';
+import { useTranslation } from 'react-i18next';
 
 interface CreateStoryProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const backgroundColors = [
 ];
 
 export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateStoryProps) {
+  const { t } = useTranslation();
   const currentUser = authApi.getCurrentUser();
   const [storyType, setStoryType] = useState<'text' | 'image' | 'video'>('image');
   const [text, setText] = useState('');
@@ -43,7 +45,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
     const isVideo = file.type.startsWith('video/');
     
     if (!isImage && !isVideo) {
-      alert('Please select an image or video file');
+      alert(t('storyModal.pickMediaLeft'));
       return;
     }
 
@@ -63,11 +65,11 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
 
     // Validate: must have either text or media
     if (storyType === 'text' && !text.trim()) {
-      alert('Please enter some text for your story');
+      alert(t('storyModal.thinking'));
       return;
     }
     if ((storyType === 'image' || storyType === 'video') && !mediaFile) {
-      alert('Please select a file');
+      alert(t('storyModal.chooseMedia'));
       return;
     }
 
@@ -102,7 +104,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
       onClose();
     } catch (error) {
       console.error('Failed to create story:', error);
-      alert('Failed to create story. Please try again.');
+      alert(t('storyModal.createFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -120,7 +122,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Create Story</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('storyModal.create')}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -142,7 +144,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
               }`}
             >
               <ImageIcon className="w-5 h-5 inline mr-2" />
-              Image
+              {t('storyModal.imageTab')}
             </button>
             <button
               onClick={() => setStoryType('video')}
@@ -153,7 +155,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
               }`}
             >
               <Video className="w-5 h-5 inline mr-2" />
-              Video
+              {t('storyModal.videoTab')}
             </button>
             <button
               onClick={() => setStoryType('text')}
@@ -164,7 +166,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
               }`}
             >
               <Type className="w-5 h-5 inline mr-2" />
-              Text
+              {t('storyModal.textTab')}
             </button>
           </div>
 
@@ -185,7 +187,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Type your story..."
+                  placeholder={t('storyModal.storyInputPlaceholder')}
                   className="w-full bg-transparent border-none outline-none text-white text-2xl font-bold text-center resize-none placeholder-white placeholder-opacity-70"
                   rows={5}
                   maxLength={200}
@@ -194,7 +196,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
               
               {/* Background Color Selector */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Background</label>
+                <label className="block text-sm font-medium text-gray-700">{t('storyModal.backgroundColor')}</label>
                 <div className="grid grid-cols-4 gap-2">
                   {backgroundColors.map((bg, index) => (
                     <button
@@ -223,16 +225,18 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
                 >
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600 font-medium">
-                    Click to upload {storyType === 'image' ? 'an image' : 'a video'}
+                    {t('storyModal.uploadPrompt', {
+                      media: storyType === 'image' ? t('storyModal.imageTab').toLowerCase() : t('storyModal.videoTab').toLowerCase(),
+                    })}
                   </p>
                   <p className="text-sm text-gray-400 mt-1">
-                    {storyType === 'image' ? 'JPG, PNG, GIF' : 'MP4, MOV, AVI'} (max 100MB)
+                    {storyType === 'image' ? 'JPG, PNG, GIF' : 'MP4, MOV, AVI'} ({t('storyModal.maxSizeHint')})
                   </p>
                 </div>
               ) : (
                 <div className="relative rounded-xl overflow-hidden bg-black">
                   {storyType === 'image' ? (
-                    <img src={mediaPreview} alt="Story preview" className="w-full h-auto max-h-96 object-contain mx-auto" />
+                    <img src={mediaPreview} alt={t('storyModal.preview')} className="w-full h-auto max-h-96 object-contain mx-auto" />
                   ) : (
                     <video src={mediaPreview} controls className="w-full h-auto max-h-96 mx-auto" />
                   )}
@@ -261,14 +265,18 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
           {/* Visibility Selector */}
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
-              <p className="font-medium text-gray-900">Story Visibility</p>
-              <p className="text-sm text-gray-500">Who can see this story?</p>
+              <p className="font-medium text-gray-900">{t('storyModal.visibilityTitle')}</p>
+              <p className="text-sm text-gray-500">{t('storyModal.visibilityHint')}</p>
             </div>
             <button
               onClick={cycleVisibility}
               className="px-4 py-2 bg-white border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              {visibility === 'PUBLIC' ? '🌍 Public' : visibility === 'FRIENDS' ? '👥 Friends' : '🔒 Only Me'}
+              {visibility === 'PUBLIC'
+                ? t('storyModal.visibilityPublic')
+                : visibility === 'FRIENDS'
+                  ? t('storyModal.visibilityFriends')
+                  : t('storyModal.visibilityOnlyMe')}
             </button>
           </div>
         </div>
@@ -280,7 +288,7 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
             disabled={isUploading}
             className="flex-1 py-3 px-6 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -290,10 +298,10 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
             {isUploading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Uploading...
+                {t('storyModal.uploading')}
               </>
             ) : (
-              'Share Story'
+              t('storyModal.shareStory')
             )}
           </button>
         </div>

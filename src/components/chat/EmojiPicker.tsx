@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Smile } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
@@ -13,6 +14,7 @@ const EMOJI_CATEGORIES = {
 };
 
 export default function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<keyof typeof EMOJI_CATEGORIES>('Smileys');
 
@@ -27,7 +29,7 @@ export default function EmojiPicker({ onEmojiSelect }: EmojiPickerProps) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Emoji"
+        title={t('messenger.emojiPicker.title')}
       >
         <Smile className="w-5 h-5" />
       </button>

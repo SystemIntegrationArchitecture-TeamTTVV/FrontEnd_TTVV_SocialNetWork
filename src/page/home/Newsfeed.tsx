@@ -535,7 +535,7 @@ export default function Newsfeed() {
         setEditVisibility(normalizeVisibility(post.visibility));
       }
     } else if (action === 'delete') {
-      if (window.confirm('Are you sure you want to delete this post?')) {
+      if (window.confirm(t('newsfeed.confirmDeletePost'))) {
         try {
           setIsDeleting(postId);
           await postsApi.deletePost(postId);
@@ -543,7 +543,7 @@ export default function Newsfeed() {
           console.log('✅ Post deleted successfully');
         } catch (error) {
           console.error('❌ Failed to delete post:', error);
-          showToast('Failed to delete post. Please try again.', 'error');
+          showToast(t('newsfeed.deletePostFailed'), 'error');
         } finally {
           setIsDeleting(null);
         }
@@ -562,7 +562,7 @@ export default function Newsfeed() {
 
   const handleUpdatePost = async (postId: string) => {
     if (!editContent.trim()) {
-      showToast('Post content cannot be empty', 'info');
+      showToast(t('newsfeed.postContentEmpty'), 'info');
       return;
     }
 
@@ -587,7 +587,7 @@ export default function Newsfeed() {
       const msg =
         error instanceof HttpError
           ? error.data?.message || error.message
-          : 'Failed to update post. Please try again.';
+            : t('newsfeed.updatePostFailed');
       showToast(msg, "error");
     }
   };
@@ -659,7 +659,7 @@ export default function Newsfeed() {
           )}
           {loadingStories && (
             <div className="flex items-center justify-center w-full h-48 text-gray-500">
-              Đang tải stories...
+              {t('newsfeed.loadingStories')}
             </div>
           )}
           {/* Friends Stories */}
@@ -978,14 +978,14 @@ export default function Newsfeed() {
                             className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                           >
                             <Edit className="w-[18px] h-[18px] text-gray-500" />
-                            <span className="text-gray-800 text-[15px] font-medium">Chỉnh sửa</span>
+                            <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuEdit')}</span>
                           </button>
                           <button
                             onClick={() => handlePostAction(post.id!, 'delete')}
                             className="w-full px-4 py-2.5 hover:bg-red-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                           >
                             <Trash2 className="w-[18px] h-[18px] text-red-500" />
-                            <span className="text-red-500 text-[15px] font-medium">Xóa bài viết</span>
+                            <span className="text-red-500 text-[15px] font-medium">{t('newsfeed.menuDeletePost')}</span>
                           </button>
                           <div className="h-px bg-gray-100 my-1.5 mx-3" />
                         </>
@@ -995,21 +995,21 @@ export default function Newsfeed() {
                         className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                       >
                         <Bookmark className="w-[18px] h-[18px] text-gray-500" />
-                        <span className="text-gray-800 text-[15px] font-medium">Lưu bài viết</span>
+                        <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuSavePost')}</span>
                       </button>
                       <button
                         onClick={() => handlePostAction(post.id!, 'hide')}
                         className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                       >
                         <EyeOff className="w-[18px] h-[18px] text-gray-500" />
-                        <span className="text-gray-800 text-[15px] font-medium">Ẩn bài viết</span>
+                        <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuHidePost')}</span>
                       </button>
                       <button
                         onClick={() => handlePostAction(post.id!, 'report')}
                         className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
                       >
                         <Flag className="w-[18px] h-[18px] text-gray-500" />
-                        <span className="text-gray-800 text-[15px] font-medium">Báo cáo</span>
+                        <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuReport')}</span>
                       </button>
                     </div>
                   )}
@@ -1026,9 +1026,9 @@ export default function Newsfeed() {
                         onChange={(e) => setEditVisibility(e.target.value as 'PUBLIC' | 'FRIENDS' | 'PRIVATE')}
                         className="h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="PUBLIC">Công khai</option>
-                        <option value="FRIENDS">Bạn bè</option>
-                        <option value="PRIVATE">Riêng tư</option>
+                        <option value="PUBLIC">{t('newsfeed.visibilityPublic')}</option>
+                        <option value="FRIENDS">{t('newsfeed.visibilityFriends')}</option>
+                        <option value="PRIVATE">{t('newsfeed.visibilityPrivate')}</option>
                       </select>
                     </div>
                     <textarea
@@ -1043,14 +1043,14 @@ export default function Newsfeed() {
                         onClick={handleCancelEdit}
                         className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
                       >
-                        Hủy
+                        {t('common.cancel')}
                       </button>
                       <button
                         onClick={() => handleUpdatePost(post.id!)}
                         disabled={!editContent.trim()}
                         className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Lưu thay đổi
+                        {t('common.saveChanges')}
                       </button>
                     </div>
                   </div>
@@ -1141,7 +1141,7 @@ export default function Newsfeed() {
                       className="w-full max-h-[600px] bg-black"
                       preload="metadata"
                     >
-                      Your browser does not support the video tag.
+                      {t('newsfeed.videoNotSupported')}
                     </video>
                   ))}
                 </div>
@@ -1151,12 +1151,12 @@ export default function Newsfeed() {
               <div className="px-5 pb-3">
                 <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-medium">{post.likeCount || 0} lượt thích</span>
+                    <span className="font-medium">{t('newsfeed.statsLikes', { count: post.likeCount || 0 })}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-400">
-                    <span className="font-medium">{post.commentCount || 0} bình luận</span>
+                    <span className="font-medium">{t('newsfeed.statsComments', { count: post.commentCount || 0 })}</span>
                     <span>·</span>
-                    <span className="font-medium">{post.shareCount || 0} chia sẻ</span>
+                    <span className="font-medium">{t('newsfeed.statsShares', { count: post.shareCount || 0 })}</span>
                   </div>
                 </div>
 
@@ -1185,14 +1185,14 @@ export default function Newsfeed() {
                       }`}
                   >
                     <MessageCircle className={`w-5 h-5 ${isCommentsExpanded ? 'text-blue-600' : 'text-gray-500'}`} />
-                    <span className="text-[15px] font-medium">Bình luận</span>
+                    <span className="text-[15px] font-medium">{t('newsfeed.actionComment')}</span>
                   </button>
                   <button
                     onClick={() => currentUser ? nav(`/post/${post.id}/share`) : requestLogin()}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl hover:bg-gray-50 transition-all group"
                   >
                     <Share2 className="w-5 h-5 text-gray-500 group-hover:text-green-600 transition-colors" />
-                    <span className="text-[15px] text-gray-600 font-medium group-hover:text-green-600">Chia sẻ</span>
+                    <span className="text-[15px] text-gray-600 font-medium group-hover:text-green-600">{t('newsfeed.actionShare')}</span>
                   </button>
                 </div>
 

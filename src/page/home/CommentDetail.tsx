@@ -1,7 +1,9 @@
 import { Send, Heart, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function CommentDetail() {
+  const { t } = useTranslation();
   const [comment, setComment] = useState('');
 
   const comments = [
@@ -39,7 +41,7 @@ export default function CommentDetail() {
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Bình luận</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('newsfeed.actionComment')}</h1>
       </div>
 
       {/* Post */}
@@ -93,7 +95,7 @@ export default function CommentDetail() {
                     <span className="text-sm font-semibold">{c.likes}</span>
                   </button>
                   <button className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                    Phản hồi
+                    {t('groupComments.reply')}
                   </button>
                   <span className="text-sm text-gray-500">{c.time}</span>
                 </div>
@@ -114,7 +116,7 @@ export default function CommentDetail() {
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Viết bình luận..."
+            placeholder={t('newsfeed.commentPlaceholder')}
             className="flex-1 h-14 px-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
           />
           <button
