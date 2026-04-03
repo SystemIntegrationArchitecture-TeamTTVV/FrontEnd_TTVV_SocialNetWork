@@ -271,7 +271,7 @@ export default function MusicEDM() {
           
           {/* Playlist */}
           <div
-            className="mb-6 max-h-[30rem] flex-1 space-y-2 overflow-y-auto pr-1
+            className="mb-6 max-h-120 flex-1 space-y-2 overflow-y-auto pr-1
             [scrollbar-width:thin] [scrollbar-color:#93c5fd_transparent]
             [&::-webkit-scrollbar]:w-1.5
             [&::-webkit-scrollbar-track]:bg-transparent

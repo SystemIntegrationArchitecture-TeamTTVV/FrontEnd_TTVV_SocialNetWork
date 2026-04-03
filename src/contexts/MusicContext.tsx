@@ -64,38 +64,6 @@ const defaultPlaylist: Song[] = [
     cover: 'https://picsum.photos/seed/music1/400',
   },
   {
-    id: 2,
-    title: 'Em Của Ngày Hôm Qua',
-    artist: 'Sơn Tùng M-TP',
-    duration: '3:45',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    cover: 'https://picsum.photos/seed/music2/400'
-  },
-  {
-    id: 3,
-    title: 'Lạc Trôi',
-    artist: 'Sơn Tùng M-TP',
-    duration: '4:01',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    cover: 'https://picsum.photos/seed/music3/400'
-  },
-  {
-    id: 4,
-    title: 'Chúng Ta Của Hiện Tại',
-    artist: 'Sơn Tùng M-TP',
-    duration: '3:55',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-    cover: 'https://picsum.photos/seed/music4/400'
-  },
-  {
-    id: 5,
-    title: 'Hãy Trao Cho Anh',
-    artist: 'Sơn Tùng M-TP',
-    duration: '4:15',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-    cover: 'https://picsum.photos/seed/music5/400'
-  },
-  {
     id: 6,
     title: 'Nonstop Thang 4 La Loi Noi Doi Cua Em',
     artist: 'Tho Melody',
