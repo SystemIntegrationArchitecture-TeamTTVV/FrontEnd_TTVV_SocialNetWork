@@ -185,6 +185,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(0);
       setDuration(0);
       setIsPlaying(false);
@@ -206,7 +207,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         audio.currentTime = 0;
         audio.play();
       } else {
-        next();
+        if (shuffle) {
+          const randomIndex = Math.floor(Math.random() * defaultPlaylist.length);
+          setCurrentIndex(randomIndex);
+        } else {
+          setCurrentIndex((prev) => (prev + 1) % defaultPlaylist.length);
+        }
+        setIsPlaying(true);
       }
     };
 
@@ -223,7 +230,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('loadedmetadata', updateProgress);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [currentIndex, repeat]);
+  }, [currentIndex, isMuted, isPlaying, repeat, shuffle, volume]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -340,6 +347,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useMusic() {
   const context = useContext(MusicContext);
   if (context === undefined) {

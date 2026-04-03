@@ -391,7 +391,10 @@
       "changeEmoji": "Change emoji",
       "changeName": "Change name",
       "photosVideos": "Photos & videos",
-      "seeAll": "See all"
+      "seeAll": "See all",
+      "privacySupport": "Privacy & support",
+      "disappearingMessages": "Disappearing messages",
+      "searchInConversation": "Search in conversation"
     },
     "groupChat": {
       "mockGroupName": "Project group",

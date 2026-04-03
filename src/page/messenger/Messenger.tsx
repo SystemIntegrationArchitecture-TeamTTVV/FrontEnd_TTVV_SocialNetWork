@@ -1016,7 +1016,7 @@ export default function Messenger() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 text-lg truncate">{activeConversation.name}</p>
                 {activeConversation.online && (
-                  <p className="text-sm text-green-500 font-medium">● Active now</p>
+                  <p className="text-sm text-green-500 font-medium">{t('messenger.activeNow')}</p>
                 )}
               </div>
             </div>
@@ -1605,7 +1605,7 @@ export default function Messenger() {
               className={`w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
                 showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
-              title="Emoji"
+              title={t('messenger.emojiPicker.title')}
               disabled={uploadingFiles}
             >
               <Smile className="w-4 h-4 md:w-5 md:h-5" />
@@ -1615,7 +1615,7 @@ export default function Messenger() {
                 onClick={handleSendMessage}
                 disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim())}
                 className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all shrink-0 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Send"
+                title={t('messenger.send')}
               >
                 {isAiLoading ? (
                   <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1991,11 +1991,11 @@ export default function Messenger() {
 
           {/* Privacy & Support */}
           <div>
-            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">Privacy & Support</h4>
+            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.privacySupport')}</h4>
             <div className="space-y-1.5">
               <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
                 <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>Disappearing Messages</span>
+                <span>{t('messenger.groupPanel.disappearingMessages')}</span>
               </button>
               <button 
                 onClick={() => {
@@ -2005,7 +2005,7 @@ export default function Messenger() {
                 className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3"
               >
                 <SearchIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>Search in Conversation</span>
+                <span>{t('messenger.groupPanel.searchInConversation')}</span>
               </button>
             </div>
           </div>

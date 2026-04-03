@@ -391,7 +391,10 @@
       "changeEmoji": "Đổi emoji",
       "changeName": "Đổi tên",
       "photosVideos": "Ảnh & video",
-      "seeAll": "Xem tất cả"
+      "seeAll": "Xem tất cả",
+      "privacySupport": "Quyền riêng tư & hỗ trợ",
+      "disappearingMessages": "Tin nhắn tự biến mất",
+      "searchInConversation": "Tìm trong cuộc trò chuyện"
     },
     "groupChat": {
       "mockGroupName": "Nhóm dự án",

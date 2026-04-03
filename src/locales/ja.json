@@ -391,7 +391,10 @@
       "changeEmoji": "絵文字を変更",
       "changeName": "名前を変更",
       "photosVideos": "写真と動画",
-      "seeAll": "すべて表示"
+      "seeAll": "すべて表示",
+      "privacySupport": "プライバシーとサポート",
+      "disappearingMessages": "消えるメッセージ",
+      "searchInConversation": "会話内を検索"
     },
     "groupChat": {
       "mockGroupName": "プロジェクトグループ",
