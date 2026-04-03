@@ -16,6 +16,7 @@ interface Props {
 }
 
 export default function CreateGroupModal({ userId, onClose, onCreated }: Props) {
+    const { t } = useTranslation();
     const [name, setName] = useState("");
     const [friends, setFriends] = useState<Friend[]>([]);
     const [selected, setSelected] = useState<string[]>([]);
@@ -390,7 +391,7 @@ const handleCreate = async () => {
                             />
                         </div>
                         {/* Privacy selection */}
-                        <div className="cgm-label">Group Type</div>
+                        <div className="cgm-label">{t("groupPage.createGroupType")}</div>
                         <div className="flex gap-3 mb-4">
                             <button
                                 type="button"
@@ -400,7 +401,7 @@ const handleCreate = async () => {
                                     }`}
                                 onClick={() => setPrivacy('PUBLIC')}
                             >
-                                Public
+                                {t("groupPage.createPublic")}
                             </button>
                             <button
                                 type="button"
@@ -410,7 +411,7 @@ const handleCreate = async () => {
                                     }`}
                                 onClick={() => setPrivacy('PRIVATE')}
                             >
-                                Private
+                                {t("groupPage.createPrivate")}
                             </button>
                         </div>
                         {/* Friends list */}
