@@ -8,6 +8,7 @@ import { friendRequestsApi } from '../../apis/friendRequests';
 import { conversationsApi } from '../../apis/conversations';
 import { usersApi } from '../../apis/users';
 import { groupsApi } from '../../apis/groupsApi';
+import { useTranslation } from 'react-i18next';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -32,17 +33,6 @@ const getNotificationIcon = (type: string) => {
     default:
       return Tag;
   }
-};
-
-const formatTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  return `${Math.floor(diffInSeconds / 86400)}d ago`;
 };
 
 const generateColor = (str: string): string => {
@@ -76,6 +66,17 @@ interface JoinRequestItem {
 }
 
 export default function NotificationDropdown({ isOpen, onClose, onNotificationRead }: NotificationDropdownProps) {
+  const { t } = useTranslation();
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return t('notificationDropdown.timeSeconds', { count: diffInSeconds });
+    if (diffInSeconds < 3600) return t('notificationDropdown.timeMinutes', { count: Math.floor(diffInSeconds / 60) });
+    if (diffInSeconds < 86400) return t('notificationDropdown.timeHours', { count: Math.floor(diffInSeconds / 3600) });
+    return t('notificationDropdown.timeDays', { count: Math.floor(diffInSeconds / 86400) });
+  };
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const currentUser = authApi.getCurrentUser();
@@ -136,7 +137,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                   id: `${conv.id}-${requesterId}`,
                   type: 'JOIN_REQUEST',
                   conversationId: conv.id,
-                  conversationName: conv.groupName || 'Group Chat',
+                conversationName: conv.groupName || t('notificationDropdown.groupChat'),
                   requesterId,
                   requesterName: requester.fullName || requester.username || requesterId,
                   requesterAvatar: requester.avatar,
@@ -150,7 +151,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                   id: `${conv.id}-${requesterId}`,
                   type: 'JOIN_REQUEST',
                   conversationId: conv.id,
-                  conversationName: conv.groupName || 'Group Chat',
+                  conversationName: conv.groupName || t('notificationDropdown.groupChat'),
                   requesterId,
                   requesterName: requesterId,
                   createdAt: new Date().toISOString(),
@@ -201,7 +202,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
           usersApi.getUserById(requesterId).catch(() => null),
         ]).then(([conv, requester]) => {
           if (conv && conv.isGroup && conv.approvalsRequired) {
-            const conversationName = conv.groupName || 'Group Chat';
+            const conversationName = conv.groupName || t('notificationDropdown.groupChat');
             const requesterName = requester?.fullName || requester?.username || requesterId;
             const requesterAvatar = requester?.avatar;
             
@@ -283,7 +284,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       onNotificationRead?.();
     } catch (error) {
       console.error('Failed to accept join request:', error);
-      alert('Không thể chấp nhận yêu cầu tham gia');
+      alert(t('notificationDropdown.acceptJoinError'));
     }
   };
 
@@ -300,7 +301,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       onNotificationRead?.();
     } catch (error) {
       console.error('Failed to reject join request:', error);
-      alert('Không thể từ chối yêu cầu tham gia');
+      alert(t('notificationDropdown.rejectJoinError'));
     }
   };
 
@@ -352,7 +353,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       if (errorMessage.includes('Not Found') || errorMessage.includes('not found')) {
         setNotifications((prev) => prev.filter(n => n.id !== notification.id));
       } else {
-        alert('Failed to accept friend request');
+        alert(t('notificationDropdown.acceptFriendError'));
       }
     }
   };
@@ -377,7 +378,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       if (errorMessage.includes('Not Found') || errorMessage.includes('not found')) {
         setNotifications((prev) => prev.filter(n => n.id !== notification.id));
       } else {
-        alert('Failed to reject friend request');
+        alert(t('notificationDropdown.rejectFriendError'));
       }
     }
   };
@@ -394,7 +395,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       onNotificationRead?.();
     } catch (error) {
       console.error('Failed to accept group invite:', error);
-      alert('Không thể chấp nhận lời mời vào nhóm');
+      alert(t('notificationDropdown.acceptGroupError'));
     }
   };
 
@@ -410,7 +411,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       onNotificationRead?.();
     } catch (error) {
       console.error('Failed to reject group invite:', error);
-      alert('Không thể từ chối lời mời vào nhóm');
+      alert(t('notificationDropdown.rejectGroupError'));
     }
   };
 
@@ -470,14 +471,14 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
     >
       {/* Header */}
       <div className="flex items-center justify-between p-5 border-b border-gray-100/80">
-        <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{t('notificationDropdown.title')}</h3>
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
             <button 
               onClick={handleMarkAllRead}
               className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
             >
-              Mark all read
+              {t('notificationDropdown.markAllRead')}
             </button>
           )}
           <button
@@ -493,11 +494,11 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
       <div className="overflow-y-auto flex-1">
         {loading ? (
           <div className="p-10 text-center text-gray-400">
-            <p className="text-base">Loading...</p>
+            <p className="text-base">{t('common.loading')}</p>
           </div>
         ) : allItems.length === 0 ? (
           <div className="p-10 text-center text-gray-400">
-            <p className="text-base">No notifications</p>
+            <p className="text-base">{t('notificationDropdown.empty')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
@@ -539,7 +540,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                       <div className="flex-1 min-w-0">
                         <p className="text-base text-gray-900 leading-relaxed">
                           <span className="font-semibold">{joinRequest.requesterName}</span>{' '}
-                          <span className="text-gray-600">muốn tham gia nhóm</span>{' '}
+                          <span className="text-gray-600">{t('notificationDropdown.wantsJoinGroup')}</span>{' '}
                           <span className="font-semibold text-gray-900">{joinRequest.conversationName}</span>
                         </p>
                         <p className="text-sm text-gray-400 mt-1">
@@ -558,7 +559,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                               className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
                             >
                               <Check className="w-3 h-3" />
-                              Chấp nhận
+                              {t('notificationDropdown.accept')}
                             </button>
                             <button
                               type="button"
@@ -570,7 +571,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                               }}
                               className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
                             >
-                              Từ chối
+                              {t('notificationDropdown.reject')}
                             </button>
                           </div>
                         )}
@@ -586,7 +587,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
               // Handle regular NotificationData
               const notification = item as NotificationData;
               const Icon = getNotificationIcon(notification.type);
-              const actorName = notification.actorName || 'Someone';
+              const actorName = notification.actorName || t('notificationDropdown.someone');
               const actorAvatar = notification.actorAvatar;
               const avatarColor = generateColor(notification.actorId || '');
               const initials = getInitials(actorName);
@@ -640,7 +641,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                             className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
                           >
                             <Check className="w-3 h-3" />
-                            Accept
+                            {t('notificationDropdown.accept')}
                           </button>
                           <button
                             type="button"
@@ -652,7 +653,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                             }}
                             className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
                           >
-                            Delete
+                            {t('notificationDropdown.delete')}
                           </button>
                         </div>
                       )}
@@ -670,7 +671,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                             className="h-8 px-4 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
                           >
                             <Check className="w-3 h-3" />
-                            Tham gia
+                            {t('notificationDropdown.join')}
                           </button>
                           <button
                             type="button"
@@ -682,7 +683,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                             }}
                             className="h-8 px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
                           >
-                            Từ chối
+                            {t('notificationDropdown.reject')}
                           </button>
                         </div>
                       )}
@@ -705,7 +706,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
           onClick={onClose}
           className="block w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2.5 rounded-md hover:bg-blue-50/50 transition-colors"
         >
-          See all notifications
+          {t('notificationDropdown.seeAll')}
         </Link>
       </div>
     </div>

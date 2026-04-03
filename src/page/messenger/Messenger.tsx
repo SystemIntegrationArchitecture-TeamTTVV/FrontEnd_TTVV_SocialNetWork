@@ -571,7 +571,7 @@ export default function Messenger() {
         approverId: user.id,
         approved,
       });
-      setGroupActionMessage(approved ? 'Đã chấp nhận yêu cầu tham gia' : 'Đã từ chối yêu cầu tham gia');
+      setGroupActionMessage(approved ? t('messenger.group.approveJoinSuccess') : t('messenger.group.rejectJoinSuccess'));
       // Refresh pending list and conversation
       if (activeConversationRaw?.approvalsRequired) {
         const list = await conversationsApi.getPendingJoinRequests(activeChat, user.id);
@@ -580,7 +580,7 @@ export default function Messenger() {
       await loadConversations();
     } catch (err) {
       console.error('Failed to handle join request', err);
-      const message = err instanceof Error ? err.message : 'Không thể xử lý yêu cầu tham gia';
+      const message = err instanceof Error ? err.message : t('messenger.group.handleJoinError');
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -1652,8 +1652,10 @@ export default function Messenger() {
           {isGroupChat && activeConversationRaw && (
             <div className="mb-6 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-base md:text-lg font-bold text-gray-900">Quản lý nhóm</h4>
-                <span className="text-xs text-gray-500">{activeConversationRaw.participantIds.length} thành viên</span>
+                <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.title')}</h4>
+                <span className="text-xs text-gray-500">
+                  {t('messenger.groupPanel.memberCount', { count: activeConversationRaw.participantIds.length })}
+                </span>
               </div>
 
               {groupActionMessage && (
@@ -1669,23 +1671,23 @@ export default function Messenger() {
 
               {canManageGroup && (
                 <div className="space-y-2">
-                  <h5 className="text-sm font-semibold text-gray-800">Thông tin nhóm</h5>
-                  <label className="text-sm font-medium text-gray-700">Tên nhóm</label>
+                  <h5 className="text-sm font-semibold text-gray-800">{t('messenger.groupPanel.groupInfo')}</h5>
+                  <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.groupName')}</label>
                   <input
                     type="text"
                     value={groupNameDraft}
                     onChange={(e) => setGroupNameDraft(e.target.value)}
                     className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="Nhập tên nhóm..."
+                    placeholder={t('messenger.groupPanel.groupNamePlaceholder')}
                     disabled={updatingGroup}
                   />
-                  <label className="text-sm font-medium text-gray-700">Avatar nhóm (URL - tùy chọn)</label>
+                  <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.groupAvatarUrl')}</label>
                   <input
                     type="text"
                     value={groupAvatarDraft}
                     onChange={(e) => setGroupAvatarDraft(e.target.value)}
                     className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="https://..."
+                    placeholder={t('messenger.groupPanel.groupAvatarPlaceholder')}
                     disabled={updatingGroup}
                   />
                   <button
@@ -1693,7 +1695,7 @@ export default function Messenger() {
                     disabled={updatingGroup}
                     className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
                   >
-                    {updatingGroup ? 'Đang lưu...' : 'Lưu thông tin nhóm'}
+                    {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveInfo')}
                   </button>
                 </div>
               )}
@@ -1702,7 +1704,7 @@ export default function Messenger() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
-                      Yêu cầu phê duyệt khi có người tham gia
+                      {t('messenger.groupPanel.requireApproval')}
                     </span>
                     <button
                       onClick={() => {
@@ -1735,7 +1737,9 @@ export default function Messenger() {
 
               {canManageGroup && activeConversationRaw.approvalsRequired && pendingJoins.length > 0 && (
                 <div className="space-y-2 pt-2">
-                  <h5 className="text-sm font-semibold text-gray-800">Yêu cầu tham gia ({pendingJoins.length})</h5>
+                  <h5 className="text-sm font-semibold text-gray-800">
+                    {t('messenger.groupPanel.joinRequestsTitle', { count: pendingJoins.length })}
+                  </h5>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {pendingJoins.map((pid) => (
                       <div
@@ -1744,7 +1748,7 @@ export default function Messenger() {
                       >
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{pid}</p>
-                          <p className="text-xs text-gray-600">Đang chờ duyệt</p>
+                          <p className="text-xs text-gray-600">{t('messenger.groupPanel.pendingApproval')}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -1752,14 +1756,14 @@ export default function Messenger() {
                             disabled={updatingGroup}
                             className="px-2 py-1 rounded-md text-xs bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60"
                           >
-                            Chấp nhận
+                            {t('messenger.groupPanel.accept')}
                           </button>
                           <button
                             onClick={() => handleJoinRequestDecision(pid, false)}
                             disabled={updatingGroup}
                             className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60"
                           >
-                            Từ chối
+                            {t('messenger.groupPanel.reject')}
                           </button>
                         </div>
                       </div>
@@ -1774,7 +1778,7 @@ export default function Messenger() {
                     onClick={() => {
                       // TODO: Mở modal chọn bạn bè để thêm vào nhóm (tương tự NewMessage.tsx)
                       // Tạm thời giữ input text cho đến khi có modal
-                      const input = prompt('Nhập userId của thành viên muốn thêm (cách nhau bằng dấu phẩy):');
+                      const input = prompt(t('messenger.groupPanel.addMembersPrompt'));
                       if (input && input.trim()) {
                         setGroupMemberInput(input.trim());
                         handleAddMembers();
@@ -1784,7 +1788,7 @@ export default function Messenger() {
                     className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     <Users className="w-4 h-4" />
-                    <span>{updatingGroup ? 'Đang xử lý...' : 'Thêm thành viên'}</span>
+                    <span>{updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.addMembers')}</span>
                   </button>
                   {/* Hidden input for backward compatibility */}
                     <input
@@ -1797,7 +1801,7 @@ export default function Messenger() {
               )}
 
               <div className="space-y-2">
-                <h5 className="text-sm font-semibold text-gray-800">Thành viên</h5>
+                <h5 className="text-sm font-semibold text-gray-800">{t('messenger.groupPanel.membersTitle')}</h5>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {activeConversationRaw.participantIds.map((pid, idx) => {
                     const name = activeConversationRaw.participantNames?.[idx] || pid;
@@ -1821,9 +1825,15 @@ export default function Messenger() {
                           <p className="text-sm font-semibold text-gray-900">{name}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {isMemberOwner && <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">Owner</span>}
+                          {isMemberOwner && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">
+                              {t('messenger.groupPanel.ownerBadge')}
+                            </span>
+                          )}
                           {isMemberAdmin && !isMemberOwner && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">Admin</span>
+                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">
+                              {t('messenger.groupPanel.adminBadge')}
+                            </span>
                           )}
                           {canKick && (
                             <button
@@ -1831,7 +1841,7 @@ export default function Messenger() {
                               disabled={updatingGroup}
                               className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60 font-medium"
                             >
-                              {isSelf ? 'Rời' : 'Xóa'}
+                              {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
                             </button>
                           )}
                         </div>
@@ -1845,11 +1855,11 @@ export default function Messenger() {
               {isOwner && (
                 <>
                   <div className="space-y-3 pt-3 border-t border-gray-200">
-                    <h5 className="text-sm font-semibold text-gray-800 mb-2">Quản lý vai trò</h5>
+                    <h5 className="text-sm font-semibold text-gray-800 mb-2">{t('messenger.groupPanel.roleManagement')}</h5>
                     
                     {/* Transfer Ownership */}
                 <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Chuyển chủ phòng</label>
+                      <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.transferOwnership')}</label>
                   <select
                     value={newOwnerId}
                     onChange={(e) => setNewOwnerId(e.target.value)}
@@ -1860,7 +1870,7 @@ export default function Messenger() {
                       const name = activeConversationRaw.participantNames?.[idx] || pid;
                       return (
                         <option key={pid} value={pid}>
-                          {name} {pid === activeConversationRaw.ownerId ? '(Owner hiện tại)' : ''}
+                          {name} {pid === activeConversationRaw.ownerId ? t('messenger.groupPanel.currentOwnerSuffix') : ''}
                         </option>
                       );
                     })}
@@ -1869,8 +1879,8 @@ export default function Messenger() {
 
                     {/* Manage Admins */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Phân quyền Admin</label>
-                      <p className="text-xs text-gray-500 mb-2">Chọn thành viên để cấp quyền Admin (không bao gồm Owner)</p>
+                      <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.assignAdmin')}</label>
+                      <p className="text-xs text-gray-500 mb-2">{t('messenger.groupPanel.assignAdminHint')}</p>
                       <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
                         {activeConversationRaw.participantIds
                           .filter(pid => pid !== activeConversationRaw.ownerId)
@@ -1888,7 +1898,7 @@ export default function Messenger() {
                                 />
                                 <span className="text-sm text-gray-700 flex-1">{name}</span>
                                 {isMemberAdmin && !adminDraft.includes(pid) && (
-                                  <span className="text-xs text-gray-400">(Đang là Admin)</span>
+                                  <span className="text-xs text-gray-400">{t('messenger.groupPanel.currentlyAdmin')}</span>
                                 )}
                               </label>
                             );
@@ -1901,7 +1911,7 @@ export default function Messenger() {
                     disabled={updatingGroup}
                     className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
                   >
-                    {updatingGroup ? 'Đang lưu...' : 'Lưu vai trò'}
+                    {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveRoles')}
                   </button>
                 </div>
 
@@ -1911,7 +1921,7 @@ export default function Messenger() {
                     disabled={updatingGroup}
                     className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
                   >
-                    {updatingGroup ? 'Đang xử lý...' : 'Giải tán nhóm'}
+                    {updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.disbandGroup')}
                   </button>
                 </div>
                 </>
@@ -1925,13 +1935,13 @@ export default function Messenger() {
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
                 <User className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
               </div>
-              <span className="text-xs md:text-sm text-gray-600 font-medium">Profile</span>
+              <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarProfile')}</span>
             </button>
             <button className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
                 <Bell className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
               </div>
-              <span className="text-xs md:text-sm text-gray-600 font-medium">Mute</span>
+              <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarMute')}</span>
             </button>
           </div>
 
@@ -1939,19 +1949,19 @@ export default function Messenger() {
 
           {/* Customize Chat */}
           <div className="mb-6">
-            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">Customize Chat</h4>
+            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.customizeChat')}</h4>
             <div className="space-y-1.5">
               <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
                 <Palette className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>Change Theme</span>
+                <span>{t('messenger.groupPanel.changeTheme')}</span>
               </button>
               <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
                 <Smile className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>Change Emoji</span>
+                <span>{t('messenger.groupPanel.changeEmoji')}</span>
               </button>
               <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
                 <Pencil className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>Change Name</span>
+                <span>{t('messenger.groupPanel.changeName')}</span>
               </button>
             </div>
           </div>
@@ -1961,8 +1971,8 @@ export default function Messenger() {
           {/* Media */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-base md:text-lg font-bold text-gray-900">Photos & Videos</h4>
-              <button className="text-xs md:text-sm text-blue-600 hover:underline font-medium">See all</button>
+              <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.photosVideos')}</h4>
+              <button className="text-xs md:text-sm text-blue-600 hover:underline font-medium">{t('messenger.groupPanel.seeAll')}</button>
             </div>
             <div className="grid grid-cols-3 gap-1.5 md:gap-2">
               <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">

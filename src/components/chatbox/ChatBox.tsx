@@ -7,12 +7,14 @@ import { ImageUpload, VideoUpload } from '../chat/FileUpload';
 import VoiceRecorder from '../chat/VoiceRecorder';
 import type { ChatContact } from '../../types/chat';
 import { useMessages } from '../../hooks/useMessages';
+import { useTranslation } from 'react-i18next';
 interface ChatBoxProps {
   contact: ChatContact;
   index: number;
 }
 
 export default function ChatBox({ contact, index }: ChatBoxProps) {
+  const { t } = useTranslation();
   const { closeChatBox, toggleMinimize, minimizedBoxes, messages, sendMessage } = useChatBox();
   const { startCall } = useCall();
   const [messageInput, setMessageInput] = useState('');
@@ -64,8 +66,8 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       console.log('✅ File uploaded successfully:', uploadResult);
 
       // Send message with file info
-      const messageContent = file.type.startsWith('image/') ? '📷 Đã gửi ảnh' :
-        file.type.startsWith('video/') ? '🎥 Đã gửi video' :
+      const messageContent = file.type.startsWith('image/') ? t('chatBox.sentImage') :
+        file.type.startsWith('video/') ? t('chatBox.sentVideo') :
           `📎 ${file.name}`;
 
       await sendMessage(contact.id, `${messageContent}\n${uploadResult.url}`);
@@ -75,7 +77,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       }, 100);
     } catch (error) {
       console.error('❌ Failed to upload file:', error);
-      alert('Lỗi khi upload file. Vui lòng thử lại!');
+      alert(t('chatBox.uploadError'));
     } finally {
       setSending(false);
     }
@@ -95,14 +97,14 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       console.log('✅ Voice message uploaded successfully:', uploadResult);
 
       // Send message with voice file
-      await sendMessage(contact.id, `🎤 Tin nhắn thoại\n${uploadResult.url}`);
+      await sendMessage(contact.id, `${t('chatBox.voiceMessage')}\n${uploadResult.url}`);
 
       setTimeout(() => {
         scrollToBottom();
       }, 100);
     } catch (error) {
       console.error('❌ Failed to upload voice message:', error);
-      alert('Lỗi khi gửi tin nhắn thoại. Vui lòng thử lại!');
+      alert(t('chatBox.voiceSendError'));
     } finally {
       setSending(false);
     }
@@ -184,7 +186,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900 text-sm truncate">{contact.name}</p>
-            <p className="text-xs text-gray-500">{contact.online ? 'Đang hoạt động' : 'Offline'}</p>
+            <p className="text-xs text-gray-500">{contact.online ? t('chatBox.activeNow') : t('chatBox.offline')}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -192,7 +194,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
             onClick={() => contact.userId && startCall(contact.userId, contact.name, 'voice')}
             disabled={!contact.userId}
             className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Gọi thoại"
+            title={t('chatBox.voiceCall')}
           >
             <Phone className="w-3.5 h-3.5 text-gray-600" />
           </button>
@@ -200,21 +202,21 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
             onClick={() => contact.userId && startCall(contact.userId, contact.name, 'video')}
             disabled={!contact.userId}
             className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Gọi video"
+            title={t('chatBox.videoCall')}
           >
             <Video className="w-3.5 h-3.5 text-gray-600" />
           </button>
           <button
             onClick={() => toggleMinimize(contact.id)}
             className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
-            title="Thu gọn"
+            title={t('chatBox.minimize')}
           >
             <Minimize2 className="w-3.5 h-3.5 text-gray-600" />
           </button>
           <button
             onClick={() => closeChatBox(contact.id)}
             className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
-            title="Đóng"
+            title={t('common.close')}
           >
             <X className="w-3.5 h-3.5 text-gray-600" />
           </button>
@@ -317,7 +319,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Nhắn tin..."
+              placeholder={t('chatBox.messagePlaceholder')}
               className="w-full px-3 py-2 bg-gray-100 rounded-full resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-24 text-sm"
               rows={1}
               disabled={sending}

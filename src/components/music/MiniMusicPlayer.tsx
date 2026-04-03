@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Music2, Play, Pause, SkipForward, SkipBack, X, Maximize2, GripHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useMusic } from '../../contexts/MusicContext';
 import { useNavigate } from 'react-router-dom';
 import { soundCloudWidgetSrc } from '../../utils/soundCloudPlayer';
@@ -11,6 +12,7 @@ const MP3_WIDTH = 300;
 const MP3_TOTAL_H = 100;
 
 export default function MiniMusicPlayer() {
+  const { t } = useTranslation();
   const {
     currentSong,
     isPlaying,
@@ -112,13 +114,13 @@ export default function MiniMusicPlayer() {
     >
       <div
         role="toolbar"
-        aria-label="Di chuyển player"
+        aria-label={t('music.miniPlayer.dragAria')}
         onMouseDown={startDrag}
         className="flex cursor-grab items-center gap-2 border-b border-gray-100 bg-gray-50 px-2 py-1.5 select-none active:cursor-grabbing dark:border-[#2b2f45] dark:bg-[#13151f]"
       >
         <GripHorizontal className="h-4 w-4 shrink-0 text-gray-400" aria-hidden />
         <span className="text-[11px] font-medium text-gray-500 dark:text-[#7e89a6]">
-          Kéo để di chuyển · Theo các trang
+          {t('music.miniPlayer.dragHint')}
         </span>
       </div>
 
@@ -156,7 +158,7 @@ export default function MiniMusicPlayer() {
               type="button"
               onClick={() => navigate('/music')}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-[#252940]"
-              title="Mở trang Nhạc"
+              title={t('music.miniPlayer.openMusicPage')}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
@@ -164,7 +166,7 @@ export default function MiniMusicPlayer() {
               type="button"
               onClick={() => setShowMiniPlayer(false)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-[#252940]"
-              title="Đóng cửa sổ nổi"
+              title={t('music.miniPlayer.closeFloating')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -230,7 +232,7 @@ export default function MiniMusicPlayer() {
                   type="button"
                   onClick={() => navigate('/music')}
                   className="flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 dark:hover:bg-[#252940]"
-                  title="Mở trang Music"
+                  title={t('music.miniPlayer.openMusicPage')}
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
                 </button>
@@ -238,7 +240,7 @@ export default function MiniMusicPlayer() {
                   type="button"
                   onClick={() => setShowMiniPlayer(false)}
                   className="flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 dark:hover:bg-[#252940]"
-                  title="Đóng"
+                  title={t('music.miniPlayer.close')}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

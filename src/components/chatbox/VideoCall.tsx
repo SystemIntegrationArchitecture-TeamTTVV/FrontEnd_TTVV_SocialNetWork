@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from 'lucide-react';
 import { useWebRTC } from '../../hooks/useWebRTC';
+import { useTranslation } from 'react-i18next';
 
 interface VideoCallProps {
   contactId: string;
@@ -16,6 +17,7 @@ interface IncomingCallProps {
 }
 
 export function IncomingCall({ contactName, callType, onAnswer, onReject }: IncomingCallProps) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100]">
       <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
@@ -27,24 +29,24 @@ export function IncomingCall({ contactName, callType, onAnswer, onReject }: Inco
               <Phone className="w-12 h-12 text-white" />
             )}
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Cuộc gọi đến</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('videoCall.incomingTitle')}</h3>
           <p className="text-lg text-gray-600">{contactName}</p>
           <p className="text-sm text-gray-500 mt-2">
-            {callType === 'video' ? 'Cuộc gọi video' : 'Cuộc gọi thoại'}
+            {callType === 'video' ? t('calls.headerVideo') : t('calls.headerVoice')}
           </p>
         </div>
         <div className="flex gap-4 justify-center">
           <button
             onClick={onReject}
             className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
-            title="Từ chối"
+            title={t('calls.rejectAria')}
           >
             <PhoneOff className="w-8 h-8 text-white" />
           </button>
           <button
             onClick={onAnswer}
             className="w-16 h-16 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
-            title="Trả lời"
+            title={t('videoCall.answer')}
           >
             <Phone className="w-8 h-8 text-white" />
           </button>
@@ -55,6 +57,7 @@ export function IncomingCall({ contactName, callType, onAnswer, onReject }: Inco
 }
 
 export function VideoCall({ contactId: _contactId, callType, onEnd }: VideoCallProps) {
+  const { t } = useTranslation();
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -116,13 +119,13 @@ export function VideoCall({ contactId: _contactId, callType, onEnd }: VideoCallP
                 <Phone className="w-12 h-12 text-white" />
               )}
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Đang gọi...</h3>
-            <p className="text-lg text-gray-600">Đang chờ phản hồi</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('calls.calling')}</h3>
+            <p className="text-lg text-gray-600">{t('videoCall.waitingResponse')}</p>
           </div>
           <button
             onClick={handleEndCall}
             className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center mx-auto transition-colors shadow-lg"
-            title="Kết thúc cuộc gọi"
+            title={t('videoCall.endCall')}
           >
             <PhoneOff className="w-8 h-8 text-white" />
           </button>
@@ -169,7 +172,7 @@ export function VideoCall({ contactId: _contactId, callType, onEnd }: VideoCallP
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors shadow-lg ${
                 audioEnabled ? 'bg-white/20 hover:bg-white/30' : 'bg-red-500 hover:bg-red-600'
               }`}
-              title={audioEnabled ? 'Tắt mic' : 'Bật mic'}
+              title={audioEnabled ? t('videoCall.micOff') : t('videoCall.micOn')}
             >
               {audioEnabled ? (
                 <Mic className="w-7 h-7 text-white" />
@@ -185,7 +188,7 @@ export function VideoCall({ contactId: _contactId, callType, onEnd }: VideoCallP
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors shadow-lg ${
                   videoEnabled ? 'bg-white/20 hover:bg-white/30' : 'bg-red-500 hover:bg-red-600'
                 }`}
-                title={videoEnabled ? 'Tắt camera' : 'Bật camera'}
+                title={videoEnabled ? t('videoCall.cameraOff') : t('videoCall.cameraOn')}
               >
                 {videoEnabled ? (
                   <Video className="w-7 h-7 text-white" />
@@ -199,7 +202,7 @@ export function VideoCall({ contactId: _contactId, callType, onEnd }: VideoCallP
             <button
               onClick={handleEndCall}
               className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
-              title="Kết thúc cuộc gọi"
+              title={t('videoCall.endCall')}
             >
               <PhoneOff className="w-8 h-8 text-white" />
             </button>
