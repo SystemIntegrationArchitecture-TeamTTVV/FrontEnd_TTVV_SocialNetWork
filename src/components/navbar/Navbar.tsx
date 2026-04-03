@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
+import { Home, Video, Store, Users, Music2, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -601,6 +601,7 @@ export default function Navbar() {
           { to: '/watch',       icon: Video,         labelKey: 'mobileNav.video' as const, requireAuth: true },
           { to: '/marketplace', icon: Store,         labelKey: 'mobileNav.marketplace' as const, requireAuth: true },
           { to: '/groups',      icon: Users,         labelKey: 'mobileNav.groups' as const, requireAuth: true },
+          { to: '/music',       icon: Music2,        labelKey: 'mobileNav.music' as const, requireAuth: false },
           { to: '/messenger',   icon: MessageCircle, labelKey: 'mobileNav.messages' as const, requireAuth: true },
         ].map(({ to, icon: Icon, labelKey, requireAuth }) => {
           const needsAuth = requireAuth && !currentUser;
