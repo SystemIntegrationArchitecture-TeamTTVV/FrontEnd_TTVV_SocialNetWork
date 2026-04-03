@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { X, ArrowLeft, ArrowRight, Pause, Play, Heart, MessageCircle, Share2, Send, Waves } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ImagePlaceholderIcon, CameraIcon, SunIcon } from '../../common/icons/IconComponents';
 
 export default function StoriesViewer() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -15,43 +17,41 @@ export default function StoriesViewer() {
   const [replyMessage, setReplyMessage] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Mock stories data - matching Newsfeed stories
-  const stories = [
-    {
-      id: 1,
-      author: { name: 'Sarah', avatar: 'SJ', color: '#42B72A' },
-      time: '2 giờ trước',
-      media: [
-        { type: 'image', content: 'image', duration: 5000 },
-        { type: 'image', content: 'camera', duration: 5000 },
-      ],
-    },
-    {
-      id: 2,
-      author: { name: 'Mike', avatar: 'MC', color: '#FF6B6B' },
-      time: '5 giờ trước',
-      media: [
-        { type: 'image', content: 'sunset', duration: 5000 },
-        { type: 'image', content: 'beach', duration: 5000 },
-      ],
-    },
-    {
-      id: 3,
-      author: { name: 'Emma', avatar: 'ED', color: '#4ECDC4' },
-      time: '1 ngày trước',
-      media: [
-        { type: 'image', content: 'image', duration: 5000 },
-      ],
-    },
-    {
-      id: 4,
-      author: { name: 'Alex', avatar: 'AP', color: '#FFD93D' },
-      time: '2 ngày trước',
-      media: [
-        { type: 'image', content: 'camera', duration: 5000 },
-      ],
-    },
-  ];
+  const stories = useMemo(
+    () => [
+      {
+        id: 1,
+        author: { name: 'Sarah', avatar: 'SJ', color: '#42B72A' },
+        timeKey: '2h' as const,
+        media: [
+          { type: 'image', content: 'image', duration: 5000 },
+          { type: 'image', content: 'camera', duration: 5000 },
+        ],
+      },
+      {
+        id: 2,
+        author: { name: 'Mike', avatar: 'MC', color: '#FF6B6B' },
+        timeKey: '5h' as const,
+        media: [
+          { type: 'image', content: 'sunset', duration: 5000 },
+          { type: 'image', content: 'beach', duration: 5000 },
+        ],
+      },
+      {
+        id: 3,
+        author: { name: 'Emma', avatar: 'ED', color: '#4ECDC4' },
+        timeKey: '1d' as const,
+        media: [{ type: 'image', content: 'image', duration: 5000 }],
+      },
+      {
+        id: 4,
+        author: { name: 'Alex', avatar: 'AP', color: '#FFD93D' },
+        timeKey: '2d' as const,
+        media: [{ type: 'image', content: 'camera', duration: 5000 }],
+      },
+    ],
+    [],
+  );
 
   const currentStory = stories[currentStoryIndex];
   const currentMedia = currentStory?.media[currentMediaIndex];
@@ -194,7 +194,9 @@ export default function StoriesViewer() {
           </div>
           <div>
             <p className="text-white font-semibold text-sm">{currentStory.author.name}</p>
-            <p className="text-white/70 text-xs">{currentStory.time}</p>
+            <p className="text-white/70 text-xs">
+              {t(`profilePage.activityLog.time.${currentStory.timeKey}`)}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -247,7 +249,7 @@ export default function StoriesViewer() {
                   setShowReply(false);
                 }
               }}
-              placeholder="Send a message..."
+              placeholder={t('profilePage.stories.replyPlaceholder')}
               className="flex-1 h-11 px-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 text-sm"
             />
             <button

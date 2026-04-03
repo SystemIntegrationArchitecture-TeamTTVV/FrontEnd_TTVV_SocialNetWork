@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getFriends } from "../../../apis/friendRequests";
 import { groupsApi } from "../../../apis/groupsApi";
+import { useTranslation } from "react-i18next";
 
 interface Friend {
     id: string;
@@ -368,22 +369,22 @@ const handleCreate = async () => {
                     {/* Header */}
                     <div className="cgm-header">
                         <div>
-                            <p className="cgm-title">Create Group</p>
-                            <p className="cgm-subtitle">Add a name and invite your friends</p>
+                            <p className="cgm-title">{t("groupPage.createTitle")}</p>
+                            <p className="cgm-subtitle">{t("groupPage.createSubtitle")}</p>
                         </div>
-                        <button className="cgm-close" onClick={onClose}>✕</button>
+                        <button type="button" className="cgm-close" onClick={onClose}>✕</button>
                     </div>
 
                     {/* Body */}
                     <div className="cgm-body">
 
                         {/* Group name input */}
-                        <div className="cgm-label">Group name</div>
+                        <div className="cgm-label">{t("groupPage.createGroupName")}</div>
                         <div className="cgm-input-wrap">
                             <span className="cgm-input-icon">✦</span>
                             <input
                                 className="cgm-input"
-                                placeholder="e.g. Weekend plans"
+                                placeholder={t("groupPage.createNamePlaceholder")}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                             />
@@ -414,16 +415,16 @@ const handleCreate = async () => {
                         </div>
                         {/* Friends list */}
                         <div className="cgm-section-header">
-                            <div className="cgm-label" style={{ margin: 0 }}>Add members</div>
+                            <div className="cgm-label" style={{ margin: 0 }}>{t("groupPage.createAddMembers")}</div>
                             {selected.length > 0 && (
-                                <span className="cgm-badge">{selected.length} selected</span>
+                                <span className="cgm-badge">{t("groupPage.createSelected", { count: selected.length })}</span>
                             )}
                         </div>
 
                         <div className="cgm-list">
                             {friends.length === 0 && (
                                 <div style={{ padding: "16px", textAlign: "center", color: "#c4c4d0", fontSize: "13px" }}>
-                                    No friends found
+                                    {t("groupPage.createNoFriends")}
                                 </div>
                             )}
                             {friends.map(f => (
@@ -449,16 +450,17 @@ const handleCreate = async () => {
                     {/* Footer */}
                     <div className="cgm-divider" />
                     <div className="cgm-footer">
-                        <button className="cgm-btn-cancel" onClick={onClose}>
-                            Cancel
+                        <button type="button" className="cgm-btn-cancel" onClick={onClose}>
+                            {t("groupPage.createCancel")}
                         </button>
                         <button
+                            type="button"
                             className="cgm-btn-create"
                             onClick={handleCreate}
                             disabled={!name.trim() || loading}
                         >
                             {loading ? <span className="cgm-spinner" /> : "✦"}
-                            {loading ? "Creating…" : "Create Group"}
+                            {loading ? t("groupPage.createCreating") : t("groupPage.createButton")}
                         </button>
                     </div>
 

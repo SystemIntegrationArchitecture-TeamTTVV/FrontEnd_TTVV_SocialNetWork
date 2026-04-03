@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Search, Archive as ArchiveIcon, RotateCcw, Trash2, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 export default function Archive() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
 
   const archivedConversations = [
     {
@@ -64,8 +66,10 @@ export default function Archive() {
             ←
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lưu trữ</h1>
-            <p className="text-sm text-gray-600">{archivedConversations.length} cuộc trò chuyện đã lưu trữ</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('messenger.archive.title')}</h1>
+            <p className="text-sm text-gray-600">
+              {t('messenger.archive.subtitle', { count: archivedConversations.length })}
+            </p>
           </div>
         </div>
       </div>
@@ -76,7 +80,7 @@ export default function Archive() {
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm cuộc trò chuyện..."
+            placeholder={t('messenger.archive.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-14 pl-14 pr-5 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base transition-all"
@@ -127,7 +131,7 @@ export default function Archive() {
                         handleUnarchive(conv.id);
                       }}
                       className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                      title="Bỏ lưu trữ"
+                      title={t('messenger.archive.unarchive')}
                     >
                       <RotateCcw className="w-5 h-5 text-gray-700" />
                     </button>
@@ -137,7 +141,7 @@ export default function Archive() {
                         handleDelete(conv.id);
                       }}
                       className="w-10 h-10 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                      title="Xóa"
+                      title={t('messenger.archive.delete')}
                     >
                       <Trash2 className="w-5 h-5 text-red-600" />
                     </button>
@@ -151,18 +155,18 @@ export default function Archive() {
             <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
               <ArchiveIcon className="w-12 h-12 text-gray-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Không có cuộc trò chuyện nào</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('messenger.archive.emptyTitle')}</h3>
             <p className="text-base text-gray-600 mb-6">
               {searchQuery
-                ? 'Không tìm thấy cuộc trò chuyện nào phù hợp'
-                : 'Các cuộc trò chuyện đã lưu trữ sẽ xuất hiện ở đây'}
+                ? t('messenger.archive.emptySearch')
+                : t('messenger.archive.emptyDefault')}
             </p>
             {!searchQuery && (
               <button
                 onClick={() => navigate('/messenger')}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
               >
-                Quay lại Messenger
+                {t('messenger.archive.backToMessenger')}
               </button>
             )}
           </div>

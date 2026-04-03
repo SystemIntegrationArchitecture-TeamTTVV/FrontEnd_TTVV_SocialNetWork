@@ -8,8 +8,10 @@ import { authApi } from '../../apis/auth';
 import { uploadApi } from '../../apis/upload';
 import { HttpError } from '../../apis/http';
 import { useToast } from '../../contexts/useToast';
+import { useTranslation } from 'react-i18next';
 
 export default function CreatePost() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [content, setContent] = useState('');
   const [privacy, setPrivacy] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
@@ -45,7 +47,7 @@ export default function CreatePost() {
       console.log('✅ Images uploaded:', urls);
     } catch (err: any) {
       console.error('❌ Image upload failed:', err);
-      setError('Failed to upload images. Please try again.');
+      setError(t('createPost.errorUploadImages'));
     } finally {
       setIsUploading(false);
     }
@@ -71,7 +73,7 @@ export default function CreatePost() {
       console.log('✅ Videos uploaded:', urls);
     } catch (err: any) {
       console.error('❌ Video upload failed:', err);
-      setError('Failed to upload videos. Please try again.');
+      setError(t('createPost.errorUploadVideos'));
     } finally {
       setIsUploading(false);
     }
@@ -95,12 +97,12 @@ export default function CreatePost() {
 
   const handlePost = async () => {
     if (!content.trim() && imageUrls.length === 0 && videoUrls.length === 0) {
-      setError('Please add some content, images, or videos');
+      setError(t('createPost.errorEmpty'));
       return;
     }
     
     if (!currentUser) {
-      setError('Please login to create a post');
+      setError(t('createPost.errorLogin'));
       console.log('⚠️ User not logged in, cannot create post');
       return;
     }
@@ -131,7 +133,7 @@ export default function CreatePost() {
           ? err.data?.message || err.message
           : err instanceof Error
             ? err.message
-            : 'Failed to create post. Please try again.';
+            : t('createPost.errorCreateGeneric');
 
       console.error('❌ Failed to create post:', err);
       setError(message);
@@ -144,11 +146,11 @@ export default function CreatePost() {
   const getPrivacyDisplay = () => {
     switch (privacy) {
       case 'PUBLIC':
-        return { icon: Globe, text: 'Public' };
+        return { icon: Globe, text: t('createPost.privacyPublic') };
       case 'FRIENDS':
-        return { icon: UserCheck, text: 'Friends' };
+        return { icon: UserCheck, text: t('createPost.privacyFriends') };
       case 'PRIVATE':
-        return { icon: Lock, text: 'Private' };
+        return { icon: Lock, text: t('createPost.privacyPrivate') };
     }
   };
 
@@ -167,8 +169,8 @@ export default function CreatePost() {
       <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-125 max-h-[90vh] overflow-y-auto border border-gray-200 pointer-events-auto">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Create Post</h2>
-            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <h2 className="text-lg font-semibold text-gray-900">{t('createPost.title')}</h2>
+            <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
               <X className="w-5 h-5 text-gray-700" />
             </button>
           </div>
@@ -178,7 +180,7 @@ export default function CreatePost() {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-sm text-gray-900">{currentUser?.fullName || 'User'}</p>
-              <button onClick={cyclePrivacy} className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 transition-colors">
+              <button type="button" onClick={cyclePrivacy} className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 transition-colors">
                 <PrivacyIcon className="w-3.5 h-3.5" />
                 <span>{privacyDisplay.text}</span>
               </button>
@@ -188,7 +190,9 @@ export default function CreatePost() {
             <textarea 
               value={content} 
               onChange={(e) => setContent(e.target.value)} 
-              placeholder={`What's on your mind, ${currentUser?.fullName || 'there'}?`}
+              placeholder={t('createPost.placeholder', {
+                name: currentUser?.fullName || t('createPost.placeholderFallback'),
+              })}
               className="w-full min-h-30 p-3 border-none focus:outline-none resize-none text-sm placeholder:text-gray-400"
               disabled={isLoading || isUploading} 
             />
@@ -196,8 +200,8 @@ export default function CreatePost() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {imagePreviews.map((preview, index) => (
                   <div key={index} className="relative group">
-                    <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-48 object-cover rounded-lg" />
-                    <button onClick={() => removeImage(index)} className="absolute top-2 right-2 w-8 h-8 bg-gray-900/70 hover:bg-gray-900 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" disabled={isLoading || isUploading}>
+                    <img src={preview} alt={t('createPost.previewAlt', { n: index + 1 })} className="w-full h-48 object-cover rounded-lg" />
+                    <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 w-8 h-8 bg-gray-900/70 hover:bg-gray-900 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" disabled={isLoading || isUploading}>
                       <Trash2 className="w-4 h-4 text-white" />
                     </button>
                   </div>
@@ -209,7 +213,7 @@ export default function CreatePost() {
                 {videoPreviews.map((preview, index) => (
                   <div key={index} className="relative group">
                     <video src={preview} controls className="w-full rounded-lg" style={{ maxHeight: '300px' }} />
-                    <button onClick={() => removeVideo(index)} className="absolute top-2 right-2 w-8 h-8 bg-gray-900/70 hover:bg-gray-900 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" disabled={isLoading || isUploading}>
+                    <button type="button" onClick={() => removeVideo(index)} className="absolute top-2 right-2 w-8 h-8 bg-gray-900/70 hover:bg-gray-900 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" disabled={isLoading || isUploading}>
                       <Trash2 className="w-4 h-4 text-white" />
                     </button>
                   </div>
@@ -219,7 +223,7 @@ export default function CreatePost() {
             {isUploading && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
                 <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                <p className="text-sm text-blue-600">Uploading files...</p>
+                <p className="text-sm text-blue-600">{t('createPost.uploading')}</p>
               </div>
             )}
             {error && (
@@ -230,19 +234,20 @@ export default function CreatePost() {
           </div>
           <div className="p-4 border-t border-gray-200 space-y-3">
             <div className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200">
-              <span className="text-sm text-gray-700 font-medium">Add to your post</span>
+              <span className="text-sm text-gray-700 font-medium">{t('createPost.addToPost')}</span>
               <div className="flex items-center gap-2">
                 <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" disabled={isLoading || isUploading} />
                 <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={handleVideoSelect} className="hidden" disabled={isLoading || isUploading} />
-                <button onClick={() => imageInputRef.current?.click()} disabled={isLoading || isUploading} className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Add photos">
+                <button type="button" onClick={() => imageInputRef.current?.click()} disabled={isLoading || isUploading} className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={t('createPost.addPhotosTitle')}>
                   <Image className="w-5 h-5 text-green-600" />
                 </button>
-                <button onClick={() => videoInputRef.current?.click()} disabled={isLoading || isUploading} className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Add videos">
+                <button type="button" onClick={() => videoInputRef.current?.click()} disabled={isLoading || isUploading} className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={t('createPost.addVideosTitle')}>
                   <Video className="w-5 h-5 text-red-600" />
                 </button>
               </div>
             </div>
             <button 
+              type="button"
               onClick={handlePost} 
               disabled={(!content.trim() && imageUrls.length === 0 && videoUrls.length === 0) || isLoading || isUploading} 
               className={`w-full h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
@@ -252,7 +257,7 @@ export default function CreatePost() {
               }`}
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLoading ? 'Posting...' : 'Post'}
+              {isLoading ? t('createPost.posting') : t('createPost.post')}
             </button>
           </div>
         </div>

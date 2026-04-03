@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, Users, Heart, MapPin, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function Pages() {
   const { t } = useTranslation();
@@ -163,12 +164,12 @@ export default function Pages() {
                 <div className="flex items-center gap-6 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2">
                     <Heart className="w-5 h-5 text-red-500" />
-                    <span className="font-semibold text-gray-900">{page.likes.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-900">{page.likes.toLocaleString(getLocaleTag())}</span>
                     <span className="text-sm text-gray-600">{t('pagesSocial.likes')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-blue-500" />
-                    <span className="font-semibold text-gray-900">{page.followers.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-900">{page.followers.toLocaleString(getLocaleTag())}</span>
                     <span className="text-sm text-gray-600">{t('pagesSocial.followers')}</span>
                   </div>
                 </div>

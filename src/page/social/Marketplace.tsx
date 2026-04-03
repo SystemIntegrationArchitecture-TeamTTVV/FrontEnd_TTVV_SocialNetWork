@@ -3,9 +3,10 @@ import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sof
 import { Link } from 'react-router-dom';
 import { LaptopIcon, BikeIcon, CameraIcon, SofaIcon, PhoneIcon, GuitarIcon, WatchIcon, GamepadIcon } from '../../common/icons/IconComponents';
 import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function Marketplace() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -147,7 +148,7 @@ export default function Marketplace() {
               </div>
               <div className="p-4">
                 <p className="text-xl font-bold text-gray-900 mb-1">
-                  {product.price.toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')} {t('marketplace.currencySuffix')}
+                  {product.price.toLocaleString(getLocaleTag())} {t('marketplace.currencySuffix')}
                 </p>
                 <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{t(product.titleKey)}</p>
                 <p className="text-sm text-gray-500 mb-2">{t(product.locationKey)}</p>

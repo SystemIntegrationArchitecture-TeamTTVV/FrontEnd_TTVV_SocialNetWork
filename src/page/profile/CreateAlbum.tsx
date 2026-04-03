@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Upload, Image as ImageIcon, X, Save } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function CreateAlbum() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -35,52 +37,70 @@ export default function CreateAlbum() {
     <div className="max-w-4xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Tạo album mới</h1>
-        <p className="text-base text-gray-600 mt-1">Tạo album để tổ chức ảnh của bạn</p>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t("profilePage.albumCreate.title")}
+        </h1>
+        <p className="text-base text-gray-600 mt-1">
+          {t("profilePage.albumCreate.subtitle")}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <div className="bg-white rounded-[28px] shadow-sm p-8 border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin album</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            {t("profilePage.albumCreate.sectionInfo")}
+          </h2>
           
           <div className="space-y-6">
             <div>
-              <label className="block text-base font-semibold text-gray-900 mb-3">Tên album *</label>
+              <label className="block text-base font-semibold text-gray-900 mb-3">
+                {t("profilePage.albumCreate.nameLabel")}
+              </label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 required
-                placeholder="Nhập tên album..."
+                placeholder={t("profilePage.albumCreate.namePlaceholder")}
                 className="w-full h-14 px-5 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-base transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-base font-semibold text-gray-900 mb-3">Mô tả</label>
+              <label className="block text-base font-semibold text-gray-900 mb-3">
+                {t("profilePage.albumCreate.descriptionLabel")}
+              </label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 rows={4}
-                placeholder="Mô tả về album này..."
+                placeholder={t("profilePage.albumCreate.descriptionPlaceholder")}
                 className="w-full px-5 py-4 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-base transition-all resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-base font-semibold text-gray-900 mb-3">Quyền riêng tư</label>
+              <label className="block text-base font-semibold text-gray-900 mb-3">
+                {t("profilePage.albumCreate.privacyLabel")}
+              </label>
               <select
                 name="privacy"
                 value={formData.privacy}
                 onChange={handleChange}
                 className="w-full h-14 px-5 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-base transition-all"
               >
-                <option value="public">Công khai</option>
-                <option value="friends">Bạn bè</option>
-                <option value="onlyMe">Chỉ mình tôi</option>
+                <option value="public">
+                  {t("profilePage.albumCreate.privacyPublic")}
+                </option>
+                <option value="friends">
+                  {t("profilePage.albumCreate.privacyFriends")}
+                </option>
+                <option value="onlyMe">
+                  {t("profilePage.albumCreate.privacyOnlyMe")}
+                </option>
               </select>
             </div>
           </div>
@@ -126,22 +146,28 @@ export default function CreateAlbum() {
                   className="aspect-square border-2 border-dashed border-gray-300 rounded-2xl hover:border-blue-400 hover:bg-blue-50/70 flex flex-col items-center justify-center transition-colors"
                 >
                   <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
-                  <span className="text-sm font-semibold text-gray-600">Thêm ảnh</span>
+                  <span className="text-sm font-semibold text-gray-600">
+                    {t("profilePage.albumCreate.addPhotosGrid")}
+                  </span>
                 </button>
               )}
             </div>
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-[28px] p-12 text-center bg-white/70">
               <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Chưa có ảnh nào</h3>
-              <p className="text-base text-gray-600 mb-6">Thêm ảnh để tạo album</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {t("profilePage.albumCreate.emptyTitle")}
+              </h3>
+              <p className="text-base text-gray-600 mb-6">
+                {t("profilePage.albumCreate.emptyHint")}
+              </p>
               <button
                 type="button"
                 onClick={handleImageSelect}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-2xl transition-colors inline-flex items-center gap-2 shadow-sm"
               >
                 <Upload className="w-5 h-5" />
-                Chọn ảnh
+                {t("profilePage.albumCreate.choosePhotos")}
               </button>
             </div>
           )}
@@ -153,7 +179,7 @@ export default function CreateAlbum() {
             to="/profile/1"
             className="px-8 py-4 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold text-lg transition-colors shadow-sm"
           >
-            Hủy
+            {t("profilePage.albumCreate.cancel")}
           </Link>
           <button
             type="submit"
@@ -165,7 +191,7 @@ export default function CreateAlbum() {
             }`}
           >
             <Save className="w-5 h-5" />
-            Tạo album
+            {t("profilePage.albumCreate.submit")}
           </button>
         </div>
       </form>

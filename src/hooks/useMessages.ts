@@ -4,6 +4,7 @@ import { conversationsApi, type Conversation } from '../apis/conversations';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { authApi } from '../apis/auth';
+import { getLocaleTag } from '../i18n';
 
 export function useMessages() {
   const { user } = useAuth();
@@ -267,7 +268,7 @@ export function useMessages() {
       sender: message.senderName,
       senderId: message.senderId,
       content: message.content,
-      time: new Date(message.createdAt).toLocaleTimeString('vi-VN', {
+      time: new Date(message.createdAt).toLocaleTimeString(getLocaleTag(), {
         hour: '2-digit',
         minute: '2-digit',
       }),

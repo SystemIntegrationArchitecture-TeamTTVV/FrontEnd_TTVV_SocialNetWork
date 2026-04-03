@@ -1,22 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, X, Download, Share2, Heart, MoreVertical, Edit, Trash2, Flag, Copy } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function PhotoViewer() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Mock photos data
-  const photos = [
-    {
-      id: 1,
-      url: 'photo-1.jpg',
+  const photos = useMemo(
+    () => [
+      {
+        id: 1,
+        url: 'photo-1.jpg',
       thumbnail: '🖼️',
-      title: 'Ảnh 1',
-      date: '2 ngày trước',
+        titleKey: 1 as const,
+        dateKey: 'time2d' as const,
       likes: 125,
       comments: 23,
     },
@@ -24,8 +26,8 @@ export default function PhotoViewer() {
       id: 2,
       url: 'photo-2.jpg',
       thumbnail: '📷',
-      title: 'Ảnh 2',
-      date: '5 ngày trước',
+        titleKey: 2 as const,
+        dateKey: 'time5d' as const,
       likes: 89,
       comments: 15,
     },
@@ -33,14 +35,20 @@ export default function PhotoViewer() {
       id: 3,
       url: 'photo-3.jpg',
       thumbnail: '🖼️',
-      title: 'Ảnh 3',
-      date: '1 tuần trước',
+        titleKey: 3 as const,
+        dateKey: 'time1w' as const,
       likes: 234,
       comments: 45,
     },
-  ];
+    ],
+    [],
+  );
 
   const currentPhoto = photos[currentIndex] || photos[0];
+  const currentTitle = t('profilePage.photoViewer.photoTitle', {
+    n: currentPhoto.titleKey,
+  });
+  const currentDate = t(`profilePage.photoViewer.${currentPhoto.dateKey}`);
 
   const nextPhoto = () => {
     setCurrentIndex((prev) => (prev + 1) % photos.length);
@@ -78,9 +86,12 @@ export default function PhotoViewer() {
             <X className="w-6 h-6" />
           </button>
           <div>
-            <p className="text-white font-semibold text-lg">{currentPhoto.title}</p>
+            <p className="text-white font-semibold text-lg">{currentTitle}</p>
             <p className="text-gray-400 text-sm">
-              {currentIndex + 1} / {photos.length}
+              {t('profilePage.photoViewer.counter', {
+                current: currentIndex + 1,
+                total: photos.length,
+              })}
             </p>
           </div>
         </div>
@@ -116,14 +127,14 @@ export default function PhotoViewer() {
                   className="w-full px-4 py-3 flex items-center gap-3 text-sm text-white hover:bg-white/20 transition-colors"
                 >
                   <Copy className="w-4 h-4" />
-                  <span>Sao chép liên kết</span>
+                  <span>{t('profilePage.photoViewer.copyLink')}</span>
                 </button>
                 <button
                   onClick={() => { console.log('Edit'); setShowMenu(false); }}
                   className="w-full px-4 py-3 flex items-center gap-3 text-sm text-white hover:bg-white/20 transition-colors"
                 >
                   <Edit className="w-4 h-4" />
-                  <span>Chỉnh sửa</span>
+                  <span>{t('profilePage.photoViewer.edit')}</span>
                 </button>
                 <div className="border-t border-white/20 my-1"></div>
                 <button
@@ -131,14 +142,14 @@ export default function PhotoViewer() {
                   className="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-500/20 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>Xóa ảnh</span>
+                  <span>{t('profilePage.photoViewer.deletePhoto')}</span>
                 </button>
                 <button
                   onClick={() => { console.log('Report'); setShowMenu(false); }}
                   className="w-full px-4 py-3 flex items-center gap-3 text-sm text-white hover:bg-white/20 transition-colors"
                 >
                   <Flag className="w-4 h-4" />
-                  <span>Báo cáo</span>
+                  <span>{t('profilePage.photoViewer.report')}</span>
                 </button>
               </div>
             )}
@@ -175,8 +186,8 @@ export default function PhotoViewer() {
       <div className="h-32 px-6 py-4 bg-black/50 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-white font-semibold text-lg">{currentPhoto.title}</p>
-            <p className="text-gray-400 text-sm">{currentPhoto.date}</p>
+            <p className="text-white font-semibold text-lg">{currentTitle}</p>
+            <p className="text-gray-400 text-sm">{currentDate}</p>
           </div>
           <div className="flex items-center gap-6 text-white">
             <div className="flex items-center gap-2">

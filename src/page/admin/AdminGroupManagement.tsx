@@ -1,14 +1,16 @@
 import { Search, Filter, Eye, Edit, Trash2, Users, Settings, FileText } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function AdminGroupManagement() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const groups = [
     {
       id: 1,
-      name: 'Nhóm bạn thân',
-      description: 'Nhóm để chia sẻ khoảnh khắc với bạn bè',
+      demoId: 'demo1' as const,
       avatar: 'NB',
       color: '#9B59B6',
       members: 1250,
@@ -18,8 +20,7 @@ export default function AdminGroupManagement() {
     },
     {
       id: 2,
-      name: 'Công nghệ thông tin',
-      description: 'Thảo luận về công nghệ và lập trình',
+      demoId: 'demo2' as const,
       avatar: 'CT',
       color: '#1877F2',
       members: 850,
@@ -29,8 +30,7 @@ export default function AdminGroupManagement() {
     },
     {
       id: 3,
-      name: 'Nhóm kín - Nội bộ',
-      description: 'Nhóm riêng tư cho thành viên nội bộ',
+      demoId: 'demo3' as const,
       avatar: 'NK',
       color: '#42B72A',
       members: 45,
@@ -44,11 +44,11 @@ export default function AdminGroupManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý nhóm</h1>
-          <p className="text-lg text-gray-600">Quản lý tất cả các nhóm trong hệ thống</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('adminPanel.groups.pageTitle')}</h1>
+          <p className="text-lg text-gray-600">{t('adminPanel.groups.pageSubtitle')}</p>
         </div>
-        <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors shadow-sm">
-          + Tạo nhóm
+        <button type="button" className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors shadow-sm">
+          + {t('adminPanel.groups.createGroup')}
         </button>
       </div>
 
@@ -64,9 +64,9 @@ export default function AdminGroupManagement() {
               className="w-full h-14 pl-14 pr-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-lg transition-all"
             />
           </div>
-          <button className="h-14 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center gap-2 transition-colors font-semibold text-lg">
+          <button type="button" className="h-14 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center gap-2 transition-colors font-semibold text-lg">
             <Filter className="w-6 h-6" />
-            Bộ lọc
+            {t('adminPanel.groups.filter')}
           </button>
         </div>
       </div>
@@ -86,21 +86,27 @@ export default function AdminGroupManagement() {
                   group.privacy === 'public' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-700'
                 }`}
               >
-                {group.privacy === 'public' ? 'Công khai' : 'Riêng tư'}
+                {group.privacy === 'public' ? t('adminPanel.groups.privacyPublic') : t('adminPanel.groups.privacyPrivate')}
               </span>
             </div>
 
-            <h3 className="font-bold text-xl text-gray-900 mb-2">{group.name}</h3>
-            <p className="text-base text-gray-600 mb-4 line-clamp-2">{group.description}</p>
+            <h3 className="font-bold text-xl text-gray-900 mb-2">
+              {t(`adminPanel.groups.${group.demoId}.name`)}
+            </h3>
+            <p className="text-base text-gray-600 mb-4 line-clamp-2">{t(`adminPanel.groups.${group.demoId}.description`)}</p>
 
             <div className="flex items-center gap-4 mb-4 text-base text-gray-600">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                <span className="font-semibold">{group.members.toLocaleString()}</span>
+                <span className="font-semibold">
+                  {t('adminPanel.groups.members', { count: group.members })}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                <span className="font-semibold">{group.posts}</span>
+                <span className="font-semibold">
+                  {group.posts.toLocaleString(getLocaleTag())} {t('adminPanel.groups.postsLabel')}
+                </span>
               </div>
             </div>
 

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
 import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,6 +14,7 @@ import { conversationsApi } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
 import { aiApi, type AIChatRequest } from '../../apis/ai';
+import { getLocaleTag } from '../../i18n';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -63,13 +65,14 @@ export default function Messenger() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openConversationId = location.state?.openConversationId;
+  const { t, i18n } = useTranslation();
   
   // AI Chat state
   const AI_CONVERSATION_ID = 'ai_assistant';
   const [aiMessages, setAiMessages] = useState<Array<{ id: string; text: string; isUser: boolean; timestamp: Date }>>([
     {
       id: '1',
-      text: 'Xin chào! Tôi là AI Assistant. Bạn có thể hỏi tôi bất cứ điều gì!',
+      text: t('messenger.aiAssistant.welcome'),
       isUser: false,
       timestamp: new Date(),
     },
@@ -178,7 +181,7 @@ export default function Messenger() {
           sender,
           senderId,
           content: m.text,
-          time: m.timestamp.toLocaleTimeString('vi-VN', {
+          time: m.timestamp.toLocaleTimeString(getLocaleTag(), {
             hour: '2-digit',
             minute: '2-digit',
           }),
@@ -196,7 +199,7 @@ export default function Messenger() {
       });
     }
     return activeChat ? (apiMessages[activeChat] || []).map((m) => formatMessageForDisplay(m)) : [];
-  }, [activeChat, apiMessages, formatMessageForDisplay, aiMessages, user?.id, user?.fullName, user?.username]);
+  }, [activeChat, apiMessages, formatMessageForDisplay, aiMessages, user?.id, user?.fullName, user?.username, i18n.language]);
 
   const formattedConversations = useMemo(() => {
     const formatTime = (dateStr?: string) => {
@@ -208,21 +211,21 @@ export default function Messenger() {
       const days = Math.floor(hours / 24);
 
       if (days === 0) {
-        if (hours === 0) return 'Vừa xong';
-        return `${hours}h`;
-      } else if (days === 1) return 'Hôm qua';
-      else if (days < 7) return `${days} ngày`;
-      else return date.toLocaleDateString('vi-VN');
+        if (hours === 0) return t('messenger.time.justNow');
+        return t('messenger.time.hoursAgo', { count: hours });
+      } else if (days === 1) return t('messenger.time.yesterday');
+      else if (days < 7) return t('messenger.time.daysAgo', { count: days });
+      else return date.toLocaleDateString(getLocaleTag());
     };
 
     // Add AI Assistant conversation at the top
     const aiConversation = {
       id: AI_CONVERSATION_ID,
-      name: 'AI Assistant',
+      name: t('messenger.aiAssistant.name'),
       avatar: 'AI',
       color: '#3b82f6',
       online: true,
-      lastMessage: aiMessages.length > 0 ? aiMessages[aiMessages.length - 1].text.substring(0, 50) : 'Xin chào! Tôi là AI Assistant.',
+      lastMessage: aiMessages.length > 0 ? aiMessages[aiMessages.length - 1].text.substring(0, 50) : t('messenger.aiAssistant.lastMessageFallback'),
       time: aiMessages.length > 0 ? formatTime(aiMessages[aiMessages.length - 1].timestamp.toISOString()) : '',
       unread: 0,
       isGroup: false,
@@ -260,7 +263,7 @@ export default function Messenger() {
       .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c));
 
     return [aiConversation, ...regularConversations];
-  }, [conversations, user?.id, aiMessages]);
+  }, [conversations, user?.id, aiMessages, t, i18n.language]);
 
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat)
@@ -367,7 +370,7 @@ export default function Messenger() {
         console.error('❌ Error chatting with AI:', error);
         const errorMessage = {
           id: (Date.now() + 1).toString(),
-          text: 'Xin lỗi, đã xảy ra lỗi khi gửi tin nhắn. Vui lòng thử lại sau.',
+          text: t('messenger.aiAssistant.sendError'),
           isUser: false,
           timestamp: new Date(),
         };
@@ -419,7 +422,7 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Lỗi khi gửi tin nhắn. Vui lòng thử lại!');
+      alert(t('messenger.sendMessageError'));
     }
   };
 
@@ -437,7 +440,7 @@ export default function Messenger() {
     if (!activeChat || !user?.id) return;
     const ids = parseIdsInput(groupMemberInput);
     if (ids.length === 0) {
-      setGroupActionError('Nhập ít nhất 1 userId để thêm');
+      setGroupActionError(t('messenger.group.errorEmptyIds'));
       return;
     }
 
@@ -451,11 +454,11 @@ export default function Messenger() {
         participantIds: ids,
       });
       setGroupMemberInput('');
-      setGroupActionMessage('Đã thêm thành viên mới');
+      setGroupActionMessage(t('messenger.group.addMembersSuccess'));
       await loadConversations();
     } catch (err: unknown) {
       console.error('Failed to add members', err);
-      const message = err instanceof Error ? err.message : 'Không thể thêm thành viên';
+      const message = err instanceof Error ? err.message : t('messenger.group.addMembersError');
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -473,14 +476,14 @@ export default function Messenger() {
       // Owner leave flow: must transfer ownership first
       if (memberId === user.id && isGroupChat && isOwner) {
         if (!newOwnerId || newOwnerId === user.id) {
-          setGroupActionError('Bạn là chủ phòng. Hãy chọn chủ phòng mới trước khi rời nhóm.');
+          setGroupActionError(t('messenger.group.ownerMustChooseNewOwner'));
           return;
         }
         await conversationsApi.leaveGroup(activeChat, {
           requesterId: user.id,
           newOwnerId,
         });
-        setGroupActionMessage('Bạn đã rời nhóm');
+        setGroupActionMessage(t('messenger.group.leaveSuccess'));
         await loadConversations();
         setActiveChat(null);
         return;
@@ -491,14 +494,14 @@ export default function Messenger() {
         participantId: memberId,
       });
       const selfRemoved = memberId === user.id;
-      setGroupActionMessage(selfRemoved ? 'Bạn đã rời nhóm' : 'Đã xoá thành viên');
+      setGroupActionMessage(selfRemoved ? t('messenger.group.leaveSuccess') : t('messenger.group.removeMemberSuccess'));
       await loadConversations();
       if (selfRemoved) {
         setActiveChat(null);
       }
     } catch (err: unknown) {
       console.error('Failed to remove member', err);
-      const message = err instanceof Error ? err.message : 'Không thể xoá thành viên';
+      const message = err instanceof Error ? err.message : t('messenger.group.removeMemberError');
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -519,11 +522,11 @@ export default function Messenger() {
         groupName: groupNameDraft.trim(),
         groupAvatar: groupAvatarDraft.trim(),
       });
-      setGroupActionMessage('Đã cập nhật thông tin nhóm');
+      setGroupActionMessage(t('messenger.group.updateMetaSuccess'));
       await loadConversations();
     } catch (err: unknown) {
       console.error('Failed to update group meta', err);
-      const message = err instanceof Error ? err.message : 'Không thể cập nhật thông tin nhóm';
+      const message = err instanceof Error ? err.message : t('messenger.group.updateMetaError');
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -533,10 +536,10 @@ export default function Messenger() {
   const handleDeleteGroup = async () => {
     if (!activeChat || !user?.id) return;
     if (!isGroupChat || !isOwner) {
-      setGroupActionError('Chỉ chủ phòng mới được giải tán nhóm');
+      setGroupActionError(t('messenger.group.onlyOwnerCanDisband'));
       return;
     }
-    const ok = confirm('Giải tán nhóm? Hành động này không thể hoàn tác.');
+    const ok = confirm(t('messenger.group.confirmDisband'));
     if (!ok) return;
 
     setUpdatingGroup(true);
@@ -545,12 +548,12 @@ export default function Messenger() {
 
     try {
       await conversationsApi.deleteConversationAsUser(activeChat, user.id);
-      setGroupActionMessage('Đã giải tán nhóm');
+      setGroupActionMessage(t('messenger.group.disbandSuccess'));
       setActiveChat(null);
       await loadConversations();
     } catch (err: unknown) {
       console.error('Failed to delete group', err);
-      const message = err instanceof Error ? err.message : 'Không thể giải tán nhóm';
+      const message = err instanceof Error ? err.message : t('messenger.group.disbandError');
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -594,7 +597,7 @@ export default function Messenger() {
 
   const handleUpdateRoles = async () => {
     if (!activeChat || !user?.id || !isOwner) {
-      setGroupActionError('Chỉ chủ phòng được cập nhật vai trò');
+      setGroupActionError(t('messenger.group.onlyOwnerCanUpdateRoles'));
       return;
     }
 
@@ -610,11 +613,11 @@ export default function Messenger() {
       };
 
       await conversationsApi.updateGroupRoles(activeChat, payload);
-      setGroupActionMessage('Đã cập nhật vai trò nhóm');
+      setGroupActionMessage(t('messenger.group.updateRolesSuccess'));
       await loadConversations();
     } catch (err: unknown) {
       console.error('Failed to update group roles', err);
-      const message = err instanceof Error ? err.message : 'Không thể cập nhật vai trò';
+      const message = err instanceof Error ? err.message : t('messenger.group.updateRolesError');
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -627,7 +630,7 @@ export default function Messenger() {
 
   const handleFileSelect = async (file: File) => {
     if (!activeChat) {
-      alert('Vui lòng chọn một cuộc trò chuyện trước');
+      alert(t('messenger.errors.noConversationSelected'));
       return;
     }
 
@@ -662,7 +665,7 @@ export default function Messenger() {
           fileSize: uploadResult.fileSize,
         };
 
-        const messageContent = file.type.startsWith('video/') ? '🎥 Video' : `📎 ${file.name}`;
+        const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `📎 ${file.name}`;
         await sendMessageAPI(activeChat, messageContent, [attachment]);
         
         console.log('✅ Message sent with attachment');
@@ -678,7 +681,7 @@ export default function Messenger() {
       }
     } catch (error) {
       console.error('❌ Failed to upload file:', error);
-      alert('Lỗi khi upload file. Vui lòng thử lại!');
+      alert(t('messenger.errors.uploadFile'));
       
       // Clear preview on error
       setFilePreview(null);
@@ -690,7 +693,7 @@ export default function Messenger() {
 
   const handleVoiceRecording = async (blob: Blob) => {
     if (!activeChat) {
-      alert('Vui lòng chọn một cuộc trò chuyện trước');
+      alert(t('messenger.errors.noConversationSelected'));
       return;
     }
 
@@ -714,7 +717,7 @@ export default function Messenger() {
       };
 
       // Send message with voice attachment
-      await sendMessageAPI(activeChat, '🎤 Tin nhắn thoại', [attachment]);
+      await sendMessageAPI(activeChat, t('messenger.captionVoice'), [attachment]);
       console.log('✅ Voice message sent');
 
       // Scroll to bottom
@@ -723,7 +726,7 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('❌ Failed to upload voice message:', error);
-      alert('Lỗi khi gửi tin nhắn thoại. Vui lòng thử lại!');
+      alert(t('messenger.errors.voiceMessage'));
     } finally {
       setUploadingFiles(false);
     }
@@ -765,7 +768,7 @@ export default function Messenger() {
         }
         break;
       case 'delete':
-        if (confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
+        if (confirm(t('messenger.confirmDeleteMessage'))) {
           // TODO: Call delete message API
           console.log('Delete message:', messageId);
         }
@@ -825,7 +828,7 @@ export default function Messenger() {
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           {!leftSidebarCollapsed && (
-            <h1 className="text-xl font-bold text-gray-900">Messages</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('messenger.messagesHeader')}</h1>
           )}
           <div className={`flex gap-2 ${leftSidebarCollapsed ? 'flex-col w-full' : ''}`}>
             {!leftSidebarCollapsed && (
@@ -833,21 +836,21 @@ export default function Messenger() {
                 <button 
                   onClick={() => navigate('/messenger/new')}
                   className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title="Tin nhắn mới"
+                  title={t('messenger.newMessageIconTitle')}
                 >
                   <Edit className="w-5 h-5 text-gray-700" />
                 </button>
                 <button 
                   onClick={() => navigate('/messenger/new', { state: { createGroup: true } })}
                   className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title="Tạo nhóm chat"
+                  title={t('messenger.createGroupIconTitle')}
                 >
                   <Users className="w-5 h-5 text-gray-700" />
                 </button>
                 <Link
                   to="/messenger/settings"
                   className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title="Cài đặt"
+                  title={t('messenger.settingsIconTitle')}
                 >
                   <Settings className="w-5 h-5 text-gray-700" />
                 </Link>
@@ -856,7 +859,7 @@ export default function Messenger() {
             <button
               onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
               className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-              title={leftSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={leftSidebarCollapsed ? t('messenger.expandSidebarTitle') : t('messenger.collapseSidebarTitle')}
             >
               {leftSidebarCollapsed ? (
                 <ChevronRight className="w-5 h-5 text-gray-700" />
@@ -873,7 +876,7 @@ export default function Messenger() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search messages"
+                placeholder={t('messenger.searchMessagesPlaceholder')}
                 className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-200"
               />
             </div>
@@ -883,7 +886,7 @@ export default function Messenger() {
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
           {loading && formattedConversations.length === 0 && (
-            <div className="p-4 text-center text-gray-500">Loading conversations...</div>
+            <div className="p-4 text-center text-gray-500">{t('messenger.loadingConversations')}</div>
           )}
           {formattedConversations.map((conv) => (
             <div
@@ -1023,7 +1026,7 @@ export default function Messenger() {
                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                   showSearch ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
-                title="Search"
+                title={t('messenger.header.searchIconTitle')}
               >
                 <SearchIcon className="w-5 h-5" />
               </button>
@@ -1037,12 +1040,18 @@ export default function Messenger() {
                     const isGroup = callInfo.isGroup || false;
                     startCall(callInfo.id, callInfo.name, 'voice', conversationId, isGroup);
                   } else {
-                    alert('Không thể bắt đầu cuộc gọi. Vui lòng thử lại.');
+                    alert(t('messenger.errors.startCall'));
                   }
                 }}
                 disabled={!activeChat || isAIChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title={isAIChat ? "Không thể gọi AI" : (isGroupChat ? "Group call" : "Call")}
+                title={
+                  isAIChat
+                    ? t('messenger.header.voiceCallNotAvailable')
+                    : isGroupChat
+                      ? t('messenger.header.groupCall')
+                      : t('messenger.header.call')
+                }
               >
                 <Phone className="w-5 h-5 text-gray-700" />
               </button>
@@ -1056,12 +1065,18 @@ export default function Messenger() {
                     const isGroup = callInfo.isGroup || false;
                     startCall(callInfo.id, callInfo.name, 'video', conversationId, isGroup);
                   } else {
-                    alert('Không thể bắt đầu cuộc gọi video. Vui lòng thử lại.');
+                    alert(t('messenger.errors.startVideoCall'));
                   }
                 }}
                 disabled={!activeChat || isAIChat}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title={isAIChat ? "Không thể gọi AI" : (isGroupChat ? "Group video call" : "Video call")}
+                title={
+                  isAIChat
+                    ? t('messenger.header.videoCallNotAvailable')
+                    : isGroupChat
+                      ? t('messenger.header.groupVideoCall')
+                      : t('messenger.header.videoCall')
+                }
               >
                 <Video className="w-5 h-5 text-gray-700" />
               </button>
@@ -1070,7 +1085,7 @@ export default function Messenger() {
                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                   !rightSidebarCollapsed ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-blue-100 text-blue-600'
                 }`}
-                title="Info"
+                title={t('messenger.header.infoIconTitle')}
               >
                 <Info className="w-5 h-5" />
               </button>
@@ -1087,7 +1102,7 @@ export default function Messenger() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search in conversation..."
+                placeholder={t('messenger.searchInConversationPlaceholder')}
                 className="w-full h-12 pl-12 pr-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
               />
               <button
@@ -1152,7 +1167,7 @@ export default function Messenger() {
                   {msg.pinned && (
                     <div className="mb-2 flex items-center gap-1 text-xs text-gray-500">
                       <Pin className="w-3 h-3" />
-                      <span>Pinned</span>
+                      <span>{t('messenger.messageOptions.pinned')}</span>
                     </div>
                   )}
 
@@ -1165,7 +1180,7 @@ export default function Messenger() {
                             <div className="max-w-xs rounded-xl overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
                               <img 
                                 src={attachment.url} 
-                                alt={attachment.fileName || 'Image'}
+                                alt={attachment.fileName || t('messenger.attachment.imageAlt')}
                                 className="w-full h-auto"
                                 onClick={() => window.open(attachment.url, '_blank')}
                               />
@@ -1196,7 +1211,7 @@ export default function Messenger() {
                               <FileText className="w-6 h-6 text-gray-600" />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900 truncate">
-                                  {attachment.fileName || 'File'}
+                                  {attachment.fileName || t('messenger.attachment.fileAlt')}
                                 </p>
                                 {attachment.fileSize && (
                                   <p className="text-xs text-gray-500">
@@ -1276,35 +1291,35 @@ export default function Messenger() {
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                               >
                                 <Reply className="w-4 h-4" />
-                                <span>Reply</span>
+                                <span>{t('messenger.messageOptions.reply')}</span>
                               </button>
                               <button
                                 onClick={() => handleMessageAction('forward', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                               >
                                 <Forward className="w-4 h-4" />
-                                <span>Forward</span>
+                                <span>{t('messenger.messageOptions.forward')}</span>
                               </button>
                               <button
                                 onClick={() => handleMessageAction('copy', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                               >
                                 <Copy className="w-4 h-4" />
-                                <span>Copy</span>
+                                <span>{t('messenger.messageOptions.copy')}</span>
                               </button>
                               <button
                                 onClick={() => handleMessageAction('pin', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                               >
                                 <Pin className="w-4 h-4" />
-                                <span>{msg.pinned ? 'Unpin' : 'Pin'}</span>
+                                <span>{msg.pinned ? t('messenger.messageOptions.unpin') : t('messenger.messageOptions.pin')}</span>
                               </button>
                               <button
                                 onClick={() => handleMessageAction('star', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                               >
                                 <Star className={`w-4 h-4 ${msg.starred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                                <span>{msg.starred ? 'Unstar' : 'Star'}</span>
+                                <span>{msg.starred ? t('messenger.messageOptions.unstar') : t('messenger.messageOptions.star')}</span>
                               </button>
                               {msg.isMe && (
                                 <button
@@ -1312,7 +1327,7 @@ export default function Messenger() {
                                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                                 >
                                   <Pencil className="w-4 h-4" />
-                                  <span>Edit</span>
+                                  <span>{t('messenger.messageOptions.edit')}</span>
                                 </button>
                               )}
                               <div className="border-t border-gray-100 my-1"></div>
@@ -1321,7 +1336,7 @@ export default function Messenger() {
                                 className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                <span>Delete</span>
+                                <span>{t('messenger.messageOptions.delete')}</span>
                               </button>
                             </div>
                           )}
@@ -1402,7 +1417,7 @@ export default function Messenger() {
             <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               <div className="w-0.5 h-10 md:h-12 bg-blue-500 rounded-full shrink-0"></div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-gray-700">Replying to {replyTo.sender}</p>
+                <p className="text-xs md:text-sm font-semibold text-gray-700">{t('messenger.replyPreview', { sender: replyTo.sender })}</p>
                 <p className="text-xs md:text-sm text-gray-500 line-clamp-1">{replyTo.content}</p>
               </div>
             </div>
@@ -1431,7 +1446,9 @@ export default function Messenger() {
                   <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
                 <span className="text-sm text-gray-600 font-medium">
-                  {isAIChat ? 'AI đang suy nghĩ...' : `${activeConversation?.name} đang nhập...`}
+                  {isAIChat
+                    ? t('messenger.typing.ai')
+                    : t('messenger.typing.user', { name: activeConversation?.name ?? '' })}
                 </span>
               </div>
             </div>
@@ -1444,7 +1461,7 @@ export default function Messenger() {
           {uploadingFiles && (
             <div className="mb-3 flex items-center gap-2 text-sm text-blue-600">
               <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span>Đang upload file...</span>
+              <span>{t('messenger.uploadingFiles')}</span>
             </div>
           )}
 
@@ -1504,7 +1521,7 @@ export default function Messenger() {
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-100 flex items-center justify-center">
                     <ImageIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">Photo</span>
+                  <span className="text-xs text-gray-600 font-medium">{t('messenger.attachments.photo')}</span>
                 </label>
                 <label className="flex flex-col items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
                   <input
@@ -1516,7 +1533,7 @@ export default function Messenger() {
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-green-100 flex items-center justify-center">
                     <Video className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">Video</span>
+                  <span className="text-xs text-gray-600 font-medium">{t('messenger.attachments.video')}</span>
                 </label>
                 <label className="flex flex-col items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
                   <input
@@ -1527,7 +1544,7 @@ export default function Messenger() {
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-purple-100 flex items-center justify-center">
                     <FileText className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">File</span>
+                  <span className="text-xs text-gray-600 font-medium">{t('messenger.attachments.file')}</span>
                 </label>
                 <button
                   onClick={handleVoiceRecord}
@@ -1540,7 +1557,9 @@ export default function Messenger() {
                   }`}>
                     <Mic className={`w-5 h-5 md:w-6 md:h-6 ${isRecording ? 'text-red-600' : 'text-orange-600'}`} />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">{isRecording ? 'Recording...' : 'Voice'}</span>
+                  <span className="text-xs text-gray-600 font-medium">
+                    {isRecording ? t('messenger.attachments.recording') : t('messenger.attachments.voice')}
+                  </span>
                 </button>
               </div>
             </div>
@@ -1559,7 +1578,7 @@ export default function Messenger() {
               className={`w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
                 showAttachmentMenu ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
               }`}
-              title="Attachments"
+              title={t('messenger.attachmentsTitle')}
             >
               <Plus className="w-4 h-4 md:w-5 md:h-5" />
             </button>
@@ -1577,7 +1596,7 @@ export default function Messenger() {
               }}
               onFocus={() => setIsTyping(true)}
               onBlur={() => setTimeout(() => setIsTyping(false), 1000)}
-              placeholder={replyTo ? `Replying to ${replyTo.sender}...` : "Type a message..."}
+              placeholder={replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
               className="flex-1 h-10 md:h-11 lg:h-12 px-4 md:px-5 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm md:text-[15px] transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
             />
 
@@ -1626,7 +1645,7 @@ export default function Messenger() {
             </div>
             <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">{activeConversation.name}</h3>
             {activeConversation.online && (
-              <p className="text-sm md:text-base text-green-500 font-medium">● Active now</p>
+              <p className="text-sm md:text-base text-green-500 font-medium">{t('messenger.activeNow')}</p>
             )}
           </div>
 

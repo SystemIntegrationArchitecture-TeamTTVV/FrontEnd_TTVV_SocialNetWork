@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Sun, Moon, Globe, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import i18n, { setAppLanguage } from '../../i18n';
+import { getCurrentAppLanguage, setAppLanguage } from '../../i18n';
 import logo from '../../assets/logo-favicon.png';
 
 const FACEBOOK_STYLE_IMAGE_URL =
@@ -29,7 +29,7 @@ export default function AuthFrame({
   const { isDark, toggleTheme } = useTheme();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement>(null);
-  const currentLang: 'en' | 'vi' = i18n.language?.startsWith('en') ? 'en' : 'vi';
+  const currentLang = getCurrentAppLanguage();
 
   const introSlides = useMemo(
     () => [
@@ -114,6 +114,19 @@ export default function AuthFrame({
               >
                 <span>{t('navbar.english')}</span>
                 {currentLang === 'en' && <Check className="w-4 h-4 text-[#1877F2] shrink-0" aria-hidden />}
+              </button>
+              <button
+                type="button"
+                role="option"
+                aria-selected={currentLang === 'ja'}
+                onClick={() => {
+                  setAppLanguage('ja');
+                  setIsLangOpen(false);
+                }}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-sm hover:bg-[#f0f2f5] dark:hover:bg-[#252940] text-[#050505] dark:text-[#edf0fa]"
+              >
+                <span>{t('navbar.japanese')}</span>
+                {currentLang === 'ja' && <Check className="w-4 h-4 text-[#1877F2] shrink-0" aria-hidden />}
               </button>
             </div>
           )}

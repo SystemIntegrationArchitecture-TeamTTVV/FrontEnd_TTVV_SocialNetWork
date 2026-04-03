@@ -1,26 +1,30 @@
 import { useParams, Link } from 'react-router-dom';
 import { Download, Share2, Trash2, Edit, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function AlbumView() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
 
-  // Mock album data
-  const album = {
-    id: id,
-    name: 'Du lịch Đà Lạt 2024',
-    description: 'Những khoảnh khắc đẹp từ chuyến du lịch Đà Lạt',
-    createdDate: '15/01/2024',
-    photoCount: 24,
-    privacy: 'friends',
-    photos: Array.from({ length: 24 }, (_, i) => ({
-      id: i + 1,
-      thumbnail: '🖼️',
-      url: `photo-${i + 1}.jpg`,
-      date: `${i + 1} ngày trước`,
-    })),
-  };
+  const album = useMemo(
+    () => ({
+      id,
+      name: t("profilePage.albumView.demoName"),
+      description: t("profilePage.albumView.demoDescription"),
+      createdDate: "15/01/2024",
+      photoCount: 24,
+      privacy: "friends" as const,
+      photos: Array.from({ length: 24 }, (_, i) => ({
+        id: i + 1,
+        thumbnail: "🖼️",
+        url: `photo-${i + 1}.jpg`,
+        date: t("profilePage.albumView.daysAgo", { count: i + 1 }),
+      })),
+    }),
+    [id, t],
+  );
 
   return (
     <div className="max-w-6xl mx-auto p-6 pb-20">
@@ -28,7 +32,12 @@ export default function AlbumView() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{album.name}</h1>
-          <p className="text-base text-gray-600 mt-1">{album.photoCount} ảnh • {album.createdDate}</p>
+          <p className="text-base text-gray-600 mt-1">
+            {t("profilePage.albumView.photoMeta", {
+              count: album.photoCount,
+              date: album.createdDate,
+            })}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
@@ -70,7 +79,7 @@ export default function AlbumView() {
                       console.log('Download:', photo.id);
                     }}
                     className="w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-colors"
-                    title="Tải xuống"
+                    title={t("profilePage.albumView.downloadTitle")}
                   >
                     <Download className="w-5 h-5 text-gray-900" />
                   </button>
@@ -80,7 +89,7 @@ export default function AlbumView() {
                       console.log('Share:', photo.id);
                     }}
                     className="w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-colors"
-                    title="Chia sẻ"
+                    title={t("profilePage.albumView.shareTitle")}
                   >
                     <Share2 className="w-5 h-5 text-gray-900" />
                   </button>
@@ -93,7 +102,9 @@ export default function AlbumView() {
             className="aspect-square border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 flex flex-col items-center justify-center transition-colors"
           >
             <Plus className="w-12 h-12 text-gray-400 mb-2" />
-            <span className="text-sm font-semibold text-gray-600">Thêm ảnh</span>
+            <span className="text-sm font-semibold text-gray-600">
+              {t("profilePage.albumView.addPhotos")}
+            </span>
           </Link>
         </div>
       </div>

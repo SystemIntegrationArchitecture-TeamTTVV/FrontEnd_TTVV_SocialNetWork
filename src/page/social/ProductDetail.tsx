@@ -1,8 +1,11 @@
 import { useParams } from 'react-router-dom';
 import { Heart, Share2, ShoppingCart, MapPin, Star, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function ProductDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [isLiked, setIsLiked] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -75,15 +78,15 @@ export default function ProductDetail() {
                   ))}
                 </div>
                 <span className="font-semibold text-gray-900">{product.rating}</span>
-                <span className="text-gray-600">({product.reviews} đánh giá)</span>
+                <span className="text-gray-600">({t('marketplace.reviewsCount', { count: product.reviews })})</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-4xl font-bold text-blue-600">
-                {product.price.toLocaleString('vi-VN')} ₫
+                {product.price.toLocaleString(getLocaleTag())} ₫
               </span>
               <span className="text-2xl text-gray-400 line-through">
-                {product.originalPrice.toLocaleString('vi-VN')} ₫
+                {product.originalPrice.toLocaleString(getLocaleTag())} ₫
               </span>
               <span className="px-3 py-1 bg-red-100 text-red-600 rounded-lg font-semibold">
                 -12%
@@ -94,7 +97,7 @@ export default function ProductDetail() {
           {/* Stock */}
           <div className="p-4 bg-green-50 rounded-xl border border-green-200">
             <p className="text-base font-semibold text-green-700">
-              Còn {product.stock} sản phẩm
+              {t('marketplace.stockRemaining', { count: product.stock })}
             </p>
           </div>
 

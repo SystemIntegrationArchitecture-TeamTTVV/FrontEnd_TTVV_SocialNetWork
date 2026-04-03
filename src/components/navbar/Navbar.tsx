@@ -12,7 +12,7 @@ import { notificationsApi } from '../../apis/notifications';
 import { conversationsApi } from '../../apis/conversations';
 import logo from '../../assets/logo-favicon.png';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
-import i18n, { setAppLanguage } from '../../i18n';
+import { getCurrentAppLanguage, setAppLanguage } from '../../i18n';
 
 export default function Navbar() {
   const { t } = useTranslation();
@@ -38,7 +38,7 @@ export default function Navbar() {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const requestLogin = () => showAuthRequiredPrompt(location.pathname);
 
-  const currentLang: 'en' | 'vi' = i18n.language?.startsWith('en') ? 'en' : 'vi';
+  const currentLang = getCurrentAppLanguage();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -361,6 +361,19 @@ export default function Navbar() {
                     <span>{t('navbar.english')}</span>
                     {currentLang === 'en' && <Check className="w-4 h-4 text-[#1877F2] shrink-0" aria-hidden />}
                   </button>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={currentLang === 'ja'}
+                    onClick={() => {
+                      setAppLanguage('ja');
+                      setIsLangOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-[15px] hover:bg-[#f0f2f5] dark:hover:bg-[#252940] text-[#050505] dark:text-[#edf0fa]"
+                  >
+                    <span>{t('navbar.japanese')}</span>
+                    {currentLang === 'ja' && <Check className="w-4 h-4 text-[#1877F2] shrink-0" aria-hidden />}
+                  </button>
                 </div>
               )}
             </div>
@@ -465,6 +478,17 @@ export default function Navbar() {
                   >
                     {t('navbar.english')}
                     {currentLang === 'en' && <Check className="w-4 h-4 text-[#1877F2]" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppLanguage('ja');
+                      setIsLangOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[#f0f2f5] dark:hover:bg-[#252940]"
+                  >
+                    {t('navbar.japanese')}
+                    {currentLang === 'ja' && <Check className="w-4 h-4 text-[#1877F2]" />}
                   </button>
                 </div>
               )}

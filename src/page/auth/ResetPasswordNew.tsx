@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Key, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ResetPasswordForm {
   newPassword: string;
@@ -9,6 +10,7 @@ interface ResetPasswordForm {
 }
 
 export default function ResetPasswordNew() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordForm>();
   const [showPassword, setShowPassword] = useState(false);
@@ -44,11 +46,11 @@ export default function ResetPasswordNew() {
         </div>
 
         <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] text-center mb-4">
-          Tạo mật khẩu mới
+          {t('auth.resetCreate.title')}
         </h2>
 
         <p className="text-center text-gray-600 dark:text-[#7e89a6] mb-6">
-          Mật khẩu mới phải khác với mật khẩu đã sử dụng trước đó.
+          {t('auth.resetCreate.subtitle')}
         </p>
 
         <div className="border-t border-gray-200 dark:border-[#2b2f45] mb-6"></div>
@@ -56,16 +58,16 @@ export default function ResetPasswordNew() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-gray-900 dark:text-[#c0c8de] mb-2">
-              Mật khẩu mới
+              {t('auth.resetCreate.newPassword')}
             </label>
             <div className="relative">
               <input
                 {...register('newPassword', {
-                  required: 'Vui lòng nhập mật khẩu mới',
-                  minLength: { value: 3, message: 'Mật khẩu phải có ít nhất 3 ký tự' },
+                  required: t('auth.resetCreate.requiredNew'),
+                  minLength: { value: 3, message: t('auth.resetCreate.minLength') },
                 })}
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Nhập mật khẩu mới"
+                placeholder={t('auth.resetCreate.placeholderNew')}
                 className="w-full h-14 px-4 pr-12 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
               <button
@@ -87,17 +89,17 @@ export default function ResetPasswordNew() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-900 dark:text-[#c0c8de] mb-2">
-              Xác nhận mật khẩu
+              {t('auth.resetCreate.confirmPassword')}
             </label>
             <div className="relative">
               <input
                 {...register('confirmPassword', {
-                  required: 'Vui lòng xác nhận mật khẩu',
+                  required: t('auth.resetCreate.requiredConfirm'),
                   validate: (value) =>
-                    value === newPassword || 'Mật khẩu xác nhận không khớp',
+                    value === newPassword || t('auth.resetCreate.mismatch'),
                 })}
                 type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Nhập lại mật khẩu"
+                placeholder={t('auth.resetCreate.placeholderConfirm')}
                 className="w-full h-14 px-4 pr-12 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
               <button
@@ -118,16 +120,16 @@ export default function ResetPasswordNew() {
           </div>
 
           <div className="bg-gray-50 dark:bg-[#22263a] rounded-2xl p-4 space-y-2 border border-gray-100 dark:border-[#2b2f45]">
-            <p className="text-sm font-semibold text-gray-900 dark:text-[#c0c8de]">Yêu cầu mật khẩu:</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-[#c0c8de]">{t('auth.resetCreate.requirementsTitle')}</p>
             <div className="space-y-1 text-sm">
               <p className={hasMinLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-[#5a6278]'}>
-                {hasMinLength ? '✓' : '○'} Tối thiểu 3 ký tự
+                {hasMinLength ? '✓' : '○'} {t('auth.resetCreate.reqLength')}
               </p>
               <p className={hasUpperLower ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-[#5a6278]'}>
-                {hasUpperLower ? '✓' : '○'} Có chữ hoa và chữ thường
+                {hasUpperLower ? '✓' : '○'} {t('auth.resetCreate.reqCase')}
               </p>
               <p className={hasNumberOrSpecial ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-[#5a6278]'}>
-                {hasNumberOrSpecial ? '✓' : '○'} Có số hoặc ký tự đặc biệt
+                {hasNumberOrSpecial ? '✓' : '○'} {t('auth.resetCreate.reqNumber')}
               </p>
             </div>
           </div>
@@ -138,13 +140,13 @@ export default function ResetPasswordNew() {
               onClick={() => navigate('/auth/login')}
               className="flex-1 h-12 bg-gray-100 dark:bg-[#22263a] text-gray-900 dark:text-[#c0c8de] font-semibold rounded-xl border border-gray-200 dark:border-[#2b2f45] hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors"
             >
-              Hủy
+              {t('auth.resetCreate.cancel')}
             </button>
             <button
               type="submit"
               className="flex-1 h-12 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
             >
-              Đặt lại mật khẩu
+              {t('auth.resetCreate.submit')}
             </button>
           </div>
         </form>

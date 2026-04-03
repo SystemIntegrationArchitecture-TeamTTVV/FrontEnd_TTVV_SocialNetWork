@@ -1,7 +1,9 @@
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function FriendRequests() {
+  const { t } = useTranslation();
   const [requests] = useState([
     { id: 1, name: 'Sarah Mitchell', avatar: 'SM', color: '#42B72A', mutual: 12 },
     { id: 2, name: 'Michael Chen', avatar: 'MC', color: '#FF6B6B', mutual: 8 },
@@ -21,12 +23,11 @@ export default function FriendRequests() {
 
   return (
     <div className="max-w-7xl mx-auto p-8">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-8">Lời mời kết bạn</h1>
-
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-8">{t('friendRequests.title')}</h1>
 
       {requests.length === 0 ? (
         <div className="bg-white dark:bg-[#1a1d28] rounded-[32px] p-16 text-center border border-gray-100/50 dark:border-white/5 shadow-sm">
-          <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Không có lời mời kết bạn nào</p>
+          <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">{t('friendRequests.empty')}</p>
         </div>
 
       ) : (
@@ -49,23 +50,25 @@ export default function FriendRequests() {
 
               <div className="p-4">
                 <h3 className="text-base font-semibold text-[#050505] mb-1">{request.name}</h3>
-                <p className="text-sm text-[#65676B] mb-4">{request.mutual} mutual friends</p>
+                <p className="text-sm text-[#65676B] mb-4">{t('friendRequests.mutualFriends', { count: request.mutual })}</p>
                 <div className="space-y-2">
                   <button
+                    type="button"
                     onClick={() => handleConfirm(request.id)}
                     className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                   >
 
                     <Check className="w-4 h-4" />
-                    <span>Confirm</span>
+                    <span>{t('friendRequests.confirm')}</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDelete(request.id)}
                     className="w-full h-11 bg-gray-100 dark:bg-[#22263a] text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-200 dark:hover:bg-[#2b2f45] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                   >
 
                     <X className="w-4 h-4" />
-                    <span>Delete</span>
+                    <span>{t('friendRequests.delete')}</span>
                   </button>
                 </div>
               </div>

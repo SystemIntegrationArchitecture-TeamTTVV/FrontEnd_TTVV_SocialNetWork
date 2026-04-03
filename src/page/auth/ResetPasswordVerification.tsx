@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { X, Mail } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function ResetPasswordVerification() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(165); // 2:45 in seconds
@@ -80,23 +82,23 @@ export default function ResetPasswordVerification() {
         </div>
 
         <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] text-center mb-4">
-          Xác minh tài khoản
+          {t('auth.resetOtp.title')}
         </h2>
 
         <p className="text-center text-gray-600 dark:text-[#7e89a6] mb-2">
-          Chúng tôi đã gửi mã xác minh đến
+          {t('auth.resetOtp.sentPrefix')}
         </p>
         <p className="text-center font-semibold text-gray-900 dark:text-[#edf0fa] mb-4">
           s***h@example.com
         </p>
         <p className="text-center text-gray-600 dark:text-[#7e89a6] mb-6">
-          Vui lòng nhập mã để tiếp tục.
+          {t('auth.resetOtp.enterCodeHint')}
         </p>
 
         <div className="border-t border-gray-200 dark:border-[#2b2f45] mb-6"></div>
 
         <div className="space-y-4">
-          <label className="block text-sm font-semibold text-gray-900 dark:text-[#c0c8de]">Mã xác minh</label>
+          <label className="block text-sm font-semibold text-gray-900 dark:text-[#c0c8de]">{t('auth.resetOtp.codeLabel')}</label>
           
           <div className="flex gap-3 justify-center" onPaste={handlePaste}>
             {code.map((digit, index) => (
@@ -142,9 +144,10 @@ export default function ResetPasswordVerification() {
             onClick={() => navigate('/auth/forgot-password')}
             className="flex-1 h-12 bg-gray-100 dark:bg-[#22263a] text-gray-900 dark:text-[#c0c8de] font-semibold rounded-xl border border-gray-200 dark:border-[#2b2f45] hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors"
           >
-            Quay lại
+            {t('auth.resetOtp.back')}
           </button>
           <button
+            type="button"
             onClick={handleContinue}
             disabled={!isCodeComplete}
             className={`flex-1 h-12 font-semibold rounded-xl transition-colors ${
@@ -153,7 +156,7 @@ export default function ResetPasswordVerification() {
                 : 'bg-gray-300 dark:bg-[#353a54] text-white dark:text-[#5a6278] cursor-not-allowed'
             }`}
           >
-            Tiếp tục
+            {t('auth.resetOtp.continue')}
           </button>
         </div>
       </div>

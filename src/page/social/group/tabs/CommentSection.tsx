@@ -1,4 +1,5 @@
 import { Send, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { CommentData } from "../../../../apis/comments";
 import CommentItem from "./CommentItem";
 
@@ -31,6 +32,7 @@ export default function CommentSection({
   onCommentChange, onCommentSend, onLikeComment,
   onReply, onReplyCancel, onReplyChange, onReplySend, onToggleReplies,
 }: CommentSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="border-t border-gray-200 pt-5 mt-3 space-y-4">
 
@@ -45,11 +47,12 @@ export default function CommentSection({
             value={commentInput}
             onChange={e => onCommentChange(postId, e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && onCommentSend(postId)}
-            placeholder="Viết bình luận..."
+            placeholder={t("groupTabs.commentPlaceholder")}
             disabled={isSubmitting}
             className="w-full h-12 px-4 pr-14 rounded-lg bg-gray-50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all disabled:opacity-50"
           />
           <button
+            type="button"
             onClick={() => onCommentSend(postId)}
             disabled={!commentInput.trim() || isSubmitting}
             className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${commentInput.trim() ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}

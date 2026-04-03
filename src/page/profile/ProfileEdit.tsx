@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Camera, Save, Loader2, Plus, X, Upload } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { usersApi, type User } from "../../apis/users";
@@ -27,6 +28,7 @@ type ProfileFormData = {
 };
 
 export default function ProfileEdit() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const currentUser = authApi.getCurrentUser();
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ export default function ProfileEdit() {
         setCoverPreview(profile.coverPhoto || "");
       } catch (error) {
         console.error("Failed to load profile:", error);
-        alert("Không thể tải thông tin profile");
+        alert(t("profilePage.edit.loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -152,7 +154,7 @@ export default function ProfileEdit() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("Kích thước ảnh không được vượt quá 5MB");
+        alert(t("profilePage.edit.imageTooLarge"));
         return;
       }
 
@@ -182,7 +184,7 @@ export default function ProfileEdit() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("Kích thước ảnh không được vượt quá 5MB");
+        alert(t("profilePage.edit.imageTooLarge"));
         return;
       }
 
@@ -270,12 +272,14 @@ export default function ProfileEdit() {
         }),
       );
 
-      alert("Cập nhật profile thành công!");
+      alert(t("profilePage.edit.saveSuccess"));
       navigate(`/profile/${currentUser.id}`);
     } catch (error) {
       console.error("Failed to update profile:", error);
       const message =
-        error instanceof Error ? error.message : "Không thể cập nhật profile";
+        error instanceof Error
+          ? error.message
+          : t("profilePage.edit.saveFailed");
       alert(message);
     } finally {
       setSaving(false);
@@ -300,10 +304,10 @@ export default function ProfileEdit() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Chỉnh sửa trang cá nhân
+          {t("profilePage.edit.title")}
         </h1>
         <p className="text-base text-gray-600 mt-1">
-          Cập nhật thông tin cá nhân của bạn
+          {t("profilePage.edit.subtitle")}
         </p>
       </div>
 
@@ -328,7 +332,7 @@ export default function ProfileEdit() {
               className="absolute bottom-4 right-4 px-5 py-3 bg-white/90 hover:bg-white rounded-xl font-semibold text-gray-900 flex items-center gap-2 transition-colors shadow-lg"
             >
               <Camera className="w-5 h-5" />
-              Thay đổi ảnh bìa
+              {t("profilePage.edit.changeCover")}
             </button>
           </div>
           <div className="p-6 -mt-16">
@@ -337,7 +341,7 @@ export default function ProfileEdit() {
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
-                    alt="Avatar"
+                    alt={t("profilePage.edit.avatarAlt")}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -360,7 +364,9 @@ export default function ProfileEdit() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">Cập nhật ảnh đại diện</h3>
+                <h3 className="text-xl font-bold">
+                  {t("profilePage.edit.modalAvatarTitle")}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowAvatarModal(false)}
@@ -373,14 +379,14 @@ export default function ProfileEdit() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Nhập URL ảnh
+                    {t("profilePage.edit.urlLabel")}
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="url"
                       value={avatarUrl}
                       onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
+                      placeholder={t("profilePage.edit.urlPlaceholder")}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
@@ -388,7 +394,7 @@ export default function ProfileEdit() {
                       onClick={handleAvatarUrlSubmit}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      OK
+                      {t("profilePage.edit.ok")}
                     </button>
                   </div>
                 </div>
@@ -398,13 +404,15 @@ export default function ProfileEdit() {
                     <div className="w-full border-t border-gray-300"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Hoặc</span>
+                    <span className="px-2 bg-white text-gray-500">
+                      {t("profilePage.edit.or")}
+                    </span>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tải ảnh lên từ máy
+                    {t("profilePage.edit.uploadFromDevice")}
                   </label>
                   <input
                     ref={avatarInputRef}
@@ -419,10 +427,10 @@ export default function ProfileEdit() {
                     className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
                   >
                     <Upload className="w-5 h-5" />
-                    Chọn ảnh từ máy tính
+                    {t("profilePage.edit.chooseFromComputer")}
                   </button>
                   <p className="text-xs text-gray-500 mt-2">
-                    Kích thước tối đa: 5MB
+                    {t("profilePage.edit.maxSize")}
                   </p>
                 </div>
               </div>
@@ -435,7 +443,9 @@ export default function ProfileEdit() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">Cập nhật ảnh bìa</h3>
+                <h3 className="text-xl font-bold">
+                  {t("profilePage.edit.modalCoverTitle")}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowCoverModal(false)}
@@ -448,14 +458,14 @@ export default function ProfileEdit() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Nhập URL ảnh
+                    {t("profilePage.edit.urlLabel")}
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="url"
                       value={coverPhotoUrl}
                       onChange={(e) => setCoverPhotoUrl(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
+                      placeholder={t("profilePage.edit.urlPlaceholder")}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
@@ -463,7 +473,7 @@ export default function ProfileEdit() {
                       onClick={handleCoverUrlSubmit}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      OK
+                      {t("profilePage.edit.ok")}
                     </button>
                   </div>
                 </div>
@@ -473,13 +483,15 @@ export default function ProfileEdit() {
                     <div className="w-full border-t border-gray-300"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Hoặc</span>
+                    <span className="px-2 bg-white text-gray-500">
+                      {t("profilePage.edit.or")}
+                    </span>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tải ảnh lên từ máy
+                    {t("profilePage.edit.uploadFromDevice")}
                   </label>
                   <input
                     ref={coverInputRef}
@@ -494,10 +506,10 @@ export default function ProfileEdit() {
                     className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
                   >
                     <Upload className="w-5 h-5" />
-                    Chọn ảnh từ máy tính
+                    {t("profilePage.edit.chooseFromComputer")}
                   </button>
                   <p className="text-xs text-gray-500 mt-2">
-                    Kích thước tối đa: 5MB
+                    {t("profilePage.edit.maxSize")}
                   </p>
                 </div>
               </div>
@@ -508,14 +520,14 @@ export default function ProfileEdit() {
         {/* Basic Info */}
         <div className="bg-white rounded-2xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Thông tin cơ bản
+            {t("profilePage.edit.sectionBasic")}
           </h2>
 
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Họ
+                  {t("profilePage.edit.firstName")}
                 </label>
                 <input
                   type="text"
@@ -528,7 +540,7 @@ export default function ProfileEdit() {
               </div>
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Tên
+                  {t("profilePage.edit.lastName")}
                 </label>
                 <input
                   type="text"
@@ -543,7 +555,7 @@ export default function ProfileEdit() {
 
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Giới thiệu
+                {t("profilePage.edit.bio")}
               </label>
               <textarea
                 name="bio"
@@ -551,13 +563,13 @@ export default function ProfileEdit() {
                 onChange={handleChange}
                 rows={4}
                 className="w-full px-5 py-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all resize-none"
-                placeholder="Viết vài dòng về bản thân..."
+                placeholder={t("profilePage.edit.bioPlaceholder")}
               />
             </div>
 
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Email
+                {t("profilePage.edit.email")}
               </label>
               <input
                 type="email"
@@ -570,7 +582,7 @@ export default function ProfileEdit() {
 
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Số điện thoại
+                {t("profilePage.edit.phone")}
               </label>
               <input
                 type="tel"
@@ -584,7 +596,7 @@ export default function ProfileEdit() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Ngày sinh
+                  {t("profilePage.edit.dateOfBirth")}
                 </label>
                 <input
                   type="date"
@@ -596,7 +608,7 @@ export default function ProfileEdit() {
               </div>
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Giới tính
+                  {t("profilePage.edit.gender")}
                 </label>
                 <select
                   name="gender"
@@ -604,10 +616,12 @@ export default function ProfileEdit() {
                   onChange={handleChange}
                   className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
                 >
-                  <option value="">Chọn giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
+                  <option value="">
+                    {t("profilePage.edit.genderPlaceholder")}
+                  </option>
+                  <option value="Nam">{t("profilePage.edit.genderMale")}</option>
+                  <option value="Nữ">{t("profilePage.edit.genderFemale")}</option>
+                  <option value="Khác">{t("profilePage.edit.genderOther")}</option>
                 </select>
               </div>
             </div>
@@ -617,13 +631,13 @@ export default function ProfileEdit() {
         {/* Work & Education */}
         <div className="bg-white rounded-2xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Công việc & Học vấn
+            {t("profilePage.edit.sectionWork")}
           </h2>
 
           <div className="space-y-6">
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Nơi làm việc
+                {t("profilePage.edit.workPlace")}
               </label>
               <input
                 type="text"
@@ -631,13 +645,13 @@ export default function ProfileEdit() {
                 value={formData.workPlace}
                 onChange={handleChange}
                 className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
-                placeholder="Công ty, tổ chức..."
+                placeholder={t("profilePage.edit.workPlacePlaceholder")}
               />
             </div>
 
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Học vấn
+                {t("profilePage.edit.education")}
               </label>
               <input
                 type="text"
@@ -645,14 +659,14 @@ export default function ProfileEdit() {
                 value={formData.education}
                 onChange={handleChange}
                 className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
-                placeholder="Trường học, đại học..."
+                placeholder={t("profilePage.edit.educationPlaceholder")}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Thành phố
+                  {t("profilePage.edit.city")}
                 </label>
                 <input
                   type="text"
@@ -660,12 +674,12 @@ export default function ProfileEdit() {
                   value={formData.city}
                   onChange={handleChange}
                   className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
-                  placeholder="Hà Nội, TP.HCM..."
+                  placeholder={t("profilePage.edit.cityPlaceholder")}
                 />
               </div>
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Quốc gia
+                  {t("profilePage.edit.country")}
                 </label>
                 <input
                   type="text"
@@ -673,7 +687,7 @@ export default function ProfileEdit() {
                   value={formData.country}
                   onChange={handleChange}
                   className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
-                  placeholder="Việt Nam..."
+                  placeholder={t("profilePage.edit.countryPlaceholder")}
                 />
               </div>
             </div>
@@ -682,12 +696,14 @@ export default function ProfileEdit() {
 
         {/* Interests */}
         <div className="bg-white rounded-2xl shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Sở thích</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            {t("profilePage.edit.sectionInterests")}
+          </h2>
 
           <div className="space-y-6">
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Thêm sở thích
+                {t("profilePage.edit.addInterestLabel")}
               </label>
               <div className="flex gap-3">
                 <input
@@ -696,7 +712,7 @@ export default function ProfileEdit() {
                   onChange={(e) => setNewInterest(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAddInterest()}
                   className="flex-1 h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
-                  placeholder="Nhập sở thích của bạn..."
+                  placeholder={t("profilePage.edit.addInterestPlaceholder")}
                 />
                 <button
                   type="button"
@@ -705,7 +721,7 @@ export default function ProfileEdit() {
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Thêm
+                  {t("profilePage.edit.add")}
                 </button>
               </div>
             </div>
@@ -713,7 +729,7 @@ export default function ProfileEdit() {
             {formData.interests && formData.interests.length > 0 && (
               <div>
                 <label className="block text-base font-semibold text-gray-900 mb-3">
-                  Sở thích hiện tại
+                  {t("profilePage.edit.currentInterests")}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {formData.interests.map((interest, index) => (
@@ -740,13 +756,13 @@ export default function ProfileEdit() {
         {/* Privacy Settings */}
         <div className="bg-white rounded-2xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Quyền riêng tư
+            {t("profilePage.edit.sectionPrivacy")}
           </h2>
 
           <div className="space-y-6">
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Ai có thể xem trang cá nhân
+                {t("profilePage.edit.whoCanSeeProfile")}
               </label>
               <select
                 name="profileVisibility"
@@ -754,15 +770,21 @@ export default function ProfileEdit() {
                 onChange={handleChange}
                 className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
               >
-                <option value="PUBLIC">Công khai</option>
-                <option value="FRIENDS">Bạn bè</option>
-                <option value="PRIVATE">Chỉ mình tôi</option>
+                <option value="PUBLIC">
+                  {t("profilePage.edit.visibilityPublic")}
+                </option>
+                <option value="FRIENDS">
+                  {t("profilePage.edit.visibilityFriends")}
+                </option>
+                <option value="PRIVATE">
+                  {t("profilePage.edit.visibilityPrivate")}
+                </option>
               </select>
             </div>
 
             <div>
               <label className="block text-base font-semibold text-gray-900 mb-3">
-                Ai có thể xem bài viết
+                {t("profilePage.edit.whoCanSeePosts")}
               </label>
               <select
                 name="postVisibility"
@@ -770,9 +792,15 @@ export default function ProfileEdit() {
                 onChange={handleChange}
                 className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-gray-50 focus:bg-white transition-all"
               >
-                <option value="PUBLIC">Công khai</option>
-                <option value="FRIENDS">Bạn bè</option>
-                <option value="PRIVATE">Chỉ mình tôi</option>
+                <option value="PUBLIC">
+                  {t("profilePage.edit.visibilityPublic")}
+                </option>
+                <option value="FRIENDS">
+                  {t("profilePage.edit.visibilityFriends")}
+                </option>
+                <option value="PRIVATE">
+                  {t("profilePage.edit.visibilityPrivate")}
+                </option>
               </select>
             </div>
 
@@ -786,7 +814,7 @@ export default function ProfileEdit() {
                   className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-base text-gray-700">
-                  Hiển thị email trên profile
+                  {t("profilePage.edit.showEmailOnProfile")}
                 </span>
               </label>
 
@@ -799,7 +827,7 @@ export default function ProfileEdit() {
                   className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-base text-gray-700">
-                  Hiển thị số điện thoại trên profile
+                  {t("profilePage.edit.showPhoneOnProfile")}
                 </span>
               </label>
             </div>
@@ -812,7 +840,7 @@ export default function ProfileEdit() {
             to={`/profile/${currentUser?.id}`}
             className="px-8 py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg transition-colors"
           >
-            Hủy
+            {t("profilePage.edit.cancel")}
           </Link>
           <button
             type="submit"
@@ -822,12 +850,12 @@ export default function ProfileEdit() {
             {saving ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Đang lưu...
+                {t("profilePage.edit.saving")}
               </>
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                Lưu thay đổi
+                {t("profilePage.edit.save")}
               </>
             )}
           </button>

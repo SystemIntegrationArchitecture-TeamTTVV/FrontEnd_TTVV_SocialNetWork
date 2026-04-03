@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, UserPlus, Check, X, User as UserIcon, Loader2, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { usersApi, type User } from '../../apis/users';
 import { friendRequestsApi, type FriendRequest } from '../../apis/friendRequests';
 import { authApi } from '../../apis/auth';
@@ -18,6 +19,7 @@ export default function FindPeople() {
   const { subscribe } = useSocket();
   const { openChatBoxByUserId } = useChatBox();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,7 +210,7 @@ export default function FindPeople() {
       // Receiver will see real-time notification if they have socket connected
     } catch (error: any) {
       console.error('❌ Failed to send friend request:', error);
-      alert(error.message || 'Gửi lời mời kết bạn thất bại');
+      alert(error.message || t('findPeople.errorSendRequest'));
     }
   };
 
@@ -217,7 +219,7 @@ export default function FindPeople() {
       await friendRequestsApi.acceptFriendRequest(requestId);
       await loadFriendRequests();
     } catch (error: any) {
-      alert(error.message || 'Chấp nhận lời mời kết bạn thất bại');
+      alert(error.message || t('findPeople.errorAcceptRequest'));
     }
   };
 
@@ -226,7 +228,7 @@ export default function FindPeople() {
       await friendRequestsApi.rejectFriendRequest(requestId);
       await loadFriendRequests();
     } catch (error: any) {
-      alert(error.message || 'Từ chối lời mời kết bạn thất bại');
+      alert(error.message || t('findPeople.errorRejectRequest'));
     }
   };
 
@@ -245,7 +247,7 @@ export default function FindPeople() {
     if (!currentUser?.id || !user.id || user.id === currentUser.id) return;
 
     try {
-      const displayName = user.fullName || user.username || 'Unknown User';
+      const displayName = user.fullName || user.username || t('findPeople.unknownUser');
       await openChatBoxByUserId(user.id, displayName, user.avatar);
     } catch (error) {
       console.error('Failed to open chat:', error);
@@ -255,8 +257,8 @@ export default function FindPeople() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Tìm bạn bè</h1>
-        <p className="text-gray-600">Tìm người dùng và gửi lời mời kết bạn</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('findPeople.title')}</h1>
+        <p className="text-gray-600">{t('findPeople.subtitle')}</p>
       </div>
 
       {/* Search Bar */}
@@ -276,7 +278,7 @@ export default function FindPeople() {
             }}
             onKeyPress={handleKeyPress}
             onFocus={handleInputFocus}
-            placeholder="Tìm theo tên hoặc tên đăng nhập..."
+            placeholder={t('findPeople.searchPlaceholder')}
             className="w-full h-14 pl-14 pr-24 rounded-2xl border border-gray-100/50 dark:border-white/5 bg-gray-100/50 dark:bg-[#1e2133]/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-[#22263a] transition-all text-gray-900 dark:text-gray-100"
           />
 
@@ -288,7 +290,7 @@ export default function FindPeople() {
             disabled={loading}
             className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Tìm kiếm'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('findPeople.searchButton')}
           </button>
 
           {/* Suggestions Dropdown */}
@@ -296,7 +298,7 @@ export default function FindPeople() {
             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-9999 max-h-80 overflow-y-auto">
               <div className="p-2">
                 <div className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase">
-                  Gợi ý
+                  {t('findPeople.suggestionsTitle')}
                 </div>
                 {suggestions.map((user) => {
                   const safeUsername = user.username ?? '';
@@ -328,7 +330,7 @@ export default function FindPeople() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate text-sm">
-                          {user.fullName || user.username || safeUsername || 'Người dùng'}
+                          {user.fullName || user.username || safeUsername || t('findPeople.unknownUser')}
                         </p>
                         <p className="text-xs text-gray-500 truncate">@{safeUsername}</p>
                       </div>
@@ -344,7 +346,7 @@ export default function FindPeople() {
       {/* Search Results */}
       {users.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Kết quả tìm kiếm</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('findPeople.resultsTitle')}</h2>
           <div className="space-y-3">
             {users.map((user) => {
               if (!user.id) return null;
@@ -390,7 +392,7 @@ export default function FindPeople() {
                       onClick={() => navigate(`/profile/${user.id}`)}
                       className="flex-1 min-w-0 cursor-pointer"
                     >
-                      <p className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">{user.fullName || user.username || safeUsername || 'Người dùng'}</p>
+                      <p className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">{user.fullName || user.username || safeUsername || t('findPeople.unknownUser')}</p>
                       <p className="text-sm text-gray-500 truncate">@{safeUsername}</p>
                       {user.bio && (
                         <p className="text-sm text-gray-600 mt-1 line-clamp-1">{user.bio}</p>
@@ -404,10 +406,10 @@ export default function FindPeople() {
                         <button
                           onClick={() => handleMessage(user)}
                           className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-                          title="Nhắn tin"
+                          title={t('findPeople.messageButtonTitle')}
                         >
                           <MessageCircle className="w-4 h-4" />
-                          <span className="hidden sm:inline">Nhắn tin</span>
+                          <span className="hidden sm:inline">{t('findPeople.messageButton')}</span>
                         </button>
                       )}
 
@@ -422,7 +424,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
                         >
                           <UserPlus className="w-4 h-4" />
-                          Kết bạn
+                          {t('findPeople.addFriendButton')}
                         </button>
                       )}
                       {status === 'sent' && (
@@ -431,7 +433,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium"
                         >
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="hidden sm:inline">Đang chờ</span>
+                          <span className="hidden sm:inline">{t('findPeople.pendingLabel')}</span>
                         </button>
                       )}
                       {status === 'received' && requestId && (
@@ -441,14 +443,14 @@ export default function FindPeople() {
                             className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
                           >
                             <Check className="w-4 h-4" />
-                            Chấp nhận
+                            {t('findPeople.acceptButton')}
                           </button>
                           <button
                             onClick={() => handleRejectFriendRequest(requestId)}
                             className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
                           >
                             <X className="w-4 h-4" />
-                            Từ chối
+                            {t('findPeople.rejectButton')}
                           </button>
                         </div>
                       )}
@@ -458,7 +460,7 @@ export default function FindPeople() {
                           className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg cursor-not-allowed text-sm font-medium"
                         >
                           <Check className="w-4 h-4" />
-                          <span className="hidden sm:inline">Bạn bè</span>
+                          <span className="hidden sm:inline">{t('findPeople.friendsLabel')}</span>
                         </button>
                       )}
                     </div>
@@ -473,14 +475,14 @@ export default function FindPeople() {
       {!loading && searchQuery && users.length === 0 && (
         <div className="text-center py-12">
           <UserIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Không tìm thấy người dùng phù hợp với "{searchQuery}"</p>
+          <p className="text-gray-600">{t('findPeople.emptyNoResults', { query: searchQuery })}</p>
         </div>
       )}
 
       {!searchQuery && (
         <div className="text-center py-12">
           <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Nhập tên hoặc tên đăng nhập để tìm người dùng</p>
+          <p className="text-gray-600">{t('findPeople.emptyNoSearch')}</p>
         </div>
       )}
     </div>

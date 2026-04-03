@@ -9,8 +9,10 @@ import { useToast } from "../../../../contexts/useToast";
 import CreatePostGroup from "./CreatePostGroup";
 import PostCard from "./Postcard";
 import CommentSection from "./CommentSection";
+import { useTranslation } from "react-i18next";
 
 export default function PostsTab({ groupId }: { groupId: string }) {
+  const { t } = useTranslation();
   const [currentUser] = useState(() => authApi.getCurrentUser());
 
   // ── Posts ──────────────────────────────────────────────
@@ -70,7 +72,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
         }
       }
     } catch {
-      setError("Không thể tải bài viết. Vui lòng thử lại.");
+      setError(t("groupTabs.postsLoadError"));
     } finally {
       if (!opts?.silent) {
         setIsLoadingPosts(false);
@@ -134,7 +136,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : "Gửi bình luận thất bại. Vui lòng thử lại.";
+            : t("groupTabs.commentSendError");
       showToast(msg, "error");
     }
     finally { setIsSubmittingComment(prev => ({ ...prev, [postId]: false })); }
@@ -192,7 +194,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : "Gửi phản hồi thất bại. Vui lòng thử lại.";
+            : t("groupTabs.replySendError");
       showToast(msg, "error");
     }
     finally { setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false })); }
@@ -209,7 +211,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
         setEditVisibility(normalizeVisibility(post.visibility));
       }
     } else if (action === "delete") {
-      if (window.confirm("Bạn có chắc muốn xóa bài viết này?")) {
+      if (window.confirm(t("groupTabs.deletePostConfirm"))) {
         try {
           setIsDeleting(postId);
           await postGroupApi.deletePost(postId);
@@ -218,7 +220,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           const msg =
             error instanceof HttpError
               ? error.data?.message || error.message
-              : "Xóa bài viết thất bại. Vui lòng thử lại.";
+              : t("groupTabs.deletePostError");
           showToast(msg, "error");
         } finally {
           setIsDeleting(null);
@@ -247,7 +249,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : "Cập nhật thất bại. Vui lòng thử lại.";
+            : t("groupTabs.updatePostError");
       showToast(msg, "error");
     }
   };
@@ -274,7 +276,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
       {isLoadingPosts && (
         <div className="bg-white rounded-2xl p-12 border border-gray-200 flex flex-col items-center justify-center">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-          <p className="text-gray-500">Đang tải bài viết...</p>
+          <p className="text-gray-500">{t("groupTabs.postsLoading")}</p>
         </div>
       )}
 
@@ -286,14 +288,14 @@ export default function PostsTab({ groupId }: { groupId: string }) {
             onClick={() => void fetchPosts()}
             className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
           >
-            Thử lại
+            {t("common.retry")}
           </button>
         </div>
       )}
 
       {!isLoadingPosts && !error && posts.length === 0 && (
         <div className="bg-white rounded-2xl p-12 border border-gray-200 text-center">
-          <p className="text-gray-500 text-lg">Chưa có bài viết nào trong nhóm.</p>
+          <p className="text-gray-500 text-lg">{t("groupTabs.emptyPosts")}</p>
         </div>
       )}
 

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Filter, Eye, Trash2, X, AlertCircle } from 'lucide-react';
 import { postsApi, type PostData } from '../../apis/posts';
+import { getLocaleTag } from '../../i18n';
 
 export default function AdminPostManagement() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [posts, setPosts] = useState<PostData[]>([]);
@@ -27,7 +30,7 @@ export default function AdminPostManagement() {
       const data = await postsApi.getAllPosts();
       setPosts(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách bài viết');
+      setError(err.message || t('adminPanel.posts.loadError'));
       console.error('Failed to load posts:', err);
     } finally {
       setLoading(false);
@@ -35,15 +38,15 @@ export default function AdminPostManagement() {
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) return;
+    if (!confirm(t('adminPanel.posts.confirmDelete'))) return;
     
     try {
       setDeleting(postId);
       await postsApi.deletePost(postId);
       setPosts(posts.filter((p) => p.id !== postId));
-      alert('Đã xóa bài viết thành công');
+      alert(t('adminPanel.posts.deleteSuccess'));
     } catch (err: any) {
-      alert('Lỗi khi xóa bài viết: ' + (err.message || 'Unknown error'));
+      alert(t('adminPanel.posts.deleteError', { message: err.message || 'Unknown error' }));
       console.error('Failed to delete post:', err);
     } finally {
       setDeleting(null);
@@ -73,7 +76,7 @@ export default function AdminPostManagement() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
-      return new Date(dateString).toLocaleString('vi-VN');
+      return new Date(dateString).toLocaleString(getLocaleTag());
     } catch {
       return dateString;
     }
@@ -93,7 +96,7 @@ export default function AdminPostManagement() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải danh sách bài viết...</p>
+          <p className="text-gray-600">{t('adminPanel.posts.loadingList')}</p>
         </div>
       </div>
     );
@@ -105,7 +108,7 @@ export default function AdminPostManagement() {
         <div className="flex items-center gap-3 text-red-800">
           <AlertCircle className="w-6 h-6" />
           <div>
-            <p className="font-semibold">Lỗi khi tải dữ liệu</p>
+            <p className="font-semibold">{t('adminPanel.posts.errorDataTitle')}</p>
             <p className="text-sm">{error}</p>
           </div>
         </div>
@@ -113,7 +116,7 @@ export default function AdminPostManagement() {
           onClick={loadPosts}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
         >
-          Thử lại
+          {t('adminPanel.dashboard.retry')}
         </button>
       </div>
     );
@@ -124,8 +127,8 @@ export default function AdminPostManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý bài viết</h1>
-          <p className="text-lg text-gray-600">Quản lý và kiểm duyệt tất cả bài viết</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('adminPanel.posts.pageTitle')}</h1>
+          <p className="text-lg text-gray-600">{t('adminPanel.posts.pageSubtitle')}</p>
         </div>
       </div>
 
@@ -136,7 +139,7 @@ export default function AdminPostManagement() {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm bài viết..."
+              placeholder={t('adminPanel.posts.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-14 pr-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-lg transition-all"
@@ -165,7 +168,7 @@ export default function AdminPostManagement() {
       <div className="space-y-4">
         {paginatedPosts.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-            <p className="text-gray-500 text-lg">Không tìm thấy bài viết nào</p>
+            <p className="text-gray-500 text-lg">{t('adminPanel.posts.emptyList')}</p>
           </div>
         ) : (
           paginatedPosts.map((post) => (
@@ -239,7 +242,7 @@ export default function AdminPostManagement() {
                   <button
                     onClick={() => post.id && handleDeletePost(post.id)}
                     disabled={deleting === post.id}
-                    title="Xóa bài viết"
+                    title={t('adminPanel.posts.deleteTitle')}
                     className="w-11 h-11 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
                   >
                     {deleting === post.id ? (

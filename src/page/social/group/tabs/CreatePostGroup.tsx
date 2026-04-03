@@ -6,6 +6,7 @@ import { authApi } from '../../../../apis/auth';
 import { uploadApi } from '../../../../apis/upload';
 import { HttpError } from '../../../../apis/http';
 import { useToast } from '../../../../contexts/useToast';
+import { useTranslation } from 'react-i18next';
 
 export default function CreatePostGroup({
   groupId,
@@ -15,6 +16,7 @@ export default function CreatePostGroup({
   /** Gọi sau khi tạo bài thành công — tránh navigate(0) reload cả trang */
   onPostCreated?: (post: PostGroupData) => void;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const [content, setContent] = useState('');
@@ -49,7 +51,7 @@ export default function CreatePostGroup({
       );
       setImageUrls((prev) => [...prev, ...urls]);
     } catch {
-      setError('Lỗi tải ảnh lên');
+      setError(t('groupTabs.createErrorImage'));
     } finally {
       setIsUploading(false);
     }
@@ -71,7 +73,7 @@ export default function CreatePostGroup({
       );
       setVideoUrls((prev) => [...prev, ...urls]);
     } catch {
-      setError('Lỗi tải video lên');
+      setError(t('groupTabs.createErrorVideo'));
     } finally {
       setIsUploading(false);
     }
@@ -97,7 +99,7 @@ export default function CreatePostGroup({
 
   const handlePost = async () => {
     if (!content.trim() && imageUrls.length === 0 && videoUrls.length === 0) {
-      setError('Hãy nhập nội dung hoặc chọn media');
+      setError(t('groupTabs.createErrorEmpty'));
       return;
     }
     setIsLoading(true);
@@ -128,7 +130,7 @@ export default function CreatePostGroup({
           ? err.data?.message || err.message
           : err instanceof Error
             ? err.message
-            : 'Tạo bài viết thất bại';
+            : t('groupTabs.createErrorGeneric');
       setError(msg);
       showToast(msg, "error");
     } finally {
@@ -157,7 +159,7 @@ export default function CreatePostGroup({
             dark:bg-[#252836] dark:text-gray-400 dark:hover:bg-[#2f3344] dark:hover:text-gray-300"
           onClick={() => setIsOpen(true)}
         >
-          {currentUser?.fullName} ơi, bạn đang nghĩ gì thế?
+          {t('groupTabs.createTrigger', { name: currentUser?.fullName || t('groupTabs.postUserFallback') })}
         </button>
         <div className="flex gap-1">
           <button
@@ -168,7 +170,7 @@ export default function CreatePostGroup({
               setIsOpen(true);
               setTimeout(() => imageInputRef.current?.click(), 100);
             }}
-            aria-label="Thêm ảnh"
+            aria-label={t('groupTabs.ariaAddPhoto')}
           >
             <Image size={18} />
           </button>
@@ -180,7 +182,7 @@ export default function CreatePostGroup({
               setIsOpen(true);
               setTimeout(() => videoInputRef.current?.click(), 100);
             }}
-            aria-label="Thêm video"
+            aria-label={t('groupTabs.ariaAddVideo')}
           >
             <Video size={18} />
           </button>
@@ -206,14 +208,14 @@ export default function CreatePostGroup({
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-[#2b2f45]">
               <div className="w-8 shrink-0" />
               <span id="cpg-modal-title" className="text-base font-bold text-gray-900 dark:text-gray-100">
-                Tạo bài viết
+                {t('groupTabs.createModalTitle')}
               </span>
               <button
                 type="button"
                 className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border-none bg-gray-100 text-gray-500 transition-colors
                   hover:bg-gray-200 hover:text-gray-900 dark:bg-[#252836] dark:text-gray-400 dark:hover:bg-[#2f3344] dark:hover:text-white"
                 onClick={() => setIsOpen(false)}
-                aria-label="Đóng"
+                aria-label={t('groupTabs.ariaClose')}
               >
                 <X size={16} />
               </button>
@@ -233,7 +235,7 @@ export default function CreatePostGroup({
                     onClick={togglePrivacy}
                   >
                     {privacy === 'PUBLIC' ? <Globe className="size-[11px]" /> : <Lock className="size-[11px]" />}
-                    {privacy === 'PUBLIC' ? 'Công khai' : 'Riêng tư'}
+                    {privacy === 'PUBLIC' ? t('groupPage.createPublic') : t('groupPage.createPrivate')}
                     <span className="text-[9px] opacity-50">▾</span>
                   </button>
                 </div>
@@ -244,7 +246,7 @@ export default function CreatePostGroup({
                 autoFocus
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Chia sẻ điều gì đó với nhóm..."
+                placeholder={t('groupTabs.createPlaceholder')}
               />
 
               {mediaCount > 0 && (
@@ -261,7 +263,7 @@ export default function CreatePostGroup({
                         type="button"
                         className="absolute right-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border-none bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-red-500/80 group-hover:opacity-100"
                         onClick={() => removeImage(i)}
-                        aria-label="Xóa ảnh"
+                        aria-label={t('groupTabs.ariaRemovePhoto')}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -277,7 +279,7 @@ export default function CreatePostGroup({
                         type="button"
                         className="absolute right-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border-none bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-red-500/80 group-hover:opacity-100"
                         onClick={() => removeVideo(i)}
-                        aria-label="Xóa video"
+                        aria-label={t('groupTabs.ariaRemoveVideo')}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -297,13 +299,13 @@ export default function CreatePostGroup({
                 className="mb-3 flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50/80 px-3.5 py-2
                   dark:border-[#2b2f45] dark:bg-[#14161f]"
               >
-                <span className="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">Thêm vào bài viết</span>
+                <span className="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">{t('groupTabs.createAddToPost')}</span>
                 <div className="flex gap-0.5">
                   <button
                     type="button"
                     className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-emerald-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
                     onClick={() => imageInputRef.current?.click()}
-                    title="Ảnh"
+                    title={t('groupTabs.titlePhoto')}
                   >
                     <Image size={20} />
                   </button>
@@ -311,21 +313,21 @@ export default function CreatePostGroup({
                     type="button"
                     className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-orange-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
                     onClick={() => videoInputRef.current?.click()}
-                    title="Video"
+                    title={t('groupTabs.titleVideo')}
                   >
                     <Video size={20} />
                   </button>
                   <button
                     type="button"
                     className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-yellow-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
-                    title="Cảm xúc"
+                    title={t('groupTabs.titleFeeling')}
                   >
                     <Smile size={20} />
                   </button>
                   <button
                     type="button"
                     className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-[10px] border-none bg-transparent text-blue-500 transition-colors hover:bg-white hover:shadow-sm dark:hover:bg-[#252836]"
-                    title="Địa điểm"
+                    title={t('groupTabs.titleLocation')}
                   >
                     <MapPin size={20} />
                   </button>
@@ -340,7 +342,7 @@ export default function CreatePostGroup({
               {isUploading && (
                 <div className="mb-2.5 flex items-center gap-1.5 text-xs font-medium text-indigo-500 dark:text-indigo-400">
                   <Loader2 size={13} className="animate-spin" />
-                  Đang tải lên...
+                  {t('groupTabs.createUploading')}
                 </div>
               )}
 
@@ -354,7 +356,7 @@ export default function CreatePostGroup({
                 onClick={handlePost}
                 disabled={!canPost}
               >
-                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Đăng bài'}
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : t('groupTabs.createPostBtn')}
               </button>
             </div>
           </div>

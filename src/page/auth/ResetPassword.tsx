@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { passwordResetApi } from '../../apis/passwordReset';
 
 export default function ResetPassword() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -18,25 +20,27 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid reset link. Please request a new password reset.');
+      setError(t('auth.resetToken.errorInvalidLink'));
+    } else {
+      setError(null);
     }
-  }, [token]);
+  }, [token, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!token) {
-      setError('Invalid reset link');
+      setError(t('auth.resetToken.errorInvalidLinkShort'));
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('auth.resetToken.errorMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.resetToken.errorMismatch'));
       return;
     }
 
@@ -54,7 +58,7 @@ export default function ResetPassword() {
       }, 3000);
     } catch (err: any) {
       console.error('❌ Failed to reset password:', err);
-      setError(err.message || 'Failed to reset password. The link may be expired.');
+      setError(err.message || t('auth.resetToken.errorGeneric'));
     } finally {
       setIsLoading(false);
     }
@@ -68,12 +72,12 @@ export default function ResetPassword() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-500/15 rounded-full mb-4">
               <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">Đặt lại mật khẩu thành công!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">{t('auth.resetToken.successTitle')}</h2>
             <p className="text-gray-600 dark:text-[#7e89a6] mb-4">
-              Mật khẩu của bạn đã được thay đổi thành công.
+              {t('auth.resetToken.successBody')}
             </p>
             <p className="text-sm text-gray-500 dark:text-[#5a6278] mb-6">
-              Đang chuyển về trang đăng nhập...
+              {t('auth.resetToken.redirecting')}
             </p>
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
@@ -89,9 +93,9 @@ export default function ResetPassword() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-500/15 rounded-full mb-4">
             <Lock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">Đặt lại mật khẩu</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">{t('auth.resetToken.pageTitle')}</h1>
           <p className="text-gray-600 dark:text-[#7e89a6]">
-            Nhập mật khẩu mới của bạn bên dưới
+            {t('auth.resetToken.pageSubtitle')}
           </p>
         </div>
 
@@ -104,7 +108,7 @@ export default function ResetPassword() {
 
           <div>
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-[#c0c8de] mb-2">
-              Mật khẩu mới
+              {t('auth.resetToken.newPassword')}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-[#5a6278]" />
@@ -113,7 +117,7 @@ export default function ResetPassword() {
                 id="newPassword"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Nhập mật khẩu mới"
+                placeholder={t('auth.resetToken.placeholderNew')}
                 className="w-full pl-10 pr-12 py-3 border border-gray-200 dark:border-[#2b2f45] rounded-xl bg-white dark:bg-[#22263a] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 disabled={isLoading || !token}
                 required
@@ -127,12 +131,12 @@ export default function ResetPassword() {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-[#5a6278] mt-1">Tối thiểu 6 ký tự</p>
+            <p className="text-xs text-gray-500 dark:text-[#5a6278] mt-1">{t('auth.resetToken.minHint')}</p>
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-[#c0c8de] mb-2">
-              Xác nhận mật khẩu
+              {t('auth.resetToken.confirmPassword')}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-[#5a6278]" />
@@ -141,7 +145,7 @@ export default function ResetPassword() {
                 id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu"
+                placeholder={t('auth.resetToken.placeholderConfirm')}
                 className="w-full pl-10 pr-12 py-3 border border-gray-200 dark:border-[#2b2f45] rounded-xl bg-white dark:bg-[#22263a] text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 disabled={isLoading || !token}
                 required
@@ -166,7 +170,7 @@ export default function ResetPassword() {
             }`}
           >
             {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-            {isLoading ? 'Đang xử lý...' : 'Đặt lại mật khẩu'}
+            {isLoading ? t('auth.resetToken.submitting') : t('auth.resetToken.submit')}
           </button>
         </form>
       </div>

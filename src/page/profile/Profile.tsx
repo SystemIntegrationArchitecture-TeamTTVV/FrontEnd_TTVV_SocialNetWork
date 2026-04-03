@@ -19,8 +19,11 @@ import {
 import { useSocket } from "../../contexts/SocketContext";
 import { useChatBox } from "../../contexts/ChatBoxContext";
 import About from "./tabs/About";
+import { useTranslation } from "react-i18next";
+import { getLocaleTag } from "../../i18n";
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("posts");
   const [profileUser, setProfileUser] = useState<User | null>(null);
@@ -550,11 +553,9 @@ export default function Profile() {
                 <p className="flex items-center gap-2">
                   <span className="text-base">🎂</span>
                   <span>
-                    Sinh ngày{" "}
+                    {t("profilePage.birthdayPrefix")}{" "}
                     <strong>
-                      {new Date(displayUser.dateOfBirth).toLocaleDateString(
-                        "vi-VN",
-                      )}
+                      {new Date(displayUser.dateOfBirth).toLocaleDateString(getLocaleTag())}
                     </strong>
                   </span>
                 </p>

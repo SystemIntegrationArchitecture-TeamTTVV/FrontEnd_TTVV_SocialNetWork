@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, Eye } from 'lucide-react';
 import type { Story } from '../../types/story';
 import { authApi } from '../../apis/auth';
+import { getLocaleTag } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 
 interface StoryViewerProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface StoryViewerProps {
 }
 
 export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }: StoryViewerProps) {
+  const { t } = useTranslation();
   const currentUser = authApi.getCurrentUser();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -111,7 +114,7 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
             <div>
               <p className="text-white font-semibold">{currentStory.user.name}</p>
               <p className="text-gray-300 text-xs">
-                {new Date(currentStory.createdAt).toLocaleTimeString('en-US', {
+                {new Date(currentStory.createdAt).toLocaleTimeString(getLocaleTag(), {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
@@ -138,7 +141,7 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
       >        {currentStory.contentType === 'image' && currentStory.content ? (
           <img
             src={currentStory.content}
-            alt="Story"
+            alt={t('storyViewer.imageAlt')}
             className="w-full h-auto max-h-full object-contain"
           />
         ) : currentStory.contentType === 'video' && currentStory.content ? (

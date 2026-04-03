@@ -9,6 +9,7 @@ import { authApi } from "../../../apis/auth";
 import PostsTab from "./tabs/PostsTab";
 import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   activeTab: string;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function GroupContent({ activeTab, group }: Props) {
+  const { t } = useTranslation();
   console.log("📦 Group data:", group);
 
   const [currentUser] = useState<{
@@ -51,7 +53,7 @@ export default function GroupContent({ activeTab, group }: Props) {
           <div className="absolute inset-0 rounded-full border-[2.5px] border-gray-200 dark:border-[#2b2f45]" />
           <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-blue-500 animate-spin" />
         </div>
-        <p className="text-sm text-gray-400 dark:text-[#7e89a6]">Đang kiểm tra quyền truy cập...</p>
+        <p className="text-sm text-gray-400 dark:text-[#7e89a6]">{t("groupPage.loadingAccess")}</p>
       </div>
     );
   }
@@ -67,12 +69,12 @@ if (!canView && activeTab !== "about") {
         <Lock className="w-6 h-6 text-gray-300 dark:text-[#4e5870]" />
       </div>
       <h3 className="text-base font-bold text-gray-900 dark:text-[#edf0fa] mb-1">
-        {group.privacy === "PUBLIC" ? "Nhóm công khai" : "Bạn chưa tham gia nhóm"}
+        {group.privacy === "PUBLIC" ? t("groupPage.lockTitlePublic") : t("groupPage.lockTitlePrivate")}
       </h3>
       <p className="text-sm text-gray-400 dark:text-[#7e89a6]">
         {group.privacy === "PUBLIC"
-          ? "Bạn có thể xem bài viết công khai của nhóm"
-          : "Hãy tham gia nhóm để xem nội dung và thảo luận"}
+          ? t("groupPage.lockHintPublic")
+          : t("groupPage.lockHintPrivate")}
       </p>
     </div>
   );

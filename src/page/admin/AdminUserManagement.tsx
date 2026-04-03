@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Ban, CheckCircle2, XCircle, Eye, Trash2, Loader2, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usersApi, type User } from '../../apis/users';
+import { getLocaleTag } from '../../i18n';
 
 export default function AdminUserManagement() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
@@ -28,14 +31,18 @@ export default function AdminUserManagement() {
       console.log('✅ Loaded users:', Array.isArray(data) ? data.length : 0);
     } catch (err: any) {
       console.error('❌ Failed to load users:', err);
-      setError('Không thể tải danh sách người dùng');
+      setError(t('adminPanel.users.loadError'));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
-    if (!window.confirm(`Bạn có chắc muốn ${currentStatus === 'ACTIVE' ? 'khóa' : 'mở khóa'} tài khoản này?`)) {
+    if (
+      !window.confirm(
+        currentStatus === 'ACTIVE' ? t('adminPanel.users.confirmBan') : t('adminPanel.users.confirmUnban'),
+      )
+    ) {
       return;
     }
 
@@ -52,14 +59,14 @@ export default function AdminUserManagement() {
       console.log('✅ User status updated');
     } catch (error) {
       console.error('❌ Failed to update user status:', error);
-      alert('Không thể cập nhật trạng thái người dùng');
+      alert(t('adminPanel.users.updateStatusError'));
     } finally {
       setIsUpdating(null);
     }
   };
 
   const handleToggleUserRole = async (userId: string, currentRole: string) => {
-    if (!window.confirm(`Bạn có chắc muốn thay đổi vai trò người dùng này?`)) {
+    if (!window.confirm(t('adminPanel.users.confirmRole'))) {
       return;
     }
 
@@ -76,14 +83,14 @@ export default function AdminUserManagement() {
       console.log('✅ User role updated');
     } catch (error) {
       console.error('❌ Failed to update user role:', error);
-      alert('Không thể cập nhật vai trò người dùng');
+      alert(t('adminPanel.users.updateRoleError'));
     } finally {
       setIsUpdating(null);
     }
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa tài khoản "${userName}"? Hành động này không thể hoàn tác!`)) {
+    if (!window.confirm(t('adminPanel.users.confirmDelete', { name: userName }))) {
       return;
     }
 
@@ -97,7 +104,7 @@ export default function AdminUserManagement() {
       console.log('✅ User deleted');
     } catch (error) {
       console.error('❌ Failed to delete user:', error);
-      alert('Không thể xóa người dùng');
+      alert(t('adminPanel.users.deleteError'));
     } finally {
       setIsUpdating(null);
     }
@@ -137,25 +144,25 @@ export default function AdminUserManagement() {
 
   const getRoleLabel = (role?: string) => {
     switch (role) {
-      case 'ADMIN': return 'Quản trị viên';
-      case 'MODERATOR': return 'Kiểm duyệt viên';
-      default: return 'Người dùng';
+      case 'ADMIN': return t('adminPanel.users.roleAdmin');
+      case 'MODERATOR': return t('adminPanel.users.roleModerator');
+      default: return t('adminPanel.users.roleUser');
     }
   };
 
   const getStatusLabel = (status?: string) => {
     switch (status) {
-      case 'ACTIVE': return 'Hoạt động';
-      case 'BANNED': return 'Đã khóa';
-      case 'DELETED': return 'Đã xóa';
-      default: return 'Không xác định';
+      case 'ACTIVE': return t('adminPanel.users.statusActive');
+      case 'BANNED': return t('adminPanel.users.statusBanned');
+      case 'DELETED': return t('adminPanel.users.statusDeleted');
+      default: return t('adminPanel.users.statusUnknown');
     }
   };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString(getLocaleTag());
   };
 
   return (
@@ -163,9 +170,9 @@ export default function AdminUserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý người dùng</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('adminPanel.users.title')}</h1>
           <p className="text-lg text-gray-600">
-            Tổng số: <span className="font-semibold">{filteredUsers.length}</span> người dùng
+            {t('adminPanel.users.totalCount', { count: filteredUsers.length })}
           </p>
         </div>
         <button 
@@ -184,7 +191,7 @@ export default function AdminUserManagement() {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên, email hoặc username..."
+              placeholder={t('adminPanel.users.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-14 pr-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-lg transition-all"
@@ -330,7 +337,7 @@ export default function AdminUserManagement() {
                           <button
                             onClick={() => handleToggleUserStatus(user.id!, user.status!)}
                             disabled={isUpdating === user.id}
-                            title={user.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa'}
+                            title={user.status === 'ACTIVE' ? t('adminPanel.users.banTitle') : t('adminPanel.users.unbanTitle')}
                             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 ${
                               user.status === 'ACTIVE'
                                 ? 'bg-red-50 text-red-600 hover:bg-red-100'
@@ -346,7 +353,7 @@ export default function AdminUserManagement() {
                           <button
                             onClick={() => handleDeleteUser(user.id!, user.fullName!)}
                             disabled={isUpdating === user.id}
-                            title="Xóa"
+                            title={t('adminPanel.users.deleteTitle')}
                             className="w-10 h-10 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
                           >
                             <Trash2 className="w-5 h-5" />

@@ -1,4 +1,15 @@
+import { useTranslation } from 'react-i18next';
+
 export default function MessengerSearch() {
-  return <div className="max-w-4xl mx-auto p-6"><h1 className="text-2xl font-bold mb-6">Search Messages</h1><div className="bg-white rounded-lg shadow-sm p-6"><p className="text-[#65676B]">Search functionality coming soon...</p></div></div>;
+  const { t } = useTranslation();
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">{t('messengerSearch.title')}</h1>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <p className="text-[#65676B]">{t('messengerSearch.comingSoon')}</p>
+      </div>
+    </div>
+  );
 }
 

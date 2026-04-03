@@ -5,6 +5,7 @@ import {
   UserMinus, Shield, Clock, CheckCircle, XCircle, Lock, Globe, Loader2,
 } from "lucide-react";
 import { authApi } from "../../../apis/auth";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   group: GroupData;
@@ -28,6 +29,7 @@ interface PendingMember {
 type Tab = "members" | "pending" | "settings";
 
 export default function GroupManageModal({ group, onClose }: Props) {
+  const { t } = useTranslation();
   const [members, setMembers] = useState<Member[]>([]);
   const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,7 +125,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
   };
 
   const handleDeleteGroup = async () => {
-    const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
+    const confirm = window.confirm(t("groupPage.manageConfirmDelete"));
     if (!confirm) return;
     try {
       await groupsApi.deleteGroup(group.id!);
@@ -167,9 +169,9 @@ export default function GroupManageModal({ group, onClose }: Props) {
   };
 
   const tabs = [
-    { id: "members" as Tab, label: "Thành viên", icon: Users, count: members.length },
-    { id: "pending" as Tab, label: "Chờ duyệt", icon: Clock, count: pendingMembers.length },
-    { id: "settings" as Tab, label: "Cài đặt", icon: Settings, count: null },
+    { id: "members" as Tab, label: t("groupPage.manageNavMembers"), icon: Users, count: members.length },
+    { id: "pending" as Tab, label: t("groupPage.manageNavPending"), icon: Clock, count: pendingMembers.length },
+    { id: "settings" as Tab, label: t("groupPage.manageNavSettings"), icon: Settings, count: null },
   ];
 
   return (
@@ -188,7 +190,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
               <Users className="w-5 h-5" />
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] truncate">{newName}</p>
-            <p className="text-xs text-gray-400 dark:text-[#6a7494] mt-0.5">{members.length} thành viên</p>
+            <p className="text-xs text-gray-400 dark:text-[#6a7494] mt-0.5">{t("groupPage.manageSidebarMembers", { count: members.length })}</p>
           </div>
 
           {/* Nav tabs */}
@@ -199,6 +201,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
               const isPending = tab.id === "pending";
               return (
                 <button
+                  type="button"
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 ${
@@ -235,19 +238,20 @@ export default function GroupManageModal({ group, onClose }: Props) {
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-[#22263a] shrink-0">
             <div>
               <h3 className="text-base font-bold text-gray-900 dark:text-[#edf0fa]">
-                {activeTab === "members" ? "Thành viên"
-                  : activeTab === "pending" ? "Yêu cầu tham gia"
-                  : "Cài đặt nhóm"}
+                {activeTab === "members" ? t("groupPage.manageTitleMembers")
+                  : activeTab === "pending" ? t("groupPage.manageTitlePending")
+                  : t("groupPage.manageTitleSettings")}
               </h3>
               <p className="text-xs text-gray-400 dark:text-[#7e89a6] mt-0.5">
                 {activeTab === "members"
-                  ? `${members.length} người trong nhóm`
+                  ? t("groupPage.manageSubMembers", { count: members.length })
                   : activeTab === "pending"
-                  ? `${pendingMembers.length} yêu cầu đang chờ duyệt`
-                  : "Quản lý tên nhóm và tùy chọn"}
+                  ? t("groupPage.manageSubPending", { count: pendingMembers.length })
+                  : t("groupPage.manageSubSettings")}
               </p>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#22263a] text-gray-400 dark:text-[#6a7494] hover:bg-gray-200 dark:hover:bg-[#2b2f45] hover:text-gray-600 dark:hover:text-[#edf0fa] flex items-center justify-center transition-colors"
             >
@@ -262,9 +266,9 @@ export default function GroupManageModal({ group, onClose }: Props) {
             {activeTab === "members" && (
               <div>
                 {loading ? (
-                  <LoadingSpinner text="Đang tải thành viên..." />
+                  <LoadingSpinner text={t("groupPage.manageLoadingMembers")} />
                 ) : members.length === 0 ? (
-                  <EmptyBlock icon={Users} text="Chưa có thành viên nào" />
+                  <EmptyBlock icon={Users} text={t("groupPage.manageEmptyMembers")} />
                 ) : (
                   <div className="space-y-1">
                     {members.map((member) => {
@@ -284,14 +288,15 @@ export default function GroupManageModal({ group, onClose }: Props) {
                                   : "bg-gray-100 dark:bg-[#22263a] text-gray-400 dark:text-[#7e89a6]"
                               }`}>
                                 {isAdmin && <Shield className="w-2.5 h-2.5" />}
-                                {isAdmin ? "Admin" : "Thành viên"}
+                                {isAdmin ? t("groupPage.manageRoleAdmin") : t("groupPage.manageRoleMember")}
                               </span>
                             </div>
                           </div>
                           <button
+                            type="button"
                             disabled={!canRemove}
                             onClick={() => canRemove && handleRemoveMember(member.id)}
-                            title={isAdmin ? "Không thể xóa admin" : isSelf ? "Không thể xóa chính mình" : "Xóa thành viên"}
+                            title={isAdmin ? t("groupPage.manageRemoveAdmin") : isSelf ? t("groupPage.manageRemoveSelf") : t("groupPage.manageRemoveMember")}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-[#4e5870] hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 transition-colors"
                           >
                             <UserMinus className="w-4 h-4" />
@@ -308,9 +313,9 @@ export default function GroupManageModal({ group, onClose }: Props) {
             {activeTab === "pending" && (
               <div>
                 {loadingPending ? (
-                  <LoadingSpinner text="Đang tải yêu cầu..." />
+                  <LoadingSpinner text={t("groupPage.manageLoadingPending")} />
                 ) : pendingMembers.length === 0 ? (
-                  <EmptyBlock icon={Clock} text="Không có yêu cầu nào đang chờ" />
+                  <EmptyBlock icon={Clock} text={t("groupPage.manageEmptyPending")} />
                 ) : (
                   <div className="space-y-1">
                     {pendingMembers.map((member) => {
@@ -323,27 +328,29 @@ export default function GroupManageModal({ group, onClose }: Props) {
                               <p className="text-sm font-medium text-gray-900 dark:text-[#edf0fa]">{member.fullName}</p>
                               <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/15 text-amber-500 dark:text-amber-400">
                                 <Clock className="w-2.5 h-2.5" />
-                                Đang chờ
+                                {t("groupPage.managePendingBadge")}
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1.5">
                             <button
+                              type="button"
                               disabled={isProcessing}
                               onClick={() => handleApproveMember(member.userId)}
                               className="h-8 px-3 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-semibold flex items-center gap-1.5 hover:bg-green-100 dark:hover:bg-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                              Duyệt
+                              {t("groupPage.manageApprove")}
                             </button>
                             <button
+                              type="button"
                               disabled={isProcessing}
                               onClick={() => handleRejectMember(member.userId)}
                               className="h-8 px-3 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 text-xs font-semibold flex items-center gap-1.5 hover:bg-red-100 dark:hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                              Từ chối
+                              {t("groupPage.manageReject")}
                             </button>
                           </div>
                         </div>
@@ -360,7 +367,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
                 {/* Group name */}
                 <div className="mb-6">
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#6a7494] mb-2">
-                    Tên nhóm
+                    {t("groupPage.manageGroupNameLabel")}
                   </label>
                   <div className="flex gap-2">
                     {editingName ? (
@@ -372,14 +379,16 @@ export default function GroupManageModal({ group, onClose }: Props) {
                           autoFocus
                         />
                         <button
+                          type="button"
                           onClick={handleUpdateName}
                           disabled={savingName}
                           className="h-10 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                         >
                           {savingName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-4 h-4" />}
-                          Lưu
+                          {t("groupPage.manageSave")}
                         </button>
                         <button
+                          type="button"
                           onClick={() => { setEditingName(false); setNewName(group.name); }}
                           className="w-10 h-10 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#22263a] text-gray-400 dark:text-[#6a7494] hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 hover:text-red-500 dark:hover:text-red-400 flex items-center justify-center transition-colors"
                         >
@@ -392,8 +401,9 @@ export default function GroupManageModal({ group, onClose }: Props) {
                           {newName}
                         </div>
                         <button
+                          type="button"
                           onClick={() => setEditingName(true)}
-                          title="Sửa tên"
+                          title={t("groupPage.manageEditName")}
                           className="w-10 h-10 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#22263a] text-gray-400 dark:text-[#6a7494] hover:bg-gray-100 dark:hover:bg-[#2b2f45] hover:text-gray-600 dark:hover:text-[#edf0fa] flex items-center justify-center transition-colors"
                         >
                           <Edit3 className="w-4 h-4" />
@@ -406,7 +416,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
                 {/* Privacy toggle */}
                 <div className="mb-6">
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#6a7494] mb-2">
-                    Quyền riêng tư
+                    {t("groupPage.managePrivacyLabel")}
                   </label>
                   <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-gray-100 dark:border-[#2b2f45] bg-gray-50 dark:bg-[#13151f]">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -419,12 +429,12 @@ export default function GroupManageModal({ group, onClose }: Props) {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa]">
-                          {isPrivate ? "Nhóm riêng tư" : "Nhóm công khai"}
+                          {isPrivate ? t("groupPage.managePrivateGroup") : t("groupPage.managePublicGroup")}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-[#7e89a6] leading-relaxed">
                           {isPrivate
-                            ? "Chỉ thành viên được duyệt mới xem được bài viết."
-                            : "Ai cũng có thể xem nhóm và tham gia tự do."}
+                            ? t("groupPage.managePrivateHint")
+                            : t("groupPage.managePublicHint")}
                         </p>
                       </div>
                     </div>
@@ -451,7 +461,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
                         )}
                       </label>
                       <span className={`text-xs font-semibold transition-colors ${isPrivate ? "text-blue-500 dark:text-blue-400" : "text-gray-300 dark:text-[#4e5870]"}`}>
-                        Riêng tư
+                        {t("groupPage.manageLabelPrivate")}
                       </span>
                     </div>
                   </div>
@@ -460,17 +470,18 @@ export default function GroupManageModal({ group, onClose }: Props) {
                 {/* Danger zone */}
                 <div className="mt-8 p-5 rounded-2xl border border-red-100 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/5">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-red-500 dark:text-red-400 mb-1.5">
-                    Vùng nguy hiểm
+                    {t("groupPage.manageDangerZone")}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-[#7e89a6] mb-4">
-                    Xóa vĩnh viễn nhóm và tất cả thành viên. Hành động này không thể hoàn tác.
+                    {t("groupPage.manageDangerDesc")}
                   </p>
                   <button
+                    type="button"
                     onClick={handleDeleteGroup}
                     className="w-full h-10 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Xóa nhóm
+                    {t("groupPage.manageDeleteGroup")}
                   </button>
                 </div>
               </div>

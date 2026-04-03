@@ -1,39 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessages } from '../../hooks/useMessages';
 import type { ChatContact } from '../../types/chat';
+import { getLocaleTag } from '../../i18n';
 
 type ContactWithLastMessage = ChatContact & {
   lastMessage?: string;
   lastMessageTime?: string;
 };
-
-/**
- * 👉 format last message time
- */
-function formatMessageTime(time?: string) {
-  if (!time) return '';
-
-  const date = new Date(time);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / (1000 * 60));
-  const diffHour = Math.floor(diffMin / 60);
-
-  if (diffMin < 1) return 'Now';
-  if (diffMin < 60) return `${diffMin}m`;
-  if (diffHour < 24) return `${diffHour}h`;
-
-  const yesterday = new Date();
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
-  }
-
-  return date.toLocaleDateString('vi-VN');
-}
 
 /**
  * 👉 get initials from name
@@ -74,6 +50,30 @@ function getAvatarColor(name: string) {
 
 export default function RightSidebar() {
   const { t } = useTranslation();
+  const formatMessageTime = useCallback(
+    (time?: string) => {
+      if (!time) return '';
+
+      const date = new Date(time);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMin = Math.floor(diffMs / (1000 * 60));
+      const diffHour = Math.floor(diffMin / 60);
+
+      if (diffMin < 1) return t('messenger.time.justNow');
+      if (diffMin < 60) return `${diffMin}m`;
+      if (diffHour < 24) return t('messenger.time.hoursAgo', { count: diffHour });
+
+      const yesterday = new Date();
+      yesterday.setDate(now.getDate() - 1);
+      if (date.toDateString() === yesterday.toDateString()) {
+        return t('messenger.time.yesterday');
+      }
+
+      return date.toLocaleDateString(getLocaleTag());
+    },
+    [t],
+  );
   const { openChatBox } = useChatBox();
   const { user } = useAuth();
   const { conversations, loadConversations } = useMessages();
@@ -282,7 +282,7 @@ export default function RightSidebar() {
                   </div>
 
                   <p className="text-xs text-gray-500 dark:text-[#7e89a6] truncate leading-relaxed">
-                    {contact.lastMessage || 'Chưa có tin nhắn'}
+                    {contact.lastMessage || t('rightSidebar.noLastMessage')}
                   </p>
                 </div>
               </div>

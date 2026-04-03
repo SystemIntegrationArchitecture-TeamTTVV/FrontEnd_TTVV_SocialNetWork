@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { groupsApi } from "../../../apis/groupsApi";
 import { useToast } from "../../../contexts/useToast";
 
@@ -21,7 +22,7 @@ export default function InviteFriendsModal({
   onClose,
   onInvited
 }: Props) {
-
+  const { t } = useTranslation();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [invitingIds, setInvitingIds] = useState<string[]>([]);
@@ -64,12 +65,12 @@ export default function InviteFriendsModal({
 
       setFriends(prev => prev.filter(f => f.id !== friendId));
       onInvited?.();
-      showToast("Đã mời thành công", "success");
+      showToast(t("groups.inviteModal.toastSuccess"), "success");
 
     } catch (e) {
 
       console.error("Invite failed", e);
-      showToast("Mời thất bại, vui lòng thử lại", "error");
+      showToast(t("groups.inviteModal.toastError"), "error");
 
     } finally {
 
@@ -86,17 +87,17 @@ export default function InviteFriendsModal({
       <div className="bg-white w-105 rounded-lg shadow-lg p-6">
 
         <h2 className="text-xl font-bold mb-4">
-          Mời bạn bè vào nhóm
+          {t("groups.inviteModal.title")}
         </h2>
 
         {loading ? (
 
-          <p>Đang tải...</p>
+          <p>{t("groups.inviteModal.loading")}</p>
 
         ) : friends.length === 0 ? (
 
           <p className="text-gray-500">
-            Không còn bạn bè nào để mời
+            {t("groups.inviteModal.empty")}
           </p>
 
         ) : (
@@ -126,7 +127,7 @@ export default function InviteFriendsModal({
                   disabled={invitingIds.includes(friend.id)}
                   className="px-3 py-1 bg-[#1877F2] text-white rounded-md text-sm"
                 >
-                  {invitingIds.includes(friend.id) ? "Đang mời..." : "Mời"}
+                  {invitingIds.includes(friend.id) ? t("groups.inviteModal.inviting") : t("groups.inviteModal.invite")}
                 </button>
 
               </div>
@@ -143,7 +144,7 @@ export default function InviteFriendsModal({
             onClick={onClose}
             className="px-4 py-2 bg-gray-200 rounded-md"
           >
-            Đóng
+            {t("groups.inviteModal.close")}
           </button>
 
         </div>

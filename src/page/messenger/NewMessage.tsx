@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, X, Send } from 'lucide-react';
 import { useNavigate, useLocation, type Location } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { usersApi, type User } from '../../apis/users';
 import { conversationsApi } from '../../apis/conversations';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,6 +15,7 @@ export default function NewMessage() {
   const location = useLocation() as Location & { state?: NewMessageLocationState };
   const { user } = useAuth();
   const createGroup = location.state?.createGroup ?? false;
+  const { t } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -65,11 +67,11 @@ export default function NewMessage() {
 
   const handleStartConversation = async () => {
     if (!user?.id) {
-      setError('Bạn cần đăng nhập để bắt đầu trò chuyện');
+      setError(t('messenger.newMessage.loginRequired'));
       return;
     }
     if (!minimumReached) {
-      setError('Chọn ít nhất 1 người (hoặc ≥2 để tạo nhóm ≥3 thành viên)');
+      setError(t('messenger.newMessage.minimumReached'));
       return;
     }
 
@@ -86,7 +88,7 @@ export default function NewMessage() {
         // Group chat: current user + selected contacts => total >= 3
         const participantIds = Array.from(new Set([...selectedContacts, user.id]));
         if (participantIds.length < 3) {
-          setError('Nhóm cần tối thiểu 3 thành viên (bao gồm bạn)');
+          setError(t('messenger.newMessage.groupMinMembers'));
           setCreating(false);
           return;
         }
@@ -95,7 +97,7 @@ export default function NewMessage() {
           participantIds,
           ownerId: user.id,
           adminIds: [user.id],
-          groupName: groupName.trim() || 'Nhóm mới',
+          groupName: groupName.trim() || t('messenger.newMessage.newGroupName'),
           isGroup: true,
         });
 
@@ -103,7 +105,7 @@ export default function NewMessage() {
       }
     } catch (err: any) {
       console.error('Failed to start conversation', err);
-      const message = err?.message || 'Không thể tạo cuộc trò chuyện';
+      const message = err?.message || t('messenger.newMessage.createConversationFailed');
       setError(message);
     } finally {
       setCreating(false);
@@ -123,10 +125,10 @@ export default function NewMessage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {createGroup ? 'Tạo nhóm chat' : 'Tin nhắn mới'}
+              {createGroup ? t('messenger.newMessage.createGroupTitle') : t('messenger.newMessage.title')}
             </h1>
             <p className="text-sm text-gray-600">
-              {createGroup ? 'Chọn ít nhất 2 người để tạo nhóm (≥3 thành viên)' : 'Chọn người nhận'}
+              {createGroup ? t('messenger.newMessage.createGroupSubtitle') : t('messenger.newMessage.subtitle')}
             </p>
           </div>
         </div>
@@ -136,7 +138,7 @@ export default function NewMessage() {
       {selectedContacts.length > 0 && (
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-semibold text-gray-700">Đến:</span>
+            <span className="text-sm font-semibold text-gray-700">{t('messenger.newMessage.toLabel')} </span>
             {selectedContacts.map((id) => {
               const contact = searchResults.find((c) => c.id === id);
               const name = contact?.fullName || contact?.username || id;
@@ -165,7 +167,7 @@ export default function NewMessage() {
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
           <input
             type="text"
-            placeholder={createGroup ? "Tìm kiếm thành viên..." : "Tìm kiếm người dùng..."}
+            placeholder={createGroup ? t('messenger.newMessage.searchMembersPlaceholder') : t('messenger.newMessage.searchUsersPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-14 pl-14 pr-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
@@ -177,21 +179,21 @@ export default function NewMessage() {
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-4">
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">
-            Gợi ý
+            {t('messenger.newMessage.suggestionsTitle')}
           </h2>
           <div className="space-y-2">
-            {searching && <div className="text-sm text-gray-500">Đang tìm kiếm...</div>}
+            {searching && <div className="text-sm text-gray-500">{t('messenger.newMessage.searching')}</div>}
 
             {!searching && searchResults.length === 0 && (
               <div className="text-sm text-gray-500">
-                {createGroup ? 'Nhập để tìm thành viên (cần ít nhất 2 người)' : 'Nhập để tìm người dùng'}
+                {createGroup ? t('messenger.newMessage.emptySearchMembers') : t('messenger.newMessage.emptySearchUsers')}
               </div>
             )}
             
             {createGroup && selectedContacts.length === 0 && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-700 font-medium">
-                  💡 Chọn ít nhất 2 người để tạo nhóm chat (tổng cộng ≥3 thành viên bao gồm bạn)
+                  {t('messenger.newMessage.createGroupHint')}
                 </p>
               </div>
             )}
@@ -240,14 +242,12 @@ export default function NewMessage() {
 
       {isGroup && (
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Tên nhóm (tùy chọn, tối thiểu 3 thành viên)
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">{t('messenger.newMessage.groupNameLabel')}</label>
           <input
             type="text"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Nhập tên nhóm..."
+            placeholder={t('messenger.newMessage.groupNamePlaceholder')}
             className="w-full h-12 px-4 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -268,7 +268,11 @@ export default function NewMessage() {
             className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
-            {creating ? 'Đang tạo...' : isGroup ? 'Tạo nhóm (≥3 người)' : 'Bắt đầu trò chuyện'}
+            {creating
+              ? t('messenger.newMessage.creating')
+              : isGroup
+                ? t('messenger.newMessage.createGroupButton')
+                : t('messenger.newMessage.startChatButton')}
           </button>
         </div>
       )}

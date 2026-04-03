@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { Search, Bookmark, Image, Video, Link as LinkIcon, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+function demoAuthorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function SavedItems() {
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState('all');
@@ -13,7 +20,11 @@ export default function SavedItems() {
       type: 'post',
       title: t('saved.items.1.title'),
       content: t('saved.items.1.content'),
-      author: { name: 'Nguyễn Văn A', avatar: 'NA', color: '#1877F2' },
+      author: {
+        name: t('saved.items.1.author'),
+        avatar: demoAuthorInitials(t('saved.items.1.author')),
+        color: '#1877F2',
+      },
       savedAt: t('saved.items.1.savedAt'),
       image: '🖥️',
     },
@@ -22,7 +33,11 @@ export default function SavedItems() {
       type: 'link',
       title: t('saved.items.2.title'),
       url: 'https://react.dev',
-      author: { name: 'Trần Thị B', avatar: 'TB', color: '#42B72A' },
+      author: {
+        name: t('saved.items.2.author'),
+        avatar: demoAuthorInitials(t('saved.items.2.author')),
+        color: '#42B72A',
+      },
       savedAt: t('saved.items.2.savedAt'),
     },
     {
@@ -30,7 +45,11 @@ export default function SavedItems() {
       type: 'video',
       title: t('saved.items.3.title'),
       thumbnail: '🎬',
-      author: { name: 'Lê Văn C', avatar: 'LC', color: '#FF6B6B' },
+      author: {
+        name: t('saved.items.3.author'),
+        avatar: demoAuthorInitials(t('saved.items.3.author')),
+        color: '#FF6B6B',
+      },
       savedAt: t('saved.items.3.savedAt'),
     },
     {
@@ -38,7 +57,11 @@ export default function SavedItems() {
       type: 'image',
       title: t('saved.items.4.title'),
       image: '🏞️',
-      author: { name: 'Phạm Thị D', avatar: 'PD', color: '#4ECDC4' },
+      author: {
+        name: t('saved.items.4.author'),
+        avatar: demoAuthorInitials(t('saved.items.4.author')),
+        color: '#4ECDC4',
+      },
       savedAt: t('saved.items.4.savedAt'),
     },
   ];

@@ -10,6 +10,7 @@ import GroupContent from "./group/GroupContent";
 import { authApi } from "../../apis/auth";
 import GroupManageModal from "../social/group/GroupManageModal";
 import InviteFriendsModal from "./group/InviteFriendsModal";
+import { useTranslation } from "react-i18next";
 
 const CATEGORY_GRADIENT: Record<string, { from: string; to: string }> = {
   travel:      { from: "#fb923c", to: "#f97316" },
@@ -37,6 +38,7 @@ function getGradient(category?: string) {
 }
 
 export default function GroupDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
 
   const [group, setGroup] = useState<GroupData | null>(null);
@@ -142,7 +144,7 @@ export default function GroupDetail() {
             <div className="absolute inset-0 rounded-full border-[3px] border-gray-200 dark:border-[#2b2f45]" />
             <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-blue-500 animate-spin" />
           </div>
-          <p className="text-sm text-gray-400 dark:text-[#7e89a6]">Đang tải nhóm...</p>
+          <p className="text-sm text-gray-400 dark:text-[#7e89a6]">{t("groupPage.loadingGroup")}</p>
         </div>
       </div>
     );
@@ -153,13 +155,13 @@ export default function GroupDetail() {
   const isAdmin = myRole === "ADMIN";
 
   const tabList = [
-    { id: "posts",    label: "Thảo luận" },
-    { id: "featured", label: "Nổi bật" },
-    { id: "members",  label: "Thành viên" },
-    { id: "events",   label: "Sự kiện" },
-    { id: "photos",   label: "Ảnh" },
-    { id: "videos",   label: "Video" },
-    { id: "about",    label: "Giới thiệu" },
+    { id: "posts",    label: t("groupPage.tabDiscussion") },
+    { id: "featured", label: t("groupPage.tabFeatured") },
+    { id: "members",  label: t("groupPage.tabMembers") },
+    { id: "events",   label: t("groupPage.tabEvents") },
+    { id: "photos",   label: t("groupPage.tabPhotos") },
+    { id: "videos",   label: t("groupPage.tabVideos") },
+    { id: "about",    label: t("groupPage.tabAbout") },
   ];
 
   return (
@@ -199,9 +201,9 @@ export default function GroupDetail() {
                     ? <Globe className="w-3.5 h-3.5" />
                     : <Lock className="w-3.5 h-3.5" />
                   }
-                  {group.privacy === "PUBLIC" ? "Nhóm công khai" : "Nhóm riêng tư"}
+                  {group.privacy === "PUBLIC" ? t("groupPage.badgePublic") : t("groupPage.badgePrivate")}
                   <span className="text-gray-300 dark:text-[#353a54]">·</span>
-                  {group.memberCount || 0} thành viên
+                  {t("groupPage.membersCount", { count: group.memberCount || 0 })}
                 </p>
               </div>
             </div>
@@ -209,6 +211,7 @@ export default function GroupDetail() {
             {/* Menu */}
             <div className="relative shrink-0" ref={menuRef}>
               <button
+                type="button"
                 onClick={() => setOpenMenu(!openMenu)}
                 className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-[#22263a] flex items-center justify-center text-gray-400 dark:text-[#6a7494] hover:bg-gray-200 dark:hover:bg-[#2b2f45] hover:text-gray-600 dark:hover:text-[#edf0fa] transition-colors"
               >
@@ -221,21 +224,21 @@ export default function GroupDetail() {
                     <>
                       <MenuBtn
                         icon={Settings}
-                        label="Quản lý nhóm"
+                        label={t("groupPage.menuManage")}
                         onClick={() => { setSelectedGroup(group); setOpenMenu(false); }}
                       />
-                      <MenuBtn icon={Settings} label="Chỉnh sửa nhóm" />
-                      <MenuBtn icon={Trash2} label="Xóa nhóm" danger />
+                      <MenuBtn icon={Settings} label={t("groupPage.menuEdit")} />
+                      <MenuBtn icon={Trash2} label={t("groupPage.menuDelete")} danger />
                     </>
                   )}
                   {myRole === "MEMBER" && (
-                    <MenuBtn icon={LogOut} label="Rời nhóm" danger onClick={handleLeaveGroup} />
+                    <MenuBtn icon={LogOut} label={t("groupPage.menuLeave")} danger onClick={handleLeaveGroup} />
                   )}
                   {isPending && (
-                    <MenuBtn icon={Clock} label="Đang chờ duyệt" disabled />
+                    <MenuBtn icon={Clock} label={t("groupPage.menuPending")} disabled />
                   )}
                   {!myRole && myStatus !== "PENDING" && (
-                    <MenuBtn icon={UserPlus} label="Tham gia nhóm" onClick={handleJoinGroup} />
+                    <MenuBtn icon={UserPlus} label={t("groupPage.menuJoin")} onClick={handleJoinGroup} />
                   )}
                 </div>
               )}
@@ -247,40 +250,43 @@ export default function GroupDetail() {
             {(myRole || myStatus === "PENDING") ? (
               isPending ? (
                 <button
+                  type="button"
                   disabled
                   className="h-9 px-4 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 text-sm font-semibold flex items-center gap-2 cursor-not-allowed"
                 >
                   <Clock className="w-4 h-4" />
-                  Đang chờ duyệt
+                  {t("groupPage.statusPending")}
                 </button>
               ) : (
-                <button className="h-9 px-4 rounded-xl bg-blue-500 text-white text-sm font-semibold flex items-center gap-2 shadow-sm">
+                <button type="button" className="h-9 px-4 rounded-xl bg-blue-500 text-white text-sm font-semibold flex items-center gap-2 shadow-sm">
                   <Check className="w-4 h-4" />
-                  Đã tham gia
+                  {t("groupPage.statusJoined")}
                 </button>
               )
             ) : (
               <button
+                type="button"
                 onClick={handleJoinGroup}
                 disabled={loadingJoin}
                 className="h-9 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold flex items-center gap-2 shadow-sm transition-colors disabled:opacity-60"
               >
                 {loadingJoin ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                {loadingJoin ? "Đang tham gia..." : "Tham gia nhóm"}
+                {loadingJoin ? t("groupPage.joining") : t("groupPage.joinGroup")}
               </button>
             )}
 
-            <button className="h-9 px-4 rounded-xl bg-gray-100 dark:bg-[#22263a] text-gray-600 dark:text-[#9aa3bc] text-sm font-medium flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors">
+            <button type="button" className="h-9 px-4 rounded-xl bg-gray-100 dark:bg-[#22263a] text-gray-600 dark:text-[#9aa3bc] text-sm font-medium flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors">
               <Bell className="w-4 h-4" />
-              Thông báo
+              {t("groupPage.notifications")}
             </button>
 
             <button
+              type="button"
               onClick={() => setOpenInvite(true)}
               className="h-9 px-4 rounded-xl bg-gray-100 dark:bg-[#22263a] text-gray-600 dark:text-[#9aa3bc] text-sm font-medium flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors"
             >
               <Share2 className="w-4 h-4" />
-              Mời bạn bè
+              {t("groupPage.inviteFriends")}
             </button>
           </div>
         </div>
@@ -290,6 +296,7 @@ export default function GroupDetail() {
           <div className="flex items-center overflow-x-auto scrollbar-hide">
             {tabList.map((tab) => (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
@@ -340,6 +347,7 @@ function MenuBtn({ icon: Icon, label, danger, disabled, onClick }: {
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${

@@ -1,8 +1,11 @@
 import { useParams } from 'react-router-dom';
 import { Calendar, MapPin, Users, Share2, Bell, Edit } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function EventDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [isGoing, setIsGoing] = useState(false);
   const [isInterested, setIsInterested] = useState(false);
@@ -28,7 +31,7 @@ export default function EventDetail() {
     <div className="max-w-5xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Chi tiết sự kiện</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('eventsSocial.detailPageTitle')}</h1>
       </div>
 
       {/* Cover Image */}
@@ -47,11 +50,19 @@ export default function EventDetail() {
             <div className="flex items-center gap-6 text-base text-gray-600 mb-6">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                <span className="font-semibold">{event.attendees.toLocaleString()} người tham gia</span>
+                <span className="font-semibold">
+                  {t('eventsSocial.attendeesWithCount', {
+                    count: event.attendees.toLocaleString(getLocaleTag()),
+                  })}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5" />
-                <span className="font-semibold">{event.interested.toLocaleString()} quan tâm</span>
+                <span className="font-semibold">
+                  {t('eventsSocial.interestedWithCount', {
+                    count: event.interested.toLocaleString(getLocaleTag()),
+                  })}
+                </span>
               </div>
             </div>
           </div>
@@ -127,7 +138,7 @@ export default function EventDetail() {
             }`}
           >
             <Calendar className="w-5 h-5" />
-            {isGoing ? 'Đang tham gia' : 'Tham gia'}
+            {isGoing ? t('eventsSocial.btnJoined') : t('eventsSocial.btnJoin')}
           </button>
           <button
             onClick={() => {
@@ -141,7 +152,7 @@ export default function EventDetail() {
             }`}
           >
             <Bell className="w-5 h-5" />
-            {isInterested ? 'Đã quan tâm' : 'Quan tâm'}
+            {isInterested ? t('eventsSocial.btnInterestedDone') : t('eventsSocial.btnInterested')}
           </button>
         </div>
       </div>

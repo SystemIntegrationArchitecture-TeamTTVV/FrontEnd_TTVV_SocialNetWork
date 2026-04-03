@@ -5,8 +5,10 @@ import { postsApi, type PostData } from '../../apis/posts';
 import { authApi } from '../../apis/auth';
 import { HttpError } from '../../apis/http';
 import { useToast } from '../../contexts/useToast';
+import { useTranslation } from 'react-i18next';
 
 export default function ShareDialog() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const [content, setContent] = useState('');
@@ -50,7 +52,7 @@ export default function ShareDialog() {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : 'Failed to share post. Please try again.';
+            : t('sharePost.errorGeneric');
       showToast(msg, 'error');
     } finally {
       setIsSharing(false);
@@ -70,13 +72,13 @@ export default function ShareDialog() {
   };
 
   const getVisibilityText = () => {
-    if (visibility === 'PUBLIC') return 'Public';
-    if (visibility === 'FRIENDS') return 'Friends';
-    return 'Only Me';
+    if (visibility === 'PUBLIC') return t('sharePost.visibilityPublic');
+    if (visibility === 'FRIENDS') return t('sharePost.visibilityFriends');
+    return t('sharePost.visibilityOnlyMe');
   };
 
   const getTimeAgo = (dateString?: string) => {
-    if (!dateString) return 'Just now';
+    if (!dateString) return t('sharePost.justNow');
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -84,10 +86,10 @@ export default function ShareDialog() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    return `${diffDays}d`;
+    if (diffMins < 1) return t('sharePost.justNow');
+    if (diffMins < 60) return t('sharePost.timeMinutes', { count: diffMins });
+    if (diffHours < 24) return t('sharePost.timeHours', { count: diffHours });
+    return t('sharePost.timeDays', { count: diffDays });
   };
 
   return (
@@ -95,8 +97,9 @@ export default function ShareDialog() {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-[540px] max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-gray-900">Share Post</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('sharePost.title')}</h2>
           <button
+            type="button"
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
           >
@@ -111,8 +114,9 @@ export default function ShareDialog() {
               {currentUser?.fullName?.charAt(0) || 'U'}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900">{currentUser?.fullName || 'Unknown'}</p>
+              <p className="font-semibold text-gray-900">{currentUser?.fullName || t('sharePost.unknownUser')}</p>
               <button
+                type="button"
                 onClick={cycleVisibility}
                 className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
@@ -126,7 +130,7 @@ export default function ShareDialog() {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Say something about this..."
+            placeholder={t('sharePost.placeholder')}
             className="w-full min-h-[100px] p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900"
             disabled={isSharing}
           />
@@ -143,7 +147,7 @@ export default function ShareDialog() {
                   {originalPost.authorName?.charAt(0) || 'U'}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-gray-900">{originalPost.authorName || 'Unknown User'}</p>
+                  <p className="font-semibold text-sm text-gray-900">{originalPost.authorName || t('sharePost.unknownAuthor')}</p>
                   <p className="text-xs text-gray-500">{getTimeAgo(originalPost.createdAt)}</p>
                 </div>
               </div>
@@ -152,7 +156,7 @@ export default function ShareDialog() {
                 <div className="mt-3 rounded-lg overflow-hidden">
                   <img 
                     src={originalPost.images[0]} 
-                    alt="Post" 
+                    alt={t('sharePost.postImageAlt')} 
                     className="w-full max-h-[300px] object-cover"
                   />
                 </div>
@@ -160,12 +164,13 @@ export default function ShareDialog() {
             </div>
           ) : (
             <div className="bg-red-50 rounded-lg p-4 text-center text-red-600">
-              Failed to load original post
+              {t('sharePost.loadFailed')}
             </div>
           )}
 
           {/* Share Button */}
           <button
+            type="button"
             onClick={handleShare}
             disabled={isSharing || isLoading || !originalPost}
             className="w-full h-11 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -173,10 +178,10 @@ export default function ShareDialog() {
             {isSharing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Sharing...</span>
+                <span>{t('sharePost.sharing')}</span>
               </>
             ) : (
-              'Share Now'
+              t('sharePost.shareNow')
             )}
           </button>
         </div>

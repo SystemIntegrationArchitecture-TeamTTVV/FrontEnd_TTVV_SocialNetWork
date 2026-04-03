@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { type User } from "../../../apis/users";
 import {
   MapPin,
@@ -20,11 +21,14 @@ interface AboutProps {
 }
 
 export default function About({ displayUser }: AboutProps) {
+  const { t } = useTranslation();
   if (!displayUser) return null;
 
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-200 space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">About</h2>
+      <h2 className="text-xl font-semibold text-gray-900">
+        {t("profilePage.about.title")}
+      </h2>
 
       {/* Bio */}
       {displayUser.bio && (
@@ -33,17 +37,21 @@ export default function About({ displayUser }: AboutProps) {
 
       {/* Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Info icon={UserIcon} label="Full name" value={displayUser.fullName ?? ''} />
         <Info
           icon={UserIcon}
-          label="Username"
-          value={`@${displayUser.username ?? ''}`}
+          label={t("profilePage.about.fullName")}
+          value={displayUser.fullName ?? ""}
+        />
+        <Info
+          icon={UserIcon}
+          label={t("profilePage.about.username")}
+          value={`@${displayUser.username ?? ""}`}
         />
 
         {(displayUser.city || displayUser.country) && (
           <Info
             icon={MapPin}
-            label="Location"
+            label={t("profilePage.about.location")}
             value={[displayUser.city, displayUser.country]
               .filter(Boolean)
               .join(", ")}
@@ -53,7 +61,7 @@ export default function About({ displayUser }: AboutProps) {
         {displayUser.workPlace && (
           <Info
             icon={Briefcase}
-            label="Workplace"
+            label={t("profilePage.about.workplace")}
             value={displayUser.workPlace}
           />
         )}
@@ -61,24 +69,34 @@ export default function About({ displayUser }: AboutProps) {
         {displayUser.education && (
           <Info
             icon={GraduationCap}
-            label="Education"
+            label={t("profilePage.about.education")}
             value={displayUser.education}
           />
         )}
 
         {displayUser.showEmail && displayUser.email && (
-          <Info icon={Mail} label="Email" value={displayUser.email} />
+          <Info
+            icon={Mail}
+            label={t("profilePage.about.email")}
+            value={displayUser.email}
+          />
         )}
 
         {displayUser.showPhone && displayUser.phoneNumber && (
-          <Info icon={Phone} label="Phone" value={displayUser.phoneNumber} />
+          <Info
+            icon={Phone}
+            label={t("profilePage.about.phone")}
+            value={displayUser.phoneNumber}
+          />
         )}
       </div>
 
       {/* Interests */}
       {((displayUser.interests ?? []).length > 0) && (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Interests</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">
+            {t("profilePage.about.interests")}
+          </h3>
           <div className="flex flex-wrap gap-2">
             {(displayUser.interests ?? []).map((interest, index) => (
               <span

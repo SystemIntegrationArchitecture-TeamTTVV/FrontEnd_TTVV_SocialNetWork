@@ -26,6 +26,7 @@ import { HttpError } from "../../apis/http";
 import { showAuthRequiredPrompt } from "../../utils/authPrompt";
 import { useToast } from "../../contexts/useToast";
 import { useTranslation } from "react-i18next";
+import { getLocaleTag } from "../../i18n";
 
 export default function WatchVideo() {
   const { t } = useTranslation();
@@ -261,7 +262,7 @@ export default function WatchVideo() {
       return t("watch.hoursAgo", { count: Math.floor(diffInSeconds / 3600) });
     if (diffInSeconds < 2592000)
       return t("watch.daysAgo", { count: Math.floor(diffInSeconds / 86400) });
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(getLocaleTag());
   };
 
   // Get reaction icon

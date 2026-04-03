@@ -1,7 +1,10 @@
 import { Search, Filter, Eye, Edit, Trash2, Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function AdminEventManagement() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const events = [
@@ -121,7 +124,11 @@ export default function AdminEventManagement() {
                 </div>
                 <div className="flex items-center gap-2 text-base text-gray-600">
                   <Users className="w-5 h-5" />
-                  <span className="font-semibold">{event.attendees.toLocaleString()} người tham gia</span>
+                  <span className="font-semibold">
+                    {t('adminPanel.events.attendees', {
+                      count: event.attendees.toLocaleString(getLocaleTag()),
+                    })}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2">

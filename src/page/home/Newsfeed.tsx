@@ -19,6 +19,7 @@ import CreateStoryModal from '../../components/story/CreateStoryModal';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 import { useToast } from '../../contexts/useToast';
 import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 export default function Newsfeed() {
   const { t } = useTranslation();
@@ -321,7 +322,7 @@ export default function Newsfeed() {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : 'Gửi bình luận thất bại. Vui lòng thử lại.';
+            : t('newsfeed.commentSendFailed');
       showToast(msg, "error");
     } finally {
       setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
@@ -467,7 +468,7 @@ export default function Newsfeed() {
           ? error.data?.message || error.message
           : error instanceof Error
             ? error.message
-            : 'Gửi phản hồi thất bại. Vui lòng thử lại.';
+            : t('newsfeed.replySendFailed');
       showToast(msg, "error");
     } finally {
       setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: false }));
@@ -598,7 +599,7 @@ export default function Newsfeed() {
   };
 
   const getTimeAgo = (dateString?: string) => {
-    if (!dateString) return 'Just now';
+    if (!dateString) return t('watch.justNow');
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -606,7 +607,7 @@ export default function Newsfeed() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
+    if (diffMins < 1) return t('watch.justNow');
     if (diffMins < 60) return `${diffMins}m`;
     if (diffHours < 24) return `${diffHours}h`;
     return `${diffDays}d`;
@@ -633,12 +634,12 @@ export default function Newsfeed() {
   const getVisibilityMeta = (visibility?: string) => {
     const mode = normalizeVisibility(visibility);
     if (mode === 'FRIENDS') {
-      return { label: 'Bạn bè', Icon: UserCheck };
+      return { label: t('newsfeed.visibilityFriends'), Icon: UserCheck };
     }
     if (mode === 'PRIVATE') {
-      return { label: 'Riêng tư', Icon: Lock };
+      return { label: t('newsfeed.visibilityPrivate'), Icon: Lock };
     }
-    return { label: 'Công khai', Icon: Globe };
+    return { label: t('newsfeed.visibilityPublic'), Icon: Globe };
   };
 
   return (
@@ -1173,7 +1174,7 @@ export default function Newsfeed() {
                       }`} />
                     <span className={`text-[15px] font-medium ${likedPosts.has(post.id!) ? 'text-red-500' : 'text-gray-600 group-hover:text-red-500'
                       }`}>
-                      {likedPosts.has(post.id!) ? 'Đã thích' : 'Thích'}
+                      {likedPosts.has(post.id!) ? t('groupComments.liked') : t('groupComments.like')}
                     </span>
                   </button>
                   <button
@@ -1210,7 +1211,7 @@ export default function Newsfeed() {
                           value={commentInput}
                           onChange={(e) => handleCommentChange(post.id!, e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment(post.id!)}
-                          placeholder="Viết bình luận..."
+                          placeholder={t('newsfeed.commentPlaceholder')}
                           disabled={isSubmittingComment[post.id!]}
                           className="w-full h-12 px-4 pr-14 rounded-xl bg-gray-100/50 dark:bg-[#22263a]/50 border-0 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1e2133] text-base transition-all disabled:opacity-50 dark:text-gray-200"
 
@@ -1255,24 +1256,27 @@ export default function Newsfeed() {
                                         : 'text-gray-600 hover:text-blue-600'
                                       }`}
                                   >
-                                    {likedComments.has(comment.id!) ? 'Đã thích' : 'Thích'}
+                                    {likedComments.has(comment.id!) ? t('groupComments.liked') : t('groupComments.like')}
                                     {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
                                   </button>                                <button
                                     onClick={() => handleReplyToComment(comment.id!)}
                                     className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
                                   >
-                                    Trả lời
+                                    {t('groupComments.reply')}
                                   </button>
                                   {comment.replyCount && comment.replyCount > 0 && (
                                     <button
                                       onClick={() => toggleReplies(comment.id!)}
                                       className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                                     >
-                                      {expandedReplies.has(comment.id!) ? 'Ẩn' : 'Xem'} {comment.replyCount} trả lời
+                                      {expandedReplies.has(comment.id!) ? t('groupComments.hide') : t('groupComments.show')}{' '}
+                                      {comment.replyCount} {t('newsfeed.repliesNoun')}
                                     </button>
                                   )}
                                   <span className="text-xs text-gray-500">
-                                    {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Just now'}
+                                    {comment.createdAt
+                                      ? new Date(comment.createdAt).toLocaleString(getLocaleTag())
+                                      : t('watch.justNow')}
                                   </span>
                                 </div>
 
@@ -1293,7 +1297,7 @@ export default function Newsfeed() {
                                             handleSendReply(comment.id!, post.id!);
                                           }
                                         }}
-                                        placeholder={`Reply to ${comment.userName}...`}
+                                        placeholder={t('groupComments.replyTo', { name: comment.userName ?? '' })}
                                         disabled={isSubmittingComment[`reply-${comment.id}`]}
                                         className="w-full h-9 px-3 pr-10 rounded-full bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                         autoFocus
@@ -1320,7 +1324,7 @@ export default function Newsfeed() {
                                       }}
                                       className="text-xs text-gray-500 hover:text-gray-700"
                                     >
-                                      Cancel
+                                      {t('groupComments.cancel')}
                                     </button>
                                   </div>
                                 )}
@@ -1346,11 +1350,13 @@ export default function Newsfeed() {
                                                   : 'text-gray-600 hover:text-blue-600'
                                                 }`}
                                             >
-                                              {likedComments.has(reply.id!) ? 'Liked' : 'Like'}
+                                              {likedComments.has(reply.id!) ? t('groupComments.liked') : t('groupComments.like')}
                                               {reply.likeCount && reply.likeCount > 0 && ` (${reply.likeCount})`}
                                             </button>
                                             <span className="text-xs text-gray-500">
-                                              {reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Just now'}
+                                              {reply.createdAt
+                                                ? new Date(reply.createdAt).toLocaleString(getLocaleTag())
+                                                : t('watch.justNow')}
                                             </span>
                                           </div>
                                         </div>

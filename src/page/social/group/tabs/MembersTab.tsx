@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { groupsApi } from "../../../../apis/groupsApi";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   groupId: string;
@@ -14,6 +15,7 @@ interface Member {
 }
 
 export default function MembersTab({ groupId, adminId }: Props) {
+  const { t } = useTranslation();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function MembersTab({ groupId, adminId }: Props) {
       {/* Title */}
 
       <h2 className="text-xl font-bold mb-4">
-        Thành viên ({members.length})
+        {t("groupTabs.membersTitle", { count: members.length })}
       </h2>
 
       {/* Search */}
@@ -86,7 +88,7 @@ export default function MembersTab({ groupId, adminId }: Props) {
         <input
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          placeholder="Tìm thành viên..."
+          placeholder={t("groupTabs.searchMembersPlaceholder")}
           className="w-full h-10 pl-9 border rounded-lg"
         />
 
@@ -126,7 +128,7 @@ export default function MembersTab({ groupId, adminId }: Props) {
 
                   {isAdmin && (
                     <p className="text-xs text-blue-600 font-medium">
-                      Trưởng nhóm
+                      {t("groupTabs.groupLeader")}
                     </p>
                   )}
 
@@ -136,7 +138,7 @@ export default function MembersTab({ groupId, adminId }: Props) {
 
               {isAdmin && (
                 <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded">
-                  Admin
+                  {t("groupTabs.adminBadge")}
                 </span>
               )}
 

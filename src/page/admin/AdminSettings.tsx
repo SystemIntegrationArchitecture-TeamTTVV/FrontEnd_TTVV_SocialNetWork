@@ -32,7 +32,7 @@ export default function AdminSettings() {
       icon: Server,
       items: [
         { key: 'maintenanceMode', label: 'Chế độ bảo trì', type: 'toggle' },
-        { key: 'language', label: 'Ngôn ngữ', type: 'select', options: ['vi', 'en'] },
+        { key: 'language', label: 'Ngôn ngữ', type: 'select', options: ['vi', 'en', 'ja'] },
         { key: 'timezone', label: 'Múi giờ', type: 'select', options: ['Asia/Ho_Chi_Minh', 'UTC'] },
       ],
     },
@@ -97,7 +97,15 @@ export default function AdminSettings() {
                       >
                         {item.options?.map((opt) => (
                           <option key={opt} value={opt}>
-                            {opt}
+                            {item.key === 'language'
+                              ? opt === 'vi'
+                                ? 'Tiếng Việt'
+                                : opt === 'en'
+                                  ? 'English'
+                                  : opt === 'ja'
+                                    ? '日本語'
+                                    : opt
+                              : opt}
                           </option>
                         ))}
                       </select>

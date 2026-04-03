@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Search, Image, Video, FileText, Filter, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 export default function SharedMedia() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
 
   const mediaItems = [
     {
@@ -86,8 +88,10 @@ export default function SharedMedia() {
             ←
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Media đã chia sẻ</h1>
-            <p className="text-sm text-gray-600">{mediaItems.length} mục</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('messenger.sharedMedia.title')}</h1>
+            <p className="text-sm text-gray-600">
+              {t('messenger.sharedMedia.subtitle', { count: mediaItems.length })}
+            </p>
           </div>
         </div>
       </div>
@@ -99,7 +103,7 @@ export default function SharedMedia() {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm media..."
+              placeholder={t('messenger.sharedMedia.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-14 pr-5 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base transition-all"
@@ -110,10 +114,10 @@ export default function SharedMedia() {
         {/* Filter Tabs */}
         <div className="flex items-center gap-3 flex-wrap">
           {[
-            { id: 'all', label: 'Tất cả', icon: Filter },
-            { id: 'image', label: 'Ảnh', icon: Image },
-            { id: 'video', label: 'Video', icon: Video },
-            { id: 'file', label: 'Tệp', icon: FileText },
+            { id: 'all', label: t('messenger.sharedMedia.filters.all'), icon: Filter },
+            { id: 'image', label: t('messenger.sharedMedia.filters.image'), icon: Image },
+            { id: 'video', label: t('messenger.sharedMedia.filters.video'), icon: Video },
+            { id: 'file', label: t('messenger.sharedMedia.filters.file'), icon: FileText },
           ].map((filter) => {
             const Icon = filter.icon;
             return (
@@ -177,8 +181,8 @@ export default function SharedMedia() {
         {filteredItems.length === 0 && (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy media</h3>
-            <p className="text-base text-gray-600">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{t('messenger.sharedMedia.emptyTitle')}</h3>
+            <p className="text-base text-gray-600">{t('messenger.sharedMedia.emptySubtitle')}</p>
           </div>
         )}
       </div>

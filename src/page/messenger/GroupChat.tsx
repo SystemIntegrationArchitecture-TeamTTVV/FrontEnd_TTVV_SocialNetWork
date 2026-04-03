@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Send, Image as ImageIcon, Smile, Users, Settings, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 
 export default function GroupChat() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
+  const { t } = useTranslation();
 
-  // Mock group data
   const group = {
     id: id,
-    name: 'Nhóm dự án',
+    name: t('messenger.groupChat.mockGroupName'),
     avatar: 'ND',
     color: '#42B72A',
     members: [
@@ -25,28 +26,28 @@ export default function GroupChat() {
     {
       id: 1,
       sender: { name: 'Alex Chen', avatar: 'AC', color: '#1877F2' },
-      content: 'Chào mọi người! Meeting sáng mai lúc 9h nhé',
+      content: t('messenger.groupChat.message1'),
       time: '10:30',
       isMe: false,
     },
     {
       id: 2,
       sender: { name: 'Maria Garcia', avatar: 'MG', color: '#FF6B6B' },
-      content: 'Ok, tôi sẽ có mặt đầy đủ',
+      content: t('messenger.groupChat.message2'),
       time: '10:32',
       isMe: false,
     },
     {
       id: 3,
       sender: { name: 'You', avatar: 'ME', color: '#9B59B6' },
-      content: 'Tôi cũng sẽ tham gia',
+      content: t('messenger.groupChat.message3'),
       time: '10:35',
       isMe: true,
     },
     {
       id: 4,
       sender: { name: 'David Kim', avatar: 'DK', color: '#4ECDC4' },
-      content: 'Cảm ơn mọi người!',
+      content: t('messenger.groupChat.message4'),
       time: '10:40',
       isMe: false,
     },
@@ -80,7 +81,9 @@ export default function GroupChat() {
             <h1 className="text-xl font-bold text-gray-900">{group.name}</h1>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">{group.members.length} thành viên</span>
+              <span className="text-sm text-gray-600">
+                {t('messenger.groupChat.memberCount', { count: group.members.length })}
+              </span>
             </div>
           </div>
         </div>
@@ -144,7 +147,7 @@ export default function GroupChat() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Nhập tin nhắn..."
+              placeholder={t('messenger.typeMessagePlaceholder')}
               className="w-full h-14 px-5 pr-14 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
             />
             <button className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors">

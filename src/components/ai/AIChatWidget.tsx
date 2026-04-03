@@ -3,6 +3,8 @@ import { MessageCircle, X, Minimize2, Send, Bot, Loader2 } from 'lucide-react';
 import { aiApi, type AIAutoPostRequest, type AIChatRequest } from '../../apis/ai';
 import { useAuth } from '../../contexts/AuthContext';
 import { postsApi } from '../../apis/posts';
+import { useTranslation } from 'react-i18next';
+import { getLocaleTag } from '../../i18n';
 
 interface Message {
   id: string;
@@ -12,6 +14,7 @@ interface Message {
 }
 
 export default function AIChatWidget() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -262,7 +265,7 @@ export default function AIChatWidget() {
                   message.isUser ? 'text-gray-500 text-right' : 'text-gray-400'
                 }`}
               >
-                {message.timestamp.toLocaleTimeString('vi-VN', {
+                {message.timestamp.toLocaleTimeString(getLocaleTag(), {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
@@ -278,7 +281,7 @@ export default function AIChatWidget() {
             <div className="bg-gray-50 rounded-2xl rounded-tl-sm px-3 py-2 border border-gray-200">
               <div className="flex items-center gap-1.5">
                 <Loader2 className="w-4 h-4 text-gray-700 animate-spin" />
-                <span className="text-xs text-gray-500 font-medium">Đang trả lời…</span>
+                <span className="text-xs text-gray-500 font-medium">{t('messenger.aiAssistantReplying')}</span>
               </div>
             </div>
           </div>
