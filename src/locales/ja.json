@@ -864,7 +864,7 @@
       "overviewPosts": "投稿",
       "overviewComments": "コメント",
       "userGrowthChart": "ユーザー推移",
-      "growthTooltip": "{{month}}: {{count}} 人",
+      "growthTooltip": "{{month}}: {{formatted}} 人",
       "engagement": "エンゲージメント",
       "keyMetrics": "主要指標の概要",
       "unitPeople": "人",

@@ -342,7 +342,7 @@ export default function AdminDashboard() {
                   }}
                   title={t("adminPanel.dashboard.growthTooltip", {
                     month,
-                    count: fmt(value),
+                    formatted: fmt(value),
                   })}
                 >
                   <div className="absolute -top-8 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs rounded px-2 py-1 text-center whitespace-nowrap">

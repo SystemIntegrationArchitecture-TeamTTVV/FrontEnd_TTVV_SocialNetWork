@@ -864,7 +864,7 @@
       "overviewPosts": "Bài viết",
       "overviewComments": "Bình luận",
       "userGrowthChart": "Tăng trưởng người dùng",
-      "growthTooltip": "{{month}}: {{count}} người",
+      "growthTooltip": "{{month}}: {{formatted}} người",
       "engagement": "Mức độ tương tác",
       "keyMetrics": "Tóm tắt chỉ số chính",
       "unitPeople": "người",

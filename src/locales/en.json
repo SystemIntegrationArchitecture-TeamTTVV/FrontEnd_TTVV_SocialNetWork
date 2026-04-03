@@ -864,7 +864,7 @@
       "overviewPosts": "Posts",
       "overviewComments": "Comments",
       "userGrowthChart": "User growth",
-      "growthTooltip": "{{month}}: {{count}} users",
+      "growthTooltip": "{{month}}: {{formatted}} users",
       "engagement": "Engagement",
       "keyMetrics": "Key metrics summary",
       "unitPeople": "users",
