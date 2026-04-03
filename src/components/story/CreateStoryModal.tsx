@@ -1,5 +1,6 @@
 import { X, Image, Type, ChevronLeft, Loader2 } from 'lucide-react';
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { storiesApi } from '../../apis/storiesApi';
 import { authApi } from '../../apis/auth';
 import type { Story } from '../../types/story';
@@ -26,6 +27,7 @@ const BACKGROUND_PRESETS = [
 ] as const;
 
 export default function CreateStoryModal({ onClose, onCreate }: Props) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'text' | 'media' | null>(null);
   const [text, setText] = useState('');
   const [media, setMedia] = useState<MediaState | null>(null);
@@ -102,7 +104,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
   };
 
   const stepTitle =
-    mode === null ? 'Tạo tin' : mode === 'text' ? 'Tin chữ' : 'Ảnh, video + chữ';
+    mode === null ? t('storyModal.create') : mode === 'text' ? t('storyModal.textStory') : t('storyModal.mediaStory');
 
   return (
     <div
@@ -125,7 +127,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                 type="button"
                 onClick={handleBack}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#252836]"
-                aria-label="Quay lại"
+                aria-label={t('common.back')}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -136,10 +138,10 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
               </h2>
               <p className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">
                 {mode === null
-                  ? 'Chọn cách bạn muốn chia sẻ'
+                  ? t('storyModal.chooseMethod')
                   : mode === 'text'
-                    ? 'Viết vài dòng, chọn màu nền bên dưới'
-                    : 'Ảnh hoặc video — có thể thêm chữ trên tin'}
+                    ? t('storyModal.textHint')
+                    : t('storyModal.mediaHint')}
               </p>
             </div>
           </div>
@@ -147,7 +149,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#252836]"
-            aria-label="Đóng"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -166,9 +168,9 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200/80 text-gray-700 dark:bg-[#252836] dark:text-gray-200">
                     <Type className="h-6 w-6" strokeWidth={2} />
                   </span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Chỉ chữ</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('storyModal.onlyText')}</span>
                   <span className="text-center text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                    Chữ trên nền màu, không ảnh
+                    {t('storyModal.onlyTextDesc')}
                   </span>
                 </button>
 
@@ -178,14 +180,14 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                   className="relative flex flex-col items-center gap-3 rounded-2xl border-2 border-blue-200/80 bg-blue-50/40 px-5 py-8 transition-all hover:border-blue-400 hover:bg-blue-50/70 dark:border-blue-500/30 dark:bg-blue-950/20 dark:hover:border-blue-500/50 dark:hover:bg-blue-950/35"
                 >
                   <span className="absolute right-3 top-3 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-blue-500">
-                    Ảnh + chữ
+                    {t('storyModal.mediaBadge')}
                   </span>
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200/80 text-gray-700 dark:bg-[#252836] dark:text-gray-200">
                     <Image className="h-6 w-6" strokeWidth={2} />
                   </span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Ảnh hoặc video</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('storyModal.imageOrVideo')}</span>
                   <span className="text-center text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                    Tải ảnh/video và có thể thêm chữ hiển thị phía dưới
+                    {t('storyModal.imageOrVideoDesc')}
                   </span>
                 </button>
               </div>
@@ -194,20 +196,20 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
             {mode === 'text' && (
               <>
                 <label className="sr-only" htmlFor="story-text-input">
-                  Nội dung tin
+                  {t('storyModal.storyContent')}
                 </label>
                 <textarea
                   id="story-text-input"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Bạn đang nghĩ gì?"
+                  placeholder={t('storyModal.thinking')}
                   className="min-h-[140px] w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-[#2b2f45] dark:bg-[#0c0e14] dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-blue-500/60 dark:focus:ring-blue-500/20"
                   maxLength={200}
                 />
                 <p className="text-right text-xs text-gray-400 dark:text-gray-500">{text.length}/200</p>
 
                 <div>
-                  <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Màu nền</p>
+                  <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">{t('storyModal.backgroundColor')}</p>
                   <div className="flex flex-wrap gap-2">
                     {BACKGROUND_PRESETS.map((bg) => (
                       <button
@@ -217,7 +219,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                         className={`h-9 w-9 shrink-0 rounded-lg ring-offset-2 ring-offset-white transition-shadow dark:ring-offset-[#14161c] ${bg} ${
                           selectedBg === bg ? 'ring-2 ring-blue-500 dark:ring-blue-400' : 'ring-0 hover:opacity-90'
                         }`}
-                        aria-label="Chọn màu nền"
+                        aria-label={t('storyModal.chooseBackground')}
                       />
                     ))}
                   </div>
@@ -230,7 +232,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                   className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-45 dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Chia sẻ tin
+                  {t('storyModal.shareStory')}
                 </button>
               </>
             )}
@@ -241,20 +243,20 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                 <div className="space-y-1.5 rounded-xl border border-gray-200 bg-gray-50/50 p-3 dark:border-[#2b2f45] dark:bg-[#0c0e14]/80">
                   <div className="flex items-start justify-between gap-2">
                     <label htmlFor="story-media-caption" className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                      Chữ hiển thị trên ảnh / video
+                      {t('storyModal.captionLabel')}
                     </label>
                     <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                      Tuỳ chọn
+                      {t('storyModal.optional')}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Viết trước hoặc sau khi chọn file — xem trước bên phải.
+                    {t('storyModal.captionHint')}
                   </p>
                   <textarea
                     id="story-media-caption"
                     value={mediaCaption}
                     onChange={(e) => setMediaCaption(e.target.value)}
-                    placeholder="Ví dụ: Hôm nay trời đẹp quá..."
+                    placeholder={t('storyModal.captionPlaceholder')}
                     maxLength={200}
                     rows={3}
                     className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-[#2b2f45] dark:bg-[#14161c] dark:text-gray-100 dark:placeholder:text-gray-500"
@@ -271,9 +273,9 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                     }`}
                   >
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                      {media ? 'Đổi ảnh hoặc video khác' : 'Chọn ảnh hoặc video'}
+                      {media ? t('storyModal.changeMedia') : t('storyModal.chooseMedia')}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">JPG, PNG, MP4 — bắt buộc để đăng tin</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('storyModal.mediaFormats')}</p>
                   </div>
                   <input
                     ref={fileInputRef}
@@ -300,7 +302,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                   className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-45 dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Chia sẻ tin
+                  {t('storyModal.shareStory')}
                 </button>
               </>
             )}
@@ -308,11 +310,11 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
 
           {/* Preview — khung điện thoại nhẹ */}
           <div className="mx-auto w-full max-w-[200px] shrink-0 sm:max-w-[220px]">
-            <p className="mb-2 text-center text-xs text-gray-500 dark:text-gray-400">Xem trước</p>
+            <p className="mb-2 text-center text-xs text-gray-500 dark:text-gray-400">{t('storyModal.preview')}</p>
             <div className="aspect-[9/16] overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-inner dark:border-[#2b2f45] dark:bg-[#0a0b0f]">
               {!mode && (
                 <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs text-gray-400 dark:text-gray-500">
-                  Xem trước ở đây
+                  {t('storyModal.previewHere')}
                 </div>
               )}
 
@@ -320,7 +322,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                 <div
                   className={`flex h-full w-full items-center justify-center px-4 text-center text-lg font-semibold leading-snug text-white ${selectedBg}`}
                 >
-                  {text.trim() ? text : 'Nội dung của bạn'}
+                  {text.trim() ? text : t('storyModal.yourContent')}
                 </div>
               )}
 
@@ -350,8 +352,8 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                     <div className="relative flex h-full w-full flex-col bg-linear-to-b from-zinc-700 to-zinc-900">
                       <div className="flex flex-1 items-center justify-center px-3 text-center text-[11px] leading-snug text-white/55">
                         {mediaCaption.trim()
-                          ? 'Đã có chữ — chọn ảnh hoặc video bên trái để đăng'
-                          : 'Chọn ảnh hoặc video ở bên trái'}
+                          ? t('storyModal.hasCaptionPickMedia')
+                          : t('storyModal.pickMediaLeft')}
                       </div>
                       {mediaCaption.trim() ? (
                         <div className="pointer-events-none bg-linear-to-t from-black/60 to-transparent px-3 pb-4 pt-8 text-center text-[13px] font-medium leading-snug text-white drop-shadow-md sm:text-sm">
@@ -359,7 +361,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                         </div>
                       ) : (
                         <p className="pointer-events-none px-3 pb-4 text-center text-[10px] text-white/40">
-                          Hoặc gõ chữ trước, rồi chọn file
+                          {t('storyModal.orTypeThenChoose')}
                         </p>
                       )}
                     </div>

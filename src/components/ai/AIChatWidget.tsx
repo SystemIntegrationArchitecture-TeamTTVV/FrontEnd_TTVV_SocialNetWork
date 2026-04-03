@@ -21,7 +21,7 @@ export default function AIChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Xin chào! Tôi là AI Assistant. Tôi có thể giúp bạn trả lời câu hỏi, giải thích khái niệm, hoặc hỗ trợ bạn trong nhiều việc khác. Bạn muốn hỏi gì?',
+      text: t('aiWidget.greeting'),
       isUser: false,
       timestamp: new Date(),
     },
@@ -92,7 +92,7 @@ export default function AIChatWidget() {
       console.error('❌ Error chatting with AI:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Xin lỗi, đã xảy ra lỗi khi gửi tin nhắn. Vui lòng thử lại sau.',
+        text: t('aiWidget.chatError'),
         isUser: false,
         timestamp: new Date(),
       };
@@ -122,10 +122,10 @@ export default function AIChatWidget() {
       };
       const result = await aiApi.draftPost(request);
       setDraftContent(result.generatedContent || '');
-      setAutoPostStatus('✅ Đã tạo bản nháp. Bạn có thể chỉnh sửa trước khi đăng.');
+      setAutoPostStatus(t('aiWidget.draftCreated'));
     } catch (error: any) {
       console.error('❌ Draft generation failed:', error);
-      setAutoPostStatus(`❌ ${error?.message || 'Tạo bản nháp thất bại. Vui lòng thử lại.'}`);
+      setAutoPostStatus(`❌ ${error?.message || t('aiWidget.draftCreateError')}`);
     } finally {
       setIsAutoPosting(false);
     }
@@ -146,12 +146,12 @@ export default function AIChatWidget() {
 
       window.dispatchEvent(new CustomEvent('post-created', { detail: createdPost }));
 
-      setAutoPostStatus('✅ Đăng bài từ bản nháp thành công.');
+      setAutoPostStatus(t('aiWidget.publishSuccess'));
       setPostPrompt('');
       setDraftContent('');
     } catch (error: any) {
       console.error('❌ Publish draft failed:', error);
-      setAutoPostStatus(`❌ ${error?.message || 'Đăng bài từ bản nháp thất bại. Vui lòng thử lại.'}`);
+      setAutoPostStatus(`❌ ${error?.message || t('aiWidget.publishError')}`);
     } finally {
       setIsAutoPosting(false);
     }
@@ -162,8 +162,8 @@ export default function AIChatWidget() {
       <button
         onClick={() => setIsOpen(true)}
         className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 items-center justify-center text-gray-800 transition-colors hover:bg-gray-50 active:scale-95 z-50"
-        title="Hỗ trợ"
-        aria-label="Mở trợ lý"
+        title={t('aiWidget.support')}
+        aria-label={t('aiWidget.openAssistant')}
       >
         <Bot className="w-6 h-6" />
       </button>
@@ -175,8 +175,8 @@ export default function AIChatWidget() {
       <button
         onClick={() => setIsMinimized(false)}
         className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 items-center justify-center text-gray-800 hover:bg-gray-50 transition-colors active:scale-95 z-50"
-        title="Mở hỗ trợ"
-        aria-label="Mở lại trợ lý"
+        title={t('aiWidget.reopenSupport')}
+        aria-label={t('aiWidget.reopenAssistant')}
       >
         <MessageCircle className="w-7 h-7" />
       </button>
@@ -192,16 +192,16 @@ export default function AIChatWidget() {
             <Bot className="w-5 h-5 text-gray-800" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Trợ lý</h3>
-            <p className="text-xs text-gray-500">Hỗ trợ nhanh</p>
+            <h3 className="font-semibold text-sm">{t('aiWidget.assistant')}</h3>
+            <p className="text-xs text-gray-500">{t('aiWidget.quickSupport')}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsMinimized(true)}
             className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors active:scale-95"
-            title="Thu nhỏ"
-            aria-label="Thu nhỏ"
+            title={t('aiWidget.minimize')}
+            aria-label={t('aiWidget.minimize')}
           >
             <Minimize2 className="w-4 h-4 text-gray-700" />
           </button>
@@ -211,8 +211,8 @@ export default function AIChatWidget() {
               setIsMinimized(false);
             }}
             className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors active:scale-95"
-            title="Đóng"
-            aria-label="Đóng"
+            title={t('common.close')}
+            aria-label={t('common.close')}
           >
             <X className="w-4 h-4 text-gray-700" />
           </button>
@@ -230,7 +230,7 @@ export default function AIChatWidget() {
           onClick={() => setMode('autopost')}
           className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'autopost' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
         >
-          Tạo nháp bài viết
+          {t('aiWidget.autodraftTab')}
         </button>
       </div>
 
@@ -299,7 +299,7 @@ export default function AIChatWidget() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Nhập tin nhắn…"
+              placeholder={t('aiWidget.inputPlaceholder')}
               disabled={isLoading}
               className="w-full px-4 h-11 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed text-sm placeholder:text-gray-400"
             />
@@ -308,8 +308,8 @@ export default function AIChatWidget() {
             onClick={handleSend}
             disabled={!inputMessage.trim() || isLoading}
             className="w-11 h-11 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white transition-colors active:scale-95 shrink-0"
-            title="Gửi"
-            aria-label="Gửi tin nhắn"
+            title={t('aiWidget.send')}
+            aria-label={t('aiWidget.sendMessage')}
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -322,24 +322,24 @@ export default function AIChatWidget() {
       </>
       ) : (
       <div className="flex-1 p-4 bg-white flex flex-col gap-3">
-        <label className="text-xs font-medium text-gray-600">Ý tưởng cần đăng</label>
+        <label className="text-xs font-medium text-gray-600">{t('aiWidget.postIdea')}</label>
         <textarea
           value={postPrompt}
           onChange={(e) => setPostPrompt(e.target.value)}
-          placeholder="Ví dụ: Viết bài thông báo khai trương shop vào cuối tuần, tone vui vẻ, kêu gọi bạn bè ghé ủng hộ"
+          placeholder={t('aiWidget.postIdeaPlaceholder')}
           className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 text-sm placeholder:text-gray-400 resize-none"
         />
 
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-gray-600">Chế độ đăng</span>
+          <span className="text-xs font-medium text-gray-600">{t('aiWidget.visibility')}</span>
           <select
             value={postVisibility}
             onChange={(e) => setPostVisibility(e.target.value as 'PUBLIC' | 'FRIENDS' | 'PRIVATE')}
             className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
           >
-            <option value="PUBLIC">Công khai</option>
-            <option value="FRIENDS">Bạn bè</option>
-            <option value="PRIVATE">Riêng tư</option>
+            <option value="PUBLIC">{t('aiWidget.visibilityPublic')}</option>
+            <option value="FRIENDS">{t('aiWidget.visibilityFriends')}</option>
+            <option value="PRIVATE">{t('aiWidget.visibilityPrivate')}</option>
           </select>
         </div>
 
@@ -349,14 +349,14 @@ export default function AIChatWidget() {
           className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
         >
           {isAutoPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          {isAutoPosting ? 'Đang tạo bản nháp...' : 'AI tạo bản nháp'}
+          {isAutoPosting ? t('aiWidget.creatingDraft') : t('aiWidget.aiCreateDraft')}
         </button>
 
-        <label className="text-xs font-medium text-gray-600">Nội dung nháp (có thể chỉnh sửa)</label>
+        <label className="text-xs font-medium text-gray-600">{t('aiWidget.draftContent')}</label>
         <textarea
           value={draftContent}
           onChange={(e) => setDraftContent(e.target.value)}
-          placeholder="Bản nháp AI sẽ xuất hiện ở đây để bạn chỉnh sửa trước khi đăng"
+          placeholder={t('aiWidget.draftPlaceholder')}
           className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 text-sm placeholder:text-gray-400 resize-none"
         />
 
@@ -366,7 +366,7 @@ export default function AIChatWidget() {
           className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
         >
           {isAutoPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          {isAutoPosting ? 'Đang đăng bài...' : 'Đăng bài từ bản nháp'}
+          {isAutoPosting ? t('aiWidget.publishing') : t('aiWidget.publishDraft')}
         </button>
 
         {autoPostStatus && (

@@ -1,7 +1,9 @@
 import { Save, Bell, Shield, Server } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminSettings() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState({
     notifications: true,
     emailAlerts: true,
@@ -13,27 +15,27 @@ export default function AdminSettings() {
 
   const settingGroups = [
     {
-      title: 'Thông báo',
+      titleKey: 'adminPanel.settingsPage.groupNotifications',
       icon: Bell,
       items: [
-        { key: 'notifications', label: 'Bật thông báo hệ thống', type: 'toggle' },
-        { key: 'emailAlerts', label: 'Gửi cảnh báo qua email', type: 'toggle' },
+        { key: 'notifications', labelKey: 'adminPanel.settingsPage.notifySystem', type: 'toggle' as const },
+        { key: 'emailAlerts', labelKey: 'adminPanel.settingsPage.emailAlerts', type: 'toggle' as const },
       ],
     },
     {
-      title: 'Bảo mật',
+      titleKey: 'adminPanel.settingsPage.groupSecurity',
       icon: Shield,
       items: [
-        { key: 'autoModeration', label: 'Tự động kiểm duyệt nội dung', type: 'toggle' },
+        { key: 'autoModeration', labelKey: 'adminPanel.settingsPage.autoModeration', type: 'toggle' as const },
       ],
     },
     {
-      title: 'Hệ thống',
+      titleKey: 'adminPanel.settingsPage.groupSystem',
       icon: Server,
       items: [
-        { key: 'maintenanceMode', label: 'Chế độ bảo trì', type: 'toggle' },
-        { key: 'language', label: 'Ngôn ngữ', type: 'select', options: ['vi', 'en', 'ja'] },
-        { key: 'timezone', label: 'Múi giờ', type: 'select', options: ['Asia/Ho_Chi_Minh', 'UTC'] },
+        { key: 'maintenanceMode', labelKey: 'adminPanel.settingsPage.maintenanceMode', type: 'toggle' as const },
+        { key: 'language', labelKey: 'adminPanel.settingsPage.language', type: 'select' as const, options: ['vi', 'en', 'ja'] },
+        { key: 'timezone', labelKey: 'adminPanel.settingsPage.timezone', type: 'select' as const, options: ['Asia/Ho_Chi_Minh', 'UTC'] },
       ],
     },
   ];
@@ -45,8 +47,8 @@ export default function AdminSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Cài đặt hệ thống</h1>
-        <p className="text-lg text-gray-600">Cấu hình và quản lý cài đặt hệ thống</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('adminPanel.settingsPage.pageTitle')}</h1>
+        <p className="text-lg text-gray-600">{t('adminPanel.settingsPage.pageSubtitle')}</p>
       </div>
 
       <div className="space-y-6">
@@ -58,24 +60,25 @@ export default function AdminSettings() {
                 <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
                   <Icon className="w-6 h-6 text-blue-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">{group.title}</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{t(group.titleKey)}</h3>
               </div>
 
               <div className="space-y-5">
                 {group.items.map((item, itemIndex) => (
                   <div key={itemIndex} className="flex items-center justify-between py-4 border-b border-gray-100 last:border-0">
                     <div>
-                      <p className="font-semibold text-lg text-gray-900 mb-1">{item.label}</p>
+                      <p className="font-semibold text-lg text-gray-900 mb-1">{t(item.labelKey)}</p>
                       {item.type === 'toggle' && (
                         <p className="text-sm text-gray-500">
                           {settings[item.key as keyof typeof settings]
-                            ? 'Đã bật'
-                            : 'Đã tắt'}
+                            ? t('adminPanel.settingsPage.toggleOn')
+                            : t('adminPanel.settingsPage.toggleOff')}
                         </p>
                       )}
                     </div>
                     {item.type === 'toggle' ? (
                       <button
+                        type="button"
                         onClick={() => handleToggle(item.key)}
                         className={`relative w-14 h-8 rounded-full transition-colors ${
                           settings[item.key as keyof typeof settings] ? 'bg-blue-600' : 'bg-gray-300'
@@ -85,7 +88,7 @@ export default function AdminSettings() {
                           className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
                             settings[item.key as keyof typeof settings] ? 'translate-x-6' : 'translate-x-0'
                           }`}
-                        ></span>
+                        />
                       </button>
                     ) : (
                       <select
@@ -99,11 +102,11 @@ export default function AdminSettings() {
                           <option key={opt} value={opt}>
                             {item.key === 'language'
                               ? opt === 'vi'
-                                ? 'Tiếng Việt'
+                                ? t('navbar.vietnamese')
                                 : opt === 'en'
-                                  ? 'English'
+                                  ? t('navbar.english')
                                   : opt === 'ja'
-                                    ? '日本語'
+                                    ? t('navbar.japanese')
                                     : opt
                               : opt}
                           </option>
@@ -119,12 +122,12 @@ export default function AdminSettings() {
       </div>
 
       <div className="flex justify-end gap-4">
-        <button className="px-8 py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg transition-colors">
-          Hủy
+        <button type="button" className="px-8 py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg transition-colors">
+          {t('adminPanel.settingsPage.cancel')}
         </button>
-        <button className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg transition-colors flex items-center gap-2 shadow-sm">
+        <button type="button" className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg transition-colors flex items-center gap-2 shadow-sm">
           <Save className="w-5 h-5" />
-          Lưu thay đổi
+          {t('adminPanel.settingsPage.saveChanges')}
         </button>
       </div>
     </div>

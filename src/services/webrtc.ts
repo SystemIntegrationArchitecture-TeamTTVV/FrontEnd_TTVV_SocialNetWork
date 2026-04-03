@@ -1,4 +1,5 @@
 import { socketService } from './socket';
+import i18n from '../i18n';
 
 export type CallType = 'voice' | 'video';
 
@@ -75,25 +76,29 @@ class WebRTCService {
           };
           this.localStream = await navigator.mediaDevices.getUserMedia(audioOnlyConstraints);
           console.log('✅ Got audio-only stream as fallback');
-          alert('Camera không khả dụng. Chuyển sang cuộc gọi thoại.');
+          alert(i18n.t('calls.cameraUnavailable'));
           return this.localStream;
         } catch (audioError: any) {
           console.error('❌ Audio fallback also failed:', audioError.name);
-          throw new Error('Không thể truy cập microphone. Camera đang được sử dụng bởi ứng dụng khác và microphone cũng không khả dụng.');
+          throw new Error(i18n.t('calls.micInaccessible'));
         }
       }
       
       // Handle permission denied
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        throw new Error('Bạn cần cấp quyền truy cập camera và microphone để thực hiện cuộc gọi. Vui lòng kiểm tra cài đặt trình duyệt.');
+        throw new Error(i18n.t('calls.permissionDenied'));
       }
       
       // Handle device not found
       if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        throw new Error('Không tìm thấy camera hoặc microphone. Vui lòng kiểm tra kết nối thiết bị của bạn.');
+        throw new Error(i18n.t('calls.deviceNotFound'));
       }
       
-      throw new Error(`Không thể khởi tạo cuộc gọi: ${error.message || 'Lỗi không xác định'}`);
+      throw new Error(
+        i18n.t('calls.initFailed', {
+          detail: error.message || i18n.t('calls.unknownError'),
+        }),
+      );
     }
   }
 

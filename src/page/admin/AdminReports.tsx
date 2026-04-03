@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Eye,
@@ -8,9 +8,11 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { reportsApi, type Report } from "../../apis/reports";
 
 export default function AdminReports() {
+  const { t } = useTranslation();
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [reports, setReports] = useState<Report[]>([]);
@@ -26,6 +28,71 @@ export default function AdminReports() {
     resolved: 0,
     rejected: 0,
   });
+
+  const priorityLabel = useCallback(
+    (p: string) => {
+      if (p === "high") return t("adminPanel.reports.priorityHigh");
+      if (p === "medium") return t("adminPanel.reports.priorityMedium");
+      return t("adminPanel.reports.priorityLow");
+    },
+    [t],
+  );
+
+  const statusLabel = useCallback(
+    (s: string) => {
+      switch (s) {
+        case "pending":
+          return t("adminPanel.reports.statusPending");
+        case "reviewing":
+          return t("adminPanel.reports.statusReviewing");
+        case "resolved":
+          return t("adminPanel.reports.statusResolved");
+        default:
+          return t("adminPanel.reports.statusRejected");
+      }
+    },
+    [t],
+  );
+
+  const targetTypeLabel = useCallback(
+    (type: string) => {
+      switch (type) {
+        case "post":
+          return t("adminPanel.reports.targetPost");
+        case "user":
+          return t("adminPanel.reports.targetUser");
+        case "message":
+          return t("adminPanel.reports.targetMessage");
+        case "comment":
+          return t("adminPanel.reports.targetComment");
+        default:
+          return type;
+      }
+    },
+    [t],
+  );
+
+  const getTimeAgo = useCallback(
+    (dateString: string) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (seconds < 60) return t("adminPanel.reports.timeJustNow");
+      if (seconds < 3600)
+        return t("adminPanel.reports.timeMinutesAgo", {
+          count: Math.floor(seconds / 60),
+        });
+      if (seconds < 86400)
+        return t("adminPanel.reports.timeHoursAgo", {
+          count: Math.floor(seconds / 3600),
+        });
+      return t("adminPanel.reports.timeDaysAgo", {
+        count: Math.floor(seconds / 86400),
+      });
+    },
+    [t],
+  );
 
   useEffect(() => {
     loadReports();
@@ -51,8 +118,8 @@ export default function AdminReports() {
         rejected: stats.rejectedReports,
       });
     } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message || "Không thể tải danh sách báo cáo");
+      const errObj = err as Error;
+      setError(errObj.message || t("adminPanel.reports.loadError"));
       console.error("Failed to load reports:", err);
     } finally {
       setLoading(false);
@@ -67,7 +134,6 @@ export default function AdminReports() {
       setProcessingId(reportId);
       await reportsApi.updateReportStatus(reportId, newStatus);
 
-      // Update local state
       setReports((prev) =>
         prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r)),
       );
@@ -76,7 +142,6 @@ export default function AdminReports() {
         setSelectedReport({ ...selectedReport, status: newStatus });
       }
 
-      // Reload stats
       const stats = await reportsApi.getReportStats();
       setReportStats({
         total: stats.totalReports,
@@ -86,8 +151,12 @@ export default function AdminReports() {
         rejected: stats.rejectedReports,
       });
     } catch (err: unknown) {
-      const error = err as Error;
-      alert("Lỗi khi cập nhật báo cáo: " + (error.message || "Unknown error"));
+      const errObj = err as Error;
+      alert(
+        t("adminPanel.reports.updateError", {
+          message: errObj.message || t("calls.unknownError"),
+        }),
+      );
       console.error("Failed to update report:", err);
     } finally {
       setProcessingId(null);
@@ -105,23 +174,12 @@ export default function AdminReports() {
     return matchesStatus && matchesSearch;
   });
 
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return "vừa xong";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} phút trước`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ trước`;
-    return `${Math.floor(seconds / 86400)} ngày trước`;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải danh sách báo cáo...</p>
+          <p className="text-gray-600">{t("adminPanel.reports.loading")}</p>
         </div>
       </div>
     );
@@ -129,43 +187,52 @@ export default function AdminReports() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Quản lý báo cáo
+            {t("adminPanel.reports.pageTitle")}
           </h1>
           <p className="text-lg text-gray-600">
-            Xem xét và xử lý các báo cáo từ người dùng
+            {t("adminPanel.reports.pageSubtitle")}
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="px-4 py-3 bg-red-50 rounded-xl border border-red-100">
-            <p className="text-xs text-gray-600 font-medium">Chờ xử lý</p>
+            <p className="text-xs text-gray-600 font-medium">
+              {t("adminPanel.reports.statPending")}
+            </p>
             <p className="text-2xl font-bold text-red-600">
               {reportStats.pending}
             </p>
           </div>
           <div className="px-4 py-3 bg-green-50 rounded-xl border border-green-100">
-            <p className="text-xs text-gray-600 font-medium">Đã xử lý</p>
+            <p className="text-xs text-gray-600 font-medium">
+              {t("adminPanel.reports.statResolved")}
+            </p>
             <p className="text-2xl font-bold text-green-600">
               {reportStats.resolved}
             </p>
           </div>
           <div className="px-4 py-3 bg-blue-50 rounded-xl border border-blue-100">
-            <p className="text-xs text-gray-600 font-medium">Đang kiểm duyệt</p>
+            <p className="text-xs text-gray-600 font-medium">
+              {t("adminPanel.reports.statReviewing")}
+            </p>
             <p className="text-2xl font-bold text-blue-600">
               {reportStats.reviewing}
             </p>
           </div>
           <div className="px-4 py-3 bg-red-50 rounded-xl border border-red-200">
-            <p className="text-xs text-gray-600 font-medium">Đã bác bỏ</p>
+            <p className="text-xs text-gray-600 font-medium">
+              {t("adminPanel.reports.statRejected")}
+            </p>
             <p className="text-2xl font-bold text-red-600">
               {reportStats.rejected}
             </p>
           </div>
           <div className="px-4 py-3 bg-blue-50 rounded-xl border border-blue-100">
-            <p className="text-xs text-gray-600 font-medium">Tổng cộng</p>
+            <p className="text-xs text-gray-600 font-medium">
+              {t("adminPanel.reports.statTotal")}
+            </p>
             <p className="text-2xl font-bold text-blue-600">
               {reportStats.total}
             </p>
@@ -173,27 +240,26 @@ export default function AdminReports() {
         </div>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 font-medium">
           {error}
           <button
+            type="button"
             onClick={loadReports}
             className="ml-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Thử lại
+            {t("common.retry")}
           </button>
         </div>
       )}
 
-      {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm báo cáo..."
+              placeholder={t("adminPanel.reports.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-12 pl-12 pr-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
@@ -205,22 +271,29 @@ export default function AdminReports() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="h-12 px-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 text-base font-medium cursor-pointer"
             >
-              <option value="all">Tất cả</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="reviewing">Đang kiểm duyệt</option>
-              <option value="resolved">Đã xử lý</option>
-              <option value="rejected">Đã bác bỏ</option>
+              <option value="all">{t("adminPanel.reports.filterAll")}</option>
+              <option value="pending">
+                {t("adminPanel.reports.statusPending")}
+              </option>
+              <option value="reviewing">
+                {t("adminPanel.reports.statusReviewing")}
+              </option>
+              <option value="resolved">
+                {t("adminPanel.reports.statusResolved")}
+              </option>
+              <option value="rejected">
+                {t("adminPanel.reports.statusRejected")}
+              </option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Reports List */}
       <div className="space-y-4">
         {filteredReports.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
             <Flag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">Không tìm thấy báo cáo nào</p>
+            <p className="text-gray-500 text-lg">{t("adminPanel.reports.empty")}</p>
           </div>
         ) : (
           filteredReports.map((report) => (
@@ -267,11 +340,7 @@ export default function AdminReports() {
                               : "bg-green-100 text-green-700"
                         }`}
                       >
-                        {report.priority === "high"
-                          ? "Cao"
-                          : report.priority === "medium"
-                            ? "Trung bình"
-                            : "Thấp"}
+                        {priorityLabel(report.priority)}
                       </span>
                     </div>
                     <p className="text-base text-gray-600">{report.reason}</p>
@@ -288,13 +357,7 @@ export default function AdminReports() {
                           : "bg-red-50 text-red-700 border border-red-200"
                   }`}
                 >
-                  {report.status === "pending"
-                    ? "Chờ xử lý"
-                    : report.status === "reviewing"
-                      ? "Đang kiểm duyệt"
-                      : report.status === "resolved"
-                        ? "Đã xử lý"
-                        : "Bị bác bỏ"}
+                  {statusLabel(report.status)}
                 </span>
               </div>
 
@@ -302,7 +365,7 @@ export default function AdminReports() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Người báo cáo
+                      {t("adminPanel.reports.reporter")}
                     </p>
                     <p className="text-base text-gray-900">
                       {report.reporterName}
@@ -310,19 +373,15 @@ export default function AdminReports() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Đối tượng báo cáo
+                      {t("adminPanel.reports.target")}
                     </p>
                     <p className="text-base text-gray-900">
-                      {report.targetType === "post" && `Bài viết`}
-                      {report.targetType === "user" && `Người dùng`}
-                      {report.targetType === "message" && `Tin nhắn`}
-                      {report.targetType === "comment" && `Bình luận`} -{" "}
-                      {report.targetName}
+                      {targetTypeLabel(report.targetType)} — {report.targetName}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Thời gian báo cáo
+                      {t("adminPanel.reports.reportTime")}
                     </p>
                     <p className="text-base text-gray-900">
                       {getTimeAgo(report.createdAt)}
@@ -333,15 +392,17 @@ export default function AdminReports() {
 
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-500">
-                  ID báo cáo: <span className="font-mono">{report.id}</span>
+                  {t("adminPanel.reports.reportId")}{" "}
+                  <span className="font-mono">{report.id}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={() => {
                       setSelectedReport(report);
                       setShowDetailModal(true);
                     }}
-                    title="Xem chi tiết"
+                    title={t("adminPanel.posts.viewDetail")}
                     className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors border border-blue-100"
                   >
                     <Eye className="w-5 h-5" />
@@ -349,11 +410,12 @@ export default function AdminReports() {
                   {report.status === "pending" && (
                     <>
                       <button
+                        type="button"
                         onClick={() =>
                           handleUpdateReportStatus(report.id, "reviewing")
                         }
                         disabled={processingId === report.id}
-                        title="Bắt đầu kiểm duyệt"
+                        title={t("adminPanel.reports.titleReview")}
                         className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors border border-blue-100 disabled:opacity-50"
                       >
                         {processingId === report.id ? (
@@ -363,11 +425,12 @@ export default function AdminReports() {
                         )}
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           handleUpdateReportStatus(report.id, "resolved")
                         }
                         disabled={processingId === report.id}
-                        title="Chấp nhận và xử lý"
+                        title={t("adminPanel.reports.titleResolve")}
                         className="w-10 h-10 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition-colors border border-green-100 disabled:opacity-50"
                       >
                         {processingId === report.id ? (
@@ -377,11 +440,12 @@ export default function AdminReports() {
                         )}
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           handleUpdateReportStatus(report.id, "rejected")
                         }
                         disabled={processingId === report.id}
-                        title="Bác bỏ báo cáo"
+                        title={t("adminPanel.reports.titleReject")}
                         className="w-10 h-10 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors border border-red-200 disabled:opacity-50"
                       >
                         <XCircle className="w-5 h-5" />
@@ -395,13 +459,15 @@ export default function AdminReports() {
         )}
       </div>
 
-      {/* Detail Modal */}
       {showDetailModal && selectedReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Chi tiết báo cáo</h2>
+              <h2 className="text-2xl font-bold">
+                {t("adminPanel.reports.modalTitle")}
+              </h2>
               <button
+                type="button"
                 onClick={() => setShowDetailModal(false)}
                 className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
               >
@@ -409,15 +475,14 @@ export default function AdminReports() {
               </button>
             </div>
             <div className="p-6 space-y-6">
-              {/* Report Info */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Thông tin báo cáo
+                  {t("adminPanel.reports.sectionReport")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <p className="text-sm font-semibold text-gray-700 mb-1">
-                      Loại báo cáo
+                      {t("adminPanel.reports.reportType")}
                     </p>
                     <p className="text-base text-gray-900">
                       {selectedReport.type}
@@ -425,7 +490,7 @@ export default function AdminReports() {
                   </div>
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <p className="text-sm font-semibold text-gray-700 mb-1">
-                      Độ ưu tiên
+                      {t("adminPanel.reports.priority")}
                     </p>
                     <span
                       className={`px-3 py-1 rounded-lg text-sm font-semibold inline-block ${
@@ -436,20 +501,15 @@ export default function AdminReports() {
                             : "bg-green-100 text-green-700"
                       }`}
                     >
-                      {selectedReport.priority === "high"
-                        ? "Cao"
-                        : selectedReport.priority === "medium"
-                          ? "Trung bình"
-                          : "Thấp"}
+                      {priorityLabel(selectedReport.priority)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Reporter Info */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Thông tin người báo cáo
+                  {t("adminPanel.reports.sectionReporter")}
                 </h3>
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                   <p className="text-base font-semibold text-gray-900">
@@ -458,23 +518,22 @@ export default function AdminReports() {
                 </div>
               </div>
 
-              {/* Target Info */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Dối tượng báo cáo
+                  {t("adminPanel.reports.sectionTarget")}
                 </h3>
                 <div className="space-y-3">
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Loại đối tượng
+                      {t("adminPanel.reports.targetKind")}
                     </p>
                     <p className="text-base text-gray-900 capitalize">
-                      {selectedReport.targetType}
+                      {targetTypeLabel(selectedReport.targetType)}
                     </p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Tên / Tác giả
+                      {t("adminPanel.reports.targetName")}
                     </p>
                     <p className="text-base text-gray-900">
                       {selectedReport.targetName}
@@ -483,10 +542,9 @@ export default function AdminReports() {
                 </div>
               </div>
 
-              {/* Reason */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Lý do báo cáo
+                  {t("adminPanel.reports.sectionReason")}
                 </h3>
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                   <p className="text-base text-gray-900 whitespace-pre-wrap">
@@ -495,10 +553,9 @@ export default function AdminReports() {
                 </div>
               </div>
 
-              {/* Status */}
               <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
                 <p className="text-sm font-semibold text-gray-700 mb-2">
-                  Trạng thái hiện tại
+                  {t("adminPanel.reports.currentStatus")}
                 </p>
                 <span
                   className={`px-4 py-2 rounded-lg font-semibold text-base inline-block ${
@@ -511,27 +568,22 @@ export default function AdminReports() {
                           : "bg-red-100 text-red-700"
                   }`}
                 >
-                  {selectedReport.status === "pending"
-                    ? "Chờ xử lý"
-                    : selectedReport.status === "reviewing"
-                      ? "Đang kiểm duyệt"
-                      : selectedReport.status === "resolved"
-                        ? "Đã xử lý"
-                        : "Bị bác bỏ"}
+                  {statusLabel(selectedReport.status)}
                 </span>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
+                  type="button"
                   onClick={() => setShowDetailModal(false)}
                   className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
                 >
-                  Đóng
+                  {t("adminPanel.reports.close")}
                 </button>
                 {selectedReport.status === "pending" && (
                   <>
                     <button
+                      type="button"
                       onClick={() => {
                         handleUpdateReportStatus(
                           selectedReport.id,
@@ -542,9 +594,10 @@ export default function AdminReports() {
                       disabled={processingId === selectedReport.id}
                       className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50"
                     >
-                      Bắt đầu Kiểm duyệt
+                      {t("adminPanel.reports.actionStartReview")}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         handleUpdateReportStatus(selectedReport.id, "resolved");
                         setShowDetailModal(false);
@@ -552,9 +605,10 @@ export default function AdminReports() {
                       disabled={processingId === selectedReport.id}
                       className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50"
                     >
-                      Chấp nhận & Xử lý
+                      {t("adminPanel.reports.actionResolve")}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         handleUpdateReportStatus(selectedReport.id, "rejected");
                         setShowDetailModal(false);
@@ -562,7 +616,7 @@ export default function AdminReports() {
                       disabled={processingId === selectedReport.id}
                       className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50"
                     >
-                      Bác bỏ
+                      {t("adminPanel.reports.actionReject")}
                     </button>
                   </>
                 )}

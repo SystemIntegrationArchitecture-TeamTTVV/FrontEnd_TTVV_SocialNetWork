@@ -3,6 +3,7 @@ import { webrtcService, type CallType } from '../services/webrtc';
 import { socketService } from '../services/socket';
 import { authApi } from '../apis/auth';
 import CallWindow from '../components/CallWindow';
+import i18n from '../i18n';
 
 interface CallState {
   isActive: boolean;
@@ -84,7 +85,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         console.log('✅ CallProvider: Ready to accept/reject incoming call');
       } catch (error: any) {
         console.error('❌ CallProvider: Failed to handle incoming call:', error);
-        alert(error.message || 'Không thể nhận cuộc gọi.');
+        alert(error.message || i18n.t('calls.cannotReceive'));
       }
     });
 
@@ -113,7 +114,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const unsubReject = socketService.on('CALL_REJECT', () => {
       console.log('❌ CallProvider: Call rejected by remote peer');
-      alert('Cuộc gọi bị từ chối');
+      alert(i18n.t('calls.rejected'));
       endCall();
     });
 
@@ -145,7 +146,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       
       const currentUser = authApi.getCurrentUser();
       if (!currentUser) {
-        throw new Error('Bạn cần đăng nhập để gọi điện');
+        throw new Error(i18n.t('calls.needLogin'));
       }
       
       console.log('👤 Current user info:', {
@@ -188,7 +189,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       console.log('✅ CallProvider: Call offer sent', isGroup ? '(GROUP CALL - will broadcast to all participants)' : '(DIRECT CALL)');
     } catch (error: any) {
       console.error('❌ CallProvider: Failed to start call:', error);
-      alert(error.message || 'Không thể bắt đầu cuộc gọi. Vui lòng thử lại.');
+      alert(error.message || i18n.t('calls.cannotStart'));
       endCall();
     }
   }, []);
@@ -233,7 +234,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       console.log('✅ CallProvider: Call answer sent');
     } catch (error: any) {
       console.error('❌ CallProvider: Failed to accept call:', error);
-      alert(error.message || 'Không thể chấp nhận cuộc gọi.');
+      alert(error.message || i18n.t('calls.cannotAccept'));
       endCall();
     }
   }, [callState.remoteId, callState.offerProcessed]);

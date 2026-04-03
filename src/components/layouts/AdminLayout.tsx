@@ -18,8 +18,10 @@ import {
 import { usersApi } from "../../apis/users";
 import { postsApi } from "../../apis/posts";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function AdminLayout() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -48,56 +50,56 @@ export default function AdminLayout() {
     {
       id: "admin",
       icon: LayoutDashboard,
-      label: "Tổng quan & Thống kê",
+      labelKey: "adminPanel.layout.navDashboard",
       path: "/admin",
       badge: null,
     },
     {
       id: "users",
       icon: Users,
-      label: "Người dùng",
+      labelKey: "adminPanel.layout.navUsers",
       path: "/admin/users",
       badge: userCount > 0 ? userCount : null,
     },
     {
       id: "posts",
       icon: FileText,
-      label: "Bài viết",
+      labelKey: "adminPanel.layout.navPosts",
       path: "/admin/posts",
       badge: postCount > 0 ? postCount : null,
     },
     {
       id: "groups",
       icon: Users,
-      label: "Nhóm",
+      labelKey: "adminPanel.layout.navGroups",
       path: "/admin/groups",
       badge: null,
     },
     {
       id: "events",
       icon: Calendar,
-      label: "Sự kiện",
+      labelKey: "adminPanel.layout.navEvents",
       path: "/admin/events",
       badge: null,
     },
     {
       id: "messages",
       icon: MessageSquare,
-      label: "Tin nhắn",
+      labelKey: "adminPanel.layout.navMessages",
       path: "/admin/messages",
       badge: null,
     },
     {
       id: "reports",
       icon: AlertTriangle,
-      label: "Báo cáo",
+      labelKey: "adminPanel.layout.navReports",
       path: "/admin/reports",
       badge: null,
     },
     {
       id: "settings",
       icon: Settings,
-      label: "Cài đặt",
+      labelKey: "adminPanel.layout.navSettings",
       path: "/admin/settings",
       badge: null,
     },
@@ -126,8 +128,8 @@ export default function AdminLayout() {
                 <Shield className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-                <p className="text-sm text-gray-500">Quản trị hệ thống</p>
+                <h1 className="text-xl font-bold text-gray-900">{t("adminPanel.layout.sidebarTitle")}</h1>
+                <p className="text-sm text-gray-500">{t("adminPanel.layout.sidebarSubtitle")}</p>
               </div>
             </div>
           )}
@@ -163,7 +165,7 @@ export default function AdminLayout() {
                     ? "bg-blue-50 text-blue-600 shadow-sm"
                     : "text-gray-700 hover:bg-gray-50"
                 }`}
-                title={sidebarCollapsed ? item.label : ""}
+                title={sidebarCollapsed ? t(item.labelKey) : ""}
               >
                 <div
                   className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
@@ -181,7 +183,7 @@ export default function AdminLayout() {
                         active ? "text-blue-600" : "text-gray-700"
                       }`}
                     >
-                      {item.label}
+                      {t(item.labelKey)}
                     </span>
                     {item.badge && (
                       <span className="min-w-[32px] h-8 px-2 rounded-full bg-blue-500 text-white text-sm font-bold flex items-center justify-center">
@@ -246,13 +248,13 @@ export default function AdminLayout() {
             className={`flex items-center gap-5 px-5 py-4 rounded-xl text-red-600 hover:bg-red-50 transition-colors mt-3 w-full ${
               sidebarCollapsed ? "justify-center" : ""
             }`}
-            title={sidebarCollapsed ? "Đăng xuất" : ""}
+            title={sidebarCollapsed ? t("adminPanel.layout.logout") : ""}
           >
             <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
               <LogOut className="w-6 h-6" />
             </div>
             {!sidebarCollapsed && (
-              <span className="font-bold text-lg">Đăng xuất</span>
+              <span className="font-bold text-lg">{t("adminPanel.layout.logout")}</span>
             )}
           </button>
         </div>
@@ -264,8 +266,10 @@ export default function AdminLayout() {
         <header className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between shadow-sm">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              {menuItems.find((item) => isActive(item.path))?.label ||
-                "Admin Panel"}
+              {(() => {
+                const active = menuItems.find((item) => isActive(item.path));
+                return active ? t(active.labelKey) : t("adminPanel.layout.headerFallback");
+              })()}
             </h2>
           </div>
           <div className="flex items-center gap-5">
@@ -276,7 +280,7 @@ export default function AdminLayout() {
               to="/home"
               className="px-5 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors text-base"
             >
-              Về trang chủ
+              {t("adminPanel.layout.backHome")}
             </Link>
           </div>
         </header>

@@ -234,7 +234,7 @@ export default function AdminPostManagement() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleViewDetail(post)}
-                    title="Xem chi tiết"
+                    title={t('adminPanel.posts.viewDetail')}
                     className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
                   >
                     <Eye className="w-5 h-5" />
@@ -262,8 +262,11 @@ export default function AdminPostManagement() {
       {filteredPosts.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm px-6 py-5 flex items-center justify-between">
           <p className="text-base text-gray-600">
-            Hiển thị <span className="font-semibold">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredPosts.length)}</span> trong tổng số{' '}
-            <span className="font-semibold">{filteredPosts.length}</span> bài viết
+            {t('adminPanel.posts.paginationRange', {
+              from: (currentPage - 1) * itemsPerPage + 1,
+              to: Math.min(currentPage * itemsPerPage, filteredPosts.length),
+              total: filteredPosts.length,
+            })}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -271,7 +274,7 @@ export default function AdminPostManagement() {
               disabled={currentPage === 1}
               className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Trước
+              {t('adminPanel.posts.prev')}
             </button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = i + 1;
@@ -295,7 +298,7 @@ export default function AdminPostManagement() {
               disabled={currentPage === totalPages}
               className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sau
+              {t('adminPanel.posts.next')}
             </button>
           </div>
         </div>

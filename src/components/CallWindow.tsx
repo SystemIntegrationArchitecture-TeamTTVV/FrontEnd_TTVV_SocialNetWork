@@ -1,5 +1,6 @@
 import { Phone, Video, PhoneOff, Mic, MicOff, VideoOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface CallWindowProps {
   isIncoming?: boolean;
@@ -22,6 +23,7 @@ export default function CallWindow({
   onReject,
   onEnd,
 }: CallWindowProps) {
+  const { t } = useTranslation();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null); // Add audio ref for voice calls
@@ -149,7 +151,7 @@ export default function CallWindow({
         <div className="p-4 text-white text-center bg-black/30 backdrop-blur-sm">
           <h2 className="text-xl font-semibold">{callerName}</h2>
           <p className="text-gray-400 text-sm mt-1">
-            {callType === 'video' ? 'Video call' : 'Thoại call'}
+            {callType === 'video' ? t('calls.headerVideo') : t('calls.headerVoice')}
           </p>
         </div>
       )}
@@ -186,7 +188,12 @@ export default function CallWindow({
             {/* Caller Name */}
             <h3 className="text-white text-3xl font-bold mb-2">{callerName}</h3>
             <p className="text-gray-400 text-lg mb-8">
-              đang gọi {callType === 'video' ? 'video' : 'thoại'} cho bạn...
+              {t('calls.incomingLine', {
+                type:
+                  callType === 'video'
+                    ? t('calls.incomingVideo')
+                    : t('calls.incomingVoice'),
+              })}
             </p>
           </div>
         )}
@@ -216,7 +223,7 @@ export default function CallWindow({
                   <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-bold mb-4">
                     {callerName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
-                  <p className="text-gray-400">Đang kết nối...</p>
+                  <p className="text-gray-400">{t('calls.connecting')}</p>
                 </div>
               </div>
             )}
@@ -230,7 +237,9 @@ export default function CallWindow({
               <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-bold mb-4">
                 {callerName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
-              <p className="text-white text-xl">{remoteStream ? 'Đang gọi...' : 'Đang kết nối...'}</p>
+              <p className="text-white text-xl">
+                {remoteStream ? t('calls.calling') : t('calls.connecting')}
+              </p>
             </div>
             {/* Hidden audio element for voice calls */}
             <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
@@ -261,21 +270,21 @@ export default function CallWindow({
               <button
                 onClick={onReject}
                 className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl"
-                aria-label="Từ chối"
+                aria-label={t('calls.rejectAria')}
               >
                 <PhoneOff className="w-10 h-10" />
               </button>
-              <span className="text-white text-sm font-medium">Từ chối</span>
+              <span className="text-white text-sm font-medium">{t('calls.rejectAria')}</span>
             </div>
             <div className="flex flex-col items-center gap-3">
               <button
                 onClick={onAccept}
                 className="w-20 h-20 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl animate-pulse"
-                aria-label="Chấp nhận"
+                aria-label={t('calls.acceptAria')}
               >
                 {callType === 'video' ? <Video className="w-10 h-10" /> : <Phone className="w-10 h-10" />}
               </button>
-              <span className="text-white text-sm font-medium">Chấp nhận</span>
+              <span className="text-white text-sm font-medium">{t('calls.acceptAria')}</span>
             </div>
           </div>
         )}
