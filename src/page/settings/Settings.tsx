@@ -83,7 +83,11 @@ export default function Settings() {
                 <div className="relative">
                   <input
                     type="text"
-                    value={'valueKey' in setting ? t(setting.valueKey) : setting.value}
+                    value={
+                      setting.valueKey != null
+                        ? t(setting.valueKey)
+                        : (setting.value ?? '')
+                    }
                     readOnly
                     className="w-full h-12 px-4 rounded-2xl border border-gray-200 bg-slate-50 text-gray-900 text-[15px] focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                   />
