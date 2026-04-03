@@ -270,7 +270,15 @@ export default function MusicEDM() {
           <h3 className="text-lg font-bold text-gray-900 mb-4">{t('music.playlist')}</h3>
           
           {/* Playlist */}
-          <div className="flex-1 overflow-y-auto space-y-2 mb-6 max-h-125">
+          <div
+            className="mb-6 max-h-[30rem] flex-1 space-y-2 overflow-y-auto pr-1
+            [scrollbar-width:thin] [scrollbar-color:#93c5fd_transparent]
+            [&::-webkit-scrollbar]:w-1.5
+            [&::-webkit-scrollbar-track]:bg-transparent
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb]:bg-blue-200
+            hover:[&::-webkit-scrollbar-thumb]:bg-blue-300"
+          >
             {playlist.map((song, index) => (
               <div
                 key={song.id}

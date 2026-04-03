@@ -94,7 +94,85 @@ const defaultPlaylist: Song[] = [
     duration: '4:15',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
     cover: 'https://picsum.photos/seed/music5/400'
-  }
+  },
+  {
+    id: 6,
+    title: 'Nonstop Thang 4 La Loi Noi Doi Cua Em',
+    artist: 'Tho Melody',
+    duration: '--:--',
+    soundcloudUrl:
+      'https://soundcloud.com/user-532255930/nonstop-thang-4-la-loi-noi-doi-cua-em-dj-tho-melody',
+    cover: 'https://picsum.photos/seed/music6/400',
+  },
+  {
+    id: 7,
+    title: 'Thang Tu La Loi Noi Doi Cua Em Piano',
+    artist: 'mr.tien',
+    duration: '--:--',
+    soundcloudUrl:
+      'https://soundcloud.com/user-500641686-238881760/thang-tu-la-loi-noi-doi-cua-em-piano',
+    cover: 'https://picsum.photos/seed/music7/400',
+  },
+  {
+    id: 8,
+    title: 'May Lang Thang',
+    artist: 'Tung TeA & PC ft. New$oulZ',
+    duration: '--:--',
+    soundcloudUrl:
+      'https://soundcloud.com/taynguyensoundofficial/may-lang-thang-tung-tea-pc-ft-newoulz',
+    cover: 'https://picsum.photos/seed/music8/400',
+  },
+  {
+    id: 9,
+    title: 'Ghe Qua',
+    artist: 'Dick & Tofu & PC',
+    duration: '--:--',
+    soundcloudUrl: 'https://soundcloud.com/taynguyensound/ghe-qua-dick-tofu-pc',
+    cover: 'https://picsum.photos/seed/music9/400',
+  },
+  {
+    id: 10,
+    title: 'Co Mot Nguoi, Luon Cuoi Khi Anh Den',
+    artist: 'Tofu & PC & D.Blue',
+    duration: '--:--',
+    soundcloudUrl:
+      'https://soundcloud.com/taynguyensound/co-mot-nguoi-luon-cuoi-khi-anh-den-tofu-pc-dblue',
+    cover: 'https://picsum.photos/seed/music10/400',
+  },
+  {
+    id: 11,
+    title: 'Mat Biec',
+    artist: 'TeA ft PCGL',
+    duration: '--:--',
+    soundcloudUrl: 'https://soundcloud.com/taynguyensoundofficial/mat-biec-tea-ft-pcgl',
+    cover: 'https://picsum.photos/seed/music11/400',
+  },
+  {
+    id: 12,
+    title: 'Con Mua Bang Gia',
+    artist: 'Noo Phuoc Thinh',
+    duration: '--:--',
+    soundcloudUrl: 'https://soundcloud.com/b-o-tr-n-972237721/co-n-mu-a-ba-ng-gia-noo-phu-o',
+    cover: 'https://picsum.photos/seed/music12/400',
+  },
+  {
+    id: 13,
+    title: 'Yeu Mot Nguoi Sao Buon Den The',
+    artist: "Noo Phuoc Thinh (Live @ Noo's Chill Night EP.02)",
+    duration: '--:--',
+    soundcloudUrl:
+      'https://soundcloud.com/nguyenkimthien/y-u-m-t-ng-i-sao-bu-n-n-th-1',
+    cover: 'https://picsum.photos/seed/music13/400',
+  },
+  {
+    id: 14,
+    title: 'Gat Di Nuoc Mat (Hieu Tran Remix)',
+    artist: 'Noo Phuoc Thinh, Tonny Viet',
+    duration: '--:--',
+    soundcloudUrl:
+      'https://soundcloud.com/hieutranmusicproducer/gat-di-nuoc-mat-noo-phuoc-thinh-tonny-viet-hieu-tran-funk-remix',
+    cover: 'https://picsum.photos/seed/music14/400',
+  },
 ];
 
 export function MusicProvider({ children }: { children: ReactNode }) {
