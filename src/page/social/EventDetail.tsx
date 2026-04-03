@@ -2,8 +2,6 @@ import { useParams } from 'react-router-dom';
 import { Calendar, MapPin, Users, Share2, Bell, Edit } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getLocaleTag } from '../../i18n';
-
 export default function EventDetail() {
   const { t } = useTranslation();
   const { id } = useParams();
@@ -52,7 +50,7 @@ export default function EventDetail() {
                 <Users className="w-5 h-5" />
                 <span className="font-semibold">
                   {t('eventsSocial.attendeesWithCount', {
-                    count: event.attendees.toLocaleString(getLocaleTag()),
+                    count: event.attendees,
                   })}
                 </span>
               </div>
@@ -60,7 +58,7 @@ export default function EventDetail() {
                 <Bell className="w-5 h-5" />
                 <span className="font-semibold">
                   {t('eventsSocial.interestedWithCount', {
-                    count: event.interested.toLocaleString(getLocaleTag()),
+                    count: event.interested,
                   })}
                 </span>
               </div>
