@@ -409,15 +409,14 @@ export default function FlappyBird() {
 
   // Initialize seasonal theme
   useEffect(() => {
-
-    console.log(3)
     setSeasonalTheme(getSeasonalTheme());
     const savedUpgrades = localStorage.getItem("upgrades");
     if (savedUpgrades) {
       setUpgrades(JSON.parse(savedUpgrades));
     }
   }, []);
-  useEffect(() => {
+  /** Chỉ set kích thước buffer canvas ở đây — không gán width/height trên <canvas> trong JSX (mỗi lần React đổi prop là clear buffer → nhấp nháy/giật khi vào game hoặc khi viewport nhảy). */
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let resizeT: ReturnType<typeof setTimeout> | undefined;
@@ -447,8 +446,6 @@ export default function FlappyBird() {
 
   // Detect mobile device
   useEffect(() => {
-
-    console.log(5)
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768 || "ontouchstart" in window);
     };
@@ -922,8 +919,6 @@ export default function FlappyBird() {
 
   // Initialize daily challenges - thêm vào useEffect đầu tiên
   useEffect(() => {
-
-    console.log(8)
     const stored = localStorage.getItem("dailyChallenges");
     if (stored) {
       const parsed = JSON.parse(stored);
@@ -1002,16 +997,12 @@ export default function FlappyBird() {
   const [gameStartTime, setGameStartTime] = useState(0);
 
   useEffect(() => {
-
-    console.log(9)
     if (gameStarted && !gameOver) {
       setGameStartTime(Date.now());
     }
   }, [gameStarted]);
 
   useEffect(() => {
-
-    console.log(10)
     if (gameStarted && !gameOver) {
       const interval = setInterval(() => {
         const survivalTime = Math.floor((Date.now() - gameStartTime) / 1000);
@@ -1228,18 +1219,23 @@ export default function FlappyBird() {
     }
   }, [jump, isMobile, gameOver]);
 
-  // Main game loop
+  // Main game loop — requestAnimationFrame + giới hạn ~60fps (tránh màn 120Hz chạy gấp đôi logic mỗi giây)
   useEffect(() => {
-
-    console.log(14)
     if (!assetsLoaded || isPaused) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const gameLoop = setInterval(async () => {
+    let rafId = 0;
+    let lastTick = 0;
+    const FRAME_MS = 1000 / 60;
+
+    const tick = (now: number) => {
+      rafId = requestAnimationFrame(tick);
       if (typeof document !== "undefined" && document.hidden) return;
+      if (now - lastTick < FRAME_MS) return;
+      lastTick = now;
       const CONSTANTS = getGameConstants();
       // Clear canvas
       ctx.clearRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
@@ -1847,10 +1843,8 @@ export default function FlappyBird() {
       ctx.strokeText(scoreRef.current.toString(), CONSTANTS.CANVAS_WIDTH / 2, 50);
       ctx.fillText(scoreRef.current.toString(), CONSTANTS.CANVAS_WIDTH / 2, 50);
 
-      // Draw game over screen
+      // Draw game over screen (nhánh này khi gameOver đã true sau cùng frame vẽ — không dừng rAF, effect vẫn cleanup khi unmount)
       if (gameOver) {
-        clearInterval(gameLoop);
-
         // Semi-transparent overlay
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
         ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
@@ -1917,9 +1911,11 @@ export default function FlappyBird() {
         ctx.fillText(canvasUiRef.current.boostOn, CONSTANTS.CANVAS_WIDTH / 2, 100);
       }
       drawParticles(ctx);
-    }, 1000 / 60); // 60 FPS
+    };
 
-    return () => clearInterval(gameLoop);
+    rafId = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(rafId);
     // bird/pipes/items/score/boost/combo đọc qua ref trong loop — không đưa vào deps để tránh reset interval
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refs + layout sync
   }, [
@@ -1942,8 +1938,6 @@ export default function FlappyBird() {
       const scaleY = canvas.height / rect.height;
       const x = (event.clientX - rect.left) * scaleX;
       const y = (event.clientY - rect.top) * scaleY;
-
-      console.log("Canvas click:", x, y, { gameOver });
 
       if (gameOver) {
      
@@ -1982,14 +1976,7 @@ export default function FlappyBird() {
     },
     [gameOver, jump, restartGame]
   );
-  // Update current score in game stats
-  useEffect(() => {
-
-    console.log(15)
-    setGameStats((prev) => ({ ...prev, currentScore: score }));
-  }, [score]);
-
-  const vp = typeof window !== "undefined" ? getViewportSize() : { width: 320, height: 568 };
+  /** Không sync score → gameStats mỗi lần cộng điểm (gây re-render cả component ~ vài chục KB JSX mỗi giây khi chơi lâu → lag). Hiển thị điểm hiện tại dùng `score` trực tiếp. */
 
   return (
     <div className="fixed inset-0 z-[60] flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden overscroll-none bg-gray-900 supports-[height:100svh]:h-[100svh]">
@@ -2016,9 +2003,7 @@ export default function FlappyBird() {
         >
           <canvas
             ref={canvasRef}
-            width={vp.width}
-            height={vp.height}
-            className="box-border block max-h-full w-full max-w-full border-4 border-white/30 shadow-2xl"
+            className="box-border block h-full min-h-0 w-full max-w-full border-4 border-white/30 shadow-2xl"
             style={{
               imageRendering: "pixelated",
               touchAction: "none",
@@ -2507,7 +2492,7 @@ export default function FlappyBird() {
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-blue-600">
-                        {gameStats.currentScore}
+                        {score}
                       </div>
                       <p className="text-sm text-gray-600">{t('minigame.pointsBoard.currentPoints')}</p>
                     </div>
