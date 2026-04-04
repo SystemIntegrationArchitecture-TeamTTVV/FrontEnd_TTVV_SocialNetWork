@@ -1,7 +1,14 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  useLayoutEffect,
+} from "react";
 import "./loading.css";
 import { loadFlappyStats, saveFlappyStats } from "./flappyStorage";
 import { useTranslation } from "react-i18next";
@@ -184,7 +191,6 @@ export default function FlappyBird() {
 
   const [dailyChallenges, setDailyChallenges] = useState<Challenge[]>([]);
 
-  const [particles, setParticles] = useState<Particle[]>([]);
   const [combo, setCombo] = useState(0);
   const [comboMultiplier, setComboMultiplier] = useState(1);
   const [lastScoreTime, setLastScoreTime] = useState(0);
@@ -252,9 +258,19 @@ export default function FlappyBird() {
   });
   // Flappy Bird game state
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [bird, setBird] = useState<Bird>({ y: 200, velocity: 0, frame: 0 });
-  const [pipes, setPipes] = useState<Pipe[]>([]);
+  /** Trạng thái gameplay chỉ nằm trong ref — tránh setState ~60fps làm useEffect game loop restart liên tục → giật */
+  const birdRef = useRef<Bird>({ y: 200, velocity: 0, frame: 0 });
+  const pipesRef = useRef<Pipe[]>([]);
+  const itemsRef = useRef<Item[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
+  const gameStatsRef = useRef(gameStats);
+  const mapDecorCacheRef = useRef<{
+    key: string;
+    stars: { x: number; y: number }[];
+    snow: { x: number; y: number; size: number }[];
+  } | null>(null);
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -274,6 +290,14 @@ export default function FlappyBird() {
     setShouldUpdatePoint(false);
   }, [shouldUpdatePoint, score, user?.id]);
 
+  useLayoutEffect(() => {
+    gameStatsRef.current = gameStats;
+  }, [gameStats]);
+
+  useLayoutEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
   const birdSprites = useRef<HTMLImageElement[]>([]);
   const backgroundImage = useRef<HTMLImageElement | null>(null);
   const numberSprites = useRef<HTMLImageElement[]>([]);
@@ -287,9 +311,35 @@ export default function FlappyBird() {
   const pointSound = useRef<HTMLAudioElement | null>(null);
   const hitSound = useRef<HTMLAudioElement | null>(null);
   const wingSound = useRef<HTMLAudioElement | null>(null);
-  const [items, setItems] = useState<Item[]>([]);
   const [shieldActive, setShieldActive] = useState(false);
   const [boostActive, setBoostActive] = useState(false);
+
+  const boostActiveRef = useRef(false);
+  const shieldActiveRef = useRef(false);
+  const comboRef = useRef(0);
+  const comboMultiplierRef = useRef(1);
+  const upgradesRef = useRef(upgrades);
+  const seasonalThemeRef = useRef(seasonalTheme);
+  const isMobileRef = useRef(false);
+
+  useLayoutEffect(() => {
+    boostActiveRef.current = boostActive;
+    shieldActiveRef.current = shieldActive;
+    comboRef.current = combo;
+    comboMultiplierRef.current = comboMultiplier;
+    upgradesRef.current = upgrades;
+    seasonalThemeRef.current = seasonalTheme;
+    isMobileRef.current = isMobile;
+  }, [
+    boostActive,
+    shieldActive,
+    combo,
+    comboMultiplier,
+    upgrades,
+    seasonalTheme,
+    isMobile,
+  ]);
+
   const shieldImage = useRef<HTMLImageElement | null>(null);
   const boostImage = useRef<HTMLImageElement | null>(null);
   const itemSound = useRef<HTMLAudioElement | null>(null);
@@ -370,20 +420,28 @@ export default function FlappyBird() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    let resizeT: ReturnType<typeof setTimeout> | undefined;
     const updateCanvasSize = () => {
       const { width, height } = getViewportSize();
+      if (canvas.width === width && canvas.height === height) return;
       canvas.width = width;
       canvas.height = height;
     };
+    /** Debounce: visualViewport scroll/resize khi thanh địa chỉ ẩn-hiện gây đổi kích thước liên tục → canvas bị reset → giật màn hình */
+    const scheduleResize = () => {
+      if (resizeT) clearTimeout(resizeT);
+      resizeT = setTimeout(updateCanvasSize, 120);
+    };
 
     updateCanvasSize();
-    window.addEventListener("resize", updateCanvasSize);
-    window.visualViewport?.addEventListener("resize", updateCanvasSize);
-    window.visualViewport?.addEventListener("scroll", updateCanvasSize);
+    window.addEventListener("resize", scheduleResize);
+    window.visualViewport?.addEventListener("resize", scheduleResize);
+    window.visualViewport?.addEventListener("scroll", scheduleResize);
     return () => {
-      window.removeEventListener("resize", updateCanvasSize);
-      window.visualViewport?.removeEventListener("resize", updateCanvasSize);
-      window.visualViewport?.removeEventListener("scroll", updateCanvasSize);
+      if (resizeT) clearTimeout(resizeT);
+      window.removeEventListener("resize", scheduleResize);
+      window.visualViewport?.removeEventListener("resize", scheduleResize);
+      window.visualViewport?.removeEventListener("scroll", scheduleResize);
     };
   }, []);
 
@@ -969,11 +1027,17 @@ export default function FlappyBird() {
       const jumpStrength = boostActive
         ? JUMP_STRENGTH * BOOST_MULTIPLIER
         : JUMP_STRENGTH;
-      setBird((prevBird) => ({ ...prevBird, velocity: -jumpStrength }));
+      birdRef.current = {
+        ...birdRef.current,
+        velocity: -jumpStrength,
+      };
       playSound(wingSound.current);
     } else if (!gameStarted) {
       setGameStarted(true);
-      setBird((prevBird) => ({ ...prevBird, velocity: -JUMP_STRENGTH }));
+      birdRef.current = {
+        ...birdRef.current,
+        velocity: -JUMP_STRENGTH,
+      };
       playSound(wingSound.current);
     }
   }, [gameOver, gameStarted, isPaused, boostActive, playSound]);
@@ -995,30 +1059,28 @@ export default function FlappyBird() {
         });
       }
 
-      setParticles((prev) => [...prev, ...newParticles]);
+      particlesRef.current = [...particlesRef.current, ...newParticles];
     },
     []
   );
 
   // Update particles - thêm vào game loop (trong useEffect chính)
   const updateParticles = () => {
-    setParticles((prev) => {
-      return prev
-        .map((particle) => ({
-          ...particle,
-          x: particle.x + particle.vx,
-          y: particle.y + particle.vy,
-          vx: particle.vx * 0.98,
-          vy: particle.vy * 0.98,
-          life: particle.life - 1,
-        }))
-        .filter((particle) => particle.life > 0);
-    });
+    particlesRef.current = particlesRef.current
+      .map((particle) => ({
+        ...particle,
+        x: particle.x + particle.vx,
+        y: particle.y + particle.vy,
+        vx: particle.vx * 0.98,
+        vy: particle.vy * 0.98,
+        life: particle.life - 1,
+      }))
+      .filter((particle) => particle.life > 0);
   };
 
   // Draw particles - thêm vào phần render trong game loop
   const drawParticles = (ctx: CanvasRenderingContext2D) => {
-    particles.forEach((particle) => {
+    particlesRef.current.forEach((particle) => {
       const alpha = particle.life / particle.maxLife;
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -1043,6 +1105,11 @@ export default function FlappyBird() {
     setComboMultiplier(1 + combo * 0.2); // Mỗi combo +20% điểm
   }, [lastScoreTime, combo]);
 
+  const updateComboRef = useRef(updateCombo);
+  useLayoutEffect(() => {
+    updateComboRef.current = updateCombo;
+  }, [updateCombo]);
+
   // Thêm vào chỗ score update trong game loop (thay thế logic ghi điểm cũ)
 
   const restartGame = useCallback(() => {
@@ -1062,9 +1129,12 @@ export default function FlappyBird() {
       return next;
     });
 
-    setBird({ y: 200, velocity: 0, frame: 0 });
-    setPipes([]);
+    birdRef.current = { y: 200, velocity: 0, frame: 0 };
+    pipesRef.current = [];
+    itemsRef.current = [];
+    particlesRef.current = [];
     setScore(0);
+    scoreRef.current = 0;
     setGameOver(false);
     setGameStarted(true);
     setIsPaused(false);
@@ -1202,12 +1272,12 @@ export default function FlappyBird() {
         ctx.fillStyle = "white";
         ctx.font = "18px Arial";
         ctx.fillText(
-          `${canvasUiRef.current.scoreWord}: ${score}`,
+          `${canvasUiRef.current.scoreWord}: ${scoreRef.current}`,
           CONSTANTS.CANVAS_WIDTH / 2,
           CONSTANTS.CANVAS_HEIGHT / 2
         );
         ctx.fillText(
-          `${canvasUiRef.current.bestWord}: ${Math.max(gameStats.highScore, score)}`,
+          `${canvasUiRef.current.bestWord}: ${Math.max(gameStatsRef.current.highScore, scoreRef.current)}`,
           CONSTANTS.CANVAS_WIDTH / 2,
           CONSTANTS.CANVAS_HEIGHT / 2 + 25
         );
@@ -1223,7 +1293,24 @@ export default function FlappyBird() {
       }
 
       // Draw background based on current map with enhanced visuals
-      // Create dynamic background based on map
+      const decorKey = `${CONSTANTS.CANVAS_WIDTH}x${CONSTANTS.CANVAS_HEIGHT}`;
+      let mapDecor = mapDecorCacheRef.current;
+      if (!mapDecor || mapDecor.key !== decorKey) {
+        mapDecor = {
+          key: decorKey,
+          stars: Array.from({ length: 20 }, () => ({
+            x: Math.random() * CONSTANTS.CANVAS_WIDTH,
+            y: Math.random() * (CONSTANTS.CANVAS_HEIGHT * 0.6),
+          })),
+          snow: Array.from({ length: 30 }, () => ({
+            x: Math.random() * CONSTANTS.CANVAS_WIDTH,
+            y: Math.random() * CONSTANTS.CANVAS_HEIGHT,
+            size: Math.random() * 3 + 1,
+          })),
+        };
+        mapDecorCacheRef.current = mapDecor;
+      }
+
       if (currentMap === 0) {
         // Day Map
         const gradient = ctx.createLinearGradient(0, 0, 0, CONSTANTS.CANVAS_HEIGHT);
@@ -1255,13 +1342,11 @@ export default function FlappyBird() {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
 
-        // Add stars
+        // Add stars (vị trí cố định theo kích thước canvas — tránh nhấp nháy mỗi frame)
         ctx.fillStyle = "white";
-        for (let i = 0; i < 20; i++) {
-          const x = Math.random() * CONSTANTS.CANVAS_WIDTH;
-          const y = Math.random() * (CONSTANTS.CANVAS_HEIGHT * 0.6);
+        for (const s of mapDecor.stars) {
           ctx.beginPath();
-          ctx.arc(x, y, 1, 0, Math.PI * 2);
+          ctx.arc(s.x, s.y, 1, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -1314,18 +1399,12 @@ export default function FlappyBird() {
         ctx.strokeStyle = "white";
         ctx.lineWidth = 1;
 
-        for (let i = 0; i < 30; i++) {
-          const x = Math.random() * CONSTANTS.CANVAS_WIDTH;
-          const y = Math.random() * CONSTANTS.CANVAS_HEIGHT;
-          const size = Math.random() * 3 + 1;
-
-          // Draw snowflake
+        for (const flake of mapDecor.snow) {
+          const { x, y, size } = flake;
           ctx.beginPath();
           ctx.arc(x, y, size, 0, Math.PI * 2);
           ctx.fill();
-
-          // Add sparkle effect for some flakes
-          if (Math.random() > 0.7) {
+          if (size > 2.2) {
             ctx.beginPath();
             ctx.moveTo(x - size * 2, y);
             ctx.lineTo(x + size * 2, y);
@@ -1340,7 +1419,7 @@ export default function FlappyBird() {
         ctx: CanvasRenderingContext2D,
         _canvas: HTMLCanvasElement
       ) => {
-        switch (seasonalTheme) {
+        switch (seasonalThemeRef.current) {
           case "tet":
             // Red lanterns
             ctx.fillStyle = "rgba(255, 215, 0, 0.8)";
@@ -1426,7 +1505,9 @@ export default function FlappyBird() {
           ctx.fillText(canvasUiRef.current.tapToStart, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2);
           ctx.font = "16px Arial";
           ctx.fillText(
-            isMobile ? canvasUiRef.current.jumpMobile : canvasUiRef.current.jumpDesktop,
+            isMobileRef.current
+              ? canvasUiRef.current.jumpMobile
+              : canvasUiRef.current.jumpDesktop,
             CONSTANTS.CANVAS_WIDTH / 2,
             CONSTANTS.CANVAS_HEIGHT / 2 + 40
           );
@@ -1435,7 +1516,10 @@ export default function FlappyBird() {
         // Draw bird in starting position
         if (birdSprites.current.length > 0) {
           ctx.save();
-          ctx.translate(CONSTANTS.BIRD_X + CONSTANTS.BIRD_WIDTH / 2, bird.y + CONSTANTS.BIRD_HEIGHT / 2);
+          ctx.translate(
+            CONSTANTS.BIRD_X + CONSTANTS.BIRD_WIDTH / 2,
+            birdRef.current.y + CONSTANTS.BIRD_HEIGHT / 2
+          );
           ctx.drawImage(
             birdSprites.current[Math.floor(Date.now() / 200) % 3],
             -CONSTANTS.BIRD_WIDTH / 2,
@@ -1449,92 +1533,95 @@ export default function FlappyBird() {
       }
 
       // Tính toán tốc độ dựa trên boost
-      const dynamicSpeedIncrease = Math.floor(score / 5) * 0.3;
-      const currentSpeed = boostActive
+      const dynamicSpeedIncrease = Math.floor(scoreRef.current / 5) * 0.3;
+      const currentSpeed = boostActiveRef.current
         ? (CONSTANTS.PIPE_SPEED + dynamicSpeedIncrease) * BOOST_SPEED_MULTIPLIER
         : CONSTANTS.PIPE_SPEED + dynamicSpeedIncrease;
-      const currentGravity = boostActive
+      const currentGravity = boostActiveRef.current
         ? CONSTANTS.GRAVITY * BOOST_SPEED_MULTIPLIER
         : CONSTANTS.GRAVITY;
 
-      // Update bird physics
-      setBird((prevBird) => {
-        const newY = prevBird.y + prevBird.velocity;
-        const newVelocity = prevBird.velocity + currentGravity; // Tăng tốc độ rơi khi boost
-        const newFrame = (prevBird.frame + 1) % 3;
-        return { y: newY, velocity: newVelocity, frame: newFrame };
-      });
+      // Update bird physics (ref — cùng tick với va chạm, không chờ React render)
+      {
+        const prev = birdRef.current;
+        const newY = prev.y + prev.velocity;
+        const newVelocity = prev.velocity + currentGravity;
+        const newFrame = (prev.frame + 1) % 3;
+        birdRef.current = {
+          y: newY,
+          velocity: newVelocity,
+          frame: newFrame,
+        };
+      }
 
-      // Update pipes
-      // Update pipes
-      setPipes((prevPipes) => {
-        let newPipes = prevPipes.map((pipe) => ({
-          ...pipe,
-          x: pipe.x - currentSpeed,
-        }));
-        if (
-          newPipes.length === 0 ||
-          newPipes[newPipes.length - 1].x < CONSTANTS.CANVAS_WIDTH - CONSTANTS.PIPE_SPACING // Sửa từ 200 thành PIPE_SPACING
-        ) {
-          const topHeight =
-            Math.random() * (CONSTANTS.CANVAS_HEIGHT - CONSTANTS.PIPE_GAP - 200) + 50;
-          newPipes.push({ x: CONSTANTS.CANVAS_WIDTH, topHeight, passed: false });
-        }
-        newPipes = newPipes.filter((pipe) => pipe.x + CONSTANTS.PIPE_WIDTH > 0);
-        return newPipes;
-      });
+      let newPipes = pipesRef.current.map((pipe) => ({
+        ...pipe,
+        x: pipe.x - currentSpeed,
+      }));
+      if (
+        newPipes.length === 0 ||
+        newPipes[newPipes.length - 1].x < CONSTANTS.CANVAS_WIDTH - CONSTANTS.PIPE_SPACING
+      ) {
+        const topHeight =
+          Math.random() * (CONSTANTS.CANVAS_HEIGHT - CONSTANTS.PIPE_GAP - 200) + 50;
+        newPipes.push({ x: CONSTANTS.CANVAS_WIDTH, topHeight, passed: false });
+      }
+      newPipes = newPipes.filter((pipe) => pipe.x + CONSTANTS.PIPE_WIDTH > 0);
+      pipesRef.current = newPipes;
 
-      // Update items
-      setItems((prevItems) => {
-        let newItems = prevItems.map((item) => ({
-          ...item,
-          x: item.x - currentSpeed,
-        }));
-        if (Math.random() < 0.01 && prevItems.length < 2) {
-          // 1% chance per frame
-          const y = Math.random() * (CONSTANTS.CANVAS_HEIGHT - CONSTANTS.ITEM_HEIGHT - 100) + 50;
-          const type = Math.random() > 0.5 ? "shield" : "boost";
-          newItems.push({ x: CONSTANTS.CANVAS_WIDTH, y, type, collected: false });
-        }
-        newItems = newItems.filter(
-          (item) => item.x + CONSTANTS.ITEM_WIDTH > 0 && !item.collected
-        );
-        return newItems;
-      });
+      let newItemsMove = itemsRef.current.map((item) => ({
+        ...item,
+        x: item.x - currentSpeed,
+      }));
+      if (Math.random() < 0.01 && newItemsMove.length < 2) {
+        const y = Math.random() * (CONSTANTS.CANVAS_HEIGHT - CONSTANTS.ITEM_HEIGHT - 100) + 50;
+        const type = Math.random() > 0.5 ? "shield" : "boost";
+        newItemsMove.push({
+          x: CONSTANTS.CANVAS_WIDTH,
+          y,
+          type,
+          collected: false,
+        });
+      }
+      newItemsMove = newItemsMove.filter(
+        (item) => item.x + CONSTANTS.ITEM_WIDTH > 0 && !item.collected
+      );
+      itemsRef.current = newItemsMove;
 
-      // Check collisions
+      const bird = birdRef.current;
       const birdRect = {
         x: CONSTANTS.BIRD_X,
         y: bird.y,
         width: CONSTANTS.BIRD_WIDTH,
         height: CONSTANTS.BIRD_HEIGHT,
       };
-      // Magnet effect for items - thêm trước phần collision detection
-      if (upgrades.magnetRange > 0) {
-        setItems((prevItems) =>
-          prevItems.map((item) => {
-            if (item.collected) return item;
 
-            const dx = CONSTANTS.BIRD_X + CONSTANTS.BIRD_WIDTH / 2 - (item.x + CONSTANTS.ITEM_WIDTH / 2);
-            const dy = bird.y + CONSTANTS.BIRD_HEIGHT / 2 - (item.y + CONSTANTS.ITEM_HEIGHT / 2);
-            const distance = Math.sqrt(dx * dx + dy * dy);
+      if (upgradesRef.current.magnetRange > 0) {
+        itemsRef.current = itemsRef.current.map((item) => {
+          if (item.collected) return item;
 
-            if (distance < MAGNET_RANGE * upgrades.magnetRange) {
-              const pullForce = 0.3;
-              return {
-                ...item,
-                x: item.x + (dx * pullForce) / distance,
-                y: item.y + (dy * pullForce) / distance,
-              };
-            }
+          const dx =
+            CONSTANTS.BIRD_X + CONSTANTS.BIRD_WIDTH / 2 - (item.x + CONSTANTS.ITEM_WIDTH / 2);
+          const dy =
+            bird.y + CONSTANTS.BIRD_HEIGHT / 2 - (item.y + CONSTANTS.ITEM_HEIGHT / 2);
+          const distance = Math.sqrt(dx * dx + dy * dy);
 
-            return item;
-          })
-        );
+          if (distance < MAGNET_RANGE * upgradesRef.current.magnetRange) {
+            const pullForce = 0.3;
+            return {
+              ...item,
+              x: item.x + (dx * pullForce) / distance,
+              y: item.y + (dy * pullForce) / distance,
+            };
+          }
+
+          return item;
+        });
       }
-      // Thay thế toàn bộ phần setItems collision detection
-      setItems((prevItems) => {
-        let newItems = [...prevItems];
+
+      {
+        const prevItems = itemsRef.current;
+        const newItems = [...prevItems];
         for (let i = 0; i < newItems.length; i++) {
           const item = newItems[i];
           const itemRect = {
@@ -1553,7 +1640,6 @@ export default function FlappyBird() {
             newItems[i] = { ...item, collected: true };
             playSound(itemSound.current);
 
-            // Create particles
             createParticles(
               item.x + CONSTANTS.ITEM_WIDTH / 2,
               item.y + CONSTANTS.ITEM_HEIGHT / 2,
@@ -1563,31 +1649,26 @@ export default function FlappyBird() {
 
             if (item.type === "shield") {
               setShieldActive(true);
-              const duration = SHIELD_DURATION * upgrades.shieldDuration;
+              const duration = SHIELD_DURATION * upgradesRef.current.shieldDuration;
               setTimeout(() => setShieldActive(false), duration);
             } else if (item.type === "boost") {
               setBoostActive(true);
-              const duration = BOOST_DURATION * upgrades.boostPower;
+              const duration = BOOST_DURATION * upgradesRef.current.boostPower;
               setTimeout(() => setBoostActive(false), duration);
             }
 
-            // Award points and update challenges
-            // setScore((prev) => prev + 5);
             setSessionStats((prev) => ({
               ...prev,
               itemsCollected: prev.itemsCollected + 1,
             }));
-            // checkAchievements("item", 1);
             updateChallengeProgress("item", 1);
           }
         }
-        return newItems;
-      });
+        itemsRef.current = newItems;
+      }
 
-      // Ground and ceiling collision
-      // Ground and ceiling collision - thay thế phần hiện có
       if (bird.y > CONSTANTS.CANVAS_HEIGHT - CONSTANTS.BIRD_HEIGHT || bird.y < 0) {
-        if (!shieldActive && !gameOver) {
+        if (!shieldActiveRef.current && !gameOver) {
           createParticles(
             CONSTANTS.BIRD_X + CONSTANTS.BIRD_WIDTH / 2,
             bird.y + CONSTANTS.BIRD_HEIGHT / 2,
@@ -1598,15 +1679,16 @@ export default function FlappyBird() {
 
           setShouldUpdatePoint(true);
           playSound(hitSound.current);
-        } else if (shieldActive) {
-          setBird((prevBird) => ({
-            ...prevBird,
-            y: Math.max(0, Math.min(prevBird.y, CONSTANTS.CANVAS_HEIGHT - CONSTANTS.BIRD_HEIGHT)),
-          }));
+        } else if (shieldActiveRef.current) {
+          const b = birdRef.current;
+          birdRef.current = {
+            ...b,
+            y: Math.max(0, Math.min(b.y, CONSTANTS.CANVAS_HEIGHT - CONSTANTS.BIRD_HEIGHT)),
+          };
         }
       }
 
-      // Pipe collision
+      const pipes = pipesRef.current;
       for (const pipe of pipes) {
         const topPipeRect = {
           x: pipe.x,
@@ -1631,7 +1713,7 @@ export default function FlappyBird() {
             birdRect.y < bottomPipeRect.y + bottomPipeRect.height &&
             birdRect.y + birdRect.height > bottomPipeRect.y)
         ) {
-          if (!shieldActive && !gameOver) {
+          if (!shieldActiveRef.current && !gameOver) {
             createParticles(
               CONSTANTS.BIRD_X + CONSTANTS.BIRD_WIDTH / 2,
               bird.y + CONSTANTS.BIRD_HEIGHT / 2,
@@ -1647,13 +1729,17 @@ export default function FlappyBird() {
         // Score update
         if (!pipe.passed && pipe.x + CONSTANTS.PIPE_WIDTH < CONSTANTS.BIRD_X) {
           pipe.passed = true;
-          updateCombo();
+          updateComboRef.current();
 
           const basePoints = 1;
-          const comboPoints = Math.floor(basePoints * comboMultiplier);
+          const comboPoints = Math.floor(basePoints * comboMultiplierRef.current);
           const totalPoints = basePoints + comboPoints;
 
-          setScore((prev) => prev + totalPoints * 10);
+          setScore((prev) => {
+            const next = prev + totalPoints * 10;
+            scoreRef.current = next;
+            return next;
+          });
           setGameStats((prev) => ({
             ...prev,
             totalPoints: prev.totalPoints + totalPoints * 10,
@@ -1663,7 +1749,7 @@ export default function FlappyBird() {
           createParticles(
             pipe.x + CONSTANTS.PIPE_WIDTH / 2,
             100,
-            combo > 0 ? "#ffd700" : "#ffffff",
+            comboRef.current > 0 ? "#ffd700" : "#ffffff",
             4
           );
 
@@ -1712,7 +1798,7 @@ export default function FlappyBird() {
         }
       });
 
-      items.forEach((item) => {
+      itemsRef.current.forEach((item) => {
         if (!item.collected) {
           const image =
             item.type === "shield" ? shieldImage.current : boostImage.current;
@@ -1758,8 +1844,8 @@ export default function FlappyBird() {
       ctx.textAlign = "center";
       ctx.strokeStyle = "black";
       ctx.lineWidth = 2;
-      ctx.strokeText(score.toString(), CONSTANTS.CANVAS_WIDTH / 2, 50);
-      ctx.fillText(score.toString(), CONSTANTS.CANVAS_WIDTH / 2, 50);
+      ctx.strokeText(scoreRef.current.toString(), CONSTANTS.CANVAS_WIDTH / 2, 50);
+      ctx.fillText(scoreRef.current.toString(), CONSTANTS.CANVAS_WIDTH / 2, 50);
 
       // Draw game over screen
       if (gameOver) {
@@ -1792,12 +1878,12 @@ export default function FlappyBird() {
         ctx.fillStyle = "white";
         ctx.font = "18px Arial";
         ctx.fillText(
-          `${canvasUiRef.current.scoreWord}: ${score}`,
+          `${canvasUiRef.current.scoreWord}: ${scoreRef.current}`,
           CONSTANTS.CANVAS_WIDTH / 2,
           CONSTANTS.CANVAS_HEIGHT / 2
         );
         ctx.fillText(
-          `${canvasUiRef.current.bestWord}: ${Math.max(gameStats.highScore, score)}`,
+          `${canvasUiRef.current.bestWord}: ${Math.max(gameStatsRef.current.highScore, scoreRef.current)}`,
           CONSTANTS.CANVAS_WIDTH / 2,
           CONSTANTS.CANVAS_HEIGHT / 2 + 25
         );
@@ -1820,12 +1906,12 @@ export default function FlappyBird() {
       }
 
       // Draw item status
-      if (shieldActive) {
+      if (shieldActiveRef.current) {
         ctx.fillStyle = "rgba(59, 130, 246, 0.9)";
         ctx.font = "16px Arial";
         ctx.fillText(canvasUiRef.current.shieldOn, CONSTANTS.CANVAS_WIDTH / 2, 80);
       }
-      if (boostActive) {
+      if (boostActiveRef.current) {
         ctx.fillStyle = "rgba(245, 158, 11, 0.9)";
         ctx.font = "16px Arial";
         ctx.fillText(canvasUiRef.current.boostOn, CONSTANTS.CANVAS_WIDTH / 2, 100);
@@ -1834,18 +1920,16 @@ export default function FlappyBird() {
     }, 1000 / 60); // 60 FPS
 
     return () => clearInterval(gameLoop);
+    // bird/pipes/items/score/boost/combo đọc qua ref trong loop — không đưa vào deps để tránh reset interval
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs + layout sync
   }, [
-    bird,
-    pipes,
-    gameOver,
-    score,
-    gameStarted,
     assetsLoaded,
-    playSound,
     isPaused,
     currentMap,
-    gameStats.highScore,
     gameKey,
+    gameOver,
+    gameStarted,
+    playSound,
   ]);
 
   const handleCanvasClick = useCallback(
