@@ -305,6 +305,15 @@ export default function FlappyBird() {
   const messageImage = useRef<HTMLImageElement | null>(null);
   const pipeImage = useRef<HTMLImageElement | null>(null);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  /** Tắt overlay loading sau fade — tránh nhảy layout khi spinner biến mất đột ngột */
+  const [loadingOverlayMounted, setLoadingOverlayMounted] = useState(true);
+  const [loadingOverlayOpaque, setLoadingOverlayOpaque] = useState(true);
+  useEffect(() => {
+    if (!assetsLoaded) return;
+    setLoadingOverlayOpaque(false);
+    const t = window.setTimeout(() => setLoadingOverlayMounted(false), 320);
+    return () => window.clearTimeout(t);
+  }, [assetsLoaded]);
   const [showUpgrades, setShowUpgrades] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showChallenges, setShowChallenges] = useState(false);
@@ -433,6 +442,11 @@ export default function FlappyBird() {
     };
 
     updateCanvasSize();
+    /** Sau 1–2 frame viewport (thanh URL mobile / visualViewport) mới ổn định — gọi lại để tránh nhảy kích thước lần đầu */
+    requestAnimationFrame(() => {
+      updateCanvasSize();
+      requestAnimationFrame(() => updateCanvasSize());
+    });
     window.addEventListener("resize", scheduleResize);
     window.visualViewport?.addEventListener("resize", scheduleResize);
     window.visualViewport?.addEventListener("scroll", scheduleResize);
@@ -2727,10 +2741,11 @@ export default function FlappyBird() {
           {instructionText}
         </p>
       </div>
-      {/* Loading: cùng kiểu modal đăng nhập (UserDropdown) — vào route là thấy spinner */}
-      {!assetsLoaded && (
+      {/* Loading: fade out khi xong — không unmount đột ngột (giật màn lần đầu) */}
+      {loadingOverlayMounted && (
         <div
-          className="fixed inset-0 z-[10050] flex items-center justify-center bg-slate-900/40 backdrop-blur-md px-4"
+          className={`fixed inset-0 z-[10050] flex items-center justify-center bg-slate-900/40 backdrop-blur-md px-4 transition-opacity duration-300 ease-out ${loadingOverlayOpaque ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
           role="presentation"
         >
           <div
