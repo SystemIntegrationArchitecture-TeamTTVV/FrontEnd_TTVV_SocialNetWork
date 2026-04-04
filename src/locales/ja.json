@@ -69,6 +69,13 @@
       "shieldOn": "シールド！",
       "boostOn": "ブースト！"
     },
+    "buttons": {
+      "challenge": "挑戦",
+      "points": "点",
+      "upgrade": "強化",
+      "maps": "マップ",
+      "top": "順位"
+    },
     "share": {
       "title": "Flappy Bird",
       "body": "Flappy Birdで{{score}}点を取りました！あなたは超えられる？",

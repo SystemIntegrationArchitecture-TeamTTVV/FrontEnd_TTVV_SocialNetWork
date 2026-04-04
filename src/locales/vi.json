@@ -69,6 +69,13 @@
       "shieldOn": "Khiên!",
       "boostOn": "Tăng tốc!"
     },
+    "buttons": {
+      "challenge": "Thử thách",
+      "points": "Điểm",
+      "upgrade": "Cấp",
+      "maps": "Map",
+      "top": "Hạng"
+    },
     "share": {
       "title": "Flappy Bird",
       "body": "Mình vừa đạt {{score}} điểm ở Flappy Bird! Bạn có vượt được không?",

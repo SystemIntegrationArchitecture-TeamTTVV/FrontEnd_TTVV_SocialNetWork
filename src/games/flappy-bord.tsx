@@ -1996,14 +1996,15 @@ export default function FlappyBird() {
       <div
         className={`relative flex min-h-0 flex-1 items-center justify-center bg-gradient-to-b ${mapConfigs[currentMap].bg} transition-all duration-500`}
       >
-        {/* Game Canvas - Full screen size */}
-        <div
-          className={`relative min-h-0 w-full max-w-[100vw] flex-1 ${isPaused ? "opacity-50" : ""} ${showPointsBoard || showMapSelector ? "blur-sm scale-95" : ""
-            } transition-all duration-300`}
-        >
-          <canvas
-            ref={canvasRef}
-            className="box-border block h-full min-h-0 w-full max-w-full border-4 border-white/30 shadow-2xl"
+        {/* Khung game căn giữa — canvas + nút điều khiển absolute theo khung, không fixed theo toàn viewport (màn rộng không tràn/cắt nút) */}
+        <div className="relative flex h-full min-h-0 w-full max-w-[min(28rem,100%)] flex-1 flex-col px-1 sm:px-2">
+          <div
+            className={`relative flex min-h-0 flex-1 flex-col ${isPaused ? "opacity-50" : ""} ${showPointsBoard || showMapSelector ? "blur-sm scale-95" : ""
+              } transition-all duration-300`}
+          >
+            <canvas
+              ref={canvasRef}
+              className="box-border block h-full min-h-0 w-full max-w-full border-4 border-white/30 shadow-2xl"
             style={{
               imageRendering: "pixelated",
               touchAction: "none",
@@ -2029,7 +2030,7 @@ export default function FlappyBird() {
               </div>
             </div>
           )}
-        </div>
+          </div>
         {showAchievement && (
           <div
             className="fixed left-1/2 z-50 max-w-[min(100vw-2rem,24rem)] -translate-x-1/2 transform animate-in slide-in-from-top duration-300 px-2"
@@ -2054,7 +2055,7 @@ export default function FlappyBird() {
         )}
 
         {combo > 0 && (
-          <div className="absolute right-3 top-[max(4.5rem,calc(env(safe-area-inset-top)+0.75rem))] max-w-[min(100%,14rem)] rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 p-2 text-right text-sm font-bold text-white animate-pulse sm:right-4 sm:top-4">
+          <div className="pointer-events-none absolute right-2 top-[max(3.5rem,calc(env(safe-area-inset-top)+0.5rem))] z-20 max-w-[min(100%,14rem)] rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 p-2 text-right text-sm font-bold text-white animate-pulse sm:right-3 sm:top-4">
             {t("minigame.comboLine", {
               combo,
               percent: Math.floor(comboMultiplier * 100 - 100),
@@ -2064,10 +2065,10 @@ export default function FlappyBird() {
         {/* Control Buttons - Positioned over the game */}
 
         <div
-          className={`fixed ${isMobile
-            ? "bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] flex flex-col gap-2"
-            : "right-8 top-1/2 transform -translate-y-1/2 flex flex-col gap-3"
-            } z-30 ${showPointsBoard ||
+          className={`absolute z-30 flex flex-col gap-2 ${isMobile
+            ? "bottom-[max(0.5rem,env(safe-area-inset-bottom))] right-[max(0.25rem,env(safe-area-inset-right))] gap-2"
+            : "bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-1 top-auto md:bottom-auto md:right-2 md:top-1/2 md:-translate-y-1/2 md:gap-3"
+            } ${showPointsBoard ||
               showMapSelector ||
               showUpgrades ||
               showLeaderboard ||
@@ -2087,13 +2088,18 @@ export default function FlappyBird() {
             </button>
           )}
 
-          {/* Challenges Button */}
+          {/* Challenges — emoji trong nút tròn; nhãn đa ngôn ngữ qua title/aria (tránh chữ key bị cắt khi thiếu bundle) */}
           <button
+            type="button"
+            aria-label={t("minigame.buttons.challenge", {
+              defaultValue: "Challenges",
+            })}
+            title={t("minigame.buttons.challenge", { defaultValue: "Challenges" })}
             onClick={() => setShowChallenges(true)}
-            className={`${isMobile ? "w-14 h-14 text-xs" : "w-16 h-16 text-xs"
-              } rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30 relative`}
+            className={`${isMobile ? "w-14 h-14 text-lg" : "w-16 h-16 text-xl"
+              } shrink-0 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30 relative`}
           >
-            {isMobile ? "🎯" : t('minigame.buttons.challenge')}
+            🎯
             {dailyChallenges.some((c) => !c.completed) && (
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
             )}
@@ -2109,39 +2115,52 @@ export default function FlappyBird() {
 
           {/* Points Button */}
           <button
+            type="button"
+            aria-label={t("minigame.buttons.points", { defaultValue: "Points" })}
+            title={t("minigame.buttons.points", { defaultValue: "Points" })}
             onClick={() => setShowPointsBoard(true)}
-            className={`${isMobile ? "w-14 h-14 text-sm" : "w-16 h-16 text-sm"
-              } rounded-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
+            className={`${isMobile ? "w-14 h-14 text-lg" : "w-16 h-16 text-xl"
+              } shrink-0 rounded-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
           >
-            {isMobile ? "🏆" : t('minigame.buttons.points')}
+            🏆
           </button>
 
           {/* Upgrades Button */}
           <button
+            type="button"
+            aria-label={t("minigame.buttons.upgrade", { defaultValue: "Upgrades" })}
+            title={t("minigame.buttons.upgrade", { defaultValue: "Upgrades" })}
             onClick={() => setShowUpgrades(true)}
-            className={`${isMobile ? "w-14 h-14 text-sm" : "w-16 h-16 text-sm"
-              } rounded-full bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
+            className={`${isMobile ? "w-14 h-14 text-lg" : "w-16 h-16 text-xl"
+              } shrink-0 rounded-full bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
           >
-            {isMobile ? "⬆️" : t('minigame.buttons.upgrade')}
+            ⬆️
           </button>
 
           {/* Map Selector Button */}
           <button
+            type="button"
+            aria-label={t("minigame.buttons.maps", { defaultValue: "Maps" })}
+            title={t("minigame.buttons.maps", { defaultValue: "Maps" })}
             onClick={() => setShowMapSelector(true)}
-            className={`${isMobile ? "w-14 h-14 text-sm" : "w-16 h-16 text-sm"
-              } rounded-full bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
+            className={`${isMobile ? "w-14 h-14 text-lg" : "w-16 h-16 text-xl"
+              } shrink-0 rounded-full bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
           >
-            {isMobile ? "🗺️" : t('minigame.buttons.maps')}
+            🗺️
           </button>
 
           {/* Leaderboard Button */}
           <button
+            type="button"
+            aria-label={t("minigame.buttons.top", { defaultValue: "Rank" })}
+            title={t("minigame.buttons.top", { defaultValue: "Rank" })}
             onClick={() => setShowLeaderboard(true)}
-            className={`${isMobile ? "w-14 h-14 text-sm" : "w-16 h-16 text-sm"
-              } rounded-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
+            className={`${isMobile ? "w-14 h-14 text-lg" : "w-16 h-16 text-xl"
+              } shrink-0 rounded-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold transition-all transform hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm border-2 border-white/30`}
           >
-            {isMobile ? "👑" : t('minigame.buttons.top')}
+            👑
           </button>
+        </div>
         </div>
       </div>
       {showUpgrades && (

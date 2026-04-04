@@ -69,6 +69,13 @@
       "shieldOn": "Shield!",
       "boostOn": "Boost!"
     },
+    "buttons": {
+      "challenge": "Challenges",
+      "points": "Points",
+      "upgrade": "Upgr.",
+      "maps": "Maps",
+      "top": "Rank"
+    },
     "share": {
       "title": "Flappy Bird",
       "body": "I just scored {{score}} in Flappy Bird! Can you beat it?",
