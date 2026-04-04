@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, Users, Music2, MessageCircle, Bell, User as UserIcon, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
+import { Home, Video, Store, Users, Music2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -197,7 +197,8 @@ export default function Navbar() {
   const renderAvatar = (size: 'sm' | 'md') => {
     const dim = size === 'sm' ? 'w-9 h-9' : 'w-10 h-10';
     const text = size === 'sm' ? 'text-xs' : 'text-sm';
-    const icon = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+    /* Cùng cỡ / nét với Bell & MessageCircle trong thanh (18px mobile, 22px desktop) */
+    const iconDim = size === 'sm' ? 'w-[18px] h-[18px]' : 'w-[22px] h-[22px]';
     if (currentUser?.avatar)
       return <img src={currentUser.avatar} alt={currentUser.fullName} className={`${dim} rounded-full object-cover`} />;
     if (currentUser?.fullName)
@@ -208,7 +209,7 @@ export default function Navbar() {
       );
     return (
       <div className={`${dim} rounded-full bg-gray-200 dark:bg-[#1e2130] flex items-center justify-center`}>
-        <UserIcon className={`${icon} text-gray-600 dark:text-gray-400`} />
+        <UserRound className={`${iconDim} text-gray-700 dark:text-gray-300`} strokeWidth={2} aria-hidden />
       </div>
     );
   };
@@ -406,7 +407,7 @@ export default function Navbar() {
               className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
               title={currentUser ? t('navbar.messenger') : t('navbar.messengerLogin')}
             >
-              <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" strokeWidth={2} />
             </button>
 
             <div className="relative">
@@ -414,7 +415,7 @@ export default function Navbar() {
                 onClick={() => { if (!currentUser) { requestLogin(); return; } setIsNotificationOpen(!isNotificationOpen); }}
                 className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
               >
-                <Bell className="w-[22px] h-[22px] text-[#050505] dark:text-gray-300" />
+                <Bell className="w-[22px] h-[22px] text-[#050505] dark:text-gray-300" strokeWidth={2} />
                 {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
                   <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-[#12151f]" />
                 )}
