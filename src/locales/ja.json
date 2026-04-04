@@ -1413,6 +1413,7 @@
     "quickSupport": "クイックサポート",
     "minimize": "最小化",
     "autodraftTab": "投稿下書きを作成",
+    "dailySummaryTab": "今日の要約",
     "inputPlaceholder": "メッセージを入力…",
     "send": "送信",
     "sendImage": "画像を送信",
@@ -1429,7 +1430,15 @@
     "draftContent": "下書き内容（編集可能）",
     "draftPlaceholder": "AIの下書きがここに表示されます。投稿前に編集できます",
     "publishing": "投稿中...",
-    "publishDraft": "下書きから投稿"
+    "publishDraft": "下書きから投稿",
+    "dailySummaryHint": "AIが本日の通知、友だちの投稿、受信メッセージをまとめます。",
+    "generateDailySummary": "今日の要約を作成",
+    "summarizing": "要約中...",
+    "dailySummaryResult": "AI要約",
+    "summaryNotifications": "通知",
+    "summaryFriendPosts": "友だちの投稿",
+    "summaryMessages": "受信メッセージ",
+    "dailySummaryError": "今日の要約を作成できませんでした。再試行してください。"
   },
   "storyModal": {
     "create": "ストーリー作成",
