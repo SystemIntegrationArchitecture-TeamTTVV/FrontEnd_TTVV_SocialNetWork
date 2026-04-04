@@ -122,9 +122,9 @@ export default function ResetPasswordVerification() {
           </div>
 
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-500 dark:text-[#5a6278]">Không nhận được mã?</p>
-            <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-              Gửi lại mã
+            <p className="text-sm text-gray-500 dark:text-[#5a6278]">{t('auth.resetOtp.noCode')}</p>
+            <button type="button" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+              {t('auth.resetOtp.resend')}
             </button>
           </div>
 

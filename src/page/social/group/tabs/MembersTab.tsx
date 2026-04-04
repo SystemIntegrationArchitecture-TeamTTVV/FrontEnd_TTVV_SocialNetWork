@@ -48,7 +48,7 @@ export default function MembersTab({ groupId, adminId }: Props) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
-        Đang tải danh sách thành viên...
+        {t('groups.loadingMembersList')}
       </div>
     );
   }

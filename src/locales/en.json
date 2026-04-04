@@ -13,7 +13,8 @@
     "search": "Search",
     "back": "Back",
     "next": "Next",
-    "submit": "Submit"
+    "submit": "Submit",
+    "notAvailable": "N/A"
   },
   "navbar": {
     "searchPlaceholder": "Search on TTVV",
@@ -71,6 +72,16 @@
     "currencySuffix": "VND",
     "reviewsCount": "{{count}} reviews",
     "stockRemaining": "{{count}} in stock",
+    "productDetailTitle": "Product details",
+    "quantity": "Quantity",
+    "addToCart": "Add to cart",
+    "verifiedSeller": "Verified",
+    "sellerReviews": "{{count}} reviews",
+    "viewStore": "View store",
+    "descriptionHeading": "Description",
+    "reviewsHeading": "Reviews ({{count}})",
+    "writeReview": "Write a review",
+    "noReviewsYet": "No reviews yet",
     "categories": {
       "all": "All",
       "vehicles": "Vehicles",
@@ -141,7 +152,9 @@
       "openMusicPage": "Open Music page",
       "closeFloating": "Close floating window",
       "close": "Close"
-    }
+    },
+    "brandName": "Zala Music",
+    "soundCloudHint": "Playing via SoundCloud — use the controls in the frame below."
   },
   "voiceRecorder": {
     "micPermissionDenied": "Cannot access microphone. Please allow permission.",
@@ -162,6 +175,7 @@
       "joined": "Joined",
       "discover": "Discover"
     },
+    "loadingMembersList": "Loading members…",
     "inviteModal": {
       "title": "Invite friends to the group",
       "loading": "Loading...",
@@ -433,6 +447,44 @@
     "emojiPicker": {
       "title": "Emoji Picker",
       "comingSoon": "Emoji picker coming soon..."
+    },
+    "conversationSettings": {
+      "pageTitle": "Conversation settings",
+      "pageSubtitle": "Manage settings for this conversation",
+      "sectionNotifications": "Notifications",
+      "notificationsTitle": "Notifications",
+      "notificationsDesc": "Get notifications for this conversation",
+      "soundTitle": "Sound",
+      "soundDesc": "Play sound for new messages",
+      "muteTitle": "Mute",
+      "muteDesc": "Temporarily turn off notifications",
+      "sectionMedia": "Media",
+      "mediaVisibilityTitle": "Show media",
+      "mediaVisibilityDesc": "Show photos and videos in this conversation",
+      "sectionPrivacy": "Privacy",
+      "readReceiptsTitle": "Read receipts",
+      "readReceiptsDesc": "Send read confirmations for messages",
+      "membersTitle": "Members",
+      "membersCount": "{{count}} people",
+      "roleAdmin": "Admin",
+      "roleMember": "Member",
+      "dangerTitle": "Danger zone",
+      "deleteConversationTitle": "Delete conversation",
+      "deleteConversationDesc": "Permanently delete this conversation"
+    },
+    "featureStubs": {
+      "comingSoon": "Coming soon…",
+      "themeCustomization": "Theme customization",
+      "reactionDetails": "Reaction details",
+      "deleteMessage": "Delete message",
+      "forwardMessage": "Forward message",
+      "pollCreation": "Create poll",
+      "stickerPicker": "Sticker picker",
+      "photoSharing": "Photo sharing",
+      "fileSharing": "File sharing",
+      "videoCall": "Video call",
+      "voiceCall": "Voice call",
+      "messageActions": "Message actions"
     },
     "aiAssistantReplying": "Replying…"
   },
@@ -810,6 +862,9 @@
     "detailPageTitle": "Event details",
     "attendeesWithCount": "{{count}} attending",
     "interestedWithCount": "{{count}} interested",
+    "labelDateTime": "Date & time",
+    "labelLocation": "Location",
+    "labelOrganizer": "Organizer",
     "btnJoin": "Join",
     "btnJoined": "Joined",
     "btnInterested": "Interested",
@@ -1020,7 +1075,20 @@
       "viewDetail": "View details",
       "paginationRange": "Showing {{from}}–{{to}} of {{total}} users",
       "prev": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "filterStatusAll": "All statuses",
+      "filterStatusActive": "Active",
+      "filterStatusBanned": "Banned",
+      "filterRoleAll": "All roles",
+      "reload": "Reload",
+      "loadingList": "Loading users…",
+      "colUser": "User",
+      "colEmail": "Email",
+      "colStatus": "Status",
+      "colJoined": "Joined",
+      "colRole": "Role",
+      "colActions": "Actions",
+      "emptyList": "No users found"
     },
     "posts": {
       "loadError": "Could not load posts",
@@ -1037,7 +1105,19 @@
       "viewDetail": "View details",
       "paginationRange": "Showing {{from}}–{{to}} of {{total}} posts",
       "prev": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "filterStatusAll": "All statuses",
+      "filterStatusApproved": "Approved",
+      "filterStatusPending": "Pending",
+      "filterStatusReported": "Reported",
+      "filterButton": "Filter",
+      "badgeApproved": "Approved",
+      "detailModalTitle": "Post details",
+      "statLikes": "Likes",
+      "statComments": "Comments",
+      "statShares": "Shares",
+      "deletePost": "Delete post",
+      "authorUnknown": "Unknown"
     },
     "groups": {
       "members": "{{count}} members",

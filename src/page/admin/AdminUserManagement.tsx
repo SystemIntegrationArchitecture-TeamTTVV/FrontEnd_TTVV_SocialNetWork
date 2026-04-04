@@ -160,7 +160,7 @@ export default function AdminUserManagement() {
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return t('common.notAvailable');
     const date = new Date(dateString);
     return date.toLocaleDateString(getLocaleTag());
   };
@@ -180,7 +180,7 @@ export default function AdminUserManagement() {
           className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
         >
           <UserPlus className="w-5 h-5" />
-          Tải lại
+          {t('adminPanel.users.reload')}
         </button>
       </div>
 
@@ -203,19 +203,19 @@ export default function AdminUserManagement() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="h-14 px-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-medium cursor-pointer"
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="banned">Đã khóa</option>
+              <option value="all">{t('adminPanel.users.filterStatusAll')}</option>
+              <option value="active">{t('adminPanel.users.filterStatusActive')}</option>
+              <option value="banned">{t('adminPanel.users.filterStatusBanned')}</option>
             </select>
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
               className="h-14 px-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-medium cursor-pointer"
             >
-              <option value="all">Tất cả vai trò</option>
-              <option value="admin">Quản trị viên</option>
-              <option value="moderator">Kiểm duyệt viên</option>
-              <option value="user">Người dùng</option>
+              <option value="all">{t('adminPanel.users.filterRoleAll')}</option>
+              <option value="admin">{t('adminPanel.users.roleAdmin')}</option>
+              <option value="moderator">{t('adminPanel.users.roleModerator')}</option>
+              <option value="user">{t('adminPanel.users.roleUser')}</option>
             </select>
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function AdminUserManagement() {
       {isLoading && (
         <div className="bg-white rounded-2xl shadow-sm p-12 flex flex-col items-center justify-center">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-          <p className="text-gray-600 text-lg">Đang tải danh sách người dùng...</p>
+          <p className="text-gray-600 text-lg">{t('adminPanel.users.loadingList')}</p>
         </div>
       )}
 
@@ -237,7 +237,7 @@ export default function AdminUserManagement() {
             onClick={loadUsers}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Thử lại
+            {t('common.retry')}
           </button>
         </div>
       )}
@@ -249,19 +249,19 @@ export default function AdminUserManagement() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">Người dùng</th>
-                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">Email</th>
-                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">Trạng thái</th>
-                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">Ngày tham gia</th>
-                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">Vai trò</th>
-                  <th className="px-6 py-4 text-center text-base font-bold text-gray-900">Thao tác</th>
+                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">{t('adminPanel.users.colUser')}</th>
+                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">{t('adminPanel.users.colEmail')}</th>
+                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">{t('adminPanel.users.colStatus')}</th>
+                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">{t('adminPanel.users.colJoined')}</th>
+                  <th className="px-6 py-4 text-left text-base font-bold text-gray-900">{t('adminPanel.users.colRole')}</th>
+                  <th className="px-6 py-4 text-center text-base font-bold text-gray-900">{t('adminPanel.users.colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginatedUsers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      Không tìm thấy người dùng nào
+                      {t('adminPanel.users.emptyList')}
                     </td>
                   </tr>
                 ) : (
@@ -281,13 +281,13 @@ export default function AdminUserManagement() {
                             </div>
                           )}
                           <div>
-                            <p className="font-bold text-lg text-gray-900">{user.fullName || 'N/A'}</p>
-                            <p className="text-sm text-gray-500">@{user.username || 'N/A'}</p>
+                            <p className="font-bold text-lg text-gray-900">{user.fullName || t('common.notAvailable')}</p>
+                            <p className="text-sm text-gray-500">@{user.username || t('common.notAvailable')}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="text-base text-gray-700">{user.email || 'N/A'}</p>
+                        <p className="text-base text-gray-700">{user.email || t('common.notAvailable')}</p>
                       </td>
                       <td className="px-6 py-5">
                         <span

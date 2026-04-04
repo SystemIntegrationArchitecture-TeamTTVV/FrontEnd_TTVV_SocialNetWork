@@ -74,7 +74,7 @@ export default function AdminPostManagement() {
   );
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return t('common.notAvailable');
     try {
       return new Date(dateString).toLocaleString(getLocaleTag());
     } catch {
@@ -151,14 +151,14 @@ export default function AdminPostManagement() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="h-14 px-5 rounded-xl bg-gray-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-medium cursor-pointer"
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="reported">Bị báo cáo</option>
+              <option value="all">{t('adminPanel.posts.filterStatusAll')}</option>
+              <option value="approved">{t('adminPanel.posts.filterStatusApproved')}</option>
+              <option value="pending">{t('adminPanel.posts.filterStatusPending')}</option>
+              <option value="reported">{t('adminPanel.posts.filterStatusReported')}</option>
             </select>
-            <button className="h-14 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center gap-2 transition-colors font-semibold text-lg">
+            <button type="button" className="h-14 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center gap-2 transition-colors font-semibold text-lg">
               <Filter className="w-6 h-6" />
-              Bộ lọc
+              {t('adminPanel.posts.filterButton')}
             </button>
           </div>
         </div>
@@ -181,13 +181,13 @@ export default function AdminPostManagement() {
                     {getAuthorInitials(post.authorName)}
                   </div>
                   <div>
-                    <p className="font-bold text-lg text-gray-900">{post.authorName || 'Unknown'}</p>
+                    <p className="font-bold text-lg text-gray-900">{post.authorName || t('adminPanel.posts.authorUnknown')}</p>
                     <p className="text-sm text-gray-500">{formatDate(post.createdAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="px-4 py-2 rounded-xl font-semibold text-base bg-green-50 text-green-700">
-                    Đã duyệt
+                    {t('adminPanel.posts.badgeApproved')}
                   </span>
                 </div>
               </div>
@@ -309,7 +309,7 @@ export default function AdminPostManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Chi tiết bài viết</h2>
+              <h2 className="text-xl font-bold">{t('adminPanel.posts.detailModalTitle')}</h2>
               <button
                 onClick={() => setShowDetailModal(false)}
                 className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
@@ -323,7 +323,7 @@ export default function AdminPostManagement() {
                   {getAuthorInitials(selectedPost.authorName)}
                 </div>
                 <div>
-                  <p className="font-bold text-lg">{selectedPost.authorName || 'Unknown'}</p>
+                  <p className="font-bold text-lg">{selectedPost.authorName || t('adminPanel.posts.authorUnknown')}</p>
                   <p className="text-sm text-gray-500">{formatDate(selectedPost.createdAt)}</p>
                 </div>
               </div>
@@ -364,15 +364,15 @@ export default function AdminPostManagement() {
               <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">{selectedPost.likeCount || 0}</p>
-                  <p className="text-sm text-gray-600">Lượt thích</p>
+                  <p className="text-sm text-gray-600">{t('adminPanel.posts.statLikes')}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">{selectedPost.commentCount || 0}</p>
-                  <p className="text-sm text-gray-600">Bình luận</p>
+                  <p className="text-sm text-gray-600">{t('adminPanel.posts.statComments')}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">{selectedPost.shareCount || 0}</p>
-                  <p className="text-sm text-gray-600">Chia sẻ</p>
+                  <p className="text-sm text-gray-600">{t('adminPanel.posts.statShares')}</p>
                 </div>
               </div>
 
@@ -381,7 +381,7 @@ export default function AdminPostManagement() {
                   onClick={() => setShowDetailModal(false)}
                   className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
                 >
-                  Đóng
+                  {t('common.close')}
                 </button>
                 <button
                   onClick={() => {
@@ -392,7 +392,7 @@ export default function AdminPostManagement() {
                   }}
                   className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors"
                 >
-                  Xóa bài viết
+                  {t('adminPanel.posts.deletePost')}
                 </button>
               </div>
             </div>

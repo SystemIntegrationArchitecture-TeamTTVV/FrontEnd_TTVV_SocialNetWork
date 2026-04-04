@@ -84,7 +84,7 @@ export default function EventDetail() {
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="font-semibold text-lg text-gray-900 mb-1">Ngày và giờ</p>
+              <p className="font-semibold text-lg text-gray-900 mb-1">{t('eventsSocial.labelDateTime')}</p>
               <p className="text-base text-gray-600">{event.date}</p>
               <p className="text-base text-gray-600">{event.time}</p>
             </div>
@@ -95,7 +95,7 @@ export default function EventDetail() {
               <MapPin className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="font-semibold text-lg text-gray-900 mb-1">Địa điểm</p>
+              <p className="font-semibold text-lg text-gray-900 mb-1">{t('eventsSocial.labelLocation')}</p>
               <p className="text-base text-gray-600">{event.location}</p>
               <p className="text-base text-gray-500">{event.address}</p>
             </div>
@@ -106,7 +106,7 @@ export default function EventDetail() {
               <Users className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="font-semibold text-lg text-gray-900 mb-1">Người tổ chức</p>
+              <p className="font-semibold text-lg text-gray-900 mb-1">{t('eventsSocial.labelOrganizer')}</p>
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"

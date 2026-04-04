@@ -13,7 +13,8 @@
     "search": "Tìm kiếm",
     "back": "Quay lại",
     "next": "Tiếp",
-    "submit": "Gửi"
+    "submit": "Gửi",
+    "notAvailable": "N/A"
   },
   "navbar": {
     "searchPlaceholder": "Tìm kiếm trên TTVV",
@@ -71,6 +72,16 @@
     "currencySuffix": "đ",
     "reviewsCount": "{{count}} đánh giá",
     "stockRemaining": "Còn {{count}} sản phẩm",
+    "productDetailTitle": "Chi tiết sản phẩm",
+    "quantity": "Số lượng",
+    "addToCart": "Thêm vào giỏ",
+    "verifiedSeller": "Xác thực",
+    "sellerReviews": "{{count}} đánh giá",
+    "viewStore": "Xem cửa hàng",
+    "descriptionHeading": "Mô tả sản phẩm",
+    "reviewsHeading": "Đánh giá ({{count}})",
+    "writeReview": "Viết đánh giá",
+    "noReviewsYet": "Chưa có đánh giá nào",
     "categories": {
       "all": "Tất cả",
       "vehicles": "Xe cộ",
@@ -141,7 +152,9 @@
       "openMusicPage": "Mở trang Nhạc",
       "closeFloating": "Đóng cửa sổ nổi",
       "close": "Đóng"
-    }
+    },
+    "brandName": "Zala Music",
+    "soundCloudHint": "Phát qua SoundCloud — dùng điều khiển trong khung bên dưới."
   },
   "voiceRecorder": {
     "micPermissionDenied": "Không thể truy cập microphone. Vui lòng cấp quyền.",
@@ -162,6 +175,7 @@
       "joined": "Đã tham gia",
       "discover": "Khám phá"
     },
+    "loadingMembersList": "Đang tải danh sách thành viên...",
     "inviteModal": {
       "title": "Mời bạn bè vào nhóm",
       "loading": "Đang tải...",
@@ -433,6 +447,44 @@
     "emojiPicker": {
       "title": "Emoji Picker",
       "comingSoon": "Emoji picker sẽ sớm có..."
+    },
+    "conversationSettings": {
+      "pageTitle": "Cài đặt cuộc trò chuyện",
+      "pageSubtitle": "Quản lý cài đặt cho cuộc trò chuyện này",
+      "sectionNotifications": "Thông báo",
+      "notificationsTitle": "Thông báo",
+      "notificationsDesc": "Nhận thông báo cho cuộc trò chuyện này",
+      "soundTitle": "Âm thanh",
+      "soundDesc": "Phát âm thanh khi có tin nhắn mới",
+      "muteTitle": "Tắt tiếng",
+      "muteDesc": "Tạm thời tắt thông báo",
+      "sectionMedia": "Media",
+      "mediaVisibilityTitle": "Hiển thị media",
+      "mediaVisibilityDesc": "Hiển thị ảnh và video trong cuộc trò chuyện",
+      "sectionPrivacy": "Quyền riêng tư",
+      "readReceiptsTitle": "Đã đọc",
+      "readReceiptsDesc": "Gửi xác nhận đã đọc tin nhắn",
+      "membersTitle": "Thành viên",
+      "membersCount": "{{count}} người",
+      "roleAdmin": "Quản trị viên",
+      "roleMember": "Thành viên",
+      "dangerTitle": "Khu vực nguy hiểm",
+      "deleteConversationTitle": "Xóa cuộc trò chuyện",
+      "deleteConversationDesc": "Xóa vĩnh viễn cuộc trò chuyện này"
+    },
+    "featureStubs": {
+      "comingSoon": "Tính năng sẽ sớm có…",
+      "themeCustomization": "Tùy chỉnh chủ đề",
+      "reactionDetails": "Chi tiết cảm xúc",
+      "deleteMessage": "Xóa tin nhắn",
+      "forwardMessage": "Chuyển tiếp tin nhắn",
+      "pollCreation": "Tạo bình chọn",
+      "stickerPicker": "Hình dán",
+      "photoSharing": "Chia sẻ ảnh",
+      "fileSharing": "Chia sẻ tệp",
+      "videoCall": "Gọi video",
+      "voiceCall": "Gọi thoại",
+      "messageActions": "Thao tác tin nhắn"
     },
     "aiAssistantReplying": "Đang trả lời…"
   },
@@ -810,6 +862,9 @@
     "detailPageTitle": "Chi tiết sự kiện",
     "attendeesWithCount": "{{count}} người tham gia",
     "interestedWithCount": "{{count}} quan tâm",
+    "labelDateTime": "Ngày và giờ",
+    "labelLocation": "Địa điểm",
+    "labelOrganizer": "Người tổ chức",
     "btnJoin": "Tham gia",
     "btnJoined": "Đang tham gia",
     "btnInterested": "Quan tâm",
@@ -1020,7 +1075,20 @@
       "viewDetail": "Xem chi tiết",
       "paginationRange": "Hiển thị {{from}}–{{to}} trong tổng số {{total}} người dùng",
       "prev": "Trước",
-      "next": "Sau"
+      "next": "Sau",
+      "filterStatusAll": "Tất cả trạng thái",
+      "filterStatusActive": "Đang hoạt động",
+      "filterStatusBanned": "Đã khóa",
+      "filterRoleAll": "Tất cả vai trò",
+      "reload": "Tải lại",
+      "loadingList": "Đang tải danh sách người dùng...",
+      "colUser": "Người dùng",
+      "colEmail": "Email",
+      "colStatus": "Trạng thái",
+      "colJoined": "Ngày tham gia",
+      "colRole": "Vai trò",
+      "colActions": "Thao tác",
+      "emptyList": "Không tìm thấy người dùng nào"
     },
     "posts": {
       "loadError": "Không thể tải danh sách bài viết",
@@ -1037,7 +1105,19 @@
       "viewDetail": "Xem chi tiết",
       "paginationRange": "Hiển thị {{from}}–{{to}} trong tổng số {{total}} bài viết",
       "prev": "Trước",
-      "next": "Sau"
+      "next": "Sau",
+      "filterStatusAll": "Tất cả trạng thái",
+      "filterStatusApproved": "Đã duyệt",
+      "filterStatusPending": "Chờ duyệt",
+      "filterStatusReported": "Bị báo cáo",
+      "filterButton": "Bộ lọc",
+      "badgeApproved": "Đã duyệt",
+      "detailModalTitle": "Chi tiết bài viết",
+      "statLikes": "Lượt thích",
+      "statComments": "Bình luận",
+      "statShares": "Chia sẻ",
+      "deletePost": "Xóa bài viết",
+      "authorUnknown": "Không rõ"
     },
     "groups": {
       "members": "{{count}} thành viên",

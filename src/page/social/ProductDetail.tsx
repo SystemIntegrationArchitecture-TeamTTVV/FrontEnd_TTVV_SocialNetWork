@@ -38,7 +38,7 @@ export default function ProductDetail() {
     <div className="max-w-6xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Chi tiết sản phẩm</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('marketplace.productDetailTitle')}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -103,7 +103,7 @@ export default function ProductDetail() {
 
           {/* Quantity */}
           <div>
-            <label className="block text-base font-semibold text-gray-900 mb-3">Số lượng</label>
+            <label className="block text-base font-semibold text-gray-900 mb-3">{t('marketplace.quantity')}</label>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -125,7 +125,7 @@ export default function ProductDetail() {
           <div className="flex gap-4">
             <button className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2">
               <ShoppingCart className="w-5 h-5" />
-              Thêm vào giỏ
+              {t('marketplace.addToCart')}
             </button>
             <button
               onClick={() => setIsLiked(!isLiked)}
@@ -156,7 +156,7 @@ export default function ProductDetail() {
                   <p className="font-bold text-xl text-gray-900">{product.seller.name}</p>
                   {product.seller.verified && (
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded text-xs font-semibold">
-                      ✓ Xác thực
+                      ✓ {t('marketplace.verifiedSeller')}
                     </span>
                   )}
                 </div>
@@ -164,7 +164,7 @@ export default function ProductDetail() {
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="font-semibold">{product.seller.rating}</span>
-                    <span>({product.seller.reviews} đánh giá)</span>
+                    <span>({t('marketplace.sellerReviews', { count: product.seller.reviews })})</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
@@ -173,8 +173,8 @@ export default function ProductDetail() {
                 </div>
               </div>
             </div>
-            <button className="w-full h-12 bg-white hover:bg-gray-100 border border-gray-300 rounded-xl font-semibold text-gray-900 transition-colors">
-              Xem cửa hàng
+            <button type="button" className="w-full h-12 bg-white hover:bg-gray-100 border border-gray-300 rounded-xl font-semibold text-gray-900 transition-colors">
+              {t('marketplace.viewStore')}
             </button>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function ProductDetail() {
 
       {/* Description */}
       <div className="mt-8 bg-white rounded-2xl shadow-sm p-8">
-        <h3 className="text-2xl font-bold text-gray-900 mb-4">Mô tả sản phẩm</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">{t('marketplace.descriptionHeading')}</h3>
         <p className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
           {product.description}
         </p>
@@ -191,15 +191,15 @@ export default function ProductDetail() {
       {/* Reviews */}
       <div className="mt-8 bg-white rounded-2xl shadow-sm p-8">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-gray-900">Đánh giá ({product.reviews})</h3>
-          <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-2">
+          <h3 className="text-2xl font-bold text-gray-900">{t('marketplace.reviewsHeading', { count: product.reviews })}</h3>
+          <button type="button" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
-            Viết đánh giá
+            {t('marketplace.writeReview')}
           </button>
         </div>
         <div className="text-center py-12 text-gray-600">
           <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <p className="text-lg">Chưa có đánh giá nào</p>
+          <p className="text-lg">{t('marketplace.noReviewsYet')}</p>
         </div>
       </div>
     </div>

@@ -110,8 +110,8 @@ export default function CreateAlbum() {
         <div className="bg-white rounded-[28px] shadow-sm p-8 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Ảnh trong album</h2>
-              <p className="text-base text-gray-600 mt-1">{selectedImages.length} ảnh đã chọn</p>
+              <h2 className="text-2xl font-bold text-gray-900">{t('profilePage.albumCreate.photosSection')}</h2>
+              <p className="text-base text-gray-600 mt-1">{t('profilePage.albumCreate.photosSelected', { count: selectedImages.length })}</p>
             </div>
             <button
               type="button"
@@ -119,7 +119,7 @@ export default function CreateAlbum() {
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-2xl transition-colors flex items-center gap-2 shadow-sm"
             >
               <Upload className="w-5 h-5" />
-              Thêm ảnh
+              {t('profilePage.albumCreate.addPhotos')}
             </button>
           </div>
 

@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -7,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
  * Note: This component is already inside ProtectedRoute, so it will only render if authenticated
  */
 export default function RootRedirect() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading, user } = useAuth();
   
   // Show loading while checking authentication
@@ -15,7 +17,7 @@ export default function RootRedirect() {
       <div className="w-full min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );

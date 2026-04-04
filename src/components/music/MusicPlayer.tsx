@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, X, Shuffle, Repeat, Heart, Music2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { soundCloudWidgetSrc } from '../../utils/soundCloudPlayer';
 
 interface Song {
@@ -48,6 +49,7 @@ const defaultPlaylist: Song[] = [
 ];
 
 export default function MusicPlayer() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
@@ -204,7 +206,7 @@ export default function MusicPlayer() {
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center transition-all flex-shrink-0">
           <Music2 className="w-5 h-5 text-white" />
         </div>
-        <span className="text-sm font-medium">Music</span>
+        <span className="text-sm font-medium">{t('music.title')}</span>
       </button>
     );
   }
@@ -214,8 +216,8 @@ export default function MusicPlayer() {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-10">
         <div>
-          <h1 className="text-2xl font-bold text-white">Zala Music</h1>
-          <p className="text-purple-200 text-sm">Thư viện nhạc của bạn</p>
+          <h1 className="text-2xl font-bold text-white">{t('music.brandName')}</h1>
+          <p className="text-purple-200 text-sm">{t('music.subtitle')}</p>
         </div>
         <button
           onClick={() => setIsOpen(false)}
@@ -257,9 +259,7 @@ export default function MusicPlayer() {
 
             {isSoundCloudOnly && currentSong.soundcloudUrl ? (
               <div className="mb-6 space-y-4">
-                <p className="text-center text-sm text-purple-200">
-                  Phát qua SoundCloud — dùng điều khiển trong khung bên dưới.
-                </p>
+                <p className="text-center text-sm text-purple-200">{t('music.soundCloudHint')}</p>
                 <iframe
                   title={`SoundCloud: ${currentSong.title}`}
                   className="w-full rounded-2xl border border-white/10"
@@ -375,7 +375,7 @@ export default function MusicPlayer() {
         {/* Right Side - Playlist */}
         <div className="flex flex-col">
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/10 p-6 flex-1 flex flex-col">
-            <h3 className="text-xl font-bold text-white mb-4">Danh sách phát</h3>
+            <h3 className="text-xl font-bold text-white mb-4">{t('music.playlist')}</h3>
             
             {/* Playlist */}
             <div className="flex-1 overflow-y-auto space-y-2 mb-6">
@@ -418,17 +418,17 @@ export default function MusicPlayer() {
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center">
                 <Music2 className="w-5 h-5 text-purple-300 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{defaultPlaylist.length}</div>
-                <div className="text-xs text-purple-300">Bài hát</div>
+                <div className="text-xs text-purple-300">{t('music.stats.songs')}</div>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center">
                 <Heart className="w-5 h-5 text-pink-400 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{favorites.length}</div>
-                <div className="text-xs text-purple-300">Yêu thích</div>
+                <div className="text-xs text-purple-300">{t('music.stats.favorites')}</div>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center">
                 <Play className="w-5 h-5 text-purple-300 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{(totalPlays / 1000).toFixed(1)}K</div>
-                <div className="text-xs text-purple-300">Lượt nghe</div>
+                <div className="text-xs text-purple-300">{t('music.stats.plays')}</div>
               </div>
             </div>
           </div>
