@@ -55,6 +55,10 @@ import ThemeCustomization from "../page/messenger/features/ThemeCustomization";
 // Music Pages
 import MusicEDM from "../page/music/MusicEDM";
 
+// Games (giải trí, client-only)
+import GamesPage from "../page/games/GamesPage";
+import FlappyBird from "../games/flappy-bord";
+
 // Social Pages
 import FriendRequests from "../page/social/FriendRequests";
 import FindPeople from "../page/social/FindPeople";
@@ -160,6 +164,10 @@ export const router = createBrowserRouter([
 
       // Music
       { path: "music", element: <MusicEDM /> },
+
+      // Games (giải trí)
+      { path: "games", element: <GamesPage /> },
+      { path: "games/flappy", element: <FlappyBird /> },
 
       // Social
       { path: "find-people", element: <FindPeople /> },

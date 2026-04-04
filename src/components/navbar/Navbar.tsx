@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, LayoutGrid, Music2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
+import { Home, Video, Store, LayoutGrid, Music2, Gamepad2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -289,9 +289,13 @@ export default function Navbar() {
               { to: '/watch', icon: Video, requireAuth: true },
               { to: '/marketplace', icon: Store, requireAuth: true },
               { to: '/groups', icon: LayoutGrid, requireAuth: true },
+              { to: '/games', icon: Gamepad2, requireAuth: false },
             ].map(({ to, icon: Icon, requireAuth }) => {
               const needsAuth = requireAuth && !currentUser;
-              const active = isActive(to);
+              const active =
+                to === '/games'
+                  ? location.pathname.startsWith('/games')
+                  : isActive(to);
               const cls = `relative flex-1 max-w-[120px] min-h-12 flex items-center justify-center rounded-none transition-colors ${
                 active
                   ? 'text-[#1877F2] dark:text-blue-400'
@@ -603,18 +607,23 @@ export default function Navbar() {
           { to: '/marketplace', icon: Store,         labelKey: 'mobileNav.marketplace' as const, requireAuth: true },
           { to: '/groups',      icon: LayoutGrid,   labelKey: 'mobileNav.groups' as const, requireAuth: true },
           { to: '/music',       icon: Music2,        labelKey: 'mobileNav.music' as const, requireAuth: false },
+          { to: '/games',       icon: Gamepad2,      labelKey: 'mobileNav.games' as const, requireAuth: false },
           { to: '/messenger',   icon: MessageCircle, labelKey: 'mobileNav.messages' as const, requireAuth: true },
         ].map(({ to, icon: Icon, labelKey, requireAuth }) => {
           const needsAuth = requireAuth && !currentUser;
+          const navOn =
+            to === '/games'
+              ? location.pathname.startsWith('/games')
+              : isActive(to);
           const cls = `flex flex-col items-center justify-center gap-1 flex-1 transition-all ${
-            isActive(to)
+            navOn
               ? 'text-blue-600 dark:text-blue-400'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
           }`;
           const inner = (
             <>
-              <span className={`flex items-center justify-center rounded-2xl px-3 py-1.5 transition-all ${isActive(to) ? 'bg-blue-50 dark:bg-blue-500/15' : ''}`}>
-                <Icon strokeWidth={isActive(to) ? 2.25 : 2} className="w-[21px] h-[21px]" />
+              <span className={`flex items-center justify-center rounded-2xl px-3 py-1.5 transition-all ${navOn ? 'bg-blue-50 dark:bg-blue-500/15' : ''}`}>
+                <Icon strokeWidth={navOn ? 2.25 : 2} className="w-[21px] h-[21px]" />
               </span>
               <span className="text-[10px] font-medium leading-none">{t(labelKey)}</span>
             </>

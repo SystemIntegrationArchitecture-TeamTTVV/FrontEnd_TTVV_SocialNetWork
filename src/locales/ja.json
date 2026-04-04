@@ -32,12 +32,26 @@
     "loadingMessenger": "Messengerを読み込み中",
     "loadingMessengerSub": "しばらくお待ちください…"
   },
+  "gamesPage": {
+    "title": "ゲーム",
+    "subtitle": "気軽に遊べます。スコアはお使いのブラウザにのみ保存されます。",
+    "guestPlayOk": "ログインなしでプレイできます。",
+    "backToHome": "ホームへ",
+    "flappyTitle": "Flappy Bird",
+    "flappyDesc": "障害物を避けて、自己ベストを更新しよう。",
+    "play": "プレイ",
+    "flappyTapToStart": "タップして読み込み",
+    "flappyTapHint": "数秒で完了します",
+    "flappyLoading": "ゲームを読み込み中",
+    "flappyLoadingSub": "画像と音声を読み込んでいます。しばらくお待ちください。"
+  },
   "mobileNav": {
     "home": "ホーム",
     "video": "動画",
     "marketplace": "マーケット",
     "groups": "グループ",
     "music": "音楽",
+    "games": "ゲーム",
     "messages": "メッセージ"
   },
   "leftSidebar": {
@@ -46,6 +60,7 @@
     "marketplace": "マーケット",
     "video": "動画",
     "music": "音楽",
+    "games": "ゲーム",
     "saved": "保存済み",
     "seeMore": "さらに表示",
     "loginRequired": "ログインしてください"

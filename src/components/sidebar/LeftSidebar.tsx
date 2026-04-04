@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, LayoutGrid, Store, Video, Bookmark, ChevronDown, Music2 } from 'lucide-react';
+import { User, Users, LayoutGrid, Store, Video, Bookmark, ChevronDown, Music2, Gamepad2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../../apis/auth';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
-type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'saved';
+type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'games' | 'saved';
 
 type MenuItem =
   | {
@@ -44,6 +44,7 @@ export default function LeftSidebar() {
     { icon: Store, labelKey: 'marketplace', path: '/marketplace', requireAuth: true },
     { icon: Video, labelKey: 'video', path: '/watch', requireAuth: true },
     { icon: Music2, labelKey: 'music', path: '/music' },
+    { icon: Gamepad2, labelKey: 'games', path: '/games' },
     { icon: Bookmark, labelKey: 'saved', path: '/saved', requireAuth: true },
   ];
 

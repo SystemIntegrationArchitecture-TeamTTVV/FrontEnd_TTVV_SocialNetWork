@@ -32,12 +32,26 @@
     "loadingMessenger": "Loading Messenger",
     "loadingMessengerSub": "Please wait a moment…"
   },
+  "gamesPage": {
+    "title": "Games",
+    "subtitle": "Light entertainment — scores are saved only in your browser.",
+    "guestPlayOk": "No login required to play.",
+    "backToHome": "Back to Home",
+    "flappyTitle": "Flappy Bird",
+    "flappyDesc": "Fly through obstacles and beat your own high score.",
+    "play": "Play",
+    "flappyTapToStart": "Tap to load the game",
+    "flappyTapHint": "Just a few seconds",
+    "flappyLoading": "Loading game",
+    "flappyLoadingSub": "Please wait while we load graphics and sounds."
+  },
   "mobileNav": {
     "home": "Home",
     "video": "Video",
     "marketplace": "Marketplace",
     "groups": "Groups",
     "music": "Music",
+    "games": "Games",
     "messages": "Messages"
   },
   "leftSidebar": {
@@ -46,6 +60,7 @@
     "marketplace": "Marketplace",
     "video": "Video",
     "music": "Music",
+    "games": "Games",
     "saved": "Saved",
     "seeMore": "See more",
     "loginRequired": "Please log in"

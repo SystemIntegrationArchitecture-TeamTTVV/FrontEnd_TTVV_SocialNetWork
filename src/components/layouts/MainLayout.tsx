@@ -16,6 +16,8 @@ export default function MainLayout() {
   
   // Chỉ ẩn sidebars khi đang ở trang messenger full page
   const isMessengerPage = location.pathname.startsWith('/messenger');
+  /** Flappy fullscreen: không Navbar / sidebar / widget để khỏi chồng UI (mobile + desktop) */
+  const isFlappyFullscreen = location.pathname.startsWith('/games/flappy');
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -33,11 +35,11 @@ export default function MainLayout() {
 
   return (
     <div className="h-screen bg-[#f0f2f5] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
-      <Navbar />
+      {!isFlappyFullscreen && <Navbar />}
       
-      <div className="flex flex-1 overflow-hidden pt-14">
+      <div className={`flex flex-1 overflow-hidden ${isFlappyFullscreen ? '' : 'pt-14'}`}>
         {/* LEFT SIDEBAR — cùng nền feed, viền tinh như Facebook */}
-        {!isMessengerPage && (
+        {!isMessengerPage && !isFlappyFullscreen && (
           <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-[#f0f2f5] dark:bg-[#13151f] border-r border-[#e4e6eb] dark:border-[#22263a]">
             <LeftSidebar />
           </aside>
@@ -46,17 +48,25 @@ export default function MainLayout() {
         
         {/* MAIN CONTENT */}
         <main className={`flex-1 h-full overflow-y-auto scrollbar-hide ${
-          isMessengerPage
+          isFlappyFullscreen
+            ? 'px-0 pt-0 pb-0 max-w-full overflow-hidden'
+            : isMessengerPage
             ? 'px-0 max-w-full pb-16 md:pb-0'
             : 'px-3 sm:px-5 lg:px-6 pt-4 sm:pt-5 pb-20 md:pb-8'
         }`}>
-          <div className={isMessengerPage ? 'w-full' : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'}>
+          <div className={
+            isFlappyFullscreen
+              ? 'h-full min-h-0 w-full max-w-none'
+              : isMessengerPage
+              ? 'w-full'
+              : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'
+          }>
             <Outlet />
           </div>
         </main>
         
         {/* RIGHT SIDEBAR */}
-        {!isMessengerPage && (
+        {!isMessengerPage && !isFlappyFullscreen && (
           <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide bg-[#f0f2f5] dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a]">
             <RightSidebar />
           </aside>
@@ -64,9 +74,9 @@ export default function MainLayout() {
 
       </div>
       
-      <ChatBoxManager />
-      <MiniMusicPlayer />
-      <AIChatWidget />
+      {!isFlappyFullscreen && <ChatBoxManager />}
+      {!isFlappyFullscreen && <MiniMusicPlayer />}
+      {!isFlappyFullscreen && <AIChatWidget />}
       <AuthRequiredModal
         open={showAuthModal}
         fromPath={fromPath}

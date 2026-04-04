@@ -32,12 +32,26 @@
     "loadingMessenger": "Đang tải Messenger",
     "loadingMessengerSub": "Vui lòng đợi trong giây lát…"
   },
+  "gamesPage": {
+    "title": "Trò chơi",
+    "subtitle": "Giải trí nhẹ nhàng — điểm chỉ lưu trên trình duyệt của bạn.",
+    "guestPlayOk": "Không cần đăng nhập vẫn chơi được.",
+    "backToHome": "Về trang chủ",
+    "flappyTitle": "Flappy Bird",
+    "flappyDesc": "Bay qua chướng ngại vật, ghi điểm và phá kỷ lục của chính bạn.",
+    "play": "Chơi ngay",
+    "flappyTapToStart": "Chạm để tải game",
+    "flappyTapHint": "Nhẹ nhàng, chỉ mất vài giây",
+    "flappyLoading": "Đang tải game",
+    "flappyLoadingSub": "Vui lòng chờ trong giây lát — đang tải hình ảnh và âm thanh."
+  },
   "mobileNav": {
     "home": "Trang chủ",
     "video": "Video",
     "marketplace": "Chợ",
     "groups": "Nhóm",
     "music": "Nhạc",
+    "games": "Trò chơi",
     "messages": "Tin nhắn"
   },
   "leftSidebar": {
@@ -46,6 +60,7 @@
     "marketplace": "Chợ",
     "video": "Video",
     "music": "Nhạc",
+    "games": "Trò chơi",
     "saved": "Đã lưu",
     "seeMore": "Xem thêm",
     "loginRequired": "Vui lòng đăng nhập"
