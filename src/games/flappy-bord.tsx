@@ -119,6 +119,36 @@ interface LeaderboardEntry {
 
 export default function FlappyBird() {
   const { t } = useTranslation();
+
+  const canvasUiRef = useRef({
+    gameOver: "GAME OVER",
+    scoreWord: "Score",
+    bestWord: "Best",
+    restart: "Restart",
+    share: "Share",
+    save: "Save",
+    tapToStart: "Tap to Start",
+    jumpMobile: "Tap to jump",
+    jumpDesktop: "Press SPACE to jump",
+    shieldOn: "Shield!",
+    boostOn: "Boost!",
+  });
+
+  useEffect(() => {
+    const c = canvasUiRef.current;
+    c.gameOver = t("minigame.canvas.gameOver");
+    c.scoreWord = t("minigame.canvas.score");
+    c.bestWord = t("minigame.canvas.best");
+    c.restart = t("minigame.canvas.restart");
+    c.share = t("minigame.canvas.share");
+    c.save = t("minigame.canvas.save");
+    c.tapToStart = t("minigame.canvas.tapToStart");
+    c.jumpMobile = t("minigame.canvas.jumpMobile");
+    c.jumpDesktop = t("minigame.canvas.jumpDesktop");
+    c.shieldOn = t("minigame.canvas.shieldOn");
+    c.boostOn = t("minigame.canvas.boostOn");
+  }, [t]);
+
   const [showPointsBoard, setShowPointsBoard] = useState(false);
   const [showMapSelector, setShowMapSelector] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -257,8 +287,6 @@ export default function FlappyBird() {
   const pointSound = useRef<HTMLAudioElement | null>(null);
   const hitSound = useRef<HTMLAudioElement | null>(null);
   const wingSound = useRef<HTMLAudioElement | null>(null);
-  const backgroundMusic = useRef<HTMLAudioElement | null>(null);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [shieldActive, setShieldActive] = useState(false);
   const [boostActive, setBoostActive] = useState(false);
@@ -296,16 +324,13 @@ export default function FlappyBird() {
   const translatedMapName = useMemo(() => {
     const mapName = mapConfigs[currentMap].name;
     // Map name to translation key mapping (direct mapping để đảm bảo khớp)
-    const mapKeyMap: { [key: string]: string } = {
-      "Map Ngày": "map_ngày",
-      "Map Đêm": "map_đêm",
-      "Map Hoàng Hôn": "map_hoàng_hôn",
-      "Map Tuyết": "map_tuyết"
+    const mapKeyMap: Record<string, string> = {
+      "Map Ngày": "map_day",
+      "Map Đêm": "map_night",
+      "Map Hoàng Hôn": "map_sunset",
+      "Map Tuyết": "map_snow",
     };
-    
-    const mapKey = mapKeyMap[mapName] || mapName.toLowerCase().replace(/\s+/g, '_');
-    
-    // Get translated map name (fallback to original if not found)
+    const mapKey = mapKeyMap[mapName] ?? "map_day";
     return t(`minigame.maps.${mapKey}`, { defaultValue: mapName });
   }, [currentMap, t]);
 
@@ -595,36 +620,6 @@ export default function FlappyBird() {
         wingSound.current = loadedAssets[21] as HTMLAudioElement;
         itemSound.current = loadedAssets[22] as HTMLAudioElement;
 
-        // Load background music separately (không chặn loading nếu lỗi)
-        try {
-          // Sử dụng nhạc lo-fi chill thiên nhiên miễn phí - đơn giản, 1 bài loop
-          const music = new Audio();
-          music.loop = true;
-          music.volume = 0.25; // Volume 25% để chill
-          
-          // URL nhạc lo-fi chill thiên nhiên
-          const musicUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3";
-          
-          music.src = musicUrl;
-          music.preload = "auto";
-          
-          // Thử load và lưu vào ref khi ready
-          music.addEventListener("canplaythrough", () => {
-            backgroundMusic.current = music;
-            console.log("✅ Background music loaded successfully");
-          });
-          
-          // Error handler
-          music.addEventListener("error", () => {
-            console.log("⚠️ Background music failed to load, continuing without music");
-            backgroundMusic.current = null;
-          });
-          
-          music.load();
-        } catch (musicError) {
-          console.log("❌ Error setting up background music:", musicError);
-        }
-
         if (!cancelled) {
           setAssetsLoaded(true);
         }
@@ -639,99 +634,6 @@ export default function FlappyBird() {
     loadAssets();
     return () => {
       cancelled = true;
-    };
-  }, []);
-
-  // Auto play background music khi vào game (assetsLoaded = true) hoặc khi user tương tác
-  useEffect(() => {
-    if (assetsLoaded && backgroundMusic.current && !isMusicPlaying && !isPaused) {
-      // Thử phát nhạc
-      const playPromise = backgroundMusic.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsMusicPlaying(true);
-            console.log("🎵 Background music started playing");
-          })
-          .catch(err => {
-            console.log("⚠️ Auto-play prevented, waiting for user interaction:", err);
-            // Nhạc sẽ phát sau khi user click/jump lần đầu
-          });
-      }
-    }
-  }, [assetsLoaded, isMusicPlaying, isPaused]);
-
-  // Phát nhạc khi user bắt đầu chơi (click/jump)
-  useEffect(() => {
-    if (gameStarted && assetsLoaded && backgroundMusic.current && !isMusicPlaying && !isPaused) {
-      backgroundMusic.current.play()
-        .then(() => {
-          setIsMusicPlaying(true);
-          console.log("🎵 Background music started after user interaction");
-        })
-        .catch(err => {
-          console.log("⚠️ Still cannot play music:", err);
-        });
-    }
-  }, [gameStarted, assetsLoaded, isMusicPlaying, isPaused]);
-
-  // Pause music when game is paused
-  useEffect(() => {
-    if (backgroundMusic.current) {
-      if (isPaused) {
-        backgroundMusic.current.pause();
-        setIsMusicPlaying(false);
-      } else if (!isPaused && assetsLoaded && gameStarted && !isMusicPlaying && !gameOver) {
-        // Resume nhạc khi game resume (chỉ khi game đang chạy)
-        backgroundMusic.current.play().catch(() => {});
-        setIsMusicPlaying(true);
-      }
-    }
-  }, [isPaused, assetsLoaded, isMusicPlaying, gameStarted, gameOver]);
-
-  // Cleanup: Tắt nhạc khi component unmount hoặc khi thoát khỏi game
-  useEffect(() => {
-    const stopMusic = () => {
-      if (backgroundMusic.current) {
-        try {
-          backgroundMusic.current.pause();
-          backgroundMusic.current.currentTime = 0; // Reset về đầu
-          setIsMusicPlaying(false);
-          console.log("🔇 Background music stopped");
-        } catch (error) {
-          console.error("Error stopping music:", error);
-        }
-      }
-    };
-
-    // Tắt nhạc khi tab/window không active
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopMusic();
-      }
-    };
-
-    // Tắt nhạc khi đóng tab/trình duyệt
-    const handleBeforeUnload = () => {
-      stopMusic();
-    };
-
-    // Tắt nhạc khi navigate away
-    const handlePopState = () => {
-      stopMusic();
-    };
-
-    // Đăng ký event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-
-    // Cleanup khi component unmount
-    return () => {
-      stopMusic();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -750,88 +652,88 @@ export default function FlappyBird() {
     },
     [gameOver]
   );
-  // Achievement definitions - thêm sau mapConfigs
-  const achievementDefinitions: Achievement[] = [
-    {
-      id: "first_score",
-      name: "Lần Đầu",
-      description: "Ghi điểm đầu tiên",
-      reward: 50,
-      unlocked: false,
-      progress: 0,
-      target: 1,
-    },
-    {
-      id: "score_5",
-      name: "Người Mới",
-      description: "Đạt 5 điểm",
-      reward: 100,
-      unlocked: false,
-      progress: 0,
-      target: 5,
-    },
-    {
-      id: "score_10",
-      name: "Cao Thủ",
-      description: "Đạt 10 điểm",
-      reward: 200,
-      unlocked: false,
-      progress: 0,
-      target: 10,
-    },
-    {
-      id: "score_25",
-      name: "Chuyên Gia",
-      description: "Đạt 25 điểm",
-      reward: 500,
-      unlocked: false,
-      progress: 0,
-      target: 25,
-    },
-    {
-      id: "collector",
-      name: "Nhà Sưu Tập",
-      description: "Nhặt 10 vật phẩm",
-      reward: 150,
-      unlocked: false,
-      progress: 0,
-      target: 10,
-    },
-    {
-      id: "survivor",
-      name: "Kẻ Sống Sót",
-      description: "Sống sót 60 giây",
-      reward: 300,
-      unlocked: false,
-      progress: 0,
-      target: 60,
-    },
-    {
-      id: "combo_master",
-      name: "Combo Master",
-      description: "Đạt combo x5",
-      reward: 400,
-      unlocked: false,
-      progress: 0,
-      target: 5,
-    },
-    {
-      id: "all_maps",
-      name: "Du Hành",
-      description: "Mở khóa tất cả map",
-      reward: 1000,
-      unlocked: false,
-      progress: 0,
-      target: 4,
-    },
-  ];
+  const achievementDefinitions: Achievement[] = useMemo(
+    () => [
+      {
+        id: "first_score",
+        name: t("minigame.achievement.first_score.name"),
+        description: t("minigame.achievement.first_score.description"),
+        reward: 50,
+        unlocked: false,
+        progress: 0,
+        target: 1,
+      },
+      {
+        id: "score_5",
+        name: t("minigame.achievement.score_5.name"),
+        description: t("minigame.achievement.score_5.description"),
+        reward: 100,
+        unlocked: false,
+        progress: 0,
+        target: 5,
+      },
+      {
+        id: "score_10",
+        name: t("minigame.achievement.score_10.name"),
+        description: t("minigame.achievement.score_10.description"),
+        reward: 200,
+        unlocked: false,
+        progress: 0,
+        target: 10,
+      },
+      {
+        id: "score_25",
+        name: t("minigame.achievement.score_25.name"),
+        description: t("minigame.achievement.score_25.description"),
+        reward: 500,
+        unlocked: false,
+        progress: 0,
+        target: 25,
+      },
+      {
+        id: "collector",
+        name: t("minigame.achievement.collector.name"),
+        description: t("minigame.achievement.collector.description"),
+        reward: 150,
+        unlocked: false,
+        progress: 0,
+        target: 10,
+      },
+      {
+        id: "survivor",
+        name: t("minigame.achievement.survivor.name"),
+        description: t("minigame.achievement.survivor.description"),
+        reward: 300,
+        unlocked: false,
+        progress: 0,
+        target: 60,
+      },
+      {
+        id: "combo_master",
+        name: t("minigame.achievement.combo_master.name"),
+        description: t("minigame.achievement.combo_master.description"),
+        reward: 400,
+        unlocked: false,
+        progress: 0,
+        target: 5,
+      },
+      {
+        id: "all_maps",
+        name: t("minigame.achievement.all_maps.name"),
+        description: t("minigame.achievement.all_maps.description"),
+        reward: 1000,
+        unlocked: false,
+        progress: 0,
+        target: 4,
+      },
+    ],
+    [t]
+  );
 
   // Initialize achievements - thêm vào useEffect đầu tiên
   useEffect(() => {
-
-    console.log(7)
     setAchievements(achievementDefinitions);
-  }, []);
+  }, [achievementDefinitions]);
 
   // Achievement checker function - thêm sau playSound function
   // const checkAchievements = useCallback((type: string, value: number) => {
@@ -1169,23 +1071,24 @@ export default function FlappyBird() {
     setGameKey((prev) => prev + 1);
   }, [score, user?.id]);
   const shareScore = useCallback(() => {
-    const shareText = `Tôi vừa đạt ${score} điểm trong Flappy Bird 2025! Bạn có thể beat được không?`;
+    const shareText = t("minigame.share.body", { score });
+    const title = t("minigame.share.title");
 
     if (navigator.share) {
       navigator
         .share({
-          title: "Flappy Bird 2025",
+          title,
           text: shareText,
           url: window.location.href,
         })
         .catch(() => { });
     } else {
       navigator.clipboard
-        .writeText(shareText + " " + window.location.href)
-        .then(() => alert("Đã copy link chia sẻ!"))
+        .writeText(`${shareText} ${window.location.href}`)
+        .then(() => alert(t("minigame.share.copied")))
         .catch(() => { });
     }
-  }, [score]);
+  }, [score, t]);
 
   // Save to leaderboard
   // const saveToLeaderboard = useCallback(
@@ -1239,9 +1142,10 @@ export default function FlappyBird() {
 
   // Handle touch events for mobile
   useEffect(() => {
-
-    console.log(13)
     const handleTouchStart = (e: TouchEvent) => {
+      // Khi thua, nút Restart/Share trên canvas chỉ xử lý qua onClick. preventDefault ở đây
+      // chặn synthetic click trên iOS/Android → không bấm được Restart.
+      if (gameOver) return;
       e.preventDefault();
       jump();
     };
@@ -1252,7 +1156,7 @@ export default function FlappyBird() {
       });
       return () => document.removeEventListener("touchstart", handleTouchStart);
     }
-  }, [jump, isMobile]);
+  }, [jump, isMobile, gameOver]);
 
   // Main game loop
   useEffect(() => {
@@ -1291,15 +1195,19 @@ export default function FlappyBird() {
           ctx.fillStyle = "white";
           ctx.font = "32px Arial";
           ctx.textAlign = "center";
-          ctx.fillText("GAME OVER", CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 - 50);
+          ctx.fillText(canvasUiRef.current.gameOver, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 - 50);
         }
 
         // Score display
         ctx.fillStyle = "white";
         ctx.font = "18px Arial";
-        ctx.fillText(`Score: ${score}`, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2);
         ctx.fillText(
-          `Best: ${Math.max(gameStats.highScore, score)}`,
+          `${canvasUiRef.current.scoreWord}: ${score}`,
+          CONSTANTS.CANVAS_WIDTH / 2,
+          CONSTANTS.CANVAS_HEIGHT / 2
+        );
+        ctx.fillText(
+          `${canvasUiRef.current.bestWord}: ${Math.max(gameStats.highScore, score)}`,
           CONSTANTS.CANVAS_WIDTH / 2,
           CONSTANTS.CANVAS_HEIGHT / 2 + 25
         );
@@ -1309,7 +1217,7 @@ export default function FlappyBird() {
         ctx.fillRect(CONSTANTS.CANVAS_WIDTH / 2 - 50, CONSTANTS.CANVAS_HEIGHT / 2 + 50, 100, 40);
         ctx.fillStyle = "black";
         ctx.font = "16px Arial";
-        ctx.fillText("Restart", CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 + 75);
+        ctx.fillText(canvasUiRef.current.restart, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 + 75);
 
         return; // Dừng vòng lặp ở đây, không update nữa
       }
@@ -1515,10 +1423,10 @@ export default function FlappyBird() {
           ctx.fillStyle = "white";
           ctx.font = "24px Arial";
           ctx.textAlign = "center";
-          ctx.fillText("Tap to Start", CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2);
+          ctx.fillText(canvasUiRef.current.tapToStart, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2);
           ctx.font = "16px Arial";
           ctx.fillText(
-            isMobile ? "Tap screen to jump" : "Press SPACE to jump",
+            isMobile ? canvasUiRef.current.jumpMobile : canvasUiRef.current.jumpDesktop,
             CONSTANTS.CANVAS_WIDTH / 2,
             CONSTANTS.CANVAS_HEIGHT / 2 + 40
           );
@@ -1877,15 +1785,19 @@ export default function FlappyBird() {
           ctx.fillStyle = "white";
           ctx.font = "32px Arial";
           ctx.textAlign = "center";
-          ctx.fillText("GAME OVER", CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 - 50);
+          ctx.fillText(canvasUiRef.current.gameOver, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 - 50);
         }
 
         // Score display
         ctx.fillStyle = "white";
         ctx.font = "18px Arial";
-        ctx.fillText(`Score: ${score}`, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2);
         ctx.fillText(
-          `Best: ${Math.max(gameStats.highScore, score)}`,
+          `${canvasUiRef.current.scoreWord}: ${score}`,
+          CONSTANTS.CANVAS_WIDTH / 2,
+          CONSTANTS.CANVAS_HEIGHT / 2
+        );
+        ctx.fillText(
+          `${canvasUiRef.current.bestWord}: ${Math.max(gameStats.highScore, score)}`,
           CONSTANTS.CANVAS_WIDTH / 2,
           CONSTANTS.CANVAS_HEIGHT / 2 + 25
         );
@@ -1895,7 +1807,7 @@ export default function FlappyBird() {
         ctx.fillRect(CONSTANTS.CANVAS_WIDTH / 2 - 50, CONSTANTS.CANVAS_HEIGHT / 2 + 50, 100, 40);
         ctx.fillStyle = "black";
         ctx.font = "16px Arial";
-        ctx.fillText("Restart", CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 + 75);
+        ctx.fillText(canvasUiRef.current.restart, CONSTANTS.CANVAS_WIDTH / 2, CONSTANTS.CANVAS_HEIGHT / 2 + 75);
         ctx.fillStyle = "rgba(59, 130, 246, 0.9)";
         ctx.fillRect(CONSTANTS.CANVAS_WIDTH / 2 - 80, CONSTANTS.CANVAS_HEIGHT / 2 + 100, 70, 30);
         ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
@@ -1903,20 +1815,20 @@ export default function FlappyBird() {
 
         ctx.fillStyle = "white";
         ctx.font = "12px Arial";
-        ctx.fillText("Share", CONSTANTS.CANVAS_WIDTH / 2 - 45, CONSTANTS.CANVAS_HEIGHT / 2 + 120);
-        ctx.fillText("Save", CONSTANTS.CANVAS_WIDTH / 2 + 45, CONSTANTS.CANVAS_HEIGHT / 2 + 120);
+        ctx.fillText(canvasUiRef.current.share, CONSTANTS.CANVAS_WIDTH / 2 - 45, CONSTANTS.CANVAS_HEIGHT / 2 + 120);
+        ctx.fillText(canvasUiRef.current.save, CONSTANTS.CANVAS_WIDTH / 2 + 45, CONSTANTS.CANVAS_HEIGHT / 2 + 120);
       }
 
       // Draw item status
       if (shieldActive) {
         ctx.fillStyle = "rgba(59, 130, 246, 0.9)";
         ctx.font = "16px Arial";
-        ctx.fillText("Shield Active!", CONSTANTS.CANVAS_WIDTH / 2, 80);
+        ctx.fillText(canvasUiRef.current.shieldOn, CONSTANTS.CANVAS_WIDTH / 2, 80);
       }
       if (boostActive) {
         ctx.fillStyle = "rgba(245, 158, 11, 0.9)";
         ctx.font = "16px Arial";
-        ctx.fillText("Boost Active!", CONSTANTS.CANVAS_WIDTH / 2, 100);
+        ctx.fillText(canvasUiRef.current.boostOn, CONSTANTS.CANVAS_WIDTH / 2, 100);
       }
       drawParticles(ctx);
     }, 1000 / 60); // 60 FPS
@@ -2033,10 +1945,10 @@ export default function FlappyBird() {
           {(shieldActive || boostActive) && (
             <div className="absolute left-3 top-[max(4.5rem,calc(env(safe-area-inset-top)+3rem))] max-w-[min(100%,18rem)] rounded-lg bg-black/50 p-2 text-sm font-semibold text-white animate-pulse sm:left-4 sm:top-16">
               {shieldActive && (
-                <span className="text-blue-400">🛡️ Shield Active!</span>
+                <span className="text-blue-400">🛡️ {t("minigame.shieldActive")}</span>
               )}
               {boostActive && (
-                <span className="ml-2 text-orange-400">🚀 Boost Active!</span>
+                <span className="ml-2 text-orange-400">🚀 {t("minigame.boostActive")}</span>
               )}
             </div>
           )}
@@ -2044,7 +1956,7 @@ export default function FlappyBird() {
           {isPaused && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 rounded-lg">
               <div className="text-white text-2xl font-bold animate-pulse">
-                GAME PAUSED
+                {t("minigame.paused")}
               </div>
             </div>
           )}
@@ -2058,13 +1970,13 @@ export default function FlappyBird() {
               <div className="flex items-center gap-3 text-white">
                 <div className="text-3xl">🏆</div>
                 <div>
-                  <div className="text-lg font-bold">Thành Tựu Mở Khóa!</div>
+                  <div className="text-lg font-bold">{t("minigame.achievementTitle")}</div>
                   <div className="text-sm">{showAchievement.name}</div>
                   <div className="text-xs opacity-90">
                     {showAchievement.description}
                   </div>
                   <div className="text-sm font-bold mt-1">
-                    +{showAchievement.reward} điểm
+                    +{showAchievement.reward} {t("minigame.pointsSuffix")}
                   </div>
                 </div>
               </div>
@@ -2074,7 +1986,10 @@ export default function FlappyBird() {
 
         {combo > 0 && (
           <div className="absolute right-3 top-[max(4.5rem,calc(env(safe-area-inset-top)+0.75rem))] max-w-[min(100%,14rem)] rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 p-2 text-right text-sm font-bold text-white animate-pulse sm:right-4 sm:top-4">
-            Combo x{combo}! (+{Math.floor(comboMultiplier * 100 - 100)}% điểm)
+            {t("minigame.comboLine", {
+              combo,
+              percent: Math.floor(comboMultiplier * 100 - 100),
+            })}
           </div>
         )}
         {/* Control Buttons - Positioned over the game */}
@@ -2164,7 +2079,9 @@ export default function FlappyBird() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Nâng Cấp</h2>
+              <h2 className="text-xl font-bold text-gray-800">
+                {t("minigame.upgrades.title")}
+              </h2>
               <button
                 onClick={() => setShowUpgrades(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -2178,9 +2095,13 @@ export default function FlappyBird() {
               <div className="border rounded-lg p-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-semibold">🛡️ Thời Gian Shield</h3>
+                    <h3 className="font-semibold">
+                      {t("minigame.upgrades.shieldTitle")}
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Level {upgrades.shieldDuration}
+                      {t("minigame.upgrades.level", {
+                        level: upgrades.shieldDuration,
+                      })}
                     </p>
                   </div>
                   <button
@@ -2212,7 +2133,8 @@ export default function FlappyBird() {
                       : "bg-gray-400 text-gray-600 cursor-not-allowed"
                       }`}
                   >
-                    {500 * upgrades.shieldDuration} điểm
+                    {500 * upgrades.shieldDuration}{" "}
+                    {t("minigame.pointsSuffix")}
                   </button>
                 </div>
               </div>
@@ -2221,9 +2143,13 @@ export default function FlappyBird() {
               <div className="border rounded-lg p-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-semibold">🚀 Sức Mạnh Boost</h3>
+                    <h3 className="font-semibold">
+                      {t("minigame.upgrades.boostTitle")}
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Level {upgrades.boostPower}
+                      {t("minigame.upgrades.level", {
+                        level: upgrades.boostPower,
+                      })}
                     </p>
                   </div>
                   <button
@@ -2253,7 +2179,8 @@ export default function FlappyBird() {
                       : "bg-gray-400 text-gray-600 cursor-not-allowed"
                       }`}
                   >
-                    {400 * upgrades.boostPower} điểm
+                    {400 * upgrades.boostPower}{" "}
+                    {t("minigame.pointsSuffix")}
                   </button>
                 </div>
               </div>
@@ -2262,9 +2189,13 @@ export default function FlappyBird() {
               <div className="border rounded-lg p-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-semibold">🧲 Nam Châm Items</h3>
+                    <h3 className="font-semibold">
+                      {t("minigame.upgrades.magnetTitle")}
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Level {upgrades.magnetRange}
+                      {t("minigame.upgrades.level", {
+                        level: upgrades.magnetRange,
+                      })}
                     </p>
                   </div>
                   <button
@@ -2296,7 +2227,8 @@ export default function FlappyBird() {
                       : "bg-gray-400 text-gray-600 cursor-not-allowed"
                       }`}
                   >
-                    {300 * (upgrades.magnetRange + 1)} điểm
+                    {300 * (upgrades.magnetRange + 1)}{" "}
+                    {t("minigame.pointsSuffix")}
                   </button>
                 </div>
               </div>
@@ -2341,13 +2273,12 @@ export default function FlappyBird() {
           </div>
         </div>
       )} */}
-      // Challenges Modal
       {showChallenges && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800">
-                Thử Thách Hàng Ngày
+                {t("minigame.challengesTitle")}
               </h2>
               <button
                 onClick={() => setShowChallenges(false)}
@@ -2368,9 +2299,15 @@ export default function FlappyBird() {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="font-semibold">{challenge.name}</h3>
+                      <h3 className="font-semibold">
+                        {t(`minigame.challenge.${challenge.id}.name`, {
+                          defaultValue: challenge.name,
+                        })}
+                      </h3>
                       <p className="text-sm text-gray-600 mb-2">
-                        {challenge.description}
+                        {t(`minigame.challenge.${challenge.id}.description`, {
+                          defaultValue: challenge.description,
+                        })}
                       </p>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
@@ -2393,7 +2330,7 @@ export default function FlappyBird() {
                       </div>
                       {challenge.completed && (
                         <div className="text-green-600 text-sm">
-                          ✓ Hoàn thành
+                          ✓ {t("minigame.challengeDone")}
                         </div>
                       )}
                     </div>
@@ -2404,17 +2341,16 @@ export default function FlappyBird() {
 
             {/* Time remaining */}
             <div className="mt-4 text-center text-sm text-gray-500">
-              Làm mới vào 00:00 ngày mai
+              {t("minigame.challengesRefresh")}
             </div>
           </div>
         </div>
       )}
-      // Leaderboard Modal
       {showLeaderboard && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Bảng Xếp Hạng</h2>
+              <h2 className="text-xl font-bold text-gray-800">{t("minigame.leaderboardTitle")}</h2>
               <button
                 onClick={() => setShowLeaderboard(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -2453,7 +2389,7 @@ export default function FlappyBird() {
             {/* Your best score */}
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Điểm cao nhất của bạn</p>
+                <p className="text-sm text-gray-600">{t("minigame.leaderboardYourBest")}</p>
                 <p className="text-xl font-bold text-blue-600">
                   {gameStats.highScore}
                 </p>
@@ -2572,10 +2508,9 @@ export default function FlappyBird() {
         <div className="fixed inset-0  bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl transform animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Chọn Map</h2>
-              <div>
-                {(() => { console.log("123"); return null; })()}
-              </div>
+              <h2 className="text-xl font-bold text-gray-800">
+                {t("minigame.mapSelectTitle")}
+              </h2>
               <button
                 onClick={() => setShowMapSelector(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
@@ -2659,12 +2594,12 @@ export default function FlappyBird() {
                       {map.unlocked ? (
                         <span className="text-green-600 font-medium">
                           {currentMap === index
-                            ? "✓ Đang sử dụng"
-                            : "✓ Đã mở khóa"}
+                            ? t("minigame.mapUsing")
+                            : t("minigame.mapUnlocked")}
                         </span>
                       ) : (
                         <span className="text-orange-600 font-medium">
-                          🔒 {map.cost} điểm để mở khóa
+                          {t("minigame.mapUnlockCost", { cost: map.cost })}
                         </span>
                       )}
                     </div>
@@ -2682,8 +2617,8 @@ export default function FlappyBird() {
                           }`}
                       >
                         {gameStats.totalPoints >= map.cost
-                          ? "Mở khóa ngay"
-                          : "Không đủ điểm"}
+                          ? t("minigame.mapUnlockCta")
+                          : t("minigame.notEnoughPoints")}
                       </button>
                     )}
                   </div>
@@ -2693,8 +2628,9 @@ export default function FlappyBird() {
 
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
-                💰 Điểm hiện có:{" "}
-                <span className="font-bold">{gameStats.totalPoints}</span> điểm
+                {t("minigame.mapPointsLine", {
+                  points: gameStats.totalPoints,
+                })}
               </p>
             </div>
           </div>

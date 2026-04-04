@@ -39,11 +39,103 @@
     "backToHome": "ホームへ",
     "flappyTitle": "Flappy Bird",
     "flappyDesc": "障害物を避けて、自己ベストを更新しよう。",
-    "play": "プレイ",
     "flappyTapToStart": "タップして読み込み",
     "flappyTapHint": "数秒で完了します",
     "flappyLoading": "ゲームを読み込み中",
-    "flappyLoadingSub": "画像と音声を読み込んでいます。しばらくお待ちください。"
+    "flappyLoadingSub": "画像と音声を読み込んでいます。しばらくお待ちください。",
+    "play": "今すぐプレイ →"
+  },
+  "minigame": {
+    "maps": {
+      "map_day": "昼マップ",
+      "map_night": "夜マップ",
+      "map_sunset": "夕焼け",
+      "map_snow": "雪"
+    },
+    "instructions": {
+      "mobile": "{{mapName}} · スコア {{score}} — タップでジャンプ",
+      "desktop": "{{mapName}} · スコア {{score}} — SPACEでジャンプ、Pで一時停止"
+    },
+    "canvas": {
+      "gameOver": "ゲームオーバー",
+      "score": "スコア",
+      "best": "ベスト",
+      "restart": "再開",
+      "share": "共有",
+      "save": "保存",
+      "tapToStart": "タップして開始",
+      "jumpMobile": "タップでジャンプ",
+      "jumpDesktop": "SPACEでジャンプ",
+      "shieldOn": "シールド！",
+      "boostOn": "ブースト！"
+    },
+    "share": {
+      "title": "Flappy Bird",
+      "body": "Flappy Birdで{{score}}点を取りました！あなたは超えられる？",
+      "copied": "リンクをコピーしました！"
+    },
+    "achievementTitle": "実績解除！",
+    "pointsSuffix": "点",
+    "comboLine": "コンボ x{{combo}}! (+{{percent}}% 点)",
+    "paused": "一時停止",
+    "shieldActive": "シールド中！",
+    "boostActive": "ブースト中！",
+    "challengesTitle": "デイリーチャレンジ",
+    "challengeDone": "完了",
+    "challengesRefresh": "翌0:00に更新",
+    "leaderboardTitle": "ランキング",
+    "mapSelectTitle": "マップ選択",
+    "mapUnlockCost": "🔒 解除 {{cost}} 点",
+    "mapUsing": "✓ 使用中",
+    "mapUnlocked": "✓ 解放済み",
+    "mapUnlockCta": "解放する",
+    "mapPointsLine": "💰 所持: {{points}} 点",
+    "upgrades": {
+      "title": "アップグレード",
+      "shieldTitle": "🛡️ シールド時間",
+      "boostTitle": "🚀 ブースト威力",
+      "magnetTitle": "🧲 アイテム磁石",
+      "level": "Lv.{{level}}"
+    },
+    "notEnoughPoints": "ポイント不足",
+    "totalPointsLabel": "合計: {{points}} 点",
+    "challenge": {
+      "daily_score_5": { "name": "基本スコア", "description": "1プレイで5点" },
+      "daily_survive_30": { "name": "生存", "description": "30秒生存" },
+      "daily_collect_3": { "name": "収集", "description": "アイテム3つ" },
+      "daily_no_shield": { "name": "高難度", "description": "シールドなしで3点" },
+      "daily_combo_3": { "name": "コンボ", "description": "コンボx3" }
+    },
+    "achievement": {
+      "first_score": { "name": "初記録", "description": "初スコア" },
+      "score_5": { "name": "新人", "description": "5点" },
+      "score_10": { "name": "熟練", "description": "10点" },
+      "score_25": { "name": "達人", "description": "25点" },
+      "collector": { "name": "収集家", "description": "アイテム10個" },
+      "survivor": { "name": "生存者", "description": "60秒生存" },
+      "combo_master": { "name": "コンボマスター", "description": "コンボx5" },
+      "all_maps": { "name": "旅人", "description": "全マップ解放" }
+    },
+    "pointsBoard": {
+      "title": "スコア",
+      "statistics": "統計",
+      "currentPoints": "今回のスコア",
+      "highestScore": "ハイスコア",
+      "totalAccumulated": "累計ポイント",
+      "gamesPlayed": "プレイ回数",
+      "howToEarnPoints": "ポイントの貯め方",
+      "eachPipePassed": "パイプをくぐる",
+      "pickupItem": "アイテムを取る",
+      "gameCompleted": "1プレイを完了",
+      "newHighScore": "自己ベスト更新",
+      "exchangeVoucher": "特典交換（任意）",
+      "discount": "{{percent}}% OFF",
+      "discountForOrder": "注文で{{percent}}% OFF",
+      "exchange": "{{points}} 点で交換",
+      "exchangeButton": "交換",
+      "notEnoughPoints": "ポイント不足"
+    },
+    "leaderboardYourBest": "あなたのベスト"
   },
   "mobileNav": {
     "home": "ホーム",

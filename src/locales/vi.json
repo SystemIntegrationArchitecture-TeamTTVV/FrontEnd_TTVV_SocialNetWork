@@ -39,11 +39,103 @@
     "backToHome": "Về trang chủ",
     "flappyTitle": "Flappy Bird",
     "flappyDesc": "Bay qua chướng ngại vật, ghi điểm và phá kỷ lục của chính bạn.",
-    "play": "Chơi ngay",
     "flappyTapToStart": "Chạm để tải game",
     "flappyTapHint": "Nhẹ nhàng, chỉ mất vài giây",
     "flappyLoading": "Đang tải game",
-    "flappyLoadingSub": "Vui lòng chờ trong giây lát — đang tải hình ảnh và âm thanh."
+    "flappyLoadingSub": "Vui lòng chờ trong giây lát — đang tải hình ảnh và âm thanh.",
+    "play": "Chơi ngay →"
+  },
+  "minigame": {
+    "maps": {
+      "map_day": "Map ngày",
+      "map_night": "Map đêm",
+      "map_sunset": "Map hoàng hôn",
+      "map_snow": "Map tuyết"
+    },
+    "instructions": {
+      "mobile": "{{mapName}} · Điểm: {{score}} — Chạm để nhảy",
+      "desktop": "{{mapName}} · Điểm: {{score}} — SPACE để nhảy, P để tạm dừng"
+    },
+    "canvas": {
+      "gameOver": "HẾT LƯỢT",
+      "score": "Điểm",
+      "best": "Kỷ lục",
+      "restart": "Chơi lại",
+      "share": "Chia sẻ",
+      "save": "Lưu",
+      "tapToStart": "Chạm để bắt đầu",
+      "jumpMobile": "Chạm màn hình để nhảy",
+      "jumpDesktop": "Bấm SPACE để nhảy",
+      "shieldOn": "Khiên!",
+      "boostOn": "Tăng tốc!"
+    },
+    "share": {
+      "title": "Flappy Bird",
+      "body": "Mình vừa đạt {{score}} điểm ở Flappy Bird! Bạn có vượt được không?",
+      "copied": "Đã copy link chia sẻ!"
+    },
+    "achievementTitle": "Thành tựu mở khóa!",
+    "pointsSuffix": "điểm",
+    "comboLine": "Combo x{{combo}}! (+{{percent}}% điểm)",
+    "paused": "TẠM DỪNG",
+    "shieldActive": "Khiên bật!",
+    "boostActive": "Tăng tốc!",
+    "challengesTitle": "Thử thách hàng ngày",
+    "challengeDone": "Hoàn thành",
+    "challengesRefresh": "Làm mới sau 0:00 ngày mai",
+    "leaderboardTitle": "Bảng xếp hạng",
+    "mapSelectTitle": "Chọn map",
+    "mapUnlockCost": "🔒 {{cost}} điểm để mở",
+    "mapUsing": "✓ Đang dùng",
+    "mapUnlocked": "✓ Đã mở",
+    "mapUnlockCta": "Mở khóa ngay",
+    "mapPointsLine": "💰 Điểm hiện có: {{points}}",
+    "upgrades": {
+      "title": "Nâng cấp",
+      "shieldTitle": "🛡️ Thời gian khiên",
+      "boostTitle": "🚀 Sức mạnh boost",
+      "magnetTitle": "🧲 Nam châm vật phẩm",
+      "level": "Cấp {{level}}"
+    },
+    "notEnoughPoints": "Không đủ điểm",
+    "totalPointsLabel": "Tổng: {{points}} điểm",
+    "challenge": {
+      "daily_score_5": { "name": "Điểm số cơ bản", "description": "Đạt 5 điểm trong một lượt" },
+      "daily_survive_30": { "name": "Sống sót", "description": "Sống sót 30 giây" },
+      "daily_collect_3": { "name": "Thu thập", "description": "Nhặt 3 vật phẩm" },
+      "daily_no_shield": { "name": "Thử thách khó", "description": "Đạt 3 điểm không dùng khiên" },
+      "daily_combo_3": { "name": "Combo", "description": "Đạt combo x3" }
+    },
+    "achievement": {
+      "first_score": { "name": "Lần đầu", "description": "Ghi điểm đầu tiên" },
+      "score_5": { "name": "Người mới", "description": "Đạt 5 điểm" },
+      "score_10": { "name": "Cao thủ", "description": "Đạt 10 điểm" },
+      "score_25": { "name": "Chuyên gia", "description": "Đạt 25 điểm" },
+      "collector": { "name": "Nhà sưu tập", "description": "Nhặt 10 vật phẩm" },
+      "survivor": { "name": "Kẻ sống sót", "description": "Sống sót 60 giây" },
+      "combo_master": { "name": "Combo master", "description": "Đạt combo x5" },
+      "all_maps": { "name": "Du hành", "description": "Mở khóa tất cả map" }
+    },
+    "pointsBoard": {
+      "title": "Bảng điểm",
+      "statistics": "Thống kê",
+      "currentPoints": "Điểm hiện tại",
+      "highestScore": "Điểm cao nhất",
+      "totalAccumulated": "Tổng tích lũy",
+      "gamesPlayed": "Số ván đã chơi",
+      "howToEarnPoints": "Cách kiếm điểm",
+      "eachPipePassed": "Vượt mỗi cột",
+      "pickupItem": "Nhặt vật phẩm",
+      "gameCompleted": "Hoàn thành ván",
+      "newHighScore": "Phá kỷ lục",
+      "exchangeVoucher": "Đổi ưu đãi (tùy chọn)",
+      "discount": "Giảm {{percent}}%",
+      "discountForOrder": "Cho đơn {{percent}}%",
+      "exchange": "Đổi với {{points}} điểm",
+      "exchangeButton": "Đổi",
+      "notEnoughPoints": "Chưa đủ điểm"
+    },
+    "leaderboardYourBest": "Điểm cao nhất của bạn"
   },
   "mobileNav": {
     "home": "Trang chủ",

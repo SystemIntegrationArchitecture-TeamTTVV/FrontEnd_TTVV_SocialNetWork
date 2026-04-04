@@ -39,11 +39,103 @@
     "backToHome": "Back to Home",
     "flappyTitle": "Flappy Bird",
     "flappyDesc": "Fly through obstacles and beat your own high score.",
-    "play": "Play",
     "flappyTapToStart": "Tap to load the game",
     "flappyTapHint": "Just a few seconds",
     "flappyLoading": "Loading game",
-    "flappyLoadingSub": "Please wait while we load graphics and sounds."
+    "flappyLoadingSub": "Please wait while we load graphics and sounds.",
+    "play": "Play now →"
+  },
+  "minigame": {
+    "maps": {
+      "map_day": "Day",
+      "map_night": "Night",
+      "map_sunset": "Sunset",
+      "map_snow": "Snow"
+    },
+    "instructions": {
+      "mobile": "{{mapName}} · Score: {{score}} — Tap to jump",
+      "desktop": "{{mapName}} · Score: {{score}} — SPACE to jump, P to pause"
+    },
+    "canvas": {
+      "gameOver": "GAME OVER",
+      "score": "Score",
+      "best": "Best",
+      "restart": "Restart",
+      "share": "Share",
+      "save": "Save",
+      "tapToStart": "Tap to start",
+      "jumpMobile": "Tap to jump",
+      "jumpDesktop": "Press SPACE to jump",
+      "shieldOn": "Shield!",
+      "boostOn": "Boost!"
+    },
+    "share": {
+      "title": "Flappy Bird",
+      "body": "I just scored {{score}} in Flappy Bird! Can you beat it?",
+      "copied": "Link copied!"
+    },
+    "achievementTitle": "Achievement unlocked!",
+    "pointsSuffix": "pts",
+    "comboLine": "Combo x{{combo}}! (+{{percent}}% pts)",
+    "paused": "PAUSED",
+    "shieldActive": "Shield on!",
+    "boostActive": "Boost on!",
+    "challengesTitle": "Daily challenges",
+    "challengeDone": "Done",
+    "challengesRefresh": "Resets at midnight",
+    "leaderboardTitle": "Leaderboard",
+    "mapSelectTitle": "Choose map",
+    "mapUnlockCost": "🔒 {{cost}} pts to unlock",
+    "mapUsing": "✓ In use",
+    "mapUnlocked": "✓ Unlocked",
+    "mapUnlockCta": "Unlock",
+    "mapPointsLine": "💰 Your points: {{points}}",
+    "upgrades": {
+      "title": "Upgrades",
+      "shieldTitle": "🛡️ Shield duration",
+      "boostTitle": "🚀 Boost power",
+      "magnetTitle": "🧲 Item magnet",
+      "level": "Level {{level}}"
+    },
+    "notEnoughPoints": "Not enough points",
+    "totalPointsLabel": "Total: {{points}} pts",
+    "challenge": {
+      "daily_score_5": { "name": "Basic score", "description": "Score 5 in one run" },
+      "daily_survive_30": { "name": "Survive", "description": "Survive 30 seconds" },
+      "daily_collect_3": { "name": "Collect", "description": "Collect 3 items" },
+      "daily_no_shield": { "name": "Hard mode", "description": "Score 3 without shield" },
+      "daily_combo_3": { "name": "Combo", "description": "Reach combo x3" }
+    },
+    "achievement": {
+      "first_score": { "name": "First blood", "description": "Score your first point" },
+      "score_5": { "name": "Rookie", "description": "Reach 5 points" },
+      "score_10": { "name": "Skilled", "description": "Reach 10 points" },
+      "score_25": { "name": "Expert", "description": "Reach 25 points" },
+      "collector": { "name": "Collector", "description": "Collect 10 items" },
+      "survivor": { "name": "Survivor", "description": "Survive 60 seconds" },
+      "combo_master": { "name": "Combo master", "description": "Reach combo x5" },
+      "all_maps": { "name": "Traveler", "description": "Unlock all maps" }
+    },
+    "pointsBoard": {
+      "title": "Scoreboard",
+      "statistics": "Statistics",
+      "currentPoints": "Current run",
+      "highestScore": "High score",
+      "totalAccumulated": "Total points",
+      "gamesPlayed": "Games played",
+      "howToEarnPoints": "How to earn points",
+      "eachPipePassed": "Each pipe passed",
+      "pickupItem": "Pick up items",
+      "gameCompleted": "Finish a run",
+      "newHighScore": "New personal best",
+      "exchangeVoucher": "Redeem rewards (optional)",
+      "discount": "{{percent}}% off",
+      "discountForOrder": "{{percent}}% off orders",
+      "exchange": "Redeem for {{points}} pts",
+      "exchangeButton": "Redeem",
+      "notEnoughPoints": "Not enough points"
+    },
+    "leaderboardYourBest": "Your best score"
   },
   "mobileNav": {
     "home": "Home",
