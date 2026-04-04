@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Minimize2, Send, Bot, Loader2 } from 'lucide-react';
-import { aiApi, type AIAutoPostRequest, type AIChatRequest } from '../../apis/ai';
+import { aiApi, type AIAutoPostRequest, type AIChatRequest, type AIDailySummaryResponse } from '../../apis/ai';
 import { useAuth } from '../../contexts/AuthContext';
 import { postsApi } from '../../apis/posts';
 import { useTranslation } from 'react-i18next';
@@ -29,12 +29,15 @@ export default function AIChatWidget() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAutoPosting, setIsAutoPosting] = useState(false);
-  const [mode, setMode] = useState<'chat' | 'autopost'>('chat');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [mode, setMode] = useState<'chat' | 'autopost' | 'summary'>('chat');
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [postPrompt, setPostPrompt] = useState('');
   const [postVisibility, setPostVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
   const [draftContent, setDraftContent] = useState('');
   const [autoPostStatus, setAutoPostStatus] = useState<string | null>(null);
+  const [dailySummary, setDailySummary] = useState<AIDailySummaryResponse | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -157,6 +160,26 @@ export default function AIChatWidget() {
     }
   };
 
+  const handleGenerateDailySummary = async () => {
+    if (!user?.id || isSummaryLoading) return;
+
+    setIsSummaryLoading(true);
+    setSummaryError(null);
+
+    try {
+      const response = await aiApi.dailySummary({
+        userId: user.id,
+        limit: 6,
+      });
+      setDailySummary(response);
+    } catch (error: any) {
+      console.error('❌ Daily summary failed:', error);
+      setSummaryError(error?.message || t('aiWidget.dailySummaryError'));
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
   if (!isOpen && !isMinimized) {
     return (
       <button
@@ -231,6 +254,12 @@ export default function AIChatWidget() {
           className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'autopost' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
         >
           {t('aiWidget.autodraftTab')}
+        </button>
+        <button
+          onClick={() => setMode('summary')}
+          className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'summary' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+        >
+          {t('aiWidget.dailySummaryTab')}
         </button>
       </div>
 
@@ -320,7 +349,7 @@ export default function AIChatWidget() {
         </div>
       </div>
       </>
-      ) : (
+      ) : mode === 'autopost' ? (
       <div className="flex-1 p-4 bg-white flex flex-col gap-3">
         <label className="text-xs font-medium text-gray-600">{t('aiWidget.postIdea')}</label>
         <textarea
@@ -373,6 +402,51 @@ export default function AIChatWidget() {
           <div className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-2.5">
             {autoPostStatus}
           </div>
+        )}
+      </div>
+      ) : (
+      <div className="flex-1 p-4 bg-white flex flex-col gap-3 overflow-y-auto">
+        <div className="text-xs text-gray-600 leading-relaxed">
+          {t('aiWidget.dailySummaryHint')}
+        </div>
+
+        <button
+          onClick={handleGenerateDailySummary}
+          disabled={isSummaryLoading || !user?.id}
+          className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+        >
+          {isSummaryLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+          {isSummaryLoading ? t('aiWidget.summarizing') : t('aiWidget.generateDailySummary')}
+        </button>
+
+        {summaryError && (
+          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2.5">
+            {summaryError}
+          </div>
+        )}
+
+        {dailySummary && (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <div className="text-[11px] text-gray-500">{t('aiWidget.summaryNotifications')}</div>
+                <div className="text-sm font-semibold text-gray-800">{dailySummary.notificationsCount}</div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <div className="text-[11px] text-gray-500">{t('aiWidget.summaryFriendPosts')}</div>
+                <div className="text-sm font-semibold text-gray-800">{dailySummary.friendsPostCount}</div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <div className="text-[11px] text-gray-500">{t('aiWidget.summaryMessages')}</div>
+                <div className="text-sm font-semibold text-gray-800">{dailySummary.incomingMessageCount}</div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <div className="text-xs font-medium text-gray-600 mb-2">{t('aiWidget.dailySummaryResult')}</div>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap wrap-break-word">{dailySummary.summary}</p>
+            </div>
+          </>
         )}
       </div>
       )}

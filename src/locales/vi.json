@@ -1413,6 +1413,7 @@
     "quickSupport": "Hỗ trợ nhanh",
     "minimize": "Thu nhỏ",
     "autodraftTab": "Tạo nháp bài viết",
+    "dailySummaryTab": "Tóm tắt hôm nay",
     "inputPlaceholder": "Nhập tin nhắn…",
     "send": "Gửi",
     "sendImage": "Gửi ảnh",
@@ -1429,7 +1430,15 @@
     "draftContent": "Nội dung nháp (có thể chỉnh sửa)",
     "draftPlaceholder": "Bản nháp AI sẽ xuất hiện ở đây để bạn chỉnh sửa trước khi đăng",
     "publishing": "Đang đăng bài...",
-    "publishDraft": "Đăng bài từ bản nháp"
+    "publishDraft": "Đăng bài từ bản nháp",
+    "dailySummaryHint": "AI sẽ tổng hợp nhanh hôm nay bạn nhận thông báo gì, bạn bè đã đăng gì và bạn nhận được tin nhắn nào.",
+    "generateDailySummary": "Lấy tóm tắt hôm nay",
+    "summarizing": "Đang tóm tắt...",
+    "dailySummaryResult": "Bản tóm tắt AI",
+    "summaryNotifications": "Thông báo",
+    "summaryFriendPosts": "Bài bạn bè",
+    "summaryMessages": "Tin nhắn đến",
+    "dailySummaryError": "Không thể tạo tóm tắt hôm nay. Vui lòng thử lại."
   },
   "storyModal": {
     "create": "Tạo tin",

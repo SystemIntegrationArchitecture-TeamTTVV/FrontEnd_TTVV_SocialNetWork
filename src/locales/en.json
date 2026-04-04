@@ -1413,6 +1413,7 @@
     "quickSupport": "Quick support",
     "minimize": "Minimize",
     "autodraftTab": "Generate post draft",
+    "dailySummaryTab": "Today summary",
     "inputPlaceholder": "Type a message…",
     "send": "Send",
     "sendImage": "Send image",
@@ -1429,7 +1430,15 @@
     "draftContent": "Draft content (editable)",
     "draftPlaceholder": "The AI draft will appear here for editing before posting",
     "publishing": "Publishing...",
-    "publishDraft": "Publish from draft"
+    "publishDraft": "Publish from draft",
+    "dailySummaryHint": "AI will summarize today's notifications, friends' posts, and incoming messages.",
+    "generateDailySummary": "Generate today summary",
+    "summarizing": "Summarizing...",
+    "dailySummaryResult": "AI summary",
+    "summaryNotifications": "Notifications",
+    "summaryFriendPosts": "Friends posts",
+    "summaryMessages": "Incoming messages",
+    "dailySummaryError": "Failed to generate today's summary. Please try again."
   },
   "storyModal": {
     "create": "Create story",
