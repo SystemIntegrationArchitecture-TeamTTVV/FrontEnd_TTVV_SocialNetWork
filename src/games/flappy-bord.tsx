@@ -33,25 +33,24 @@ function getViewportSize() {
   };
 }
 
-const getGameConstants = () => {
-  const { width, height } = getViewportSize();
-
+/** Tính một lần theo kích thước buffer canvas — KHÔNG gọi mỗi frame (getViewportSize/mobile hay dao động 1px → ống/physics nhảy → giật màn). */
+function computeGameConstants(width: number, height: number) {
   return {
     GRAVITY: 0.5,
     JUMP_STRENGTH: 5,
-    PIPE_WIDTH: Math.max(40, width * 0.06), // Responsive pipe width
-    PIPE_GAP: Math.max(120, height * 0.25), // Responsive gap
-    PIPE_SPEED: Math.max(2, width * 0.003), // Responsive speed
+    PIPE_WIDTH: Math.max(40, width * 0.06),
+    PIPE_GAP: Math.max(120, height * 0.25),
+    PIPE_SPEED: Math.max(2, width * 0.003),
     BIRD_WIDTH: Math.max(34, width * 0.04),
     BIRD_HEIGHT: Math.max(24, width * 0.03),
     ITEM_WIDTH: Math.max(30, width * 0.035),
     ITEM_HEIGHT: Math.max(30, width * 0.035),
     CANVAS_WIDTH: width,
     CANVAS_HEIGHT: height,
-    BIRD_X: width * 0.15,// Bird position từ trái,
+    BIRD_X: width * 0.15,
     PIPE_SPACING: Math.max(300, width * 0.35),
   };
-};
+}
 
 interface Item {
   x: number;
@@ -258,6 +257,13 @@ export default function FlappyBird() {
   });
   // Flappy Bird game state
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  /** Đồng bộ với canvas.width/height — nguồn physics/render duy nhất trong một phiên chơi */
+  const gameConstantsRef = useRef(
+    computeGameConstants(getViewportSize().width, getViewportSize().height)
+  );
+  /** Điểm cộng chưa đẩy lên React (gom ~120ms → bớt re-render cả màn khi qua nhiều ống) */
+  const pendingScoreDeltaRef = useRef(0);
+  const lastHudSyncRef = useRef(0);
   /** Trạng thái gameplay chỉ nằm trong ref — tránh setState ~60fps làm useEffect game loop restart liên tục → giật */
   const birdRef = useRef<Bird>({ y: 200, velocity: 0, frame: 0 });
   const pipesRef = useRef<Pipe[]>([]);
@@ -434,8 +440,9 @@ export default function FlappyBird() {
       if (canvas.width === width && canvas.height === height) return;
       canvas.width = width;
       canvas.height = height;
+      gameConstantsRef.current = computeGameConstants(width, height);
     };
-    /** Debounce: visualViewport scroll/resize khi thanh địa chỉ ẩn-hiện gây đổi kích thước liên tục → canvas bị reset → giật màn hình */
+    /** Debounce resize — không dùng visualViewport scroll (chạm/nhảy trên mobile bắn liên tục → canvas reset → giật) */
     const scheduleResize = () => {
       if (resizeT) clearTimeout(resizeT);
       resizeT = setTimeout(updateCanvasSize, 120);
@@ -449,12 +456,10 @@ export default function FlappyBird() {
     });
     window.addEventListener("resize", scheduleResize);
     window.visualViewport?.addEventListener("resize", scheduleResize);
-    window.visualViewport?.addEventListener("scroll", scheduleResize);
     return () => {
       if (resizeT) clearTimeout(resizeT);
       window.removeEventListener("resize", scheduleResize);
       window.visualViewport?.removeEventListener("resize", scheduleResize);
-      window.visualViewport?.removeEventListener("scroll", scheduleResize);
     };
   }, []);
 
@@ -1140,6 +1145,8 @@ export default function FlappyBird() {
     particlesRef.current = [];
     setScore(0);
     scoreRef.current = 0;
+    pendingScoreDeltaRef.current = 0;
+    lastHudSyncRef.current = 0;
     setGameOver(false);
     setGameStarted(true);
     setIsPaused(false);
@@ -1245,12 +1252,21 @@ export default function FlappyBird() {
     let lastTick = 0;
     const FRAME_MS = 1000 / 60;
 
+    const HUD_SYNC_MS = 120;
+    const flushPendingScoreToReact = () => {
+      const d = pendingScoreDeltaRef.current;
+      if (d <= 0) return;
+      pendingScoreDeltaRef.current = 0;
+      setScore(scoreRef.current);
+      setGameStats((prev) => ({ ...prev, totalPoints: prev.totalPoints + d }));
+    };
+
     const tick = (now: number) => {
       rafId = requestAnimationFrame(tick);
       if (typeof document !== "undefined" && document.hidden) return;
       if (now - lastTick < FRAME_MS) return;
       lastTick = now;
-      const CONSTANTS = getGameConstants();
+      const CONSTANTS = gameConstantsRef.current;
       // Clear canvas
       ctx.clearRect(0, 0, CONSTANTS.CANVAS_WIDTH, CONSTANTS.CANVAS_HEIGHT);
       updateParticles();
@@ -1685,6 +1701,7 @@ export default function FlappyBird() {
             "#ff0000",
             8
           );
+          flushPendingScoreToReact();
           setGameOver(true);
 
           setShouldUpdatePoint(true);
@@ -1730,6 +1747,7 @@ export default function FlappyBird() {
               "#ff4444",
               10
             );
+            flushPendingScoreToReact();
             setGameOver(true);
             setShouldUpdatePoint(true); // 👈 kích hoạt update điểm
             playSound(hitSound.current);
@@ -1744,16 +1762,13 @@ export default function FlappyBird() {
           const basePoints = 1;
           const comboPoints = Math.floor(basePoints * comboMultiplierRef.current);
           const totalPoints = basePoints + comboPoints;
-
-          setScore((prev) => {
-            const next = prev + totalPoints * 10;
-            scoreRef.current = next;
-            return next;
-          });
-          setGameStats((prev) => ({
-            ...prev,
-            totalPoints: prev.totalPoints + totalPoints * 10,
-          }));
+          const delta = totalPoints * 10;
+          scoreRef.current += delta;
+          pendingScoreDeltaRef.current += delta;
+          if (now - lastHudSyncRef.current >= HUD_SYNC_MS) {
+            lastHudSyncRef.current = now;
+            flushPendingScoreToReact();
+          }
 
           // Create score particles
           createParticles(
@@ -1990,7 +2005,7 @@ export default function FlappyBird() {
     },
     [gameOver, jump, restartGame]
   );
-  /** Không sync score → gameStats mỗi lần cộng điểm (gây re-render cả component ~ vài chục KB JSX mỗi giây khi chơi lâu → lag). Hiển thị điểm hiện tại dùng `score` trực tiếp. */
+  /** Điểm trên canvas dùng scoreRef; đẩy score/totalPoints lên React tối đa ~8 lần/giây (gom) để bớt re-render. */
 
   return (
     <div className="fixed inset-0 z-[60] flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden overscroll-none bg-gray-900 supports-[height:100svh]:h-[100svh]">
