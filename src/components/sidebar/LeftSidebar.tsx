@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, Store, Video, Bookmark, ChevronDown, Music2 } from 'lucide-react';
+import { User, Users, LayoutGrid, Store, Video, Bookmark, ChevronDown, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../../apis/auth';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
@@ -40,7 +40,7 @@ export default function LeftSidebar() {
 
   const menuItems: MenuItem[] = [
     { icon: Users, labelKey: 'friends', path: '/friends', requireAuth: true },
-    { icon: Users, labelKey: 'groups', path: '/groups', requireAuth: true },
+    { icon: LayoutGrid, labelKey: 'groups', path: '/groups', requireAuth: true },
     { icon: Store, labelKey: 'marketplace', path: '/marketplace', requireAuth: true },
     { icon: Video, labelKey: 'video', path: '/watch', requireAuth: true },
     { icon: Music2, labelKey: 'music', path: '/music' },
