@@ -16,6 +16,12 @@
     "submit": "Submit",
     "notAvailable": "N/A"
   },
+  "notFound": {
+    "code": "404",
+    "title": "Page not found",
+    "description": "This page doesn’t exist or you don’t have access. Check the address or go back to the home feed.",
+    "backHome": "Back to Home"
+  },
   "navbar": {
     "searchPlaceholder": "Search on TTVV",
     "searchMobilePlaceholder": "Search users…",
@@ -455,6 +461,7 @@
       "noConversationSelected": "Please select a conversation first",
       "uploadFile": "Failed to upload file. Please try again!",
       "voiceMessage": "Failed to send voice message. Please try again!",
+      "deleteMessage": "Could not delete the message. Please try again.",
       "startCall": "Unable to start the call. Please try again.",
       "startVideoCall": "Unable to start the video call. Please try again."
     },
@@ -715,6 +722,10 @@
     "commentPlaceholder": "Write a comment…"
   },
   "profilePage": {
+    "loadingProfile": "Loading profile…",
+    "loadFailed": "We couldn't load this profile. It may have been removed or you don't have access.",
+    "backHome": "Back to Home",
+    "invalidProfile": "Invalid profile link.",
     "birthdayPrefix": "Born on",
     "friendsCount": "{{count}} friends",
     "introTitle": "Intro",
@@ -1086,6 +1097,7 @@
     "account": "Account",
     "notLoggedIn": "You are not logged in.",
     "profile": "Profile",
+    "adminPanel": "Admin panel",
     "settings": "Settings",
     "logout": "Log out",
     "login": "Log in",
@@ -1473,13 +1485,14 @@
     "changeMedia": "Choose another image or video",
     "chooseMedia": "Choose image or video",
     "mediaFormats": "JPG, PNG, MP4 — required to post story",
+    "fileTooLarge": "File is too large. Maximum size is {{max}} MB.",
     "createFailed": "Failed to create story. Please try again.",
     "imageTab": "Image",
     "videoTab": "Video",
     "textTab": "Text",
     "storyInputPlaceholder": "Type your story...",
     "uploadPrompt": "Click to upload {{media}}",
-    "maxSizeHint": "max 100MB",
+    "maxSizeHint": "max {{max}} MB per file",
     "visibilityTitle": "Story visibility",
     "visibilityHint": "Who can see this story?",
     "visibilityPublic": "🌍 Public",

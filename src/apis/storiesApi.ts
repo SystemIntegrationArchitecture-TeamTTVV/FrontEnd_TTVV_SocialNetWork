@@ -2,6 +2,15 @@ import type { Story } from '../types/story';
 import { httpClient } from './http';
 import { API_CONFIG } from './config';
 
+/** Không gửi base64/blob trong FormData — vừa nặng vừa dễ vượt giới hạn Tomcat ~2MB. BE đã có userId để resolve. */
+function sanitizeStoryAvatar(avatar: string | undefined): string {
+    if (!avatar?.trim()) return '';
+    const a = avatar.trim();
+    if (a.startsWith('data:') || a.startsWith('blob:')) return '';
+    if (a.length > 8000) return '';
+    return a;
+}
+
 class StoriesApi {
     private baseUrl = '/api/common/stories';
 
@@ -30,10 +39,15 @@ class StoriesApi {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({ 
-                message: `HTTP ${response.status}` 
+            if (response.status === 413) {
+                throw new Error('413 Payload Too Large');
+            }
+            const error = await response.json().catch(() => ({
+                message: `HTTP ${response.status}`,
             }));
-            throw new Error(error.message);
+            throw new Error(
+                typeof error.message === 'string' ? error.message : `HTTP ${response.status}`,
+            );
         }
 
         return response.json();
@@ -55,7 +69,7 @@ class StoriesApi {
 
         formData.append('userId', params.userId);
         formData.append('userName', params.userName);
-        formData.append('userAvatar', params.userAvatar);
+        formData.append('userAvatar', sanitizeStoryAvatar(params.userAvatar));
         formData.append('contentType', params.contentType);
 
         if (params.content) {
@@ -72,11 +86,6 @@ class StoriesApi {
 
         if (params.file) {
             formData.append('file', params.file);
-        }
-
-        console.log('=== Sending FormData ===');
-        for (const [key, value] of formData.entries()) {
-            console.log(key, value);
         }
 
         return this.postFormData<Story>(this.baseUrl, formData);

@@ -4,6 +4,7 @@ import { Camera, Save, Loader2, Plus, X, Upload } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { usersApi, type User } from "../../apis/users";
 import { authApi } from "../../apis/auth";
+import { useAuth } from "../../contexts/AuthContext";
 
 type ProfileFormData = {
   firstName: string;
@@ -30,6 +31,7 @@ type ProfileFormData = {
 export default function ProfileEdit() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { refreshSessionUser } = useAuth();
   const currentUser = authApi.getCurrentUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -259,18 +261,8 @@ export default function ProfileEdit() {
         payload.interests = formData.interests;
       }
 
-      const updated = await usersApi.updateUserProfile(currentUser.id, payload);
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: updated.id,
-          username: updated.username,
-          fullName: updated.fullName,
-          avatar: updated.avatar,
-          role: updated.role,
-        }),
-      );
+      await usersApi.updateUserProfile(currentUser.id, payload);
+      await refreshSessionUser();
 
       alert(t("profilePage.edit.saveSuccess"));
       navigate(`/profile/${currentUser.id}`);

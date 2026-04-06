@@ -16,6 +16,12 @@
     "submit": "送信",
     "notAvailable": "N/A"
   },
+  "notFound": {
+    "code": "404",
+    "title": "ページが見つかりません",
+    "description": "このページは存在しないか、アクセス権限がありません。URLを確認するか、ホームに戻ってください。",
+    "backHome": "ホームへ"
+  },
   "navbar": {
     "searchPlaceholder": "TTVVで検索",
     "searchMobilePlaceholder": "ユーザーを検索…",
@@ -455,6 +461,7 @@
       "noConversationSelected": "先に会話を選択してください",
       "uploadFile": "ファイルのアップロードに失敗しました。もう一度お試しください。",
       "voiceMessage": "音声メッセージの送信に失敗しました。もう一度お試しください。",
+      "deleteMessage": "メッセージを削除できませんでした。もう一度お試しください。",
       "startCall": "通話を開始できません。もう一度お試しください。",
       "startVideoCall": "ビデオ通話を開始できません。もう一度お試しください。"
     },
@@ -715,6 +722,10 @@
     "commentPlaceholder": "コメントを書く…"
   },
   "profilePage": {
+    "loadingProfile": "プロフィールを読み込み中…",
+    "loadFailed": "プロフィールを読み込めませんでした。削除されたか、アクセス権がない可能性があります。",
+    "backHome": "ホームに戻る",
+    "invalidProfile": "プロフィールのリンクが無効です。",
     "birthdayPrefix": "生年月日",
     "friendsCount": "友達 {{count}} 人",
     "introTitle": "自己紹介",
@@ -1086,6 +1097,7 @@
     "account": "アカウント",
     "notLoggedIn": "ログインしていません。",
     "profile": "プロフィール",
+    "adminPanel": "管理画面",
     "settings": "設定",
     "logout": "ログアウト",
     "login": "ログイン",
@@ -1473,13 +1485,14 @@
     "changeMedia": "別の画像または動画を選択",
     "chooseMedia": "画像または動画を選択",
     "mediaFormats": "JPG, PNG, MP4 — ストーリー投稿に必須",
+    "fileTooLarge": "ファイルが大きすぎます。最大 {{max}} MB までです。",
     "createFailed": "ストーリーの作成に失敗しました。もう一度お試しください。",
     "imageTab": "画像",
     "videoTab": "動画",
     "textTab": "テキスト",
     "storyInputPlaceholder": "ストーリーを入力...",
     "uploadPrompt": "{{media}} をアップロードするにはクリック",
-    "maxSizeHint": "最大100MB",
+    "maxSizeHint": "1ファイル最大 {{max}} MB",
     "visibilityTitle": "ストーリーの公開範囲",
     "visibilityHint": "このストーリーを閲覧できる人",
     "visibilityPublic": "🌍 公開",

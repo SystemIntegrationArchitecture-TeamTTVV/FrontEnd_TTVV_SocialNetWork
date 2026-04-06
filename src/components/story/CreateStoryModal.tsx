@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { storiesApi } from '../../apis/storiesApi';
 import { authApi } from '../../apis/auth';
 import type { Story } from '../../types/story';
+import { STORY_MEDIA_MAX_BYTES, STORY_MEDIA_MAX_MB } from '../../constants/uploadLimits';
+import { useToast } from '../../contexts/useToast';
 
 type MediaState = {
   file: File;
@@ -28,6 +30,7 @@ const BACKGROUND_PRESETS = [
 
 export default function CreateStoryModal({ onClose, onCreate }: Props) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [mode, setMode] = useState<'text' | 'media' | null>(null);
   const [text, setText] = useState('');
   const [media, setMedia] = useState<MediaState | null>(null);
@@ -83,6 +86,10 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
 
   const createMediaStory = async () => {
     if (!media) return;
+    if (media.file.size > STORY_MEDIA_MAX_BYTES) {
+      showToast(t('storyModal.fileTooLarge', { max: STORY_MEDIA_MAX_MB }), 'error');
+      return;
+    }
     try {
       setLoading(true);
       const story = await storiesApi.createStory({
@@ -98,6 +105,11 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
       onClose();
     } catch (err) {
       console.error('Create media story failed', err);
+      const msg =
+        err instanceof Error && /413|too large|exceed/i.test(err.message)
+          ? t('storyModal.fileTooLarge', { max: STORY_MEDIA_MAX_MB })
+          : t('storyModal.createFailed');
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -275,7 +287,9 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                       {media ? t('storyModal.changeMedia') : t('storyModal.chooseMedia')}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('storyModal.mediaFormats')}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {t('storyModal.mediaFormats')} — {t('storyModal.maxSizeHint', { max: STORY_MEDIA_MAX_MB })}
+                    </p>
                   </div>
                   <input
                     ref={fileInputRef}
@@ -285,6 +299,11 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+                      if (file.size > STORY_MEDIA_MAX_BYTES) {
+                        showToast(t('storyModal.fileTooLarge', { max: STORY_MEDIA_MAX_MB }), 'error');
+                        e.target.value = '';
+                        return;
+                      }
                       if (media?.url) URL.revokeObjectURL(media.url);
                       setMedia({
                         file,

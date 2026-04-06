@@ -90,6 +90,7 @@ import AdminReports from "../page/admin/AdminReports";
 import AdminMessages from "../page/admin/AdminMessages";
 import AdminSettings from "../page/admin/AdminSettings";
 import AdminDashboard from "../page/admin/AdminDashboard";
+import NotFound from "../page/NotFound";
 
 export const router = createBrowserRouter([
   // Auth Routes
@@ -188,6 +189,9 @@ export const router = createBrowserRouter([
       // Settings
       { path: "settings", element: <ProtectedRoute requireAuth={true}><Settings /></ProtectedRoute> },
       { path: "settings/privacy", element: <ProtectedRoute requireAuth={true}><PrivacySettings /></ProtectedRoute> },
+
+      { path: "404", element: <NotFound /> },
+      { path: "*", element: <NotFound /> },
     ],
   },
 

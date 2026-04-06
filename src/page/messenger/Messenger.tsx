@@ -33,6 +33,7 @@ export default function Messenger() {
     loadConversations,
     loadMessages,
     sendMessage: sendMessageAPI,
+    removeMessage,
     formatMessageForDisplay,
   } = useMessages();
 
@@ -493,7 +494,12 @@ export default function Messenger() {
       });
       
       if (messageContent || attachments.length > 0) {
-        await sendMessageAPI(activeChat, messageContent, attachments.length > 0 ? attachments : undefined);
+        await sendMessageAPI(
+          activeChat,
+          messageContent,
+          attachments.length > 0 ? attachments : undefined,
+          replyTo?.id
+        );
       }
       
       setMessage('');
@@ -747,7 +753,8 @@ export default function Messenger() {
         };
 
         const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `📎 ${file.name}`;
-        await sendMessageAPI(activeChat, messageContent, [attachment]);
+        await sendMessageAPI(activeChat, messageContent, [attachment], replyTo?.id);
+        setReplyTo(null);
         
         console.log('✅ Message sent with attachment');
         
@@ -798,7 +805,8 @@ export default function Messenger() {
       };
 
       // Send message with voice attachment
-      await sendMessageAPI(activeChat, t('messenger.captionVoice'), [attachment]);
+      await sendMessageAPI(activeChat, t('messenger.captionVoice'), [attachment], replyTo?.id);
+      setReplyTo(null);
       console.log('✅ Voice message sent');
 
       // Scroll to bottom
@@ -849,9 +857,11 @@ export default function Messenger() {
         }
         break;
       case 'delete':
-        if (confirm(t('messenger.confirmDeleteMessage'))) {
-          // TODO: Call delete message API
-          console.log('Delete message:', messageId);
+        if (activeChat && confirm(t('messenger.confirmDeleteMessage'))) {
+          removeMessage(activeChat, messageId).catch((err: unknown) => {
+            console.error('Failed to delete message:', err);
+            alert(t('messenger.errors.deleteMessage'));
+          });
         }
         break;
       case 'edit':

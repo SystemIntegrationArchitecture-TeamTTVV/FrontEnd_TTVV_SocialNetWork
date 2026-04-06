@@ -7,8 +7,18 @@ import {
   X,
   Loader2,
   MessageCircle,
+  Briefcase,
+  GraduationCap,
+  MapPin,
+  Cake,
+  UserRound,
+  Phone,
+  Mail,
+  Tags,
+  FileText,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import type { LucideIcon } from "lucide-react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { authApi } from "../../apis/auth";
 import { usersApi, type User } from "../../apis/users";
 import { uploadApi } from "../../apis/upload";
@@ -18,42 +28,83 @@ import {
 } from "../../apis/friendRequests";
 import { useSocket } from "../../contexts/SocketContext";
 import { useChatBox } from "../../contexts/ChatBoxContext";
+import { useAuth } from "../../contexts/AuthContext";
 import About from "./tabs/About";
 import { useTranslation } from "react-i18next";
 import { getLocaleTag } from "../../i18n";
+
+function IntroRow({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex gap-3">
+      <Icon
+        className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      <div className="min-w-0 text-sm leading-snug text-gray-700">{children}</div>
+    </div>
+  );
+}
 
 export default function Profile() {
   const { t } = useTranslation();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("posts");
   const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(!!id);
+  const [loadError, setLoadError] = useState(false);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [loadingFriendRequest, setLoadingFriendRequest] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const currentUser = authApi.getCurrentUser();
+  const { refreshSessionUser } = useAuth();
   const { subscribe } = useSocket();
   const { openChatBoxByUserId } = useChatBox();
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Load user profile data
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!id) {
-        return;
-      }
+    if (!id) {
+      setProfileUser(null);
+      setLoadingProfile(false);
+      setLoadError(false);
+      return;
+    }
 
+    let cancelled = false;
+    setLoadingProfile(true);
+    setLoadError(false);
+    setProfileUser(null);
+
+    (async () => {
       try {
-        console.log("🔍 Loading user profile for ID:", id);
         const user = await usersApi.getUserById(id);
-        console.log("✅ User profile loaded:", user);
-        setProfileUser(user);
+        if (!cancelled) {
+          setProfileUser(user);
+          setLoadError(false);
+        }
       } catch (error) {
         console.error("❌ Failed to load user profile:", error);
-        setProfileUser(null);
+        if (!cancelled) {
+          setProfileUser(null);
+          setLoadError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingProfile(false);
+        }
       }
-    };
+    })();
 
-    loadUserProfile();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   // Subscribe to socket notifications for real-time updates
@@ -232,9 +283,7 @@ export default function Profile() {
         prev ? { ...prev, coverPhoto: uploadResponse.url } : null,
       );
 
-      // Update localStorage
-      const updatedUser = { ...currentUser, coverPhoto: uploadResponse.url };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      await refreshSessionUser();
 
       alert(t("profilePage.cover.updateSuccess"));
     } catch (error) {
@@ -246,7 +295,7 @@ export default function Profile() {
   };
 
   const displayUser = profileUser;
-  const displayName = displayUser?.fullName || t("common.loading");
+  const displayName = displayUser?.fullName || "";
   const displayAvatar = displayUser?.avatar || null;
   const displayInitials = displayName
     .split(" ")
@@ -255,10 +304,50 @@ export default function Profile() {
     .toUpperCase()
     .slice(0, 2);
 
+  if (!id) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 py-12 text-center text-gray-600">
+        {t("profilePage.invalidProfile")}
+      </div>
+    );
+  }
+
+  if (loadingProfile) {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm dark:bg-[#0b0d12]/80"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-gray-200 bg-white px-10 py-8 shadow-xl dark:border-gray-700 dark:bg-[#1a1d29]">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 dark:text-blue-400" />
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            {t("profilePage.loadingProfile")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError || !displayUser) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-16 text-center">
+        <p className="text-gray-700 dark:text-gray-200">{t("profilePage.loadFailed")}</p>
+        <Link
+          to="/"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          {t("profilePage.backHome")}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-8">
       {/* Cover Photo */}
-      <div className="relative h-[280px] bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl overflow-hidden">
+      <div className="relative h-[240px] overflow-hidden rounded-xl bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800">
         {displayUser?.coverPhoto && (
           <img
             src={displayUser.coverPhoto}
@@ -292,7 +381,7 @@ export default function Profile() {
       </div>
 
       {/* Profile Info */}
-      <div className="bg-white rounded-2xl p-4 -mt-16 relative border border-gray-200">
+      <div className="relative -mt-14 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <div className="flex items-end justify-between mb-4 pt-12">
           <div className="flex items-end gap-4">
             <div className="relative">
@@ -440,7 +529,7 @@ export default function Profile() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 border-t border-gray-200 pt-3 overflow-x-auto scrollbar-hide">
+        <div className="scrollbar-hide flex items-center gap-0 overflow-x-auto border-t border-gray-100 pt-1">
           {[
             { id: "posts", label: t("profilePage.tabs.posts") },
             { id: "about", label: t("profilePage.tabs.about") },
@@ -450,16 +539,17 @@ export default function Profile() {
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-3 font-medium text-base relative transition-all duration-200 rounded-lg whitespace-nowrap ${
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  ? "text-gray-900"
+                  : "text-gray-500 hover:text-gray-800"
               }`}
             >
               {tab.label}
               {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full"></div>
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-gray-900" />
               )}
             </button>
           ))}
@@ -467,12 +557,17 @@ export default function Profile() {
       </div>
 
       {/* Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-4">
           {activeTab === "posts" && (
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.emptyPosts")}</p>
+            <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100 bg-white px-6 py-14 text-center shadow-sm">
+              <FileText
+                className="mb-3 h-10 w-10 text-gray-300"
+                strokeWidth={1.25}
+                aria-hidden
+              />
+              <p className="text-sm text-gray-500">{t("profilePage.emptyPosts")}</p>
             </div>
           )}
 
@@ -481,110 +576,105 @@ export default function Profile() {
           )}
 
           {activeTab === "friends" && (
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.friendsComingSoon")}</p>
+            <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
+              <p className="text-sm text-gray-500">{t("profilePage.friendsComingSoon")}</p>
             </div>
           )}
 
           {activeTab === "photos" && (
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.photosComingSoon")}</p>
+            <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
+              <p className="text-sm text-gray-500">{t("profilePage.photosComingSoon")}</p>
             </div>
           )}
 
           {activeTab === "videos" && (
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-500 text-center py-6">{t("profilePage.videosComingSoon")}</p>
+            <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
+              <p className="text-sm text-gray-500">{t("profilePage.videosComingSoon")}</p>
             </div>
           )}
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* Intro Card */}
-          <div className="bg-white rounded-2xl p-4 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3 text-sm">{t("profilePage.introTitle")}</h3>
-            <div className="space-y-2 text-xs text-gray-600">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t("profilePage.introTitle")}
+            </h3>
+            <div className="space-y-3">
               {displayUser?.bio && (
-                <p className="text-sm mb-3">{displayUser.bio}</p>
+                <p className="text-sm leading-relaxed text-gray-700">{displayUser.bio}</p>
               )}
 
               {displayUser?.workPlace && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">💼</span>
-                  <span>
-                    {t("profilePage.workAt")} <strong>{displayUser.workPlace}</strong>
+                <IntroRow icon={Briefcase}>
+                  <span className="text-gray-600">
+                    {t("profilePage.workAt")}{" "}
                   </span>
-                </p>
+                  <span className="font-medium text-gray-900">{displayUser.workPlace}</span>
+                </IntroRow>
               )}
 
               {displayUser?.education && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">🎓</span>
-                  <span>
-                    {t("profilePage.studiedAt")} <strong>{displayUser.education}</strong>
+                <IntroRow icon={GraduationCap}>
+                  <span className="text-gray-600">
+                    {t("profilePage.studiedAt")}{" "}
                   </span>
-                </p>
+                  <span className="font-medium text-gray-900">{displayUser.education}</span>
+                </IntroRow>
               )}
 
               {(displayUser?.city || displayUser?.country) && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">📍</span>
-                  <span>
+                <IntroRow icon={MapPin}>
+                  <span className="text-gray-600">
                     {t("profilePage.livesIn")}{" "}
-                    <strong>
-                      {[displayUser.city, displayUser.country]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </strong>
                   </span>
-                </p>
+                  <span className="font-medium text-gray-900">
+                    {[displayUser.city, displayUser.country].filter(Boolean).join(", ")}
+                  </span>
+                </IntroRow>
               )}
 
               {displayUser?.dateOfBirth && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">🎂</span>
-                  <span>
+                <IntroRow icon={Cake}>
+                  <span className="text-gray-600">
                     {t("profilePage.birthdayPrefix")}{" "}
-                    <strong>
-                      {new Date(displayUser.dateOfBirth).toLocaleDateString(getLocaleTag())}
-                    </strong>
                   </span>
-                </p>
+                  <span className="font-medium text-gray-900">
+                    {new Date(displayUser.dateOfBirth).toLocaleDateString(getLocaleTag())}
+                  </span>
+                </IntroRow>
               )}
 
               {displayUser?.gender && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">👤</span>
-                  <span>{displayUser.gender}</span>
-                </p>
+                <IntroRow icon={UserRound}>
+                  <span className="text-gray-900">{displayUser.gender}</span>
+                </IntroRow>
               )}
 
               {displayUser?.showPhone && displayUser?.phoneNumber && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">📱</span>
-                  <span>{displayUser.phoneNumber}</span>
-                </p>
+                <IntroRow icon={Phone}>
+                  <span className="text-gray-900">{displayUser.phoneNumber}</span>
+                </IntroRow>
               )}
 
               {displayUser?.showEmail && displayUser?.email && (
-                <p className="flex items-center gap-2">
-                  <span className="text-base">📧</span>
-                  <span>{displayUser.email}</span>
-                </p>
+                <IntroRow icon={Mail}>
+                  <span className="break-all text-gray-900">{displayUser.email}</span>
+                </IntroRow>
               )}
 
               {displayUser?.interests && displayUser.interests.length > 0 && (
-                <div className="pt-2 border-t border-gray-100">
-                  <p className="flex items-center gap-2 mb-2">
-                    <span className="text-base">⭐</span>
-                    <strong>{t("profilePage.interestsLabel")}</strong>
-                  </p>
-                  <div className="flex flex-wrap gap-1">
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-900">
+                    <Tags className="h-4 w-4 text-gray-400" strokeWidth={1.75} aria-hidden />
+                    {t("profilePage.interestsLabel")}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {displayUser.interests.map((interest, index) => (
                       <span
                         key={index}
-                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs"
+                        className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700"
                       >
                         {interest}
                       </span>
@@ -597,7 +687,7 @@ export default function Profile() {
             {currentUser && currentUser.id === id && (
               <Link
                 to="/profile/edit"
-                className="w-full h-9 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm mt-3 flex items-center justify-center"
+                className="mt-4 flex h-9 w-full items-center justify-center rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
               >
                 {t("profilePage.actions.editDetails")}
               </Link>
@@ -605,19 +695,21 @@ export default function Profile() {
           </div>
 
           {/* Photos Card */}
-          <div className="bg-white rounded-2xl p-4 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3 text-sm">{t("profilePage.photosTitle")}</h3>
-            <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t("profilePage.photosTitle")}
+            </h3>
+            <div className="mb-3 grid grid-cols-3 gap-1.5">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className="aspect-square bg-gray-100 rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
-                ></div>
+                  className="aspect-square cursor-pointer rounded-md bg-gray-50 transition-opacity hover:opacity-90"
+                />
               ))}
             </div>
             <Link
               to={`/profile/${id}/photos`}
-              className="block text-center text-blue-600 text-xs font-medium hover:underline"
+              className="block text-center text-sm font-medium text-blue-600 hover:underline"
             >
               {t("profilePage.seeAllPhotos")}
             </Link>

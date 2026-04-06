@@ -44,7 +44,7 @@ export default function ProtectedRoute({
     }
     const userRole = user?.role?.toUpperCase();
     if (userRole !== 'ADMIN') {
-      return <Navigate to="/home" replace />;
+      return <Navigate to="/404" replace />;
     }
   }
 

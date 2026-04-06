@@ -59,7 +59,8 @@ export function useMessages() {
   const sendMessage = useCallback(async (
     conversationId: string,
     content: string,
-    attachments?: Message['attachments']
+    attachments?: Message['attachments'],
+    replyToMessageId?: string
   ) => {
     if (!user?.id) return null;
     // Allow empty content if there are attachments
@@ -73,6 +74,7 @@ export function useMessages() {
         senderAvatar: user.avatar,
         content: content.trim(),
         attachments,
+        ...(replyToMessageId ? { replyToMessageId } : {}),
       };
 
       const newMessage = await messagesApi.createMessage(messageData);
@@ -84,10 +86,14 @@ export function useMessages() {
       }));
 
       // Update conversation last message
+      const preview =
+        content.trim() ||
+        (attachments?.length ? '📎' : '') ||
+        (newMessage.replyTo ? `↩ ${newMessage.replyTo.contentPreview || ''}` : '');
       setConversations(prev => 
         prev.map(conv => 
           conv.id === conversationId 
-            ? { ...conv, lastMessagePreview: content || '📎 Attachment', lastMessageAt: newMessage.createdAt }
+            ? { ...conv, lastMessagePreview: preview || ' ', lastMessageAt: newMessage.createdAt }
             : conv
         )
       );
@@ -100,6 +106,19 @@ export function useMessages() {
       throw err;
     }
   }, [user]);
+
+  const removeMessage = useCallback(async (conversationId: string, messageId: string) => {
+    if (!user?.id) return;
+    await messagesApi.deleteMessage(messageId, user.id);
+    setMessages(prev => {
+      const list = prev[conversationId];
+      if (!list) return prev;
+      return {
+        ...prev,
+        [conversationId]: list.filter(m => m.id !== messageId),
+      };
+    });
+  }, [user?.id]);
 
   // Get or create a direct conversation between current user and another user
   const getOrCreateDirectConversation = useCallback(async (otherUserId: string): Promise<Conversation | null> => {
@@ -208,6 +227,20 @@ export function useMessages() {
       }
     });
 
+    const unsubscribeDeleted = subscribe('MESSAGE_DELETED', (event) => {
+      if (event.type !== 'MESSAGE_DELETED' || !event.data) return;
+      const { conversationId, messageId } = event.data as { conversationId: string; messageId: string };
+      if (!conversationId || !messageId) return;
+      setMessages(prev => {
+        const list = prev[conversationId];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [conversationId]: list.filter(m => m.id !== messageId),
+        };
+      });
+    });
+
     const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
       console.log('🔔 Received NOTIFICATION via socket:', event);
 
@@ -233,6 +266,7 @@ export function useMessages() {
 
     return () => {
       unsubscribeMessage();
+      unsubscribeDeleted();
       unsubscribeNotification();
     };
   }, [isConnected, user?.id, subscribe, conversations]);
@@ -254,7 +288,7 @@ export function useMessages() {
     image?: string;
     pinned?: boolean;
     starred?: boolean;
-    replyTo?: { id: number; content: string; sender: string };
+    replyTo?: { id: string; content: string; sender: string };
   }
 
   const formatMessageForDisplay = useCallback((message: Message): DisplayMessage => {
@@ -291,6 +325,7 @@ export function useMessages() {
     loadConversations,
     loadMessages,
     sendMessage,
+    removeMessage,
     getOrCreateDirectConversation,
     formatMessageForDisplay,
     subscribeToMessages: subscribe, // Export for ChatBoxContext

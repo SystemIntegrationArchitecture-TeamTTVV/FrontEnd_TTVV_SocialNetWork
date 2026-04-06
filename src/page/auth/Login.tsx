@@ -12,6 +12,12 @@ interface LoginForm {
   password: string;
 }
 
+function isAdminRole(role: string | undefined | null): boolean {
+  if (!role) return false;
+  const r = role.trim().toUpperCase();
+  return r === 'ADMIN' || r === 'ROLE_ADMIN';
+}
+
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -25,9 +31,15 @@ export default function Login() {
     try {
       setError(null);
       setIsSubmitting(true);
-      await login(data.username, data.password);
-      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      const authResult = await login(data.username, data.password);
+      const from =
+        (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
+
+      if (isAdminRole(authResult.role)) {
+        navigate(from.startsWith('/admin') ? from : '/admin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err: unknown) {
       if (err instanceof HttpError) {
         setError(err.message || t('auth.login.errorInvalid'));

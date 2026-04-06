@@ -1,13 +1,15 @@
 import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Story } from '../../types/story';
+import StoryAvatar from './StoryAvatar';
+import { resolveStoryContentUrl } from '../../utils/mediaUrl';
 
 type StoryViewerProps = {
   storyGroups: Story[][];
   initialUserIndex: number;
   onClose: () => void;
 };
-import { API_CONFIG } from '../../apis/config';
+
 export default function StoryViewer({
   storyGroups,
   initialUserIndex,
@@ -77,6 +79,8 @@ export default function StoryViewer({
 
   if (!story) return null;
 
+  const mediaSrc = resolveStoryContentUrl(story.content);
+
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
       {/* Close */}
@@ -107,7 +111,11 @@ export default function StoryViewer({
 
         {/* Header */}
         <div className="absolute top-3 left-3 right-3 flex items-center gap-3 z-10">
-          <img src={story.user.avatar} className="w-8 h-8 rounded-full" />
+          <StoryAvatar
+            name={story.user.name}
+            avatar={story.user.avatar}
+            className="h-8 w-8 rounded-full object-cover"
+          />
           <span className="text-white font-medium text-sm">
             {story.user.name}
           </span>
@@ -118,11 +126,17 @@ export default function StoryViewer({
           {/* IMAGE */}
           {story.contentType === 'image' && (
             <>
-              <img
-                src={`${API_CONFIG.COMMON_SERVICE_URL}${story.content}`}
-                className="h-full w-full object-cover"
-                alt=""
-              />
+              {mediaSrc ? (
+                <img
+                  src={mediaSrc}
+                  className="h-full w-full object-cover"
+                  alt=""
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-sm text-white/70">
+                  Media unavailable
+                </div>
+              )}
               {story.caption?.trim() ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/75 to-transparent px-4 pb-8 pt-16 text-center text-base font-medium leading-snug text-white drop-shadow-lg">
                   {story.caption.trim()}
@@ -134,21 +148,27 @@ export default function StoryViewer({
           {/* VIDEO */}
           {story.contentType === 'video' && (
             <>
-              <video
-                ref={videoRef}
-                src={story.content}
-                className="h-full w-full object-cover"
-                autoPlay
-                muted
-                playsInline
-                onTimeUpdate={(e) => {
-                  const video = e.currentTarget;
-                  const percent =
-                    (video.currentTime / video.duration) * 100;
-                  setProgress(percent || 0);
-                }}
-                onEnded={next}
-              />
+              {mediaSrc ? (
+                <video
+                  ref={videoRef}
+                  src={mediaSrc}
+                  className="h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  playsInline
+                  onTimeUpdate={(e) => {
+                    const video = e.currentTarget;
+                    const percent =
+                      (video.currentTime / video.duration) * 100;
+                    setProgress(percent || 0);
+                  }}
+                  onEnded={next}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-sm text-white/70">
+                  Media unavailable
+                </div>
+              )}
               {story.caption?.trim() ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/75 to-transparent px-4 pb-8 pt-16 text-center text-base font-medium leading-snug text-white drop-shadow-lg">
                   {story.caption.trim()}

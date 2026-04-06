@@ -1,16 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { authApi } from '../apis/auth';
-
-// Import AuthResponse type inline to avoid ESM issues
-type AuthResponse = {
-  token: string;
-  username: string;
-  role: string;
-  userId: string;
-  fullName: string;
-  avatar: string;
-};
+import { authApi, type AuthResponse } from '../apis/auth';
+import { usersApi } from '../apis/users';
 
 interface User {
   id: string;
@@ -24,9 +15,11 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<AuthResponse>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
+  /** Đồng bộ user từ API + localStorage — gọi sau khi sửa profile/ảnh bìa để Navbar khớp trang profile */
+  refreshSessionUser: () => Promise<void>;
 }
 
 interface RegisterData {
@@ -47,31 +40,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
+  const refreshSessionUser = useCallback(async () => {
+    const stored = authApi.getCurrentUser();
+    if (!stored?.id || !authApi.isAuthenticated()) return;
+    try {
+      const u = await usersApi.getUserById(stored.id);
+      const next: User = {
+        id: u.id ?? stored.id,
+        username: u.username ?? stored.username,
+        fullName: u.fullName ?? stored.fullName,
+        avatar: u.avatar ?? '',
+        role: u.role ?? stored.role,
+      };
+      localStorage.setItem('user', JSON.stringify(next));
+      setUser(next);
+    } catch (e) {
+      console.warn('[Auth] refreshSessionUser failed', e);
+    }
+  }, []);
+
+  // Load user từ localStorage rồi đồng bộ từ API (avatar/cover cập nhật trên server)
   useEffect(() => {
-    const loadUser = () => {
-      // Check if token is still valid
+    let cancelled = false;
+
+    const loadUser = async () => {
       if (!authApi.isAuthenticated()) {
-        // Token expired or invalid, clear user
         setUser(null);
         setIsLoading(false);
         return;
       }
-      
+
       const savedUser = authApi.getCurrentUser();
       if (savedUser) {
         setUser(savedUser);
       }
       setIsLoading(false);
+
+      if (savedUser?.id) {
+        try {
+          const u = await usersApi.getUserById(savedUser.id);
+          if (cancelled) return;
+          const next: User = {
+            id: u.id ?? savedUser.id,
+            username: u.username ?? savedUser.username,
+            fullName: u.fullName ?? savedUser.fullName,
+            avatar: u.avatar ?? '',
+            role: u.role ?? savedUser.role,
+          };
+          localStorage.setItem('user', JSON.stringify(next));
+          setUser(next);
+        } catch {
+          /* giữ savedUser */
+        }
+      }
     };
+
     loadUser();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<AuthResponse> => {
     try {
       setIsLoading(true);
       const response: AuthResponse = await authApi.login({ username, password });
-      
+
       setUser({
         id: response.userId,
         username: response.username,
@@ -79,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: response.avatar,
         role: response.role,
       });
+      return response;
     } catch (error: unknown) {
       setIsLoading(false);
       throw error;
@@ -123,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        refreshSessionUser,
       }}
     >
       {children}

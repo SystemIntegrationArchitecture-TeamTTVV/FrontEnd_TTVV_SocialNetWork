@@ -16,6 +16,12 @@
     "submit": "Gửi",
     "notAvailable": "N/A"
   },
+  "notFound": {
+    "code": "404",
+    "title": "Không tìm thấy trang",
+    "description": "Trang này không tồn tại hoặc bạn không có quyền truy cập. Kiểm tra lại địa chỉ hoặc quay về bảng tin.",
+    "backHome": "Về trang chủ"
+  },
   "navbar": {
     "searchPlaceholder": "Tìm kiếm trên TTVV",
     "searchMobilePlaceholder": "Tìm kiếm người dùng…",
@@ -455,6 +461,7 @@
       "noConversationSelected": "Vui lòng chọn một cuộc trò chuyện trước",
       "uploadFile": "Lỗi khi upload file. Vui lòng thử lại!",
       "voiceMessage": "Lỗi khi gửi tin nhắn thoại. Vui lòng thử lại!",
+      "deleteMessage": "Không thể xóa tin nhắn. Vui lòng thử lại!",
       "startCall": "Không thể bắt đầu cuộc gọi. Vui lòng thử lại.",
       "startVideoCall": "Không thể bắt đầu cuộc gọi video. Vui lòng thử lại."
     },
@@ -715,6 +722,10 @@
     "commentPlaceholder": "Viết bình luận…"
   },
   "profilePage": {
+    "loadingProfile": "Đang tải trang cá nhân…",
+    "loadFailed": "Không tải được trang cá nhân. Có thể đã bị xóa hoặc bạn không có quyền xem.",
+    "backHome": "Về trang chủ",
+    "invalidProfile": "Liên kết trang cá nhân không hợp lệ.",
     "birthdayPrefix": "Sinh ngày",
     "friendsCount": "{{count}} bạn bè",
     "introTitle": "Giới thiệu",
@@ -1086,6 +1097,7 @@
     "account": "Tài khoản",
     "notLoggedIn": "Bạn chưa đăng nhập.",
     "profile": "Trang cá nhân",
+    "adminPanel": "Trang quản trị",
     "settings": "Cài đặt",
     "logout": "Đăng xuất",
     "login": "Đăng nhập",
@@ -1473,13 +1485,14 @@
     "changeMedia": "Đổi ảnh hoặc video khác",
     "chooseMedia": "Chọn ảnh hoặc video",
     "mediaFormats": "JPG, PNG, MP4 — bắt buộc để đăng tin",
+    "fileTooLarge": "File quá lớn. Dung lượng tối đa {{max}} MB.",
     "createFailed": "Tạo tin thất bại. Vui lòng thử lại.",
     "imageTab": "Ảnh",
     "videoTab": "Video",
     "textTab": "Chữ",
     "storyInputPlaceholder": "Nhập nội dung tin...",
     "uploadPrompt": "Nhấn để tải lên {{media}}",
-    "maxSizeHint": "tối đa 100MB",
+    "maxSizeHint": "tối đa {{max}} MB mỗi file",
     "visibilityTitle": "Chế độ hiển thị tin",
     "visibilityHint": "Ai có thể xem tin này?",
     "visibilityPublic": "🌍 Công khai",

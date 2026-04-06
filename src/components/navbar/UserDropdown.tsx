@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LogOut, User, Settings, X, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { LogOut, User, Settings, X, LogIn, UserPlus, Loader2, LayoutDashboard } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -191,6 +191,19 @@ export default function UserDropdown({ isOpen, onClose, user }: UserDropdownProp
               </div>
               <span className="font-medium">{t('userDropdown.profile')}</span>
             </Link>
+
+            {user.role?.toUpperCase() === 'ADMIN' && (
+              <Link
+                to="/admin"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-gray-700"
+              >
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <LayoutDashboard className="w-5 h-5 text-indigo-600" />
+                </div>
+                <span className="font-medium">{t('userDropdown.adminPanel')}</span>
+              </Link>
+            )}
 
             <Link
               to="/settings"

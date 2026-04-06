@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { User, Users, LayoutGrid, Store, Video, Bookmark, ChevronDown, Music2, Gamepad2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { authApi } from '../../apis/auth';
+import { useAuth } from '../../contexts/AuthContext';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
 type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'games' | 'saved';
@@ -25,8 +25,8 @@ type MenuItem =
 export default function LeftSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
-  const isAuthenticated = authApi.isAuthenticated();
-  const currentUser = isAuthenticated ? authApi.getCurrentUser() : null;
+  const { user: currentUser } = useAuth();
+  const isAuthenticated = !!currentUser;
 
   const userAvatar = currentUser?.avatar || null;
   const userInitials = currentUser?.fullName

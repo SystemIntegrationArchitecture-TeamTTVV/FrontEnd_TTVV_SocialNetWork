@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, Globe, UserCheck, Lock } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
 import { authApi } from '../../apis/auth';
+import { useAuth } from '../../contexts/AuthContext';
 import { postsApi } from '../../apis/posts';
 import type { PostData } from '../../apis/posts';
 import type { Story } from '../../types/story';
@@ -11,8 +12,8 @@ import { commentsApi, type CommentData } from '../../apis/comments';
 import { HttpError } from '../../apis/http';
 import { useSocket } from '../../contexts/SocketContext';
 import { storiesApi } from '../../apis/storiesApi';
-import { API_CONFIG } from '../../apis/config';
 import AddStoryCard from '../../components/story/AddStoryCard';
+import StoryAvatar from '../../components/story/StoryAvatar';
 import StoryViewer from '../../components/story/StoryViewer';
 // import StoryViewer from './StoryViewer';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
@@ -20,6 +21,8 @@ import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 import { useToast } from '../../contexts/useToast';
 import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
+import { resolveMediaUrl, resolveStoryContentUrl } from '../../utils/mediaUrl';
+import { getUserInitials } from '../../utils/userDisplay';
 
 export default function Newsfeed() {
   const { t } = useTranslation();
@@ -35,14 +38,33 @@ export default function Newsfeed() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const { subscribe } = useSocket();
-  const isAuthenticated = authApi.isAuthenticated();
-  const [currentUser] = useState<{
-    id: string;
-    username: string;
-    fullName: string;
-    avatar: string;
-    role: string;
-  } | null>(() => (isAuthenticated ? authApi.getCurrentUser() : null));
+  const { user: currentUser, isLoading: authLoading, refreshSessionUser } = useAuth();
+  const isAuthenticated = !!currentUser;
+  const [composerAvatarFailed, setComposerAvatarFailed] = useState(false);
+  const composerAvatarSynced = useRef(false);
+
+  useEffect(() => {
+    composerAvatarSynced.current = false;
+  }, [currentUser?.id]);
+
+  const composerAvatarSrc = useMemo(() => {
+    const raw = currentUser?.avatar?.trim();
+    if (!raw) return '';
+    return resolveMediaUrl(raw);
+  }, [currentUser?.avatar]);
+
+  useEffect(() => {
+    setComposerAvatarFailed(false);
+  }, [composerAvatarSrc]);
+
+  /** Một lần: localStorage thiếu avatar nhưng server đã có (sau đổi Cloudinary / profile) */
+  useEffect(() => {
+    if (authLoading || !currentUser?.id || composerAvatarSynced.current) return;
+    if (!currentUser.avatar?.trim()) {
+      composerAvatarSynced.current = true;
+      void refreshSessionUser();
+    }
+  }, [authLoading, currentUser?.id, currentUser?.avatar, refreshSessionUser]);
   const [posts, setPosts] = useState<PostData[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,37 +80,31 @@ export default function Newsfeed() {
   const { showToast } = useToast();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
 
-  // Load posts from API
+  // Load posts — chờ Auth xong để tránh gọi 2 lần (null rồi mới có id)
   useEffect(() => {
+    if (authLoading) return;
+
     const loadPosts = async () => {
       try {
         setIsLoadingPosts(true);
         setError(null);
         const data = await postsApi.getAllPosts(currentUser?.id);
         setPosts(Array.isArray(data) ? data : []);
-        console.log('✅ Loaded posts:', Array.isArray(data) ? data.length : 0, '(raw type:', typeof data, ')');
 
-        // Load user's reactions to mark liked posts
         if (currentUser?.id) {
-          try {
-            const userReactions = await reactionsApi.getReactionsByUserId(currentUser.id);
-            const likedPostIds = new Set(
-              userReactions
-                .filter(r => r.postId) // Only post reactions
-                .map(r => r.postId!)
-            );
-            setLikedPosts(likedPostIds);
-
-            const likedCommentIds = new Set(
-              userReactions
-                .filter(r => r.commentId) // Only comment reactions
-                .map(r => r.commentId!)
-            );
-            setLikedComments(likedCommentIds);
-            console.log('✅ Loaded user reactions:', likedPostIds.size, 'posts,', likedCommentIds.size, 'comments');
-          } catch (err) {
-            console.error('Failed to load user reactions:', err);
-          }
+          reactionsApi
+            .getReactionsByUserId(currentUser.id)
+            .then((userReactions) => {
+              const likedPostIds = new Set(
+                userReactions.filter((r) => r.postId).map((r) => r.postId!),
+              );
+              setLikedPosts(likedPostIds);
+              const likedCommentIds = new Set(
+                userReactions.filter((r) => r.commentId).map((r) => r.commentId!),
+              );
+              setLikedComments(likedCommentIds);
+            })
+            .catch((err) => console.error('Failed to load user reactions:', err));
         }
       } catch (err: any) {
         console.error('❌ Failed to load posts:', err);
@@ -149,7 +165,7 @@ export default function Newsfeed() {
     };
 
     loadPosts();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, authLoading]);
 
   // Load stories from API
   useEffect(() => {
@@ -169,10 +185,6 @@ export default function Newsfeed() {
         setLoadingStories(false);
       });
   }, [currentUser?.id]);
-
-  stories.forEach((story, index) => {
-    console.log(`Story ${index}:`, story);
-  });
 
   // Subscribe to socket events for real-time updates
   useEffect(() => {
@@ -653,7 +665,7 @@ export default function Newsfeed() {
           {/* Add Story (Facebook Web style) */}
           {currentUser && (
             <AddStoryCard
-              avatar={currentUser.avatar}
+              avatar={resolveMediaUrl(currentUser.avatar)}
               onClick={() => setShowCreateStory(true)}
             />
           )}
@@ -665,6 +677,10 @@ export default function Newsfeed() {
           {/* Friends Stories */}
           {storyGroups.map((group, index) => {
             const firstStory = group[0];
+            const storyMediaUrl =
+              firstStory.contentType !== 'text'
+                ? resolveStoryContentUrl(firstStory.content)
+                : '';
 
             return (
               <button
@@ -678,11 +694,15 @@ export default function Newsfeed() {
                     {/* Story preview */}
                     {firstStory.contentType === 'image' && (
                       <div className="relative h-full w-full">
+                        {storyMediaUrl ? (
                         <img
-                          src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                          src={storyMediaUrl}
                           className="h-full w-full object-cover"
                           alt=""
                         />
+                        ) : (
+                          <div className="h-full w-full bg-zinc-800" />
+                        )}
                         {firstStory.caption?.trim() ? (
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
                             {firstStory.caption.trim()}
@@ -703,8 +723,9 @@ export default function Newsfeed() {
 
                     {firstStory.contentType === 'video' && (
                       <div className="relative h-full w-full">
+                        {storyMediaUrl ? (
                         <video
-                          src={`${API_CONFIG.COMMON_SERVICE_URL}${firstStory.content}`}
+                          src={storyMediaUrl}
                           preload="metadata"
                           muted
                           playsInline
@@ -713,6 +734,9 @@ export default function Newsfeed() {
                             e.currentTarget.currentTime = 0;
                           }}
                         />
+                        ) : (
+                          <div className="h-full w-full bg-zinc-800" />
+                        )}
                         {firstStory.caption?.trim() ? (
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
                             {firstStory.caption.trim()}
@@ -727,10 +751,10 @@ export default function Newsfeed() {
 
                     {/* User Avatar */}
                     <div className="absolute top-3 left-3">
-                      <img
-                        src={firstStory.user.avatar}
-                        alt={firstStory.user.name}
-                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg"
+                      <StoryAvatar
+                        name={firstStory.user.name}
+                        avatar={firstStory.user.avatar}
+                        className="h-10 w-10 rounded-full border-2 border-white object-cover shadow-lg"
                       />
                     </div>
                   </div>
@@ -753,37 +777,18 @@ export default function Newsfeed() {
 
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#1877F2] to-[#166fe5] flex items-center justify-center shrink-0 overflow-hidden">
-            {currentUser?.avatar ? (
+            {composerAvatarSrc && !composerAvatarFailed ? (
               <img
-                src={currentUser.avatar}
-                alt={currentUser.fullName}
+                key={composerAvatarSrc}
+                src={composerAvatarSrc}
+                alt=""
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent && currentUser) {
-                    const initials = currentUser.fullName
-                      .split(' ')
-                      .map(n => n[0])
-                      .join('')
-                      .toUpperCase()
-                      .slice(0, 2);
-                    parent.innerHTML = `<span class="text-white font-semibold text-base">${initials}</span>`;
-                  }
-                }}
+                onError={() => setComposerAvatarFailed(true)}
               />
-            ) : currentUser?.fullName ? (
-              <span className="text-white font-semibold text-base">
-                {currentUser.fullName
-                  .split(' ')
-                  .map(n => n[0])
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 2)}
-              </span>
             ) : (
-              <span className="text-white font-semibold text-base">U</span>
+              <span className="text-white font-semibold text-base">
+                {getUserInitials(currentUser?.fullName)}
+              </span>
             )}
           </div>
           {currentUser ? (
@@ -930,7 +935,7 @@ export default function Newsfeed() {
                 <div className="flex items-center gap-3.5">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 bg-linear-to-br from-blue-500 to-blue-600 shadow-sm">
                     {post.authorAvatar ? (
-                      <img src={post.authorAvatar} alt={post.authorName} className="w-full h-full object-cover rounded-full" />
+                      <img src={resolveMediaUrl(post.authorAvatar)} alt={post.authorName} className="w-full h-full object-cover rounded-full" />
                     ) : (
                       getAuthorInitials(post.authorName)
                     )}
@@ -1074,37 +1079,47 @@ export default function Newsfeed() {
                 <div className="mb-4">
                   {post.images.length === 1 ? (
                     <img
-                      src={post.images[0]}
+                      src={resolveMediaUrl(post.images[0])}
                       alt="Post"
                       className="w-full max-h-[600px] object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : post.images.length === 2 ? (
                     <div className="grid grid-cols-2 gap-1">
                       {post.images.map((imageUrl, idx) => (
                         <img
                           key={idx}
-                          src={imageUrl}
+                          src={resolveMediaUrl(imageUrl)}
                           alt={`Post ${idx + 1}`}
                           className="w-full h-[300px] object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ))}
                     </div>
                   ) : post.images.length === 3 ? (
                     <div className="grid grid-cols-2 gap-1">
                       <img
-                        src={post.images[0]}
+                        src={resolveMediaUrl(post.images[0])}
                         alt="Post 1"
                         className="w-full h-[400px] object-cover row-span-2"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <img
-                        src={post.images[1]}
+                        src={resolveMediaUrl(post.images[1])}
                         alt="Post 2"
                         className="w-full h-[199px] object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <img
-                        src={post.images[2]}
+                        src={resolveMediaUrl(post.images[2])}
                         alt="Post 3"
                         className="w-full h-[199px] object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ) : (
@@ -1112,9 +1127,11 @@ export default function Newsfeed() {
                       {post.images.slice(0, 4).map((imageUrl, idx) => (
                         <div key={idx} className="relative">
                           <img
-                            src={imageUrl}
+                            src={resolveMediaUrl(imageUrl)}
                             alt={`Post ${idx + 1}`}
                             className="w-full h-[250px] object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                           {idx === 3 && post.images!.length > 4 && (
                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -1136,7 +1153,7 @@ export default function Newsfeed() {
                   {post.videos.map((videoUrl, idx) => (
                     <video
                       key={idx}
-                      src={videoUrl}
+                      src={resolveMediaUrl(videoUrl)}
                       controls
                       className="w-full max-h-[600px] bg-black"
                       preload="metadata"

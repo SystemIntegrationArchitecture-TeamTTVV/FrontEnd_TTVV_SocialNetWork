@@ -7,6 +7,12 @@ export interface MessageAttachment {
   fileSize?: number;
 }
 
+export interface MessageReplyTo {
+  messageId: string;
+  senderName: string;
+  contentPreview: string;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -22,6 +28,7 @@ export interface Message {
   isEdited: boolean;
   createdAt: string;
   updatedAt?: string;
+  replyTo?: MessageReplyTo;
 }
 
 export interface CreateMessageDTO {
@@ -31,6 +38,7 @@ export interface CreateMessageDTO {
   senderAvatar?: string;
   content: string;
   attachments?: MessageAttachment[];
+  replyToMessageId?: string;
 }
 
 export const messagesApi = {
@@ -63,10 +71,11 @@ export const messagesApi = {
   },
 
   /**
-   * Delete message
+   * Soft-delete message (sender only; server validates).
    */
-  deleteMessage: async (id: string): Promise<void> => {
-    return httpClient.delete(`/api/message/messages/${id}`);
+  deleteMessage: async (id: string, userId: string): Promise<void> => {
+    const qs = encodeURIComponent(userId);
+    return httpClient.delete(`/api/message/messages/${id}?userId=${qs}`);
   },
 
   /**

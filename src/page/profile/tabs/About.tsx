@@ -25,7 +25,7 @@ export default function About({ displayUser }: AboutProps) {
   if (!displayUser) return null;
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-200 space-y-6">
+    <div className="space-y-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
       <h2 className="text-xl font-semibold text-gray-900">
         {t("profilePage.about.title")}
       </h2>
@@ -101,7 +101,7 @@ export default function About({ displayUser }: AboutProps) {
             {(displayUser.interests ?? []).map((interest, index) => (
               <span
                 key={index}
-                className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
+                className="rounded-md bg-gray-100 px-2.5 py-1 text-sm font-medium text-gray-800"
               >
                 {interest}
               </span>
@@ -125,7 +125,7 @@ function Info({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <Icon className="w-5 h-5 text-gray-400 mt-1" />
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" strokeWidth={1.75} />
       <div>
         <p className="text-sm text-gray-500">{label}</p>
         <p className="text-gray-900 font-medium">{value}</p>

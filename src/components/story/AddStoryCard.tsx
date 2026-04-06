@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 
 type Props = {
@@ -11,6 +12,13 @@ export default function AddStoryCard({
   name = 'Create story',
   onClick,
 }: Props) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImg = Boolean(avatar?.trim()) && !imgFailed;
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [avatar]);
+
   return (
     <button
       type="button"
@@ -25,11 +33,12 @@ export default function AddStoryCard({
     >
       {/* Background */}
       <div className="absolute inset-0 bg-gray-100">
-        {avatar ? (
+        {showImg ? (
           <img
             src={avatar}
             alt={name}
             className="w-full h-full object-cover"
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
