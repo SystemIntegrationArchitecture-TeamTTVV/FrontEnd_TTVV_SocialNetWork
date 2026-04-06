@@ -13,7 +13,7 @@ import VoiceRecorder from '../../components/chat/VoiceRecorder';
 import { conversationsApi } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
-import { aiApi, type AIChatRequest } from '../../apis/ai';
+import { aiApi, type AIChatRequest, type AIDailySummaryResponse } from '../../apis/ai';
 import { getLocaleTag } from '../../i18n';
 
 interface MessengerLocationState {
@@ -327,6 +327,79 @@ export default function Messenger() {
   };
 
   const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  const isDailySummaryPrompt = (input: string) => {
+    const normalized = input.toLowerCase().trim();
+    return (
+      normalized.includes('tóm tắt') ||
+      normalized.includes('tom tat') ||
+      normalized.includes('summary') ||
+      normalized.includes('thông báo hôm nay') ||
+      normalized.includes('thong bao hom nay') ||
+      normalized.includes('notification')
+    );
+  };
+
+  const appendAiMessage = (text: string) => {
+    const aiMessage = {
+      id: Date.now().toString(),
+      text,
+      isUser: false,
+      timestamp: new Date(),
+    };
+    setAiMessages((prev) => [...prev, aiMessage]);
+  };
+
+  const formatDailySummaryMessage = (data: AIDailySummaryResponse) => {
+    const generatedAt = data.generatedAt
+      ? new Date(data.generatedAt).toLocaleTimeString(getLocaleTag(), {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '';
+
+    return [
+      t('messenger.aiAssistant.summaryHeader'),
+      t('messenger.aiAssistant.summaryCounts', {
+        notifications: data.notificationsCount,
+        posts: data.friendsPostCount,
+        messages: data.incomingMessageCount,
+      }),
+      '',
+      data.summary,
+      generatedAt ? '' : null,
+      generatedAt ? t('messenger.aiAssistant.summaryGeneratedAt', { time: generatedAt }) : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  };
+
+  const handleGenerateDailySummaryForAi = async (userPrompt?: string) => {
+    if (!user?.id) return;
+
+    if (userPrompt) {
+      const userMessage = {
+        id: Date.now().toString(),
+        text: userPrompt,
+        isUser: true,
+        timestamp: new Date(),
+      };
+      setAiMessages((prev) => [...prev, userMessage]);
+    }
+
+    setIsAiLoading(true);
+    try {
+      const summary = await aiApi.dailySummary({
+        userId: user.id,
+        limit: 6,
+      });
+      appendAiMessage(formatDailySummaryMessage(summary));
+    } catch (error) {
+      console.error('❌ Error generating AI daily summary:', error);
+      appendAiMessage(t('messenger.aiAssistant.summaryError'));
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim() && !replyTo && !filePreview) return;
@@ -334,20 +407,28 @@ export default function Messenger() {
 
     // Handle AI conversation separately
     if (activeChat === AI_CONVERSATION_ID) {
+      const messageToSend = message.trim();
+      if (!messageToSend) return;
+      setMessage('');
+
+      if (isDailySummaryPrompt(messageToSend)) {
+        await handleGenerateDailySummaryForAi(messageToSend);
+        return;
+      }
+
       const userMessage = {
         id: Date.now().toString(),
-        text: message,
+        text: messageToSend,
         isUser: true,
         timestamp: new Date(),
       };
       
       setAiMessages((prev) => [...prev, userMessage]);
-      setMessage('');
       setIsAiLoading(true);
 
       try {
         const request: AIChatRequest = {
-          message: message,
+          message: messageToSend,
           userId: user.id,
           conversationId: aiConversationId || undefined,
         };
@@ -1457,6 +1538,20 @@ export default function Messenger() {
 
         {/* Message Input */}
         <div className="p-3 md:p-4 lg:p-5 border-t border-gray-100 bg-white">
+          {isAIChat && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => handleGenerateDailySummaryForAi(t('messenger.aiAssistant.summaryQuickPrompt'))}
+                disabled={isAiLoading}
+                className="inline-flex items-center gap-2 h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
+                title={t('messenger.aiAssistant.summarizeToday')}
+              >
+                <Sparkles className="w-4 h-4" />
+                {t('messenger.aiAssistant.summarizeToday')}
+              </button>
+            </div>
+          )}
+
           {/* Loading Indicator */}
           {uploadingFiles && (
             <div className="mb-3 flex items-center gap-2 text-sm text-blue-600">

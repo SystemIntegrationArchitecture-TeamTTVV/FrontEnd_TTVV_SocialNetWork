@@ -391,7 +391,13 @@
       "name": "AIアシスタント",
       "welcome": "こんにちは！AIアシスタントです。何でも聞いてください。",
       "lastMessageFallback": "こんにちは！AIアシスタントです。",
-      "sendError": "メッセージの送信中にエラーが発生しました。しばらくしてからもう一度お試しください。"
+      "sendError": "メッセージの送信中にエラーが発生しました。しばらくしてからもう一度お試しください。",
+      "summarizeToday": "今日の要約",
+      "summaryQuickPrompt": "今日の通知を要約",
+      "summaryHeader": "今日のアクティビティ要約",
+      "summaryCounts": "通知: {{notifications}} | 友だちの投稿: {{posts}} | 受信メッセージ: {{messages}}",
+      "summaryGeneratedAt": "{{time}} に更新",
+      "summaryError": "今日の要約を作成できませんでした。後でもう一度お試しください。"
     },
     "newMessage": {
       "loginRequired": "チャットを始めるにはログインしてください",
@@ -1118,6 +1124,9 @@
     "menuHidePost": "投稿を非表示",
     "menuReport": "報告",
     "videoNotSupported": "お使いのブラウザは動画タグをサポートしていません。",
+    "statsLikes": "いいね {{count}}",
+    "statsComments": "コメント {{count}}",
+    "statsShares": "シェア {{count}}",
     "actionComment": "コメント",
     "actionShare": "シェア",
     "editPost": "投稿を編集",

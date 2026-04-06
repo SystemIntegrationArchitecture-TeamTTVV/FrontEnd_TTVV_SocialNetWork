@@ -391,7 +391,13 @@
       "name": "AI Assistant",
       "welcome": "Xin chào! Tôi là AI Assistant. Bạn có thể hỏi tôi bất cứ điều gì!",
       "lastMessageFallback": "Xin chào! Tôi là AI Assistant.",
-      "sendError": "Xin lỗi, đã xảy ra lỗi khi gửi tin nhắn. Vui lòng thử lại sau."
+      "sendError": "Xin lỗi, đã xảy ra lỗi khi gửi tin nhắn. Vui lòng thử lại sau.",
+      "summarizeToday": "Tóm tắt hôm nay",
+      "summaryQuickPrompt": "Tóm tắt thông báo hôm nay",
+      "summaryHeader": "Tóm tắt hoạt động hôm nay",
+      "summaryCounts": "Thông báo: {{notifications}} | Bài bạn bè: {{posts}} | Tin nhắn đến: {{messages}}",
+      "summaryGeneratedAt": "Cập nhật lúc {{time}}",
+      "summaryError": "Không thể tạo tóm tắt hôm nay. Vui lòng thử lại sau."
     },
     "newMessage": {
       "loginRequired": "Bạn cần đăng nhập để bắt đầu trò chuyện",
@@ -1118,6 +1124,9 @@
     "menuHidePost": "Ẩn bài viết",
     "menuReport": "Báo cáo",
     "videoNotSupported": "Trình duyệt của bạn không hỗ trợ video.",
+    "statsLikes": "{{count}} lượt thích",
+    "statsComments": "{{count}} bình luận",
+    "statsShares": "{{count}} lượt chia sẻ",
     "actionComment": "Bình luận",
     "actionShare": "Chia sẻ",
     "editPost": "Chỉnh sửa bài viết",

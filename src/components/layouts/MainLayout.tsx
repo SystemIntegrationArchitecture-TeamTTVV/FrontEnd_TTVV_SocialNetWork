@@ -76,7 +76,7 @@ export default function MainLayout() {
       
       {!isFlappyFullscreen && <ChatBoxManager />}
       {!isFlappyFullscreen && <MiniMusicPlayer />}
-      {!isFlappyFullscreen && <AIChatWidget />}
+      {!isFlappyFullscreen && !isMessengerPage && <AIChatWidget />}
       <AuthRequiredModal
         open={showAuthModal}
         fromPath={fromPath}

@@ -391,7 +391,13 @@
       "name": "AI Assistant",
       "welcome": "Hi! I'm AI Assistant. You can ask me anything!",
       "lastMessageFallback": "Hi! I'm AI Assistant.",
-      "sendError": "Sorry, there was an error sending your message. Please try again later."
+      "sendError": "Sorry, there was an error sending your message. Please try again later.",
+      "summarizeToday": "Today summary",
+      "summaryQuickPrompt": "Summarize today's notifications",
+      "summaryHeader": "Today's activity summary",
+      "summaryCounts": "Notifications: {{notifications}} | Friends posts: {{posts}} | Incoming messages: {{messages}}",
+      "summaryGeneratedAt": "Updated at {{time}}",
+      "summaryError": "Failed to generate today's summary. Please try again later."
     },
     "newMessage": {
       "loginRequired": "Please log in to start chatting",
@@ -1118,6 +1124,9 @@
     "menuHidePost": "Hide post",
     "menuReport": "Report",
     "videoNotSupported": "Your browser does not support the video tag.",
+    "statsLikes": "{{count}} likes",
+    "statsComments": "{{count}} comments",
+    "statsShares": "{{count}} shares",
     "actionComment": "Comment",
     "actionShare": "Share",
     "editPost": "Edit post",
