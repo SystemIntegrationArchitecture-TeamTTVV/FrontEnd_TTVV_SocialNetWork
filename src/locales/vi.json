@@ -189,7 +189,9 @@
     "clearFilters": "Xóa bộ lọc",
     "emptyTitle": "Không tìm thấy sản phẩm phù hợp",
     "emptySubtitle": "Thử từ khóa khác hoặc chọn lại danh mục.",
+    "loadError": "Không thể tải sản phẩm. Vui lòng thử lại.",
     "currencySuffix": "đ",
+    "seller": "Người bán",
     "reviewsCount": "{{count}} đánh giá",
     "stockRemaining": "Còn {{count}} sản phẩm",
     "productDetailTitle": "Chi tiết sản phẩm",
@@ -221,6 +223,95 @@
       "7": { "title": "Đồng hồ thông minh", "location": "Long Biên, Hà Nội", "condition": "Có GPS" },
       "8": { "title": "Máy chơi game", "location": "Bình Thạnh, TP.HCM", "condition": "Kèm 2 tay cầm" }
     }
+  },
+  "productForm": {
+    "createTitle": "Tạo tin đăng bán sản phẩm mới",
+    "editTitle": "Chỉnh sửa tin đăng bán",
+    "title": "Tên sản phẩm",
+    "titlePlaceholder": "Vd: iPhone 15 Pro Max 256GB",
+    "description": "Mô tả chi tiết",
+    "descriptionPlaceholder": "Mô tả sản phẩm của bạn...",
+    "price": "Giá",
+    "currency": "Loại tiền",
+    "category": "Danh mục",
+    "selectCategory": "Chọn danh mục",
+    "condition": "Tình trạng",
+    "location": "Thành phố/Khu vực",
+    "locationPlaceholder": "Vd: Hà Nội, TP.HCM",
+    "address": "Địa chỉ chi tiết",
+    "addressPlaceholder": "Tùy chọn: Tên đường, tòa nhà, etc.",
+    "images": "Ảnh sản phẩm",
+    "imagePlaceholder": "Dán URL ảnh và nhấn Enter",
+    "tags": "Thẻ",
+    "tagPlaceholder": "Thêm thẻ (không có dấu cách)",
+    "create": "Tạo tin đăng",
+    "update": "Cập nhật tin đăng",
+    "conditions": {
+      "new": "Mới",
+      "excellent": "Như mới",
+      "good": "Tốt",
+      "fair": "Bình thường"
+    },
+    "validation": {
+      "titleRequired": "Vui lòng nhập tên sản phẩm",
+      "descriptionRequired": "Vui lòng nhập mô tả",
+      "priceRequired": "Giá phải lớn hơn 0",
+      "locationRequired": "Vui lòng chọn thành phố",
+      "categoryRequired": "Vui lòng chọn danh mục",
+      "imagesRequired": "Phải có ít nhất 1 ảnh"
+    }
+  },
+  "myProducts": {
+    "title": "Sản phẩm của tôi",
+    "subtitle": "Quản lý tin đăng bán và theo dõi doanh số",
+    "createNew": "Tạo tin đăng mới",
+    "empty": "Bạn chưa tạo tin đăng nào. Hãy bắt đầu bằng cách tạo tin đăng đầu tiên!",
+    "loadError": "Không thể tải sản phẩm. Vui lòng thử lại.",
+    "submitError": "Lỗi khi tạo/cập nhật sản phẩm. Vui lòng thử lại.",
+    "deleteConfirm": "Bạn chắc chắn muốn xóa sản phẩm này?",
+    "deleteError": "Lỗi khi xóa sản phẩm. Vui lòng thử lại.",
+    "toggleError": "Lỗi khi cập nhật trạng thái sản phẩm",
+    "markSoldError": "Lỗi khi đánh dấu đã bán. Vui lòng thử lại.",
+    "total": "Tổng tin đăng",
+    "active": "Hoạt động",
+    "sold": "Đã bán",
+    "activate": "Kích hoạt",
+    "deactivate": "Vô hiệu hóa",
+    "markSold": "Đánh dấu đã bán",
+    "filter": {
+      "all": "Tất cả",
+      "active": "Hoạt động",
+      "sold": "Đã bán"
+    },
+    "table": {
+      "product": "Sản phẩm",
+      "price": "Giá",
+      "category": "Danh mục",
+      "status": "Trạng thái",
+      "actions": "Hành động"
+    },
+    "status": {
+      "active": "Hoạt động",
+      "inactive": "Không hoạt động",
+      "sold": "Đã bán"
+    }
+  },
+  "productDetail": {
+    "notFound": "Sản phẩm không tìm thấy",
+    "loadError": "Không thể tải chi tiết sản phẩm",
+    "backToMarketplace": "Quay lại chợ",
+    "condition": "Tình trạng",
+    "location": "Địa điểm",
+    "tags": "Thẻ",
+    "description": "Mô tả",
+    "contactSeller": "Liên hệ người bán",
+    "message": "Gửi tin nhắn",
+    "toggleLike": "Thích sản phẩm này",
+    "soldOut": "Sản phẩm này đã được bán",
+    "sellerInfo": "Thông tin người bán",
+    "yourProduct": "Bạn là người bán",
+    "loginRequired": "Vui lòng đăng nhập để liên hệ người bán",
+    "ownProduct": "Đây là sản phẩm của bạn"
   },
   "saved": {
     "title": "Mục đã lưu",
