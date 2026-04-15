@@ -1,14 +1,18 @@
-import { useMemo, useState } from 'react';
-import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LaptopIcon, BikeIcon, CameraIcon, SofaIcon, PhoneIcon, GuitarIcon, WatchIcon, GamepadIcon } from '../../common/icons/IconComponents';
 import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
+import { productApi, type ProductDTO } from '../../apis/products';
 
 export default function Marketplace() {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<ProductDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const categories = [
     { id: 'all', icon: Home, label: t('marketplace.categories.all') },
@@ -20,32 +24,30 @@ export default function Marketplace() {
     { id: 'hobbies', icon: Gamepad2, label: t('marketplace.categories.hobbies') },
   ];
 
-  const products = [
-    { id: 1, titleKey: 'marketplace.products.1.title', price: 11500000, locationKey: 'marketplace.products.1.location', icon: 'laptop', conditionKey: 'marketplace.products.1.condition', category: 'electronics' },
-    { id: 2, titleKey: 'marketplace.products.2.title', price: 4200000, locationKey: 'marketplace.products.2.location', icon: 'bike', conditionKey: 'marketplace.products.2.condition', category: 'vehicles' },
-    { id: 3, titleKey: 'marketplace.products.3.title', price: 7900000, locationKey: 'marketplace.products.3.location', icon: 'camera', conditionKey: 'marketplace.products.3.condition', category: 'electronics' },
-    { id: 4, titleKey: 'marketplace.products.4.title', price: 5100000, locationKey: 'marketplace.products.4.location', icon: 'sofa', conditionKey: 'marketplace.products.4.condition', category: 'home' },
-    { id: 5, titleKey: 'marketplace.products.5.title', price: 16900000, locationKey: 'marketplace.products.5.location', icon: 'phone', conditionKey: 'marketplace.products.5.condition', category: 'electronics' },
-    { id: 6, titleKey: 'marketplace.products.6.title', price: 3600000, locationKey: 'marketplace.products.6.location', icon: 'guitar', conditionKey: 'marketplace.products.6.condition', category: 'hobbies' },
-    { id: 7, titleKey: 'marketplace.products.7.title', price: 2800000, locationKey: 'marketplace.products.7.location', icon: 'watch', conditionKey: 'marketplace.products.7.condition', category: 'electronics' },
-    { id: 8, titleKey: 'marketplace.products.8.title', price: 9200000, locationKey: 'marketplace.products.8.location', icon: 'gamepad', conditionKey: 'marketplace.products.8.condition', category: 'hobbies' },
-  ];
+  // Fetch products on component mount and when filters change
+  useEffect(() => {
+    loadProducts();
+  }, [activeCategory, searchQuery]);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await productApi.getAllProducts({
+        category: activeCategory !== 'all' ? activeCategory : undefined,
+        search: searchQuery.trim() || undefined,
+      });
+      setProducts(response || []);
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError(t('marketplace.loadError'));
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const activeCategoryLabel = categories.find((c) => c.id === activeCategory)?.label || t('marketplace.categories.all');
-
-  const filteredProducts = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    return products.filter((product) => {
-      const matchCategory = activeCategory === 'all' || product.category === activeCategory;
-      const matchSearch =
-        !query ||
-        t(product.titleKey).toLowerCase().includes(query) ||
-        t(product.locationKey).toLowerCase().includes(query);
-
-      return matchCategory && matchSearch;
-    });
-  }, [activeCategory, products, searchQuery]);
 
   const getProductIcon = (iconType: string) => {
     switch (iconType) {
@@ -105,10 +107,13 @@ export default function Marketplace() {
         </div>
 
         {/* Create Listing */}
-        <button className="w-full h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+        <Link
+          to="/marketplace/my-products"
+          className="w-full h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+        >
           <Plus className="w-5 h-5" />
           <span>{t('marketplace.createListing')}</span>
-        </button>
+        </Link>
       </aside>
 
       {/* Main Content */}
@@ -117,7 +122,7 @@ export default function Marketplace() {
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{t('marketplace.todayPicks')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              {t('marketplace.productSummary', { count: filteredProducts.length, category: activeCategoryLabel })}
+              {t('marketplace.productSummary', { count: products.length, category: activeCategoryLabel })}
             </p>
           </div>
 
@@ -136,32 +141,65 @@ export default function Marketplace() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProducts.map((product) => (
-            <Link
-              key={product.id}
-              to={`/marketplace/product/${product.id}`}
-              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader className="w-8 h-8 text-blue-600 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center">
+            <p className="text-base font-semibold text-red-900">{error}</p>
+            <button
+              onClick={() => loadProducts()}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
-              <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                {getProductIcon(product.icon)}
-              </div>
-              <div className="p-4">
-                <p className="text-xl font-bold text-gray-900 mb-1">
-                  {product.price.toLocaleString(getLocaleTag())} {t('marketplace.currencySuffix')}
-                </p>
-                <p className="font-semibold text-gray-900 mb-1 line-clamp-1">{t(product.titleKey)}</p>
-                <p className="text-sm text-gray-500 mb-2">{t(product.locationKey)}</p>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                  {t(product.conditionKey)}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+              {t('common.retry')}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {products.map((product) => (
+              <Link
+                key={product.id}
+                to={`/marketplace/product/${product.id}`}
+                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className="aspect-square bg-gray-100 flex items-center justify-center text-4xl overflow-hidden">
+                  {product.images && product.images.length > 0 ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-gray-400">📦</span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <p className="text-xl font-bold text-gray-900 mb-1">
+                    {product.price.toLocaleString(getLocaleTag())} {product.currency || 'VND'}
+                  </p>
+                  <p className="font-semibold text-gray-900 mb-1 line-clamp-2">{product.title}</p>
+                  <p className="text-sm text-gray-500 mb-2">{product.location}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                    {product.condition}
+                  </p>
+                  {product.seller && (
+                    <p className="text-xs text-gray-600 mt-2">
+                      {t('marketplace.seller')}: {product.seller.fullName}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
-        {filteredProducts.length === 0 && (
+        {!loading && !error && products.length === 0 && (
           <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center">
             <p className="text-base font-semibold text-gray-900">{t('marketplace.emptyTitle')}</p>
             <p className="text-sm text-gray-500 mt-1">{t('marketplace.emptySubtitle')}</p>

@@ -72,6 +72,7 @@ import NotificationSettings from "../page/social/NotificationSettings";
 import Search from "../page/social/Search";
 import WatchVideo from "../page/social/WatchVideo";
 import Marketplace from "../page/social/Marketplace";
+import MyProducts from "../page/social/MyProducts";
 import ProductDetail from "../page/social/ProductDetail";
 import SavedItems from "../page/social/SavedItems";
 
@@ -183,6 +184,7 @@ export const router = createBrowserRouter([
       { path: "search", element: <Search /> },
       { path: "watch", element: <WatchVideo /> },
       { path: "marketplace", element: <Marketplace /> },
+      { path: "marketplace/my-products", element: <ProtectedRoute requireAuth={true}><MyProducts /></ProtectedRoute> },
       { path: "marketplace/product/:id", element: <ProductDetail /> },
       { path: "saved", element: <ProtectedRoute requireAuth={true}><SavedItems /></ProtectedRoute> },
 

@@ -189,7 +189,9 @@
     "clearFilters": "フィルターをクリア",
     "emptyTitle": "該当する商品が見つかりません",
     "emptySubtitle": "別のキーワードやカテゴリをお試しください。",
+    "loadError": "商品を読み込めませんでした。やり直してください。",
     "currencySuffix": "VND",
+    "seller": "販売者",
     "reviewsCount": "{{count}} 件のレビュー",
     "stockRemaining": "在庫 {{count}} 点",
     "productDetailTitle": "商品詳細",
@@ -221,6 +223,95 @@
       "7": { "title": "スマートウォッチ", "location": "ハノイ ロンビエン", "condition": "GPSあり" },
       "8": { "title": "ゲーム機", "location": "ホーチミン市 ビンタイン", "condition": "コントローラー2本付き" }
     }
+  },
+  "productForm": {
+    "createTitle": "新しい商品出品を作成",
+    "editTitle": "商品出品を編集",
+    "title": "商品タイトル",
+    "titlePlaceholder": "例：iPhone 15 Pro Max 256GB",
+    "description": "説明",
+    "descriptionPlaceholder": "商品を詳しく説明してください…",
+    "price": "価格",
+    "currency": "通貨",
+    "category": "カテゴリ",
+    "selectCategory": "カテゴリを選択",
+    "condition": "状態",
+    "location": "場所/都市",
+    "locationPlaceholder": "例：ハノイ、ホーチミン市",
+    "address": "詳細住所",
+    "addressPlaceholder": "オプション：通り、建物など",
+    "images": "商品画像",
+    "imagePlaceholder": "画像URLを貼り付けてEnterキーを押す",
+    "tags": "タグ",
+    "tagPlaceholder": "タグを追加（スペースなし）",
+    "create": "出品を作成",
+    "update": "出品を更新",
+    "conditions": {
+      "new": "新品",
+      "excellent": "非常に良い",
+      "good": "良い",
+      "fair": "通常"
+    },
+    "validation": {
+      "titleRequired": "商品タイトルは必須です",
+      "descriptionRequired": "説明は必須です",
+      "priceRequired": "価格は0より大きい必要があります",
+      "locationRequired": "場所は必須です",
+      "categoryRequired": "カテゴリは必須です",
+      "imagesRequired": "1つ以上の画像が必要です"
+    }
+  },
+  "myProducts": {
+    "title": "私の商品",
+    "subtitle": "出品を管理して販売を追跡",
+    "createNew": "新規出品を作成",
+    "empty": "まだ商品出品がありません。最初の出品を作成してはじめましょう！",
+    "loadError": "商品を読み込めませんでした。やり直してください。",
+    "submitError": "商品の作成/更新エラー。やり直してください。",
+    "deleteConfirm": "この商品を削除しますか？",
+    "deleteError": "商品削除エラー。やり直してください。",
+    "toggleError": "商品ステータスの更新エラー",
+    "markSoldError": "売却済みにする エラー。やり直してください。",
+    "total": "総出品数",
+    "active": "アクティブ",
+    "sold": "売却済み",
+    "activate": "アクティベート",
+    "deactivate": "非アクティベート",
+    "markSold": "売却済みにする",
+    "filter": {
+      "all": "すべて",
+      "active": "アクティブ",
+      "sold": "売却済み"
+    },
+    "table": {
+      "product": "商品",
+      "price": "価格",
+      "category": "カテゴリ",
+      "status": "ステータス",
+      "actions": "アクション"
+    },
+    "status": {
+      "active": "アクティブ",
+      "inactive": "非アクティブ",
+      "sold": "売却済み"
+    }
+  },
+  "productDetail": {
+    "notFound": "商品が見つかりません",
+    "loadError": "商品詳細を読み込めませんでした",
+    "backToMarketplace": "マーケットに戻る",
+    "condition": "状態",
+    "location": "場所",
+    "tags": "タグ",
+    "description": "説明",
+    "contactSeller": "販売者に連絡",
+    "message": "メッセージを送信",
+    "toggleLike": "この商品を好きになる",
+    "soldOut": "この商品は売却済みです",
+    "sellerInfo": "販売者情報",
+    "yourProduct": "あなたが販売者です",
+    "loginRequired": "販売者に連絡するにはログインしてください",
+    "ownProduct": "これはあなたの商品です"
   },
   "saved": {
     "title": "保存したアイテム",
