@@ -90,18 +90,30 @@ export const messagesApi = {
   /**
    * Get all messages in a conversation
    */
-  getMessagesByConversationId: async (conversationId: string): Promise<Message[]> => {
-    return httpClient.get<Message[]>(`/api/message/messages/conversation/${conversationId}`);
+  getMessagesByConversationId: async (conversationId: string, userId?: string): Promise<Message[]> => {
+    const params = new URLSearchParams();
+    if (userId) {
+      params.set('userId', userId);
+    }
+    const qs = params.toString();
+    const url = qs
+      ? `/api/message/messages/conversation/${conversationId}?${qs}`
+      : `/api/message/messages/conversation/${conversationId}`;
+    return httpClient.get<Message[]>(url);
   },
 
   getMessagesByConversationCursor: async (
     conversationId: string,
     before?: string,
-    limit: number = 20
+    limit: number = 20,
+    userId?: string
   ): Promise<MessagePageResponse> => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (before) {
       params.set('before', before);
+    }
+    if (userId) {
+      params.set('userId', userId);
     }
     return httpClient.get<MessagePageResponse>(
       `/api/message/messages/conversation/${conversationId}/cursor?${params.toString()}`
@@ -154,6 +166,14 @@ export const messagesApi = {
   deleteMessage: async (id: string, userId: string): Promise<void> => {
     const qs = encodeURIComponent(userId);
     return httpClient.delete(`/api/message/messages/${id}?userId=${qs}`);
+  },
+
+  /**
+   * Delete message for current user only.
+   */
+  deleteMessageForMe: async (id: string, userId: string): Promise<void> => {
+    const qs = encodeURIComponent(userId);
+    return httpClient.post(`/api/message/messages/${id}/delete-for-me?userId=${qs}`);
   },
 
   /**

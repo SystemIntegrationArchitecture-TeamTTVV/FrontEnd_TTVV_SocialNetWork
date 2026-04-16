@@ -137,7 +137,7 @@ export default function GroupChat() {
 
   const loadInitialMessages = async () => {
     if (!conversationId) return;
-    const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 20);
+    const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 20, user?.id);
     const initial = page.messages || [];
     setMessages(initial);
     setNextCursor(page.nextCursor || null);
@@ -176,7 +176,7 @@ export default function GroupChat() {
   const resyncRecentMessages = async () => {
     if (!conversationId) return;
     try {
-      const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 50);
+      const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 50, user?.id);
       const recent = page.messages || [];
       setMessages((prev) => mergeMessages(prev, recent));
       setSeenByMessageId((prev) => {
@@ -197,7 +197,7 @@ export default function GroupChat() {
     if (!conversationId || !nextCursor || loadingMore) return;
     try {
       setLoadingMore(true);
-      const page = await messagesApi.getMessagesByConversationCursor(conversationId, nextCursor, 20);
+      const page = await messagesApi.getMessagesByConversationCursor(conversationId, nextCursor, 20, user?.id);
       const older = page.messages || [];
       setMessages((prev) => [...older, ...prev]);
       setNextCursor(page.nextCursor || null);
@@ -309,6 +309,14 @@ export default function GroupChat() {
       setMediaMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
     });
 
+    const unsubDeletedForMe = subscribe('MESSAGE_DELETED_FOR_ME', (event) => {
+      const payload = event.data as { conversationId: string; messageId: string };
+      if (!payload || payload.conversationId !== conversationId) return;
+      setMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
+      setPinnedMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
+      setMediaMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
+    });
+
     const unsubPin = subscribe('MESSAGE_PINNED', (event) => {
       const payload = event.data as { conversationId: string; messageId: string; pinned: boolean };
       if (!payload || payload.conversationId !== conversationId) return;
@@ -386,6 +394,7 @@ export default function GroupChat() {
     return () => {
       unsubMessage();
       unsubDeleted();
+      unsubDeletedForMe();
       unsubPin();
       unsubEdited();
       unsubReacted();
@@ -666,6 +675,16 @@ export default function GroupChat() {
     }
   };
 
+  const clearConversationForMe = async () => {
+    if (!conversationId || !user?.id) return;
+    try {
+      await conversationsApi.clearConversationForUser(conversationId, { userId: user.id });
+      navigate('/messenger');
+    } catch (err: any) {
+      setError(err?.message || 'Xoa cuoc tro chuyen that bai');
+    }
+  };
+
   const togglePinMessage = async (messageId: string) => {
     if (!user?.id) return;
     try {
@@ -676,6 +695,30 @@ export default function GroupChat() {
       }
     } catch (err: any) {
       setError(err?.message || 'Cap nhat pin that bai');
+    }
+  };
+
+  const recallMessage = async (messageId: string) => {
+    if (!user?.id) return;
+    try {
+      await messagesApi.deleteMessage(messageId, user.id);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setMediaMessages((prev) => prev.filter((m) => m.id !== messageId));
+    } catch (err: any) {
+      setError(err?.message || 'Thu hoi tin nhan that bai');
+    }
+  };
+
+  const deleteMessageForMe = async (messageId: string) => {
+    if (!user?.id) return;
+    try {
+      await messagesApi.deleteMessageForMe(messageId, user.id);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setMediaMessages((prev) => prev.filter((m) => m.id !== messageId));
+    } catch (err: any) {
+      setError(err?.message || 'Xoa tin nhan phia toi that bai');
     }
   };
 
@@ -949,6 +992,9 @@ export default function GroupChat() {
             <button onClick={hideConversation} className="h-9 px-3 rounded-lg bg-gray-800 hover:bg-gray-900 text-white text-sm">
               An nhom
             </button>
+            <button onClick={clearConversationForMe} className="h-9 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm">
+              Xoa cuoc tro chuyen cho toi
+            </button>
             {!isOwner && (
               <button onClick={leaveGroup} className="h-9 px-3 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-sm">
                 Roi nhom
@@ -1053,6 +1099,14 @@ export default function GroupChat() {
                       <button onClick={() => togglePinMessage(msg.id)} className="hover:text-gray-600 inline-flex items-center gap-1">
                         <Pin className={`w-3 h-3 ${msg.pinned ? 'text-blue-500' : ''}`} />
                         {msg.pinned ? 'Unpin' : 'Pin'}
+                      </button>
+                      {isMe && (
+                        <button onClick={() => recallMessage(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
+                          Thu hoi
+                        </button>
+                      )}
+                      <button onClick={() => deleteMessageForMe(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
+                        Xoa phia toi
                       </button>
                     </div>
                     {isMe && seenList.length > 0 && (

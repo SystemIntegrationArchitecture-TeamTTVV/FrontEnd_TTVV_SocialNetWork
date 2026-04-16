@@ -40,7 +40,7 @@ export function useMessages() {
       setLoading(true);
       setError(null);
       console.log('📥 Loading messages for conversation:', conversationId);
-      const data = await messagesApi.getMessagesByConversationId(conversationId);
+      const data = await messagesApi.getMessagesByConversationId(conversationId, user?.id);
       console.log('✅ Loaded', data.length, 'messages for conversation:', conversationId);
       setMessages(prev => ({
         ...prev,
@@ -53,7 +53,7 @@ export function useMessages() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   // Send a message
   const sendMessage = useCallback(async (
@@ -110,6 +110,19 @@ export function useMessages() {
   const removeMessage = useCallback(async (conversationId: string, messageId: string) => {
     if (!user?.id) return;
     await messagesApi.deleteMessage(messageId, user.id);
+    setMessages(prev => {
+      const list = prev[conversationId];
+      if (!list) return prev;
+      return {
+        ...prev,
+        [conversationId]: list.filter(m => m.id !== messageId),
+      };
+    });
+  }, [user?.id]);
+
+  const removeMessageForMe = useCallback(async (conversationId: string, messageId: string) => {
+    if (!user?.id) return;
+    await messagesApi.deleteMessageForMe(messageId, user.id);
     setMessages(prev => {
       const list = prev[conversationId];
       if (!list) return prev;
@@ -203,6 +216,22 @@ export function useMessages() {
           // Update conversation last message and move to top
           console.log('🔄 Updating conversation list with new message preview');
           setConversations(prev => {
+            const exists = prev.some((conv) => conv.id === message.conversationId);
+            if (!exists) {
+              conversationsApi
+                .getConversationById(message.conversationId)
+                .then((conv) => {
+                  setConversations((current) => {
+                    if (current.some((item) => item.id === conv.id)) {
+                      return current;
+                    }
+                    return [conv, ...current];
+                  });
+                })
+                .catch(() => undefined);
+              return prev;
+            }
+
             const updated = prev.map(conv =>
               conv.id === message.conversationId
                 ? {
@@ -241,6 +270,20 @@ export function useMessages() {
       });
     });
 
+    const unsubscribeDeletedForMe = subscribe('MESSAGE_DELETED_FOR_ME', (event) => {
+      if (event.type !== 'MESSAGE_DELETED_FOR_ME' || !event.data) return;
+      const { conversationId, messageId } = event.data as { conversationId: string; messageId: string };
+      if (!conversationId || !messageId) return;
+      setMessages(prev => {
+        const list = prev[conversationId];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [conversationId]: list.filter(m => m.id !== messageId),
+        };
+      });
+    });
+
     const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
       console.log('🔔 Received NOTIFICATION via socket:', event);
 
@@ -264,10 +307,45 @@ export function useMessages() {
       }
     });
 
+    const unsubscribeConversationCleared = subscribe('CONVERSATION_CLEARED', (event) => {
+      if (event.type !== 'CONVERSATION_CLEARED' || !event.data) return;
+      const payload = event.data as { conversationId?: string };
+      const conversationId = payload.conversationId;
+      if (!conversationId) return;
+
+      setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+      setMessages(prev => {
+        if (!(conversationId in prev)) return prev;
+        const next = { ...prev };
+        delete next[conversationId];
+        return next;
+      });
+    });
+
+    const unsubscribeConversationRestored = subscribe('CONVERSATION_RESTORED', (event) => {
+      if (event.type !== 'CONVERSATION_RESTORED' || !event.data) return;
+      const payload = event.data as { conversationId?: string };
+      const conversationId = payload.conversationId;
+      if (!conversationId) return;
+
+      conversationsApi
+        .getConversationById(conversationId)
+        .then((conv) => {
+          setConversations((current) => {
+            const filtered = current.filter((item) => item.id !== conv.id);
+            return [conv, ...filtered];
+          });
+        })
+        .catch(() => undefined);
+    });
+
     return () => {
       unsubscribeMessage();
       unsubscribeDeleted();
+      unsubscribeDeletedForMe();
       unsubscribeNotification();
+      unsubscribeConversationCleared();
+      unsubscribeConversationRestored();
     };
   }, [isConnected, user?.id, subscribe, conversations]);
 
@@ -326,6 +404,7 @@ export function useMessages() {
     loadMessages,
     sendMessage,
     removeMessage,
+    removeMessageForMe,
     getOrCreateDirectConversation,
     formatMessageForDisplay,
     subscribeToMessages: subscribe, // Export for ChatBoxContext

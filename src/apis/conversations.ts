@@ -15,6 +15,8 @@ export interface Conversation {
   onlyAdminsCanAddMembers?: boolean;
   approvalsRequired?: boolean;
   hiddenForCurrentUser?: boolean;
+  hiddenRequiresPin?: boolean;
+  clearBeforeAt?: string;
   pendingJoinIds?: string[];
   lastMessagePreview?: string;
   lastMessageAt?: string;
@@ -77,6 +79,10 @@ export interface JoinRequestUpdateRequest {
 export interface ConversationPinRequest {
   userId: string;
   pin: string;
+}
+
+export interface ConversationVisibilityRequest {
+  userId: string;
 }
 
 export const conversationsApi = {
@@ -158,6 +164,14 @@ export const conversationsApi = {
 
   unhideConversation: async (id: string, data: ConversationPinRequest): Promise<Conversation> => {
     return httpClient.post<Conversation>(`/api/message/conversations/${id}/unhide`, data);
+  },
+
+  clearConversationForUser: async (id: string, data: ConversationVisibilityRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${id}/clear-for-user`, data);
+  },
+
+  restoreConversation: async (id: string, data: ConversationVisibilityRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${id}/restore`, data);
   },
 
   leaveGroup: async (conversationId: string, data: LeaveGroupRequest): Promise<Conversation> => {

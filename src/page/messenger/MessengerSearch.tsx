@@ -42,6 +42,17 @@ export default function MessengerSearch() {
     navigate(`/messenger/group/${conversation.id}`);
   };
 
+  const restoreConversation = async (conversationId: string) => {
+    if (!user?.id) return;
+    try {
+      setError(null);
+      await conversationsApi.restoreConversation(conversationId, { userId: user.id });
+      navigate(`/messenger/group/${conversationId}`);
+    } catch (err: any) {
+      setError(err?.message || 'Mo lai nhom that bai');
+    }
+  };
+
   const unlockConversation = async (conversationId: string) => {
     if (!user?.id) return;
     if (!pin.trim()) {
@@ -86,6 +97,7 @@ export default function MessengerSearch() {
         <div className="space-y-2">
           {results.map((conversation) => {
             const hidden = !!conversation.hiddenForCurrentUser;
+            const hiddenRequiresPin = !!conversation.hiddenRequiresPin;
             return (
               <div key={conversation.id} className="border border-gray-200 rounded-lg p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -101,17 +113,24 @@ export default function MessengerSearch() {
                     <button onClick={() => openConversation(conversation)} className="h-9 px-3 rounded-lg bg-gray-900 hover:bg-black text-white text-sm">
                       Mo nhom
                     </button>
-                  ) : (
+                  ) : hiddenRequiresPin ? (
                     <button
                       onClick={() => setActiveHiddenId((prev) => prev === conversation.id ? null : conversation.id)}
                       className="h-9 px-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm"
                     >
                       Mo khoa
                     </button>
+                  ) : (
+                    <button
+                      onClick={() => restoreConversation(conversation.id)}
+                      className="h-9 px-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm"
+                    >
+                      Mo lai
+                    </button>
                   )}
                 </div>
 
-                {hidden && activeHiddenId === conversation.id && (
+                {hidden && hiddenRequiresPin && activeHiddenId === conversation.id && (
                   <div className="mt-3 flex gap-2">
                     <input
                       type="password"

@@ -34,6 +34,7 @@ export default function Messenger() {
     loadMessages,
     sendMessage: sendMessageAPI,
     removeMessage,
+    removeMessageForMe,
     formatMessageForDisplay,
   } = useMessages();
 
@@ -647,6 +648,30 @@ export default function Messenger() {
     }
   };
 
+  const handleClearConversationForMe = async () => {
+    if (!activeChat || !user?.id) return;
+    if (activeChat === AI_CONVERSATION_ID) return;
+
+    const ok = confirm('Ban co chac muon xoa doan chat cho rieng minh khong?');
+    if (!ok) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      await conversationsApi.clearConversationForUser(activeChat, { userId: user.id });
+      setActiveChat(null);
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to clear conversation for current user', err);
+      const message = err instanceof Error ? err.message : 'Xoa doan chat that bai';
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   const handleJoinRequestDecision = async (requesterId: string, approved: boolean) => {
     if (!activeChat || !user?.id) return;
     setUpdatingGroup(true);
@@ -859,10 +884,18 @@ export default function Messenger() {
         }
         break;
       case 'delete':
-        if (activeChat && confirm(t('messenger.confirmDeleteMessage'))) {
+        if (activeChat && message.isMe && confirm(t('messenger.confirmDeleteMessage'))) {
           removeMessage(activeChat, messageId).catch((err: unknown) => {
             console.error('Failed to delete message:', err);
             alert(t('messenger.errors.deleteMessage'));
+          });
+        }
+        break;
+      case 'delete_for_me':
+        if (activeChat && user?.id && confirm('Xoa tin nhan nay o phia ban?')) {
+          removeMessageForMe(activeChat, messageId).catch((err: unknown) => {
+            console.error('Failed to delete message for me:', err);
+            alert('Xoa phia toi that bai');
           });
         }
         break;
@@ -1424,12 +1457,21 @@ export default function Messenger() {
                                 </button>
                               )}
                               <div className="border-t border-gray-100 my-1"></div>
+                              {msg.isMe && (
+                                <button
+                                  onClick={() => handleMessageAction('delete', msg.id)}
+                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>{t('messenger.messageOptions.delete')}</span>
+                                </button>
+                              )}
                               <button
-                                onClick={() => handleMessageAction('delete', msg.id)}
+                                onClick={() => handleMessageAction('delete_for_me', msg.id)}
                                 className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                <span>{t('messenger.messageOptions.delete')}</span>
+                                <span>Xoa phia toi</span>
                               </button>
                             </div>
                           )}
@@ -2050,6 +2092,14 @@ export default function Messenger() {
               </div>
               <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarMute')}</span>
             </button>
+            {!isAIChat && (
+              <button onClick={handleClearConversationForMe} className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                  <Trash2 className="w-6 h-6 md:w-7 md:h-7 text-red-500" />
+                </div>
+                <span className="text-xs md:text-sm text-red-600 font-medium">Xoa doan chat</span>
+              </button>
+            )}
           </div>
 
           <div className="border-t border-gray-100 my-6"></div>
