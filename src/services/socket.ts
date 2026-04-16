@@ -4,6 +4,7 @@ import { authApi } from "../apis/auth";
 import { API_CONFIG } from "../apis/config";
 
 export interface SocketEvent {
+  eventId?: string;
   type: string;
   userId: string;
   data: any;
@@ -27,6 +28,9 @@ class SocketService {
   private isConnected = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private heartbeatTimer: number | null = null;
+  private recentEventKeys: Map<string, number> = new Map();
+  private dedupeWindowMs = 2 * 60 * 1000;
 
   connect(): void {
     if (this.client?.connected) {
@@ -59,9 +63,13 @@ class SocketService {
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.subscribeToChannels();
+        this.markPresenceOnline().catch(() => undefined);
+        this.startPresenceHeartbeat();
       },
       onDisconnect: () => {
         console.log("❌ Socket disconnected from WebSocket server");
+        this.markPresenceOffline().catch(() => undefined);
+        this.stopPresenceHeartbeat();
         this.isConnected = false;
         this.subscriptions.clear();
       },
@@ -120,6 +128,9 @@ class SocketService {
       (message: StompMessage) => {
         try {
           const event: SocketEvent = JSON.parse(message.body);
+          if (!this.shouldProcessEvent(event)) {
+            return;
+          }
           console.log("📨 Received notification via socket:", event);
           console.log("📨 Event details:", {
             type: event.type,
@@ -152,6 +163,9 @@ class SocketService {
       (message: StompMessage) => {
         try {
           const event: SocketEvent = JSON.parse(message.body);
+          if (!this.shouldProcessEvent(event)) {
+            return;
+          }
           console.log(
             "📞 Received WebRTC event via socket:",
             event.type,
@@ -176,6 +190,9 @@ class SocketService {
       "/topic/public",
       (message: StompMessage) => {
         const event: SocketEvent = JSON.parse(message.body);
+        if (!this.shouldProcessEvent(event)) {
+          return;
+        }
         console.log("📢 Received public event via socket:", event.type, event);
         this.handleEvent(event.type, event);
         this.handleEvent("*", event); // Wildcard handler
@@ -200,6 +217,8 @@ class SocketService {
 
   disconnect(): void {
     if (this.client) {
+      this.markPresenceOffline().catch(() => undefined);
+      this.stopPresenceHeartbeat();
       this.subscriptions.forEach((sub) => sub.unsubscribe());
       this.subscriptions.clear();
       this.client.deactivate();
@@ -250,6 +269,85 @@ class SocketService {
 
   isSocketConnected(): boolean {
     return this.isConnected && this.client?.connected === true;
+  }
+
+  private getPresencePayload() {
+    const user = authApi.getCurrentUser();
+    return {
+      userId: user?.id || "",
+      username: user?.username || user?.id || "",
+    };
+  }
+
+  private async callPresenceEndpoint(path: "online" | "heartbeat" | "offline") {
+    const token = authApi.getToken();
+    const payload = this.getPresencePayload();
+    if (!payload.username || !token) {
+      return;
+    }
+
+    await fetch(`${API_CONFIG.BASE_URL}/api/common/socket/presence/${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+      keepalive: path === "offline",
+    });
+  }
+
+  private async markPresenceOnline() {
+    await this.callPresenceEndpoint("online");
+  }
+
+  private async markPresenceOffline() {
+    await this.callPresenceEndpoint("offline");
+  }
+
+  private startPresenceHeartbeat() {
+    this.stopPresenceHeartbeat();
+    this.heartbeatTimer = window.setInterval(() => {
+      this.callPresenceEndpoint("heartbeat").catch(() => undefined);
+    }, 20000);
+  }
+
+  private stopPresenceHeartbeat() {
+    if (this.heartbeatTimer) {
+      window.clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  private buildEventDedupeKey(event: SocketEvent): string {
+    if (event.eventId) {
+      return event.eventId;
+    }
+    const data = event.data as Record<string, any> | undefined;
+    const messageId = typeof data?.id === "string" ? data.id : "";
+    const conversationId = typeof data?.conversationId === "string" ? data.conversationId : "";
+    const eventDataMessageId = typeof data?.messageId === "string" ? data.messageId : "";
+    const ts = event.timestamp || "";
+    return `${event.type}:${event.userId || ""}:${conversationId}:${messageId}:${eventDataMessageId}:${ts}`;
+  }
+
+  private cleanupOldEventKeys(now: number) {
+    for (const [key, seenAt] of this.recentEventKeys.entries()) {
+      if (now - seenAt > this.dedupeWindowMs) {
+        this.recentEventKeys.delete(key);
+      }
+    }
+  }
+
+  private shouldProcessEvent(event: SocketEvent): boolean {
+    const key = this.buildEventDedupeKey(event);
+    const now = Date.now();
+    this.cleanupOldEventKeys(now);
+    if (this.recentEventKeys.has(key)) {
+      return false;
+    }
+    this.recentEventKeys.set(key, now);
+    return true;
   }
 }
 

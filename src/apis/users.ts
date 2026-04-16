@@ -31,6 +31,13 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface PresenceStatus {
+  userId: string;
+  username?: string;
+  online: boolean;
+  lastSeenAt?: string | null;
+}
+
 export const usersApi = {
   /**
    * Get all users (admin only)
@@ -111,5 +118,13 @@ export const usersApi = {
       console.error('Failed to update user profile:', error);
       throw error;
     }
+  },
+
+  getPresenceByUserIds: async (userIds: string[]): Promise<Record<string, PresenceStatus>> => {
+    if (!userIds || userIds.length === 0) {
+      return {};
+    }
+    const query = encodeURIComponent(userIds.join(','));
+    return httpClient.get<Record<string, PresenceStatus>>(`/api/common/socket/presence?userIds=${query}`);
   },
 };

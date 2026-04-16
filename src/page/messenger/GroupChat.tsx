@@ -19,7 +19,7 @@ import { conversationsApi, type Conversation } from '../../apis/conversations';
 import { messagesApi, type Message } from '../../apis/messages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { usersApi, type User } from '../../apis/users';
+import { usersApi, type PresenceStatus, type User } from '../../apis/users';
 
 export default function GroupChat() {
   const { id } = useParams();
@@ -67,10 +67,12 @@ export default function GroupChat() {
   const [pollMultipleChoice, setPollMultipleChoice] = useState(false);
   const [creatingPoll, setCreatingPoll] = useState(false);
   const [votingPollMessageId, setVotingPollMessageId] = useState<string | null>(null);
+  const [presenceByUserId, setPresenceByUserId] = useState<Record<string, PresenceStatus>>({});
 
   const typingStopTimerRef = useRef<number | null>(null);
   const isTypingRef = useRef(false);
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
+  const prevConnectedRef = useRef<boolean>(false);
 
   const conversationId = id || '';
 
@@ -98,6 +100,10 @@ export default function GroupChat() {
       .slice(0, 3);
   }, [typingUserIds, memberRows]);
 
+  const onlineCount = useMemo(() => {
+    return memberRows.filter((m) => presenceByUserId[m.participantId]?.online).length;
+  }, [memberRows, presenceByUserId]);
+
   const mentionCandidates = useMemo(() => {
     const q = mentionQuery.trim().toLowerCase();
     if (!mentionOpen) return [];
@@ -116,6 +122,7 @@ export default function GroupChat() {
     setApprovalsRequired(!!data.approvalsRequired);
     setOnlyAdminsCanSend(!!data.onlyAdminsCanSend);
     setOnlyAdminsCanAddMembers(data.onlyAdminsCanAddMembers ?? true);
+    refreshPresence(data.participantIds || []).catch(() => undefined);
   };
 
   const syncSeenMapFromMessages = (source: Message[]) => {
@@ -136,6 +143,54 @@ export default function GroupChat() {
     setNextCursor(page.nextCursor || null);
     setHasMore(!!page.hasMore);
     syncSeenMapFromMessages(initial);
+  };
+
+  const refreshPresence = async (participantIds?: string[]) => {
+    const ids = participantIds || conversation?.participantIds || [];
+    if (!ids.length) {
+      setPresenceByUserId({});
+      return;
+    }
+    try {
+      const status = await usersApi.getPresenceByUserIds(ids);
+      setPresenceByUserId(status || {});
+    } catch {
+      // keep old state when presence API is temporarily unavailable
+    }
+  };
+
+  const mergeMessages = (current: Message[], incoming: Message[]): Message[] => {
+    const map = new Map<string, Message>();
+    for (const m of current) {
+      map.set(m.id, m);
+    }
+    for (const m of incoming) {
+      const existing = map.get(m.id);
+      map.set(m.id, existing ? { ...existing, ...m } : m);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  };
+
+  const resyncRecentMessages = async () => {
+    if (!conversationId) return;
+    try {
+      const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 50);
+      const recent = page.messages || [];
+      setMessages((prev) => mergeMessages(prev, recent));
+      setSeenByMessageId((prev) => {
+        const next = { ...prev };
+        for (const m of recent) {
+          if (m.seenByUserIds?.length) {
+            next[m.id] = Array.from(new Set(m.seenByUserIds));
+          }
+        }
+        return next;
+      });
+    } catch {
+      // ignore reconnect sync errors; next reload will recover
+    }
   };
 
   const loadMore = async () => {
@@ -204,6 +259,20 @@ export default function GroupChat() {
       refreshMedia().catch(() => undefined);
     }
   }, [activeTab, mediaType, conversationId, user?.id]);
+
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+    if (!wasConnected && isConnected) {
+      resyncRecentMessages().catch(() => undefined);
+      refreshPresence().catch(() => undefined);
+    }
+    prevConnectedRef.current = isConnected;
+  }, [isConnected, conversationId]);
+
+  useEffect(() => {
+    if (!conversation?.participantIds?.length) return;
+    refreshPresence(conversation.participantIds).catch(() => undefined);
+  }, [conversation?.participantIds?.join(',')]);
 
   useEffect(() => {
     if (!isConnected || !conversationId || !user?.id) return;
@@ -290,6 +359,21 @@ export default function GroupChat() {
       });
     });
 
+    const unsubPresence = subscribe('USER_PRESENCE_CHANGED', (event) => {
+      const payload = event.data as { userId?: string; username?: string; online?: boolean; lastSeenAt?: string };
+      if (!payload?.userId) return;
+      if (!(conversation?.participantIds || []).includes(payload.userId)) return;
+      setPresenceByUserId((prev) => ({
+        ...prev,
+        [payload.userId!]: {
+          userId: payload.userId!,
+          username: payload.username,
+          online: !!payload.online,
+          lastSeenAt: payload.lastSeenAt || null,
+        },
+      }));
+    });
+
     const unsubJoin = subscribe('JOIN_REQUEST_UPDATED', (event) => {
       const payload = event.data as { conversationId: string };
       if (!payload || payload.conversationId !== conversationId) return;
@@ -305,9 +389,10 @@ export default function GroupChat() {
       unsubPollUpdated();
       unsubTyping();
       unsubSeen();
+      unsubPresence();
       unsubJoin();
     };
-  }, [conversationId, isConnected, subscribe, user?.id, activeTab]);
+  }, [conversationId, isConnected, subscribe, user?.id, activeTab, conversation?.participantIds]);
 
   useEffect(() => {
     const q = memberQuery.trim();
@@ -714,7 +799,7 @@ export default function GroupChat() {
             <h1 className="text-lg font-semibold text-gray-900 truncate">{conversation?.groupName || 'Group Chat'}</h1>
             <div className="text-xs text-gray-500 flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
-              {(conversation?.participantIds?.length || 0)} thanh vien
+              {(conversation?.participantIds?.length || 0)} thanh vien • {onlineCount} online
             </div>
           </div>
         </div>
@@ -830,7 +915,8 @@ export default function GroupChat() {
             <div className="max-h-36 overflow-y-auto space-y-1">
               {memberRows.map((member) => (
                 <div key={member.participantId} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-200 text-sm">
-                  <span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className={`inline-block w-2 h-2 rounded-full ${presenceByUserId[member.participantId]?.online ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                     {member.name}
                     {member.isOwner ? ' (owner)' : member.isAdmin ? ' (admin)' : ''}
                   </span>
