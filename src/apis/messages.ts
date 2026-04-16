@@ -177,6 +177,15 @@ export const messagesApi = {
   },
 
   /**
+   * Forward a message to a target conversation
+   */
+  forwardMessage: async (
+    id: string,
+    payload: { requesterId: string; targetConversationId: string; note?: string }
+  ): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/${id}/forward`, payload);
+  },
+  /**
    * Toggle pin for a message
    */
   togglePin: async (id: string, userId: string): Promise<Message> => {

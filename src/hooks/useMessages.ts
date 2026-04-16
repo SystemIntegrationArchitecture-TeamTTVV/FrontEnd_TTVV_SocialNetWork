@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { messagesApi, type Message, type CreateMessageDTO } from '../apis/messages';
 import { conversationsApi, type Conversation } from '../apis/conversations';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,31 @@ export function useMessages() {
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
+  const messagesRef = useRef<Record<string, Message[]>>({});
+  const prevConnectedRef = useRef(false);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const mergeMessageLists = (current: Message[], incoming: Message[]): Message[] => {
+    const map = new Map<string, Message>();
+    for (const msg of current) {
+      map.set(msg.id, msg);
+    }
+    for (const msg of incoming) {
+      const existing = map.get(msg.id);
+      map.set(msg.id, existing ? { ...existing, ...msg } : msg);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  };
 
   // Load conversations for current user
   const loadConversations = useCallback(async () => {
@@ -31,6 +56,34 @@ export function useMessages() {
       setLoading(false);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+
+    if (!wasConnected && isConnected && user?.id) {
+      loadConversations().catch(() => undefined);
+
+      const activeConversationIds = Object.keys(messagesRef.current);
+      if (activeConversationIds.length > 0) {
+        Promise.all(
+          activeConversationIds.map(async (conversationId) => {
+            try {
+              const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 50, user.id);
+              const recent = page.messages || [];
+              setMessages((prev) => ({
+                ...prev,
+                [conversationId]: mergeMessageLists(prev[conversationId] || [], recent),
+              }));
+            } catch {
+              // ignore reconnect sync failure for one conversation; next reload will recover
+            }
+          })
+        ).catch(() => undefined);
+      }
+    }
+
+    prevConnectedRef.current = isConnected;
+  }, [isConnected, user?.id, loadConversations]);
 
   // Load messages for a conversation
   const loadMessages = useCallback(async (conversationId: string) => {
@@ -82,21 +135,32 @@ export function useMessages() {
       // Optimistically update UI
       setMessages(prev => ({
         ...prev,
-        [conversationId]: [...(prev[conversationId] || []), newMessage],
+        [conversationId]: (prev[conversationId] || []).some((m) => m.id === newMessage.id)
+          ? (prev[conversationId] || [])
+          : [...(prev[conversationId] || []), newMessage],
       }));
 
-      // Update conversation last message
+      // Update conversation last message and keep list sorted by activity
       const preview =
         content.trim() ||
         (attachments?.length ? '📎' : '') ||
         (newMessage.replyTo ? `↩ ${newMessage.replyTo.contentPreview || ''}` : '');
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === conversationId 
-            ? { ...conv, lastMessagePreview: preview || ' ', lastMessageAt: newMessage.createdAt }
-            : conv
-        )
-      );
+      setConversations(prev => {
+        const exists = prev.some(conv => conv.id === conversationId);
+        const updated = exists
+          ? prev.map(conv =>
+              conv.id === conversationId
+                ? { ...conv, lastMessagePreview: preview || ' ', lastMessageAt: newMessage.createdAt }
+                : conv
+            )
+          : prev;
+
+        return updated.sort((a, b) => {
+          const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+          const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+          return timeB - timeA;
+        });
+      });
 
       return newMessage;
     } catch (err: unknown) {
@@ -131,6 +195,66 @@ export function useMessages() {
         [conversationId]: list.filter(m => m.id !== messageId),
       };
     });
+  }, [user?.id]);
+
+  const forwardMessage = useCallback(async (
+    sourceMessageId: string,
+    targetConversationId: string,
+    note?: string
+  ) => {
+    if (!user?.id) return null;
+
+    const forwarded = await messagesApi.forwardMessage(sourceMessageId, {
+      requesterId: user.id,
+      targetConversationId,
+      note,
+    });
+
+    setMessages(prev => {
+      const existing = prev[targetConversationId] || [];
+      if (existing.some(m => m.id === forwarded.id)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [targetConversationId]: [...existing, forwarded],
+      };
+    });
+
+    setConversations(prev => {
+      const exists = prev.some(conv => conv.id === targetConversationId);
+      const updated = exists
+        ? prev.map(conv =>
+            conv.id === targetConversationId
+              ? {
+                  ...conv,
+                  lastMessagePreview: forwarded.content,
+                  lastMessageAt: forwarded.createdAt,
+                }
+              : conv
+          )
+        : prev;
+
+      return updated.sort((a, b) => {
+        const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    });
+
+    if (!conversationsRef.current.some(conv => conv.id === targetConversationId)) {
+      conversationsApi
+        .getConversationById(targetConversationId)
+        .then((conv) => {
+          setConversations((current) => {
+            const filtered = current.filter((item) => item.id !== conv.id);
+            return [conv, ...filtered];
+          });
+        })
+        .catch(() => undefined);
+    }
+
+    return forwarded;
   }, [user?.id]);
 
   // Get or create a direct conversation between current user and another user
@@ -179,80 +303,67 @@ export function useMessages() {
         // 🔒 SECURITY: Only add message if:
         // 1. It's not from current user (to avoid duplicates)
         // 2. Current user is a participant of this conversation
-        if (message.senderId !== user.id) {
-          // Check if current user is a participant of this conversation
-          const conversation = conversations.find(conv => conv.id === message.conversationId);
-          // If `conversations` isn't loaded yet (or doesn't have participantIds populated),
-          // don't drop the message; the backend should already ensure only participants receive events.
-          const isParticipant =
-            conversation?.participantIds?.length
-              ? conversation.participantIds.includes(user.id)
-              : true;
+        // Check if current user is a participant of this conversation.
+        // If conversation data is not loaded yet, trust server-side filtering.
+        const conversation = conversationsRef.current.find(conv => conv.id === message.conversationId);
+        const isParticipant =
+          conversation?.participantIds?.length
+            ? conversation.participantIds.includes(user.id)
+            : true;
 
-          if (!isParticipant) {
-            console.warn('🚫 SECURITY: Ignoring message - current user is not a participant of this conversation:', {
-              conversationId: message.conversationId,
-              currentUserId: user.id,
-              senderId: message.senderId
-            });
-            return;
-          }
-          
-          console.log('✅ Message is from another user and user is participant, adding to state');
-          setMessages(prev => {
-            const existing = prev[message.conversationId] || [];
-            // Check if message already exists
-            if (existing.find(m => m.id === message.id)) {
-              console.log('⚠️ Message already exists, skipping');
-              return prev;
-            }
-            console.log('➕ Adding new message to conversation:', message.conversationId);
-            return {
-              ...prev,
-              [message.conversationId]: [...existing, message],
-            };
+        if (!isParticipant) {
+          console.warn('🚫 SECURITY: Ignoring message - current user is not a participant of this conversation:', {
+            conversationId: message.conversationId,
+            currentUserId: user.id,
+            senderId: message.senderId
           });
-
-          // Update conversation last message and move to top
-          console.log('🔄 Updating conversation list with new message preview');
-          setConversations(prev => {
-            const exists = prev.some((conv) => conv.id === message.conversationId);
-            if (!exists) {
-              conversationsApi
-                .getConversationById(message.conversationId)
-                .then((conv) => {
-                  setConversations((current) => {
-                    if (current.some((item) => item.id === conv.id)) {
-                      return current;
-                    }
-                    return [conv, ...current];
-                  });
-                })
-                .catch(() => undefined);
-              return prev;
-            }
-
-            const updated = prev.map(conv =>
-              conv.id === message.conversationId
-                ? {
-                    ...conv,
-                    lastMessagePreview: message.content,
-                    lastMessageAt: message.createdAt,
-                  }
-                : conv
-            );
-            // Sort by lastMessageAt (newest first)
-            const sorted = updated.sort((a, b) => {
-              const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-              const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-              return timeB - timeA;
-            });
-            console.log('📋 Updated conversations (sorted):', sorted);
-            return sorted;
-          });
-        } else {
-          console.log('⏭️ Message is from current user, skipping (to avoid duplicates)');
+          return;
         }
+
+        setMessages(prev => {
+          const existing = prev[message.conversationId] || [];
+          if (existing.find(m => m.id === message.id)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [message.conversationId]: [...existing, message],
+          };
+        });
+
+        setConversations(prev => {
+          const exists = prev.some((conv) => conv.id === message.conversationId);
+          if (!exists) {
+            conversationsApi
+              .getConversationById(message.conversationId)
+              .then((conv) => {
+                setConversations((current) => {
+                  if (current.some((item) => item.id === conv.id)) {
+                    return current;
+                  }
+                  return [conv, ...current];
+                });
+              })
+              .catch(() => undefined);
+            return prev;
+          }
+
+          const updated = prev.map(conv =>
+            conv.id === message.conversationId
+              ? {
+                  ...conv,
+                  lastMessagePreview: message.content,
+                  lastMessageAt: message.createdAt,
+                }
+              : conv
+          );
+
+          return updated.sort((a, b) => {
+            const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+            const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+            return timeB - timeA;
+          });
+        });
       }
     });
 
@@ -443,7 +554,7 @@ export function useMessages() {
       unsubscribeConversationRestored();
       unsubscribeConversationMetaUpdated();
     };
-  }, [isConnected, user?.id, subscribe, conversations]);
+  }, [isConnected, user?.id, subscribe]);
 
   // Format message for display (convert Message to display format)
   interface DisplayMessage {
@@ -501,6 +612,7 @@ export function useMessages() {
     sendMessage,
     removeMessage,
     removeMessageForMe,
+    forwardMessage,
     getOrCreateDirectConversation,
     formatMessageForDisplay,
     subscribeToMessages: subscribe, // Export for ChatBoxContext

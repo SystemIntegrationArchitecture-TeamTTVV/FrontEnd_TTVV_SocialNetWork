@@ -283,10 +283,9 @@ export default function GroupChat() {
     const unsubMessage = subscribe('MESSAGE_RECEIVED', (event) => {
       const incoming = event.data as Message;
       if (!incoming || incoming.conversationId !== conversationId) return;
-      if (incoming.senderId === user.id) return;
       setMessages((prev) => {
         if (prev.some((m) => m.id === incoming.id)) return prev;
-        return [...prev, incoming];
+        return mergeMessages(prev, [incoming]);
       });
       if (incoming.seenByUserIds) {
         setSeenByMessageId((prev) => ({
@@ -589,7 +588,13 @@ export default function GroupChat() {
         content: payload,
         mentionUserIds,
       });
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? created : m)));
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => m.id !== tempId);
+        if (withoutTemp.some((m) => m.id === created.id)) {
+          return withoutTemp;
+        }
+        return mergeMessages(withoutTemp, [created]);
+      });
       setSeenByMessageId((prev) => {
         const next = { ...prev };
         delete next[tempId];

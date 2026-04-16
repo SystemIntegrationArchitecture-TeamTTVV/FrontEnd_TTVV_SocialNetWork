@@ -36,6 +36,7 @@ export default function Messenger() {
     sendMessage: sendMessageAPI,
     removeMessage,
     removeMessageForMe,
+    forwardMessage,
     formatMessageForDisplay,
   } = useMessages();
 
@@ -44,10 +45,14 @@ export default function Messenger() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isForwarding, setIsForwarding] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; sender: string } | null>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<{ id: string; content: string } | null>(null);
+  const [forwardTargetConversationId, setForwardTargetConversationId] = useState<string>('');
+  const [forwardNote, setForwardNote] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -274,6 +279,53 @@ export default function Messenger() {
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat)
     : null;
+
+  const getConversationDisplayName = (conv: (typeof conversations)[number]) => {
+    if (conv.isGroup) {
+      return conv.groupName || 'Group Chat';
+    }
+    if (!user?.id) {
+      return 'Direct Chat';
+    }
+    const otherParticipantIndex = conv.participantIds.findIndex((id) => id !== user.id);
+    if (otherParticipantIndex < 0) {
+      return conv.participantNames?.[0] || conv.participantIds?.[0] || 'Direct Chat';
+    }
+    return conv.participantNames?.[otherParticipantIndex] || conv.participantIds?.[otherParticipantIndex] || 'Direct Chat';
+  };
+
+  const resetForwardDialog = () => {
+    setForwardingMessage(null);
+    setForwardTargetConversationId('');
+    setForwardNote('');
+    setIsForwarding(false);
+  };
+
+  const handleConfirmForward = async () => {
+    if (!forwardingMessage || !forwardTargetConversationId) return;
+
+    setIsForwarding(true);
+    try {
+      await forwardMessage(
+        forwardingMessage.id,
+        forwardTargetConversationId,
+        forwardNote.trim() || undefined
+      );
+
+      if (forwardTargetConversationId !== activeChat) {
+        setActiveChat(forwardTargetConversationId);
+      }
+      resetForwardDialog();
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (err: unknown) {
+      console.error('Failed to forward message:', err);
+      const errorText = err instanceof Error ? err.message : 'Forward message failed';
+      alert(errorText);
+      setIsForwarding(false);
+    }
+  };
   
   // Get call info - supports both direct and group calls
   const getCallInfo = () => {
@@ -885,8 +937,9 @@ export default function Messenger() {
         setReplyTo({ id: messageId, content: message.content, sender: message.sender });
         break;
       case 'forward':
-        console.log('Forward message:', messageId);
-        // TODO: Implement forward API
+        setForwardingMessage({ id: messageId, content: message.content });
+        setForwardTargetConversationId(activeChat && activeChat !== AI_CONVERSATION_ID ? activeChat : '');
+        setForwardNote('');
         break;
       case 'copy':
         navigator.clipboard.writeText(message.content);
@@ -1532,6 +1585,7 @@ export default function Messenger() {
                           const picker = document.getElementById(`reaction-picker-${msg.id}`);
                           if (picker) {
                             picker.classList.toggle('hidden');
+                            picker.classList.toggle('flex');
                           }
                         }}
                         className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
@@ -1542,7 +1596,7 @@ export default function Messenger() {
                       {/* Quick Reactions Picker */}
                       <div
                         id={`reaction-picker-${msg.id}`}
-                        className="hidden absolute bottom-full mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 flex gap-1 z-20"
+                        className="hidden absolute bottom-full mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 gap-1 z-20"
                       >
                         {quickReactions.map((emoji) => (
                           <button
@@ -1550,7 +1604,10 @@ export default function Messenger() {
                             onClick={() => {
                               handleReaction(msg.id, emoji);
                               const picker = document.getElementById(`reaction-picker-${msg.id}`);
-                              if (picker) picker.classList.add('hidden');
+                              if (picker) {
+                                picker.classList.add('hidden');
+                                picker.classList.remove('flex');
+                              }
                             }}
                             className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-lg transition-colors"
                           >
@@ -1980,29 +2037,24 @@ export default function Messenger() {
 
               {canManageGroup && (
                 <div className="space-y-2 pt-2 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      // TODO: Mở modal chọn bạn bè để thêm vào nhóm (tương tự NewMessage.tsx)
-                      // Tạm thời giữ input text cho đến khi có modal
-                      const input = prompt(t('messenger.groupPanel.addMembersPrompt'));
-                      if (input && input.trim()) {
-                        setGroupMemberInput(input.trim());
-                        handleAddMembers();
-                      }
-                    }}
-                    disabled={updatingGroup}
-                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>{updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.addMembers')}</span>
-                  </button>
-                  {/* Hidden input for backward compatibility */}
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       value={groupMemberInput}
                       onChange={(e) => setGroupMemberInput(e.target.value)}
-                    className="hidden"
-                  />
+                      placeholder={t('messenger.groupPanel.addMembersPrompt')}
+                      disabled={updatingGroup}
+                      className="flex-1 h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-60"
+                    />
+                    <button
+                      onClick={handleAddMembers}
+                      disabled={updatingGroup}
+                      className="h-11 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>{updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.addMembers')}</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -2220,6 +2272,65 @@ export default function Messenger() {
               >
                 <SearchIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
                 <span>{t('messenger.groupPanel.searchInConversation')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {forwardingMessage && (
+        <div
+          className="absolute inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          onClick={resetForwardDialog}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white border border-gray-200 shadow-2xl p-4 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Forward message</h3>
+              <p className="text-sm text-gray-600 mt-1">Select a conversation and optionally add a note.</p>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700 max-h-24 overflow-auto whitespace-pre-wrap">
+              {forwardingMessage.content || '[No text content]'}
+            </div>
+
+            <select
+              value={forwardTargetConversationId}
+              onChange={(e) => setForwardTargetConversationId(e.target.value)}
+              className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Select conversation</option>
+              {conversations.map((conv) => (
+                <option key={conv.id} value={conv.id}>
+                  {getConversationDisplayName(conv)}
+                </option>
+              ))}
+            </select>
+
+            <textarea
+              value={forwardNote}
+              onChange={(e) => setForwardNote(e.target.value)}
+              placeholder="Add an optional note"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+            />
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={resetForwardDialog}
+                disabled={isForwarding}
+                className="h-10 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmForward}
+                disabled={!forwardTargetConversationId || isForwarding}
+                className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {isForwarding ? 'Forwarding...' : 'Forward'}
               </button>
             </div>
           </div>
