@@ -20,6 +20,7 @@ import { messagesApi, type Message } from '../../apis/messages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { usersApi, type PresenceStatus, type User } from '../../apis/users';
+import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 
 export default function GroupChat() {
   const { id } = useParams();
@@ -700,6 +701,11 @@ export default function GroupChat() {
 
   const recallMessage = async (messageId: string) => {
     if (!user?.id) return;
+    const target = messages.find((m) => m.id === messageId);
+    if (!target || !canRecallByCreatedAt(target.createdAt)) {
+      setError('Da qua thoi gian thu hoi (2 phut)');
+      return;
+    }
     try {
       await messagesApi.deleteMessage(messageId, user.id);
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
@@ -1021,6 +1027,7 @@ export default function GroupChat() {
 
             {messages.map((msg) => {
               const isMe = msg.senderId === user?.id;
+              const canRecall = isMe && canRecallByCreatedAt(msg.createdAt);
               const seenList = (seenByMessageId[msg.id] || msg.seenByUserIds || [])
                 .filter((uid) => uid !== msg.senderId)
                 .map((uid) => memberRows.find((m) => m.participantId === uid)?.name || uid);
@@ -1100,10 +1107,15 @@ export default function GroupChat() {
                         <Pin className={`w-3 h-3 ${msg.pinned ? 'text-blue-500' : ''}`} />
                         {msg.pinned ? 'Unpin' : 'Pin'}
                       </button>
-                      {isMe && (
+                      {canRecall && (
                         <button onClick={() => recallMessage(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
                           Thu hoi
                         </button>
+                      )}
+                      {isMe && !canRecall && (
+                        <span className="text-gray-300 inline-flex items-center gap-1" title="Chi thu hoi trong 2 phut dau">
+                          Het han thu hoi
+                        </span>
                       )}
                       <button onClick={() => deleteMessageForMe(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
                         Xoa phia toi

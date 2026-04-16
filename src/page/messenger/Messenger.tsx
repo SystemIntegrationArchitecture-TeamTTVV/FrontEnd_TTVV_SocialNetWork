@@ -15,6 +15,7 @@ import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
 import { aiApi, type AIChatRequest, type AIDailySummaryResponse } from '../../apis/ai';
 import { getLocaleTag } from '../../i18n';
+import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -47,6 +48,7 @@ export default function Messenger() {
   const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; sender: string } | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -134,6 +136,8 @@ export default function Messenger() {
   useEffect(() => {
     if (activeChat) {
       loadMessages(activeChat);
+      setEditingMessageId(null);
+      setReplyTo(null);
     }
   }, [activeChat, loadMessages]);
 
@@ -486,6 +490,24 @@ export default function Messenger() {
 
       // Send message (can have empty content if attachments exist)
       const messageContent = message.trim();
+
+      if (editingMessageId) {
+        if (!messageContent && attachments.length === 0) {
+          return;
+        }
+        await messagesApi.updateMessage(editingMessageId, {
+          senderId: user.id,
+          content: messageContent,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        });
+        setEditingMessageId(null);
+        setMessage('');
+        setReplyTo(null);
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return;
+      }
       
       console.log('📨 Sending message:', {
         conversationId: activeChat,
@@ -884,10 +906,15 @@ export default function Messenger() {
         }
         break;
       case 'delete':
+        if (!canRecallByCreatedAt(message.createdAt)) {
+          alert('Da qua thoi gian thu hoi (2 phut)');
+          break;
+        }
         if (activeChat && message.isMe && confirm(t('messenger.confirmDeleteMessage'))) {
           removeMessage(activeChat, messageId).catch((err: unknown) => {
             console.error('Failed to delete message:', err);
-            alert(t('messenger.errors.deleteMessage'));
+            const messageText = err instanceof Error ? err.message : t('messenger.errors.deleteMessage');
+            alert(messageText);
           });
         }
         break;
@@ -900,8 +927,10 @@ export default function Messenger() {
         }
         break;
       case 'edit':
+        if (!message.isMe) break;
         setMessage(message.content);
-        // TODO: Call update message API when sending
+        setEditingMessageId(messageId);
+        setReplyTo(null);
         break;
     }
     setSelectedMessage(null);
@@ -1248,6 +1277,7 @@ export default function Messenger() {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50" ref={messagesEndRef}>
           {filteredMessages.map((msg) => {
             const isSelected = selectedMessage === msg.id;
+            const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
             return (
               <div
                 key={msg.id}
@@ -1457,7 +1487,7 @@ export default function Messenger() {
                                 </button>
                               )}
                               <div className="border-t border-gray-100 my-1"></div>
-                              {msg.isMe && (
+                              {canRecall && (
                                 <button
                                   onClick={() => handleMessageAction('delete', msg.id)}
                                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
@@ -1465,6 +1495,12 @@ export default function Messenger() {
                                   <Trash2 className="w-4 h-4" />
                                   <span>{t('messenger.messageOptions.delete')}</span>
                                 </button>
+                              )}
+                              {msg.isMe && !canRecall && (
+                                <div className="w-full px-4 py-2 text-left text-sm text-gray-400 flex items-center gap-3" title="Chi thu hoi trong 2 phut dau">
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>Het han thu hoi</span>
+                                </div>
                               )}
                               <button
                                 onClick={() => handleMessageAction('delete_for_me', msg.id)}
@@ -1561,6 +1597,27 @@ export default function Messenger() {
               className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
             >
               <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
+            </button>
+          </div>
+        )}
+
+        {editingMessageId && (
+          <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-amber-100 bg-amber-50 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+              <div className="w-0.5 h-10 md:h-12 bg-amber-500 rounded-full shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs md:text-sm font-semibold text-amber-700">Dang chinh sua tin nhan</p>
+                <p className="text-xs md:text-sm text-amber-600 line-clamp-1">Nhan Enter hoac nut gui de cap nhat.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setEditingMessageId(null);
+                setMessage('');
+              }}
+              className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0"
+            >
+              <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-700" />
             </button>
           </div>
         )}
@@ -1745,7 +1802,7 @@ export default function Messenger() {
               }}
               onFocus={() => setIsTyping(true)}
               onBlur={() => setTimeout(() => setIsTyping(false), 1000)}
-              placeholder={replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
+              placeholder={editingMessageId ? 'Chinh sua tin nhan...' : replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
               className="flex-1 h-10 md:h-11 lg:h-12 px-4 md:px-5 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm md:text-[15px] transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
             />
 
@@ -1759,12 +1816,12 @@ export default function Messenger() {
             >
               <Smile className="w-4 h-4 md:w-5 md:h-5" />
             </button>
-            {message.trim() || replyTo || filePreview ? (
+            {message.trim() || replyTo || filePreview || editingMessageId ? (
               <button
                 onClick={handleSendMessage}
-                disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim())}
+                disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview)}
                 className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all shrink-0 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                title={t('messenger.send')}
+                title={editingMessageId ? 'Cap nhat tin nhan' : t('messenger.send')}
               >
                 {isAiLoading ? (
                   <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
