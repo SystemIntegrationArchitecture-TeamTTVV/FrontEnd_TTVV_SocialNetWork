@@ -31,6 +31,8 @@ class SocketService {
   private heartbeatTimer: number | null = null;
   private recentEventKeys: Map<string, number> = new Map();
   private dedupeWindowMs = 2 * 60 * 1000;
+  private roomSubscriptions: Map<string, { subscription: any; refCount: number }> =
+    new Map();
 
   connect(): void {
     if (this.client?.connected) {
@@ -63,6 +65,7 @@ class SocketService {
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.subscribeToChannels();
+        this.resubscribeRooms();
         this.markPresenceOnline().catch(() => undefined);
         this.startPresenceHeartbeat();
       },
@@ -221,6 +224,8 @@ class SocketService {
       this.stopPresenceHeartbeat();
       this.subscriptions.forEach((sub) => sub.unsubscribe());
       this.subscriptions.clear();
+      this.roomSubscriptions.forEach((entry) => entry.subscription.unsubscribe());
+      this.roomSubscriptions.clear();
       this.client.deactivate();
       this.client = null;
       this.isConnected = false;
@@ -269,6 +274,74 @@ class SocketService {
 
   isSocketConnected(): boolean {
     return this.isConnected && this.client?.connected === true;
+  }
+
+  subscribeConversationRoom(conversationId: string): () => void {
+    if (!conversationId) {
+      return () => undefined;
+    }
+
+    const existing = this.roomSubscriptions.get(conversationId);
+    if (existing) {
+      existing.refCount += 1;
+      return () => this.unsubscribeConversationRoom(conversationId);
+    }
+
+    const subscription = this.createRoomSubscription(conversationId);
+    this.roomSubscriptions.set(conversationId, { subscription, refCount: 1 });
+    return () => this.unsubscribeConversationRoom(conversationId);
+  }
+
+  private unsubscribeConversationRoom(conversationId: string): void {
+    const existing = this.roomSubscriptions.get(conversationId);
+    if (!existing) {
+      return;
+    }
+
+    existing.refCount -= 1;
+    if (existing.refCount <= 0) {
+      try {
+        existing.subscription.unsubscribe();
+      } catch {
+        // ignore unsubscribe errors
+      }
+      this.roomSubscriptions.delete(conversationId);
+    }
+  }
+
+  private createRoomSubscription(conversationId: string): any {
+    if (!this.client?.connected) {
+      return { unsubscribe: () => undefined };
+    }
+
+    const roomPath = `/topic/rooms.${conversationId}`;
+    return this.client.subscribe(roomPath, (message: StompMessage) => {
+      try {
+        const event: SocketEvent = JSON.parse(message.body);
+        if (!this.shouldProcessEvent(event)) {
+          return;
+        }
+        this.handleEvent(event.type, event);
+        this.handleEvent("*", event);
+      } catch (error) {
+        console.error("❌ Error parsing room message:", error, message.body);
+      }
+    });
+  }
+
+  private resubscribeRooms(): void {
+    if (!this.client?.connected) {
+      return;
+    }
+
+    const roomIds = Array.from(this.roomSubscriptions.keys());
+    for (const roomId of roomIds) {
+      const state = this.roomSubscriptions.get(roomId);
+      if (!state) {
+        continue;
+      }
+      state.subscription = this.createRoomSubscription(roomId);
+    }
   }
 
   private getPresencePayload() {

@@ -25,7 +25,7 @@ export default function GroupChat() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isConnected, subscribe } = useSocket();
+  const { isConnected, subscribe, subscribeConversationRoom } = useSocket();
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -277,9 +277,12 @@ export default function GroupChat() {
   useEffect(() => {
     if (!isConnected || !conversationId || !user?.id) return;
 
+    const unsubscribeRoom = subscribeConversationRoom(conversationId);
+
     const unsubMessage = subscribe('MESSAGE_RECEIVED', (event) => {
       const incoming = event.data as Message;
       if (!incoming || incoming.conversationId !== conversationId) return;
+      if (incoming.senderId === user.id) return;
       setMessages((prev) => {
         if (prev.some((m) => m.id === incoming.id)) return prev;
         return [...prev, incoming];
@@ -391,8 +394,9 @@ export default function GroupChat() {
       unsubSeen();
       unsubPresence();
       unsubJoin();
+      unsubscribeRoom();
     };
-  }, [conversationId, isConnected, subscribe, user?.id, activeTab, conversation?.participantIds]);
+  }, [conversationId, isConnected, subscribe, subscribeConversationRoom, user?.id, activeTab, conversation?.participantIds]);
 
   useEffect(() => {
     const q = memberQuery.trim();

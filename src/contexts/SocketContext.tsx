@@ -6,6 +6,7 @@ import { AuthContext } from './AuthContext';
 interface SocketContextType {
   isConnected: boolean;
   subscribe: (eventType: string, handler: (event: SocketEvent) => void) => () => void;
+  subscribeConversationRoom: (conversationId: string) => () => void;
   send: (destination: string, body: unknown) => void;
 }
 
@@ -63,12 +64,16 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return socketService.on(eventType, handler);
   };
 
+  const subscribeConversationRoom = (conversationId: string) => {
+    return socketService.subscribeConversationRoom(conversationId);
+  };
+
   const send = (destination: string, body: unknown) => {
     socketService.send(destination, body);
   };
 
   return (
-    <SocketContext.Provider value={{ isConnected, subscribe, send }}>
+    <SocketContext.Provider value={{ isConnected, subscribe, subscribeConversationRoom, send }}>
       {children}
     </SocketContext.Provider>
   );
