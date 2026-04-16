@@ -300,9 +300,8 @@ export function useMessages() {
           content: message.content,
         });
         
-        // 🔒 SECURITY: Only add message if:
-        // 1. It's not from current user (to avoid duplicates)
-        // 2. Current user is a participant of this conversation
+        // 🔒 SECURITY: Only add message if current user is a participant.
+        // Duplicate events (including same-user events from other devices) are deduped by message id below.
         // Check if current user is a participant of this conversation.
         // If conversation data is not loaded yet, trust server-side filtering.
         const conversation = conversationsRef.current.find(conv => conv.id === message.conversationId);
@@ -564,7 +563,7 @@ export function useMessages() {
     content: string;
     time: string;
     isMe: boolean;
-    status: 'read' | null;
+    status: 'read' | 'delivered' | null;
     reactions?: { emoji: string; users: string[] }[];
     attachments?: Message['attachments'];
     isEdited?: boolean;
@@ -579,6 +578,12 @@ export function useMessages() {
   const formatMessageForDisplay = useCallback((message: Message): DisplayMessage => {
     const currentUser = authApi.getCurrentUser();
     const isMe = message.senderId === currentUser?.id;
+    const seenByOthers = (message.seenByUserIds || []).some(
+      (uid) => uid !== message.senderId
+    );
+    const status: DisplayMessage['status'] = isMe
+      ? (seenByOthers ? 'read' : 'delivered')
+      : null;
 
     const starred = !!message.starredByUserIds?.includes(currentUser?.id || '');
 
@@ -592,7 +597,7 @@ export function useMessages() {
         minute: '2-digit',
       }),
       isMe,
-      status: isMe ? ('read' as const) : null,
+      status,
       reactions: message.emojis?.map(emoji => ({ emoji, users: [] })),
       attachments: message.attachments,
       isEdited: message.isEdited,

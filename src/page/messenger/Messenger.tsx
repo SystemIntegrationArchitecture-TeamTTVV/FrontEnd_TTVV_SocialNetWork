@@ -45,6 +45,7 @@ export default function Messenger() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [typingUserIds, setTypingUserIds] = useState<string[]>([]);
   const [isForwarding, setIsForwarding] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
@@ -73,6 +74,10 @@ export default function Messenger() {
   const [updatingGroup, setUpdatingGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingStopTimerRef = useRef<number | null>(null);
+  const isTypingRef = useRef(false);
+  const lastSeenSentMessageIdRef = useRef<string | null>(null);
+  const seenRefreshTimerRef = useRef<number | null>(null);
   const openConversationId = location.state?.openConversationId;
   const { t, i18n } = useTranslation();
   
@@ -143,6 +148,14 @@ export default function Messenger() {
       loadMessages(activeChat);
       setEditingMessageId(null);
       setReplyTo(null);
+      setTypingUserIds([]);
+      setIsTyping(false);
+      lastSeenSentMessageIdRef.current = null;
+      if (typingStopTimerRef.current) {
+        window.clearTimeout(typingStopTimerRef.current);
+        typingStopTimerRef.current = null;
+      }
+      isTypingRef.current = false;
     }
   }, [activeChat, loadMessages]);
 
@@ -326,6 +339,156 @@ export default function Messenger() {
       setIsForwarding(false);
     }
   };
+
+  const activeApiMessages = useMemo(
+    () => (activeChat && activeChat !== AI_CONVERSATION_ID ? apiMessages[activeChat] || [] : []),
+    [activeChat, apiMessages]
+  );
+
+  const typingNames = useMemo(() => {
+    if (!activeConversationRaw || typingUserIds.length === 0) {
+      return [] as string[];
+    }
+
+    return typingUserIds
+      .map((uid) => {
+        const idx = activeConversationRaw.participantIds?.indexOf(uid) ?? -1;
+        if (idx >= 0) {
+          return activeConversationRaw.participantNames?.[idx] || uid;
+        }
+        return uid;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+  }, [activeConversationRaw, typingUserIds]);
+
+  const sendTypingEvent = async (typing: boolean) => {
+    if (!activeChat || !user?.id || activeChat === AI_CONVERSATION_ID) {
+      return;
+    }
+    try {
+      await messagesApi.sendTypingEvent(activeChat, { userId: user.id, typing });
+    } catch {
+      // ignore typing failures
+    }
+  };
+
+  const scheduleTypingStop = () => {
+    if (typingStopTimerRef.current) {
+      window.clearTimeout(typingStopTimerRef.current);
+    }
+
+    typingStopTimerRef.current = window.setTimeout(() => {
+      if (!isTypingRef.current) {
+        return;
+      }
+      isTypingRef.current = false;
+      sendTypingEvent(false).catch(() => undefined);
+    }, 1200);
+  };
+
+  const handleMessageInputChange = (value: string) => {
+    setMessage(value);
+
+    if (!activeChat || !user?.id || activeChat === AI_CONVERSATION_ID) {
+      return;
+    }
+
+    const hasContent = value.trim().length > 0;
+    if (hasContent && !isTypingRef.current) {
+      isTypingRef.current = true;
+      sendTypingEvent(true).catch(() => undefined);
+    }
+
+    if (!hasContent && isTypingRef.current) {
+      isTypingRef.current = false;
+      sendTypingEvent(false).catch(() => undefined);
+    }
+
+    if (hasContent) {
+      scheduleTypingStop();
+    }
+  };
+
+  useEffect(() => {
+    if (!isConnected || !user?.id || !activeChat || activeChat === AI_CONVERSATION_ID) {
+      return;
+    }
+
+    const unsubscribeTyping = subscribe('TYPING', (event) => {
+      const payload = event.data as { conversationId?: string; userId?: string; typing?: boolean };
+      if (!payload?.conversationId || !payload?.userId) return;
+      if (payload.conversationId !== activeChat || payload.userId === user.id) return;
+
+      setTypingUserIds((prev) => {
+        let next: string[];
+        if (payload.typing) {
+          next = prev.includes(payload.userId!) ? prev : [...prev, payload.userId!];
+        } else {
+          next = prev.filter((id) => id !== payload.userId);
+        }
+        setIsTyping(next.length > 0);
+        return next;
+      });
+    });
+
+    const unsubscribeSeen = subscribe('MESSAGE_SEEN', (event) => {
+      const payload = event.data as { conversationId?: string; userId?: string };
+      if (!payload?.conversationId || payload.conversationId !== activeChat) return;
+      if (payload.userId === user.id) return;
+
+      if (seenRefreshTimerRef.current) {
+        window.clearTimeout(seenRefreshTimerRef.current);
+      }
+
+      seenRefreshTimerRef.current = window.setTimeout(() => {
+        loadMessages(activeChat);
+        seenRefreshTimerRef.current = null;
+      }, 180);
+    });
+
+    return () => {
+      unsubscribeTyping();
+      unsubscribeSeen();
+      if (seenRefreshTimerRef.current) {
+        window.clearTimeout(seenRefreshTimerRef.current);
+        seenRefreshTimerRef.current = null;
+      }
+    };
+  }, [isConnected, user?.id, activeChat, subscribe, loadMessages]);
+
+  useEffect(() => {
+    if (!activeChat || !user?.id || activeChat === AI_CONVERSATION_ID || activeApiMessages.length === 0) {
+      return;
+    }
+
+    const lastIncoming = [...activeApiMessages]
+      .reverse()
+      .find((m) => !m.isDeleted && m.senderId !== user.id);
+
+    if (!lastIncoming) {
+      return;
+    }
+    if (lastSeenSentMessageIdRef.current === lastIncoming.id) {
+      return;
+    }
+
+    lastSeenSentMessageIdRef.current = lastIncoming.id;
+    messagesApi
+      .markSeen(activeChat, { userId: user.id, lastSeenMessageId: lastIncoming.id })
+      .catch(() => undefined);
+  }, [activeApiMessages, activeChat, user?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (typingStopTimerRef.current) {
+        window.clearTimeout(typingStopTimerRef.current);
+      }
+      if (isTypingRef.current && activeChat && activeChat !== AI_CONVERSATION_ID && user?.id) {
+        messagesApi.sendTypingEvent(activeChat, { userId: user.id, typing: false }).catch(() => undefined);
+      }
+    };
+  }, [activeChat, user?.id]);
   
   // Get call info - supports both direct and group calls
   const getCallInfo = () => {
@@ -462,6 +625,15 @@ export default function Messenger() {
   const handleSendMessage = async () => {
     if (!message.trim() && !replyTo && !filePreview) return;
     if (!activeChat || !user?.id) return;
+
+    if (activeChat !== AI_CONVERSATION_ID && isTypingRef.current) {
+      isTypingRef.current = false;
+      if (typingStopTimerRef.current) {
+        window.clearTimeout(typingStopTimerRef.current);
+        typingStopTimerRef.current = null;
+      }
+      sendTypingEvent(false).catch(() => undefined);
+    }
 
     // Handle AI conversation separately
     if (activeChat === AI_CONVERSATION_ID) {
@@ -1680,7 +1852,7 @@ export default function Messenger() {
         )}
 
         {/* Typing Indicator */}
-        {(isTyping || (isAIChat && isAiLoading)) && (
+        {(((isTyping && !isAIChat && typingNames.length > 0) || (isAIChat && isAiLoading))) && (
           <div className="px-4 md:px-6 py-3 bg-white border-t border-gray-100">
             <div className="flex items-center gap-3">
               {isAIChat && (
@@ -1697,7 +1869,9 @@ export default function Messenger() {
                 <span className="text-sm text-gray-600 font-medium">
                   {isAIChat
                     ? t('messenger.typing.ai')
-                    : t('messenger.typing.user', { name: activeConversation?.name ?? '' })}
+                    : typingNames.length > 1
+                      ? `${typingNames[0]} +${typingNames.length - 1} dang nhap...`
+                      : t('messenger.typing.user', { name: typingNames[0] ?? activeConversation?.name ?? '' })}
                 </span>
               </div>
             </div>
@@ -1850,15 +2024,13 @@ export default function Messenger() {
             <input
               type="text"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => handleMessageInputChange(e.target.value)}
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSendMessage();
                 }
               }}
-              onFocus={() => setIsTyping(true)}
-              onBlur={() => setTimeout(() => setIsTyping(false), 1000)}
               placeholder={editingMessageId ? 'Chinh sua tin nhan...' : replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
               className="flex-1 h-10 md:h-11 lg:h-12 px-4 md:px-5 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm md:text-[15px] transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
             />
