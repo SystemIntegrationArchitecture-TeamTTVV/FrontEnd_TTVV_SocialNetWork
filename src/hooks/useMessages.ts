@@ -284,6 +284,70 @@ export function useMessages() {
       });
     });
 
+    const unsubscribeEdited = subscribe('MESSAGE_EDITED', (event) => {
+      if (event.type !== 'MESSAGE_EDITED' || !event.data) return;
+      const payload = event.data as { conversationId?: string; message?: Message };
+      if (!payload.conversationId || !payload.message) return;
+
+      setMessages(prev => {
+        const list = prev[payload.conversationId!];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [payload.conversationId!]: list.map(m => (m.id === payload.message!.id ? payload.message! : m)),
+        };
+      });
+    });
+
+    const unsubscribePinned = subscribe('MESSAGE_PINNED', (event) => {
+      if (event.type !== 'MESSAGE_PINNED' || !event.data) return;
+      const payload = event.data as { conversationId?: string; messageId?: string; pinned?: boolean };
+      if (!payload.conversationId || !payload.messageId) return;
+
+      setMessages(prev => {
+        const list = prev[payload.conversationId!];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [payload.conversationId!]: list.map(m =>
+            m.id === payload.messageId ? { ...m, pinned: !!payload.pinned } : m
+          ),
+        };
+      });
+    });
+
+    const unsubscribeReacted = subscribe('MESSAGE_REACTED', (event) => {
+      if (event.type !== 'MESSAGE_REACTED' || !event.data) return;
+      const payload = event.data as { conversationId?: string; messageId?: string; emojis?: string[] };
+      if (!payload.conversationId || !payload.messageId) return;
+
+      setMessages(prev => {
+        const list = prev[payload.conversationId!];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [payload.conversationId!]: list.map(m =>
+            m.id === payload.messageId ? { ...m, emojis: payload.emojis || [] } : m
+          ),
+        };
+      });
+    });
+
+    const unsubscribePollUpdated = subscribe('POLL_UPDATED', (event) => {
+      if (event.type !== 'POLL_UPDATED' || !event.data) return;
+      const payload = event.data as { conversationId?: string; message?: Message };
+      if (!payload.conversationId || !payload.message) return;
+
+      setMessages(prev => {
+        const list = prev[payload.conversationId!];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [payload.conversationId!]: list.map(m => (m.id === payload.message!.id ? payload.message! : m)),
+        };
+      });
+    });
+
     const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
       console.log('🔔 Received NOTIFICATION via socket:', event);
 
@@ -339,13 +403,45 @@ export function useMessages() {
         .catch(() => undefined);
     });
 
+    const unsubscribeConversationMetaUpdated = subscribe('CONVERSATION_META_UPDATED', (event) => {
+      if (event.type !== 'CONVERSATION_META_UPDATED' || !event.data) return;
+      const payload = event.data as {
+        conversationId?: string;
+        lastMessagePreview?: string;
+        lastMessageAt?: string | null;
+      };
+      if (!payload.conversationId) return;
+
+      setConversations((prev) => {
+        const updated = prev.map((conv) =>
+          conv.id === payload.conversationId
+            ? {
+                ...conv,
+                lastMessagePreview: payload.lastMessagePreview ?? '',
+                lastMessageAt: payload.lastMessageAt ?? undefined,
+              }
+            : conv
+        );
+        return updated.sort((a, b) => {
+          const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+          const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+          return timeB - timeA;
+        });
+      });
+    });
+
     return () => {
       unsubscribeMessage();
       unsubscribeDeleted();
       unsubscribeDeletedForMe();
+      unsubscribeEdited();
+      unsubscribePinned();
+      unsubscribeReacted();
+      unsubscribePollUpdated();
       unsubscribeNotification();
       unsubscribeConversationCleared();
       unsubscribeConversationRestored();
+      unsubscribeConversationMetaUpdated();
     };
   }, [isConnected, user?.id, subscribe, conversations]);
 
