@@ -2,7 +2,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, Globe, UserCheck, Lock } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
-import { authApi } from '../../apis/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { postsApi } from '../../apis/posts';
 import type { PostData } from '../../apis/posts';
@@ -39,7 +38,6 @@ export default function Newsfeed() {
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const { subscribe } = useSocket();
   const { user: currentUser, isLoading: authLoading, refreshSessionUser } = useAuth();
-  const isAuthenticated = !!currentUser;
   const [composerAvatarFailed, setComposerAvatarFailed] = useState(false);
   const composerAvatarSynced = useRef(false);
 

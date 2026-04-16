@@ -1,7 +1,6 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { LaptopIcon, BikeIcon, CameraIcon, SofaIcon, PhoneIcon, GuitarIcon, WatchIcon, GamepadIcon } from '../../common/icons/IconComponents';
 import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
 import { productApi, type ProductDTO } from '../../apis/products';
@@ -48,20 +47,6 @@ export default function Marketplace() {
   };
 
   const activeCategoryLabel = categories.find((c) => c.id === activeCategory)?.label || t('marketplace.categories.all');
-
-  const getProductIcon = (iconType: string) => {
-    switch (iconType) {
-      case 'laptop': return <LaptopIcon className="w-16 h-16 text-gray-600" />;
-      case 'bike': return <BikeIcon className="w-16 h-16 text-gray-600" />;
-      case 'camera': return <CameraIcon className="w-16 h-16 text-gray-600" />;
-      case 'sofa': return <SofaIcon className="w-16 h-16 text-gray-600" />;
-      case 'phone': return <PhoneIcon className="w-16 h-16 text-gray-600" />;
-      case 'guitar': return <GuitarIcon className="w-16 h-16 text-gray-600" />;
-      case 'watch': return <WatchIcon className="w-16 h-16 text-gray-600" />;
-      case 'gamepad': return <GamepadIcon className="w-16 h-16 text-gray-600" />;
-      default: return null;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

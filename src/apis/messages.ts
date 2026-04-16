@@ -13,15 +13,31 @@ export interface MessageReplyTo {
   contentPreview: string;
 }
 
+export interface PollOption {
+  optionId: string;
+  text: string;
+  voterUserIds?: string[];
+}
+
+export type MessageType = 'TEXT' | 'SYSTEM' | 'POLL';
+
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   senderName: string;
   senderAvatar?: string;
+  messageType?: MessageType;
+  systemAction?: string;
   content: string;
   emojis?: string[];
   attachments?: MessageAttachment[];
+  pollQuestion?: string;
+  pollMultipleChoice?: boolean;
+  pollClosed?: boolean;
+  pollOptions?: PollOption[];
+  mentionUserIds?: string[];
+  seenByUserIds?: string[];
   pinned?: boolean;
   starredByUserIds?: string[];
   isDeleted: boolean;
@@ -39,6 +55,35 @@ export interface CreateMessageDTO {
   content: string;
   attachments?: MessageAttachment[];
   replyToMessageId?: string;
+  mentionUserIds?: string[];
+}
+
+export interface MessagePageResponse {
+  messages: Message[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export interface TypingEventRequest {
+  userId: string;
+  typing: boolean;
+}
+
+export interface SeenEventRequest {
+  userId: string;
+  lastSeenMessageId?: string;
+}
+
+export interface CreatePollRequest {
+  userId: string;
+  question: string;
+  options: string[];
+  multipleChoice?: boolean;
+}
+
+export interface VotePollRequest {
+  userId: string;
+  optionIds: string[];
 }
 
 export const messagesApi = {
@@ -47,6 +92,39 @@ export const messagesApi = {
    */
   getMessagesByConversationId: async (conversationId: string): Promise<Message[]> => {
     return httpClient.get<Message[]>(`/api/message/messages/conversation/${conversationId}`);
+  },
+
+  getMessagesByConversationCursor: async (
+    conversationId: string,
+    before?: string,
+    limit: number = 20
+  ): Promise<MessagePageResponse> => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (before) {
+      params.set('before', before);
+    }
+    return httpClient.get<MessagePageResponse>(
+      `/api/message/messages/conversation/${conversationId}/cursor?${params.toString()}`
+    );
+  },
+
+  getPinnedMessages: async (conversationId: string, userId: string): Promise<Message[]> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.get<Message[]>(`/api/message/messages/conversation/${conversationId}/pinned?${qs}`);
+  },
+
+  getMediaMessages: async (
+    conversationId: string,
+    userId: string,
+    type?: string
+  ): Promise<Message[]> => {
+    const params = new URLSearchParams({ userId });
+    if (type) {
+      params.set('type', type);
+    }
+    return httpClient.get<Message[]>(
+      `/api/message/messages/conversation/${conversationId}/media?${params.toString()}`
+    );
   },
 
   /**
@@ -81,8 +159,9 @@ export const messagesApi = {
   /**
    * Toggle pin for a message
    */
-  togglePin: async (id: string): Promise<Message> => {
-    return httpClient.post<Message>(`/api/message/messages/${id}/pin`);
+  togglePin: async (id: string, userId: string): Promise<Message> => {
+    const qs = encodeURIComponent(userId);
+    return httpClient.post<Message>(`/api/message/messages/${id}/pin?userId=${qs}`);
   },
 
   /**
@@ -99,6 +178,22 @@ export const messagesApi = {
   toggleReaction: async (id: string, emoji: string): Promise<Message> => {
     const qs = encodeURIComponent(emoji);
     return httpClient.post<Message>(`/api/message/messages/${id}/react?emoji=${qs}`);
+  },
+
+  sendTypingEvent: async (conversationId: string, payload: TypingEventRequest): Promise<void> => {
+    return httpClient.post<void>(`/api/message/messages/conversation/${conversationId}/typing`, payload);
+  },
+
+  markSeen: async (conversationId: string, payload: SeenEventRequest): Promise<void> => {
+    return httpClient.post<void>(`/api/message/messages/conversation/${conversationId}/seen`, payload);
+  },
+
+  createPoll: async (conversationId: string, payload: CreatePollRequest): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/conversation/${conversationId}/poll`, payload);
+  },
+
+  votePoll: async (messageId: string, payload: VotePollRequest): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/${messageId}/poll-vote`, payload);
   },
 };
 

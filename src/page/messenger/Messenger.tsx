@@ -845,9 +845,11 @@ export default function Messenger() {
         navigator.clipboard.writeText(message.content);
         break;
       case 'pin':
-        messagesApi.togglePin(messageId).catch((err: unknown) => {
-          console.error('Failed to toggle pin:', err);
-        });
+        if (user?.id) {
+          messagesApi.togglePin(messageId, user.id).catch((err: unknown) => {
+            console.error('Failed to toggle pin:', err);
+          });
+        }
         break;
       case 'star':
         if (user?.id) {

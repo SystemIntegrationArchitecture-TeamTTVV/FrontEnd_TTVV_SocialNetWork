@@ -1,220 +1,306 @@
-import { useState } from 'react';
-import { Bell, BellOff, Volume2, Image, Lock, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Save, Shield, Users, Lock } from 'lucide-react';
+import { conversationsApi, type Conversation } from '../../apis/conversations';
+import { useAuth } from '../../contexts/AuthContext';
+import { usersApi, type User } from '../../apis/users';
 
 export default function ConversationSettings() {
-  const { t } = useTranslation();
-  const [settings, setSettings] = useState({
-    notifications: true,
-    sound: true,
-    mute: false,
-    mediaVisibility: true,
-    readReceipts: true,
-  });
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const participants = [
-    { id: 1, name: 'Alex Chen', avatar: 'AC', color: '#1877F2', online: true, role: 'admin' },
-    { id: 2, name: 'Maria Garcia', avatar: 'MG', color: '#42B72A', online: true, role: 'member' },
-    { id: 3, name: 'David Kim', avatar: 'DK', color: '#FF6B6B', online: false, role: 'member' },
-  ];
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [description, setDescription] = useState('');
+  const [approvalsRequired, setApprovalsRequired] = useState(false);
+  const [onlyAdminsCanSend, setOnlyAdminsCanSend] = useState(false);
+  const [onlyAdminsCanAddMembers, setOnlyAdminsCanAddMembers] = useState(true);
+  const [memberQuery, setMemberQuery] = useState('');
+  const [memberCandidates, setMemberCandidates] = useState<User[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [pin, setPin] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleToggle = (key: string) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key as keyof typeof settings] }));
+  const canManage = !!(
+    user?.id && conversation && (conversation.ownerId === user.id || conversation.adminIds?.includes(user.id))
+  );
+
+  const memberRows = useMemo(() => {
+    const ids = conversation?.participantIds || [];
+    const names = conversation?.participantNames || [];
+    return ids.map((participantId, idx) => ({
+      participantId,
+      name: names[idx] || participantId,
+      isOwner: conversation?.ownerId === participantId,
+      isAdmin: conversation?.adminIds?.includes(participantId) || false,
+    }));
+  }, [conversation]);
+
+  const loadConversation = async () => {
+    if (!id) return;
+    const data = await conversationsApi.getConversationById(id);
+    setConversation(data);
+    setGroupName(data.groupName || 'Group Chat');
+    setDescription(data.description || '');
+    setApprovalsRequired(!!data.approvalsRequired);
+    setOnlyAdminsCanSend(!!data.onlyAdminsCanSend);
+    setOnlyAdminsCanAddMembers(data.onlyAdminsCanAddMembers ?? true);
   };
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    loadConversation()
+      .catch((err: any) => setError(err?.message || 'Cannot load conversation settings'))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    const q = memberQuery.trim();
+    if (!q) {
+      setMemberCandidates([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const found = await usersApi.searchUsers(q);
+        const existing = new Set(conversation?.participantIds || []);
+        setMemberCandidates(found.filter((u) => !!u.id && !existing.has(u.id!)));
+      } catch {
+        setMemberCandidates([]);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [memberQuery, conversation?.participantIds]);
+
+  const saveSettings = async () => {
+    if (!id || !user?.id || !canManage) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await conversationsApi.updateConversationMeta(id, {
+        requesterId: user.id,
+        groupName,
+        description,
+        approvalsRequired,
+        onlyAdminsCanSend,
+        onlyAdminsCanAddMembers,
+      });
+      setConversation(updated);
+    } catch (err: any) {
+      setError(err?.message || 'Save settings failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addMembers = async () => {
+    if (!id || !user?.id || selectedMemberIds.length === 0) return;
+
+    try {
+      const updated = await conversationsApi.addGroupMembers(id, {
+        requesterId: user.id,
+        participantIds: selectedMemberIds,
+      });
+      setConversation(updated);
+      setSelectedMemberIds([]);
+      setMemberQuery('');
+      setMemberCandidates([]);
+    } catch (err: any) {
+      setError(err?.message || 'Add members failed');
+    }
+  };
+
+  const removeMember = async (participantId: string) => {
+    if (!id || !user?.id) return;
+
+    try {
+      const updated = await conversationsApi.removeGroupMember(id, {
+        requesterId: user.id,
+        participantId,
+      });
+      setConversation(updated);
+    } catch (err: any) {
+      setError(err?.message || 'Remove member failed');
+    }
+  };
+
+  const hideConversation = async () => {
+    if (!id || !user?.id || !pin.trim()) {
+      setError('PIN is required');
+      return;
+    }
+
+    try {
+      await conversationsApi.hideConversation(id, { userId: user.id, pin: pin.trim() });
+      navigate('/messenger');
+    } catch (err: any) {
+      setError(err?.message || 'Hide conversation failed');
+    }
+  };
+
+  const leaveGroup = async () => {
+    if (!id || !user?.id) return;
+
+    try {
+      await conversationsApi.leaveGroup(id, { requesterId: user.id });
+      navigate('/messenger');
+    } catch (err: any) {
+      setError(err?.message || 'Leave group failed');
+    }
+  };
+
+  if (loading) {
+    return <div className="h-screen bg-white flex items-center justify-center text-gray-500">Loading settings...</div>;
+  }
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      {/* Header */}
-      <div className="h-20 border-b border-gray-200 px-6 flex items-center justify-between bg-white">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('messenger.conversationSettings.pageTitle')}</h1>
-          <p className="text-sm text-gray-600">{t('messenger.conversationSettings.pageSubtitle')}</p>
+      <div className="h-16 border-b border-gray-200 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold text-gray-900 truncate">Conversation Settings</h1>
+            <p className="text-xs text-gray-500 truncate">{conversation?.groupName || 'Group Chat'}</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* Notifications */}
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('messenger.conversationSettings.sectionNotifications')}</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Bell className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-lg text-gray-900">{t('messenger.conversationSettings.notificationsTitle')}</p>
-                  <p className="text-sm text-gray-600">{t('messenger.conversationSettings.notificationsDesc')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleToggle('notifications')}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  settings.notifications ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                    settings.notifications ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                ></span>
-              </button>
-            </div>
+      {error && <div className="px-4 py-2 text-sm text-red-600 bg-red-50 border-b border-red-100">{error}</div>}
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                  <Volume2 className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-lg text-gray-900">{t('messenger.conversationSettings.soundTitle')}</p>
-                  <p className="text-sm text-gray-600">{t('messenger.conversationSettings.soundDesc')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleToggle('sound')}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  settings.sound ? 'bg-green-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                    settings.sound ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                ></span>
-              </button>
-            </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <section className="border border-gray-200 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-800">Basic Info</h2>
+          <input
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-gray-300"
+            placeholder="Group name"
+            disabled={!canManage}
+          />
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-gray-300"
+            placeholder="Description"
+            disabled={!canManage}
+          />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <BellOff className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-lg text-gray-900">{t('messenger.conversationSettings.muteTitle')}</p>
-                  <p className="text-sm text-gray-600">{t('messenger.conversationSettings.muteDesc')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleToggle('mute')}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  settings.mute ? 'bg-orange-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                    settings.mute ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                ></span>
-              </button>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={approvalsRequired} onChange={(e) => setApprovalsRequired(e.target.checked)} disabled={!canManage} />
+              Require join approvals
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={onlyAdminsCanSend} onChange={(e) => setOnlyAdminsCanSend(e.target.checked)} disabled={!canManage} />
+              Only admin can send messages
+            </label>
+            <label className="flex items-center gap-2 sm:col-span-2">
+              <input type="checkbox" checked={onlyAdminsCanAddMembers} onChange={(e) => setOnlyAdminsCanAddMembers(e.target.checked)} disabled={!canManage} />
+              Only admin can add members
+            </label>
           </div>
-        </div>
 
-        {/* Media */}
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('messenger.conversationSettings.sectionMedia')}</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <Image className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-lg text-gray-900">{t('messenger.conversationSettings.mediaVisibilityTitle')}</p>
-                  <p className="text-sm text-gray-600">{t('messenger.conversationSettings.mediaVisibilityDesc')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleToggle('mediaVisibility')}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  settings.mediaVisibility ? 'bg-purple-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                    settings.mediaVisibility ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                ></span>
-              </button>
-            </div>
-          </div>
-        </div>
+          {canManage && (
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm inline-flex items-center gap-2 disabled:opacity-60"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          )}
+        </section>
 
-        {/* Privacy */}
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('messenger.conversationSettings.sectionPrivacy')}</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Lock className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-lg text-gray-900">{t('messenger.conversationSettings.readReceiptsTitle')}</p>
-                  <p className="text-sm text-gray-600">{t('messenger.conversationSettings.readReceiptsDesc')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleToggle('readReceipts')}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  settings.readReceipts ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
-                    settings.readReceipts ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                ></span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <section className="border border-gray-200 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Users className="w-4 h-4" /> Members
+          </h2>
 
-        {/* Participants */}
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">{t('messenger.conversationSettings.membersTitle')}</h2>
-            <span className="text-base text-gray-600">{t('messenger.conversationSettings.membersCount', { count: participants.length })}</span>
+          <input
+            value={memberQuery}
+            onChange={(e) => setMemberQuery(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-gray-300"
+            placeholder="Search user to add"
+            disabled={!canManage && onlyAdminsCanAddMembers}
+          />
+
+          <div className="max-h-28 overflow-y-auto space-y-1">
+            {memberCandidates.map((candidate) => {
+              const candidateId = candidate.id || '';
+              const selected = selectedMemberIds.includes(candidateId);
+              return (
+                <button
+                  key={candidateId}
+                  onClick={() => {
+                    if (!candidateId) return;
+                    setSelectedMemberIds((prev) => selected ? prev.filter((x) => x !== candidateId) : [...prev, candidateId]);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg border ${selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
+                >
+                  {candidate.fullName || candidate.username || candidateId}
+                </button>
+              );
+            })}
           </div>
-          <div className="space-y-3">
-            {participants.map((participant) => (
-              <div key={participant.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                <div className="relative">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base"
-                    style={{ backgroundColor: participant.color }}
-                  >
-                    {participant.avatar}
-                  </div>
-                  {participant.online && (
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-base text-gray-900">{participant.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {participant.role === 'admin' ? t('messenger.conversationSettings.roleAdmin') : t('messenger.conversationSettings.roleMember')}
-                  </p>
-                </div>
+
+          <button
+            onClick={addMembers}
+            disabled={selectedMemberIds.length === 0 || (!canManage && onlyAdminsCanAddMembers)}
+            className="h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm disabled:opacity-50"
+          >
+            Add {selectedMemberIds.length} members
+          </button>
+
+          <div className="border-t border-gray-200 pt-2 space-y-1">
+            {memberRows.map((member) => (
+              <div key={member.participantId} className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                <span>
+                  {member.name}
+                  {member.isOwner ? ' (owner)' : member.isAdmin ? ' (admin)' : ''}
+                </span>
+                {canManage && !member.isOwner && (
+                  <button onClick={() => removeMember(member.participantId)} className="text-red-600 hover:text-red-700">
+                    Remove
+                  </button>
+                )}
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Danger Zone */}
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-red-600 mb-4">{t('messenger.conversationSettings.dangerTitle')}</h2>
-          <button className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-red-200 hover:bg-red-50 transition-colors">
-            <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-              <Trash2 className="w-6 h-6 text-red-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-semibold text-lg text-red-600">{t('messenger.conversationSettings.deleteConversationTitle')}</p>
-              <p className="text-sm text-gray-600">{t('messenger.conversationSettings.deleteConversationDesc')}</p>
-            </div>
+        <section className="border border-gray-200 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Lock className="w-4 h-4" /> Privacy
+          </h2>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              className="flex-1 h-10 px-3 rounded-lg border border-gray-300"
+              placeholder="PIN to hide this group"
+            />
+            <button onClick={hideConversation} className="h-10 px-3 rounded-lg bg-gray-800 hover:bg-gray-900 text-white text-sm">
+              Hide
+            </button>
+          </div>
+
+          <button onClick={leaveGroup} className="h-10 px-3 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-sm inline-flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Leave group
           </button>
-        </div>
+        </section>
       </div>
     </div>
   );

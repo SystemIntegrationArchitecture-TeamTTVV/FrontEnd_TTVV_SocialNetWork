@@ -10,7 +10,11 @@ export interface Conversation {
   isGroup: boolean;
   groupName?: string;
   groupAvatar?: string;
+  description?: string;
+  onlyAdminsCanSend?: boolean;
+  onlyAdminsCanAddMembers?: boolean;
   approvalsRequired?: boolean;
+  hiddenForCurrentUser?: boolean;
   pendingJoinIds?: string[];
   lastMessagePreview?: string;
   lastMessageAt?: string;
@@ -58,13 +62,21 @@ export interface ConversationMetaUpdateRequest {
   requesterId: string;
   groupName?: string;
   groupAvatar?: string;
+  description?: string;
   approvalsRequired?: boolean;
+  onlyAdminsCanSend?: boolean;
+  onlyAdminsCanAddMembers?: boolean;
 }
 
 export interface JoinRequestUpdateRequest {
   requesterId: string;
   approverId: string;
   approved: boolean;
+}
+
+export interface ConversationPinRequest {
+  userId: string;
+  pin: string;
 }
 
 export const conversationsApi = {
@@ -90,6 +102,11 @@ export const conversationsApi = {
    */
   getConversationById: async (id: string): Promise<Conversation> => {
     return httpClient.get<Conversation>(`/api/message/conversations/${id}`);
+  },
+
+  searchGroupConversations: async (userId: string, keyword: string): Promise<Conversation[]> => {
+    const qs = new URLSearchParams({ userId, keyword }).toString();
+    return httpClient.get<Conversation[]>(`/api/message/conversations/groups/search?${qs}`);
   },
 
   /**
@@ -133,6 +150,14 @@ export const conversationsApi = {
     data: ConversationMetaUpdateRequest
   ): Promise<Conversation> => {
     return httpClient.put<Conversation>(`/api/message/conversations/${id}/meta`, data);
+  },
+
+  hideConversation: async (id: string, data: ConversationPinRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${id}/hide`, data);
+  },
+
+  unhideConversation: async (id: string, data: ConversationPinRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${id}/unhide`, data);
   },
 
   leaveGroup: async (conversationId: string, data: LeaveGroupRequest): Promise<Conversation> => {

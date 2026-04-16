@@ -26,7 +26,6 @@ export default function LeftSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const { user: currentUser } = useAuth();
-  const isAuthenticated = !!currentUser;
 
   const userAvatar = currentUser?.avatar || null;
   const userInitials = currentUser?.fullName

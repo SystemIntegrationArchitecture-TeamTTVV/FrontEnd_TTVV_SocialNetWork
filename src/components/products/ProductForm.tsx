@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Plus, Trash2, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ProductDTO, CreateProductRequest, UpdateProductRequest } from '../../apis/products';
