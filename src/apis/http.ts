@@ -1,4 +1,5 @@
 import { API_CONFIG } from './config';
+import { notify } from '../services/notify';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -64,8 +65,13 @@ class HttpClient {
         window.location.href = '/auth/login';
       }
 
+      // Automatically extract error from standardized ErrorResponseDTO backend
       const errorMessage =
         data?.message || data?.error || `HTTP error! status: ${response.status}`;
+      
+      // GLOBALLY show a toast error for all API failures
+      notify.error(errorMessage);
+
       throw new HttpError(response.status, errorMessage, data);
     }
 

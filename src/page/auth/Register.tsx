@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { HttpError } from '../../apis/http';
+import { useToast } from '../../contexts/useToast';
 import AuthFrame from '../../components/auth/AuthFrame';
 import i18n from '../../i18n';
 
@@ -24,6 +25,7 @@ export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
   const { register: registerUser, isLoading } = useAuth();
+  const { showToast } = useToast();
   const {
     register,
     handleSubmit,
@@ -54,13 +56,18 @@ export default function Register() {
         gender: data.gender,
         dateOfBirth,
       });
+      showToast(t('auth.register.finish'), 'success');
       const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch (err: unknown) {
       if (err instanceof HttpError) {
-        setError(err.message || t('auth.register.errorRegister'));
+        const msg = err.message || t('auth.register.errorRegister');
+        setError(msg);
+        showToast(msg, 'error');
       } else {
-        setError(t('auth.register.errorGeneric'));
+        const msg = t('auth.register.errorGeneric');
+        setError(msg);
+        showToast(msg, 'error');
       }
       console.error('Register error:', err);
     } finally {

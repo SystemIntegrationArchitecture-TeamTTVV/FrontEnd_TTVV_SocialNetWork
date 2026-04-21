@@ -8,6 +8,7 @@ import VoiceRecorder from '../chat/VoiceRecorder';
 import type { ChatContact } from '../../types/chat';
 import { useMessages } from '../../hooks/useMessages';
 import { useTranslation } from 'react-i18next';
+import { notify } from '../../services/notify';
 interface ChatBoxProps {
   contact: ChatContact;
   index: number;
@@ -77,7 +78,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       }, 100);
     } catch (error) {
       console.error('❌ Failed to upload file:', error);
-      alert(t('chatBox.uploadError'));
+      notify.error(t('chatBox.uploadError'));
     } finally {
       setSending(false);
     }
@@ -104,7 +105,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       }, 100);
     } catch (error) {
       console.error('❌ Failed to upload voice message:', error);
-      alert(t('chatBox.voiceSendError'));
+      notify.error(t('chatBox.voiceSendError'));
     } finally {
       setSending(false);
     }

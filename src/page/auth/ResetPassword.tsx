@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { passwordResetApi } from '../../apis/passwordReset';
+import { useToast } from '../../contexts/useToast';
 
 export default function ResetPassword() {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -30,17 +32,23 @@ export default function ResetPassword() {
     e.preventDefault();
     
     if (!token) {
-      setError(t('auth.resetToken.errorInvalidLinkShort'));
+      const msg = t('auth.resetToken.errorInvalidLinkShort');
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
     if (newPassword.length < 6) {
-      setError(t('auth.resetToken.errorMinLength'));
+      const msg = t('auth.resetToken.errorMinLength');
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(t('auth.resetToken.errorMismatch'));
+      const msg = t('auth.resetToken.errorMismatch');
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
@@ -51,14 +59,17 @@ export default function ResetPassword() {
       const response = await passwordResetApi.resetPassword(token, newPassword);
       console.log('✅ Password reset successful:', response.message);
       setSuccess(true);
+      showToast(response.message || t('auth.resetToken.successTitle'), 'success');
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/auth/login');
       }, 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Failed to reset password:', err);
-      setError(err.message || t('auth.resetToken.errorGeneric'));
+      const msg = err instanceof Error ? err.message : t('auth.resetToken.errorGeneric');
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setIsLoading(false);
     }

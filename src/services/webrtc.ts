@@ -1,5 +1,7 @@
 import { socketService } from './socket';
 import i18n from '../i18n';
+import { authApi } from '../apis/auth';
+import { notify } from './notify';
 
 export type CallType = 'voice' | 'video';
 
@@ -15,11 +17,13 @@ export interface CallOffer {
 
 export interface CallAnswer {
   callId: string;
+  senderId?: string;
   answer: RTCSessionDescriptionInit;
 }
 
 export interface IceCandidate {
   callId: string;
+  senderId?: string;
   candidate: RTCIceCandidateInit;
 }
 
@@ -30,11 +34,12 @@ type LegacyIceCandidatePayload = {
 };
 
 class WebRTCService {
-  private peerConnection: RTCPeerConnection | null = null;
+  private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
-  private remoteStream: MediaStream | null = null;
-  private currentCallId: string | null = null;
-  private pendingIceCandidates: RTCIceCandidateInit[] = []; // Queue for early ICE candidates
+  private remoteStreams: Map<string, MediaStream> = new Map();
+  private currentCallIdByPeer: Map<string, string> = new Map();
+  private peerByCallId: Map<string, string> = new Map();
+  private pendingIceCandidatesByPeer: Map<string, RTCIceCandidateInit[]> = new Map();
 
   private configuration: RTCConfiguration = {
     iceServers: [
@@ -76,7 +81,7 @@ class WebRTCService {
           };
           this.localStream = await navigator.mediaDevices.getUserMedia(audioOnlyConstraints);
           console.log('✅ Got audio-only stream as fallback');
-          alert(i18n.t('calls.cameraUnavailable'));
+          notify.info(i18n.t('calls.cameraUnavailable'));
           return this.localStream;
         } catch (audioError: any) {
           console.error('❌ Audio fallback also failed:', audioError.name);
@@ -111,24 +116,22 @@ class WebRTCService {
     isGroup?: boolean
   ): Promise<CallOffer> {
     console.log('📞 Creating call offer to:', recipientId, isGroup ? '(GROUP CALL)' : '(DIRECT CALL)');
-    
-    // Initialize peer connection
-    this.peerConnection = new RTCPeerConnection(this.configuration);
-    this.setupPeerConnectionListeners();
+    const peerConnection = this.createPeerConnectionFor(recipientId);
 
     // Add local stream tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
-        this.peerConnection!.addTrack(track, this.localStream!);
+        peerConnection.addTrack(track, this.localStream!);
       });
     }
 
     // Create offer
-    const offer = await this.peerConnection.createOffer();
-    await this.peerConnection.setLocalDescription(offer);
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
 
     const callId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.currentCallId = callId;
+    this.currentCallIdByPeer.set(recipientId, callId);
+    this.peerByCallId.set(callId, recipientId);
 
     const callOffer: CallOffer = {
       callId,
@@ -154,46 +157,49 @@ class WebRTCService {
 
   async handleOffer(offer: CallOffer): Promise<void> {
     console.log('📥 Received call offer:', offer);
-    
-    this.currentCallId = offer.callId;
-    this.peerConnection = new RTCPeerConnection(this.configuration);
-    this.setupPeerConnectionListeners();
+    const callerId = offer.callerId;
+    const peerConnection = this.createPeerConnectionFor(callerId);
+    this.currentCallIdByPeer.set(callerId, offer.callId);
+    this.peerByCallId.set(offer.callId, callerId);
 
     // Add local stream tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
-        this.peerConnection!.addTrack(track, this.localStream!);
+        peerConnection.addTrack(track, this.localStream!);
       });
     }
 
-    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer.offer));
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer.offer));
     
     // Process any queued ICE candidates now that remote description is set
-    await this.processQueuedIceCandidates();
+    await this.processQueuedIceCandidates(callerId);
   }
 
   async createAnswer(callerId: string): Promise<CallAnswer> {
+    const peerConnection = this.peerConnections.get(callerId);
+    const callId = this.currentCallIdByPeer.get(callerId);
     console.log('🔍 createAnswer called with:', {
       callerId,
-      hasPeerConnection: !!this.peerConnection,
-      currentCallId: this.currentCallId,
-      peerConnectionState: this.peerConnection?.connectionState,
-      peerConnectionSignalingState: this.peerConnection?.signalingState
+      hasPeerConnection: !!peerConnection,
+      callId,
+      peerConnectionState: peerConnection?.connectionState,
+      peerConnectionSignalingState: peerConnection?.signalingState
     });
     
-    if (!this.peerConnection || !this.currentCallId) {
+    if (!peerConnection || !callId) {
       console.error('❌ createAnswer failed:', {
-        peerConnection: !!this.peerConnection,
-        currentCallId: this.currentCallId
+        peerConnection: !!peerConnection,
+        callId
       });
       throw new Error('No active call to answer');
     }
 
-    const answer = await this.peerConnection.createAnswer();
-    await this.peerConnection.setLocalDescription(answer);
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
 
     const callAnswer: CallAnswer = {
-      callId: this.currentCallId,
+      callId,
+      senderId: authApi.getCurrentUser()?.id,
       answer: answer,
     };
 
@@ -210,27 +216,41 @@ class WebRTCService {
   }
 
   async handleAnswer(answer: CallAnswer): Promise<void> {
+    const senderId = answer.senderId || (answer.callId ? this.peerByCallId.get(answer.callId) : undefined);
+    if (!senderId) {
+      console.warn('⚠️ handleAnswer: missing senderId, skipping answer', answer);
+      return;
+    }
+    const peerConnection = this.peerConnections.get(senderId);
     console.log('📥 Received call answer:', answer);
     console.log('🔍 handleAnswer state:', {
-      hasPeerConnection: !!this.peerConnection,
-      currentCallId: this.currentCallId,
-      peerConnectionState: this.peerConnection?.connectionState,
-      signalingState: this.peerConnection?.signalingState
+      senderId,
+      hasPeerConnection: !!peerConnection,
+      callId: this.currentCallIdByPeer.get(senderId),
+      peerConnectionState: peerConnection?.connectionState,
+      signalingState: peerConnection?.signalingState
     });
     
-    if (!this.peerConnection) {
+    if (!peerConnection) {
       console.error('❌ handleAnswer: No peer connection!');
       throw new Error('No peer connection');
     }
 
-    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer.answer));
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer.answer));
     
     // Process any queued ICE candidates now that remote description is set
-    await this.processQueuedIceCandidates();
+    await this.processQueuedIceCandidates(senderId);
   }
 
   async addIceCandidate(candidate: IceCandidate | LegacyIceCandidatePayload): Promise<void> {
-    if (!this.peerConnection) {
+    const senderId = ('senderId' in candidate ? candidate.senderId : undefined)
+      || (candidate.callId ? this.peerByCallId.get(candidate.callId) : undefined);
+    if (!senderId) {
+      console.warn('⚠️ addIceCandidate: missing senderId, skipping');
+      return;
+    }
+    const peerConnection = this.peerConnections.get(senderId);
+    if (!peerConnection) {
       // Silently ignore ICE candidates if no peer connection (call may have ended)
       return;
     }
@@ -247,56 +267,72 @@ class WebRTCService {
     }
 
     // If remote description is not set yet, queue the candidate
-    if (!this.peerConnection.remoteDescription) {
+    if (!peerConnection.remoteDescription) {
       console.log('📦 Queueing ICE candidate (remote description not set yet)');
-      this.pendingIceCandidates.push(parsedCandidate);
+      const queue = this.pendingIceCandidatesByPeer.get(senderId) || [];
+      queue.push(parsedCandidate);
+      this.pendingIceCandidatesByPeer.set(senderId, queue);
       return;
     }
 
     try {
-      await this.peerConnection.addIceCandidate(new RTCIceCandidate(parsedCandidate));
+      await peerConnection.addIceCandidate(new RTCIceCandidate(parsedCandidate));
       console.log('✅ Added ICE candidate');
     } catch (error) {
       console.error('❌ Failed to add ICE candidate:', error);
     }
   }
 
-  private async processQueuedIceCandidates(): Promise<void> {
-    if (this.pendingIceCandidates.length === 0) return;
+  private async processQueuedIceCandidates(peerId: string): Promise<void> {
+    const peerConnection = this.peerConnections.get(peerId);
+    const queue = this.pendingIceCandidatesByPeer.get(peerId) || [];
+    if (!peerConnection || queue.length === 0) return;
     
-    console.log(`📦 Processing ${this.pendingIceCandidates.length} queued ICE candidates`);
+    console.log(`📦 Processing ${queue.length} queued ICE candidates for peer ${peerId}`);
     
-    for (const candidate of this.pendingIceCandidates) {
+    for (const candidate of queue) {
       try {
-        await this.peerConnection?.addIceCandidate(new RTCIceCandidate(candidate));
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         console.log('✅ Added queued ICE candidate');
       } catch (error) {
         console.error('❌ Failed to add queued ICE candidate:', error);
       }
     }
     
-    this.pendingIceCandidates = [];
+    this.pendingIceCandidatesByPeer.delete(peerId);
   }
-
-  private remotePeerId: string | null = null;
 
   setRemotePeer(peerId: string) {
-    this.remotePeerId = peerId;
+    // No-op for backward compatibility with existing callers.
+    // Multi-peer mode routes by explicit peerId per connection.
+    void peerId;
   }
 
-  private setupPeerConnectionListeners() {
-    if (!this.peerConnection) return;
+  private createPeerConnectionFor(peerId: string): RTCPeerConnection {
+    const existing = this.peerConnections.get(peerId);
+    if (existing) {
+      existing.close();
+    }
+    const pc = new RTCPeerConnection(this.configuration);
+    this.peerConnections.set(peerId, pc);
+    this.setupPeerConnectionListeners(peerId, pc);
+    return pc;
+  }
+
+  private setupPeerConnectionListeners(peerId: string, peerConnection: RTCPeerConnection) {
 
     // Handle ICE candidates
-    this.peerConnection.onicecandidate = (event) => {
-      if (event.candidate && this.currentCallId && this.remotePeerId) {
+    peerConnection.onicecandidate = (event) => {
+      const callId = this.currentCallIdByPeer.get(peerId);
+      if (event.candidate && callId) {
         const iceCandidate: IceCandidate = {
-          callId: this.currentCallId,
+          callId,
+          senderId: authApi.getCurrentUser()?.id,
           candidate: event.candidate.toJSON(),
         };
         socketService.send('/app/webrtc/ice-candidate', {
           type: 'ICE_CANDIDATE',
-          userId: this.remotePeerId, // Send to the other peer
+          userId: peerId,
           data: iceCandidate,
           timestamp: new Date().toISOString(),
         });
@@ -304,47 +340,47 @@ class WebRTCService {
         // Send also using CALL_ICE_CANDIDATE event name to support older/other clients.
         socketService.send('/app/webrtc/ice-candidate', {
           type: 'CALL_ICE_CANDIDATE',
-          userId: this.remotePeerId, // Send to the other peer
+          userId: peerId,
           data: {
-            callId: this.currentCallId,
+            callId,
+            senderId: authApi.getCurrentUser()?.id,
             iceCandidate: event.candidate.toJSON(),
             candidate: event.candidate.toJSON(),
           } as LegacyIceCandidatePayload,
           timestamp: new Date().toISOString(),
         });
 
-        console.log('📤 Sent ICE candidate to (both types):', this.remotePeerId);
+        console.log('📤 Sent ICE candidate to (both types):', peerId);
       }
     };
 
     // Handle remote stream
-    this.peerConnection.ontrack = (event) => {
+    peerConnection.ontrack = (event) => {
       console.log('🎬 Received remote track:', event.track.kind);
       
-      if (!this.remoteStream) {
-        this.remoteStream = new MediaStream();
-        console.log('📺 Created new remote stream:', this.remoteStream.id);
+      if (!this.remoteStreams.has(peerId)) {
+        this.remoteStreams.set(peerId, new MediaStream());
       }
-      
-      this.remoteStream.addTrack(event.track);
+      const stream = this.remoteStreams.get(peerId)!;
+      stream.addTrack(event.track);
       console.log('📺 Remote stream now has:', {
-        audioTracks: this.remoteStream.getAudioTracks().length,
-        videoTracks: this.remoteStream.getVideoTracks().length,
-        active: this.remoteStream.active
+        peerId,
+        audioTracks: stream.getAudioTracks().length,
+        videoTracks: stream.getVideoTracks().length,
+        active: stream.active
       });
     };
 
     // Handle connection state
-    this.peerConnection.onconnectionstatechange = () => {
-      console.log('🔗 Connection state:', this.peerConnection?.connectionState);
+    peerConnection.onconnectionstatechange = () => {
+      console.log('🔗 Connection state:', peerId, peerConnection.connectionState);
       
-      if (this.peerConnection?.connectionState === 'failed') {
-        console.error('❌ Connection failed! Ending call...');
-        this.endCall();
+      if (peerConnection.connectionState === 'failed') {
+        this.closePeer(peerId);
       }
       
-      if (this.peerConnection?.connectionState === 'disconnected') {
-        console.warn('⚠️ Connection disconnected');
+      if (peerConnection.connectionState === 'disconnected') {
+        console.warn('⚠️ Connection disconnected for peer', peerId);
       }
     };
   }
@@ -354,11 +390,36 @@ class WebRTCService {
   }
 
   getRemoteStream(): MediaStream | null {
-    return this.remoteStream;
+    const first = this.remoteStreams.values().next().value as MediaStream | undefined;
+    return first || null;
+  }
+
+  getRemoteStreams(): Map<string, MediaStream> {
+    return new Map(this.remoteStreams);
   }
 
   getPeerConnection(): RTCPeerConnection | null {
-    return this.peerConnection;
+    const first = this.peerConnections.values().next().value as RTCPeerConnection | undefined;
+    return first || null;
+  }
+
+  private closePeer(peerId: string) {
+    const peerConnection = this.peerConnections.get(peerId);
+    if (peerConnection) {
+      peerConnection.close();
+      this.peerConnections.delete(peerId);
+    }
+    const remoteStream = this.remoteStreams.get(peerId);
+    if (remoteStream) {
+      remoteStream.getTracks().forEach(track => track.stop());
+      this.remoteStreams.delete(peerId);
+    }
+    const callId = this.currentCallIdByPeer.get(peerId);
+    this.currentCallIdByPeer.delete(peerId);
+    if (callId) {
+      this.peerByCallId.delete(callId);
+    }
+    this.pendingIceCandidatesByPeer.delete(peerId);
   }
 
   endCall() {
@@ -370,24 +431,21 @@ class WebRTCService {
       this.localStream = null;
     }
 
-    if (this.remoteStream) {
-      this.remoteStream.getTracks().forEach(track => track.stop());
-      this.remoteStream = null;
-    }
+    this.remoteStreams.forEach(stream => {
+      stream.getTracks().forEach(track => track.stop());
+    });
+    this.remoteStreams.clear();
 
-    // Close peer connection
-    if (this.peerConnection) {
-      this.peerConnection.close();
-      this.peerConnection = null;
-    }
-
-    this.currentCallId = null;
-    this.remotePeerId = null;
-    this.pendingIceCandidates = []; // Clear queued ICE candidates
+    this.peerConnections.forEach(pc => pc.close());
+    this.peerConnections.clear();
+    this.currentCallIdByPeer.clear();
+    this.peerByCallId.clear();
+    this.pendingIceCandidatesByPeer.clear();
   }
 
   getCurrentCallId(): string | null {
-    return this.currentCallId;
+    const first = this.currentCallIdByPeer.values().next().value as string | undefined;
+    return first || null;
   }
 }
 

@@ -8,6 +8,8 @@ interface CallWindowProps {
   callType: 'voice' | 'video';
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  remoteStreams?: Array<{ peerId: string; stream: MediaStream }>;
+  isGroup?: boolean;
   onAccept?: () => void;
   onReject: () => void;
   onEnd: () => void;
@@ -19,6 +21,8 @@ export default function CallWindow({
   callType,
   localStream,
   remoteStream,
+  remoteStreams = [],
+  isGroup = false,
   onAccept,
   onReject,
   onEnd,
@@ -27,6 +31,7 @@ export default function CallWindow({
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null); // Add audio ref for voice calls
+  const remoteVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   // Used only to reflect remote peer track state (e.g., when peer disables mic/camera).
@@ -144,6 +149,27 @@ export default function CallWindow({
     return () => window.clearInterval(interval);
   }, [remoteStream]);
 
+  useEffect(() => {
+    if (!isGroup || callType !== 'video') return;
+    for (const item of remoteStreams) {
+      const element = remoteVideoRefs.current.get(item.peerId);
+      if (!element) continue;
+      if (element.srcObject !== item.stream) {
+        element.srcObject = item.stream;
+      }
+      element.play().catch(() => {
+        // Ignore autoplay restrictions in some browsers.
+      });
+    }
+  }, [isGroup, callType, remoteStreams]);
+
+  const groupGridCols =
+    remoteStreams.length <= 1
+      ? 'grid-cols-1'
+      : remoteStreams.length <= 4
+        ? 'grid-cols-2'
+        : 'grid-cols-3';
+
   return (
     <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col overflow-hidden">
       {/* Header - Only show for active calls, not incoming */}
@@ -201,7 +227,29 @@ export default function CallWindow({
         {/* Active Call - Remote Video (Full Screen) */}
         {!isIncoming && callType === 'video' && (
           <>
-            {remoteStream ? (
+            {isGroup && remoteStreams.length > 0 ? (
+              <div className={`grid ${groupGridCols} gap-2 p-2 w-full h-full`}>
+                {remoteStreams.map((item) => (
+                  <div key={item.peerId} className="relative bg-gray-800 rounded-lg overflow-hidden min-h-0">
+                    <video
+                      ref={(el) => {
+                        if (el) {
+                          remoteVideoRefs.current.set(item.peerId, el);
+                        } else {
+                          remoteVideoRefs.current.delete(item.peerId);
+                        }
+                      }}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-2 left-2 text-xs text-white bg-black/50 rounded px-2 py-1">
+                      {item.peerId.slice(0, 8)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : remoteStream ? (
               <div className="w-full h-full relative">
                 <video
                   ref={remoteVideoRef}

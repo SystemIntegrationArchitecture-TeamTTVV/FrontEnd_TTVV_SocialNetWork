@@ -13,6 +13,10 @@ export default function MainLayout() {
   const location = useLocation();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [fromPath, setFromPath] = useState<string | undefined>(undefined);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('left-sidebar-collapsed') === '1';
+  });
   
   // Chỉ ẩn sidebars khi đang ở trang messenger full page
   const isMessengerPage = location.pathname.startsWith('/messenger');
@@ -33,6 +37,10 @@ export default function MainLayout() {
     };
   }, [location.pathname]);
 
+  useEffect(() => {
+    window.localStorage.setItem('left-sidebar-collapsed', isLeftSidebarCollapsed ? '1' : '0');
+  }, [isLeftSidebarCollapsed]);
+
   return (
     <div className="h-screen bg-[#f0f2f5] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
       {!isFlappyFullscreen && <Navbar />}
@@ -40,8 +48,15 @@ export default function MainLayout() {
       <div className={`flex flex-1 overflow-hidden ${isFlappyFullscreen ? '' : 'pt-14'}`}>
         {/* LEFT SIDEBAR — cùng nền feed, viền tinh như Facebook */}
         {!isMessengerPage && !isFlappyFullscreen && (
-          <aside className="hidden lg:block w-64 xl:w-72 h-full overflow-y-auto scrollbar-hide bg-[#f0f2f5] dark:bg-[#13151f] border-r border-[#e4e6eb] dark:border-[#22263a]">
-            <LeftSidebar />
+          <aside
+            className={`hidden lg:block h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-r border-[#e4e6eb] dark:border-[#22263a] transition-all duration-200 ${
+              isLeftSidebarCollapsed ? 'w-24' : 'w-64 xl:w-72'
+            }`}
+          >
+            <LeftSidebar
+              collapsed={isLeftSidebarCollapsed}
+              onToggleCollapse={() => setIsLeftSidebarCollapsed((prev) => !prev)}
+            />
           </aside>
         )}
 
@@ -67,7 +82,7 @@ export default function MainLayout() {
         
         {/* RIGHT SIDEBAR */}
         {!isMessengerPage && !isFlappyFullscreen && (
-          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide bg-[#f0f2f5] dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a]">
+          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a]">
             <RightSidebar />
           </aside>
         )}
@@ -82,17 +97,6 @@ export default function MainLayout() {
         fromPath={fromPath}
         onClose={() => setShowAuthModal(false)}
       />
-      
-      {/* CSS để ẩn scrollbar */}
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }

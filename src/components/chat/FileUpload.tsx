@@ -6,9 +6,10 @@ interface FileUploadProps {
   onFileSelect: (file: File) => void;
   accept?: string;
   multiple?: boolean;
+  minimal?: boolean;
 }
 
-export default function FileUpload({ onFileSelect, accept = '*', multiple = false }: FileUploadProps) {
+export default function FileUpload({ onFileSelect, accept = '*', multiple = false, minimal = false }: FileUploadProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +37,9 @@ export default function FileUpload({ onFileSelect, accept = '*', multiple = fals
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
+        className={minimal
+          ? "w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+          : "w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"}
         title={t('messenger.attachmentsTitle')}
       >
         <Paperclip className="w-5 h-5" />
@@ -45,7 +48,7 @@ export default function FileUpload({ onFileSelect, accept = '*', multiple = fals
   );
 }
 
-export function ImageUpload({ onFileSelect }: FileUploadProps) {
+export function ImageUpload({ onFileSelect, minimal = false }: FileUploadProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +74,9 @@ export function ImageUpload({ onFileSelect }: FileUploadProps) {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
+        className={minimal
+          ? "w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+          : "w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"}
         title={t('messenger.sendImage')}
       >
         <Image className="w-5 h-5" />
@@ -80,7 +85,7 @@ export function ImageUpload({ onFileSelect }: FileUploadProps) {
   );
 }
 
-export function VideoUpload({ onFileSelect }: FileUploadProps) {
+export function VideoUpload({ onFileSelect, minimal = false }: FileUploadProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,7 +111,9 @@ export function VideoUpload({ onFileSelect }: FileUploadProps) {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
+        className={minimal
+          ? "w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+          : "w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"}
         title={t('messenger.sendVideo')}
       >
         <Video className="w-5 h-5" />

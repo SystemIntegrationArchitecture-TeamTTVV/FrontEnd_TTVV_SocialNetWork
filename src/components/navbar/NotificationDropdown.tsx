@@ -84,23 +84,35 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const loadRequestSeq = useRef(0);
 
   // Load notifications and join requests when dropdown opens
   useEffect(() => {
+    let isCancelled = false;
+
     const loadData = async () => {
       if (!currentUser?.id) return;
+      const requestSeq = ++loadRequestSeq.current;
 
       try {
-        setLoading(true);
-        // Load regular notifications
-        const rawData = await notificationsApi.getNotificationsByRecipientId(currentUser.id);
+        const shouldShowLoading = !hasLoadedOnce && notifications.length === 0 && joinRequests.length === 0;
+        if (shouldShowLoading) {
+          setLoading(true);
+        }
+
+        // Load core data in parallel to reduce open latency
+        const [rawData, friendRequestsRaw, sentFriendRequestsRaw, rawConversations] = await Promise.all([
+          notificationsApi.getNotificationsByRecipientId(currentUser.id),
+          friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id),
+          friendRequestsApi.getFriendRequestsBySenderId(currentUser.id),
+          conversationsApi.getConversationsByUserId(currentUser.id),
+        ]);
+
         const data = Array.isArray(rawData) ? rawData : [];
-        
-        // Load friend requests để check status
-        const friendRequestsRaw = await friendRequestsApi.getFriendRequestsByReceiverId(currentUser.id);
-        const sentFriendRequestsRaw = await friendRequestsApi.getFriendRequestsBySenderId(currentUser.id);
         const friendRequests = Array.isArray(friendRequestsRaw) ? friendRequestsRaw : [];
         const sentFriendRequests = Array.isArray(sentFriendRequestsRaw) ? sentFriendRequestsRaw : [];
+        const conversations = Array.isArray(rawConversations) ? rawConversations : [];
         const allFriendRequests = [...friendRequests, ...sentFriendRequests];
         
         // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
@@ -114,65 +126,76 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
           return true;
         });
         
+        // Ignore stale/obsolete response when a newer load has started.
+        if (isCancelled || requestSeq !== loadRequestSeq.current) return;
         setNotifications(filteredData);
 
-        // Load conversations để lấy join requests
-        const rawConversations = await conversationsApi.getConversationsByUserId(currentUser.id);
-        const conversations = Array.isArray(rawConversations) ? rawConversations : [];
+        // Build join requests and fetch requesters in parallel
         const joinRequestsList: JoinRequestItem[] = [];
-        
-        for (const conv of conversations) {
-          if (
+        const eligibleConversations = conversations.filter(
+          (conv) =>
             conv.isGroup &&
             conv.approvalsRequired &&
             conv.pendingJoinIds &&
             conv.pendingJoinIds.length > 0 &&
-            (conv.ownerId === currentUser.id || conv.adminIds?.includes(currentUser.id))
-          ) {
-            // Fetch user info for each requester
-            for (const requesterId of conv.pendingJoinIds) {
-              try {
-                const requester = await usersApi.getUserById(requesterId);
-                joinRequestsList.push({
-                  id: `${conv.id}-${requesterId}`,
-                  type: 'JOIN_REQUEST',
-                  conversationId: conv.id,
+            (conv.ownerId === currentUser.id || conv.adminIds?.includes(currentUser.id)),
+        );
+
+        const requesterTasks = eligibleConversations.flatMap((conv) =>
+          conv.pendingJoinIds.map(async (requesterId) => {
+            try {
+              const requester = await usersApi.getUserById(requesterId);
+              return {
+                id: `${conv.id}-${requesterId}`,
+                type: 'JOIN_REQUEST' as const,
+                conversationId: conv.id,
                 conversationName: conv.groupName || t('notificationDropdown.groupChat'),
-                  requesterId,
-                  requesterName: requester.fullName || requester.username || requesterId,
-                  requesterAvatar: requester.avatar,
-                  createdAt: new Date().toISOString(), // Use current time as approximation
-                  isRead: false,
-                });
-              } catch (err) {
-                console.error(`Failed to fetch user ${requesterId}:`, err);
-                // Still add with fallback data
-                joinRequestsList.push({
-                  id: `${conv.id}-${requesterId}`,
-                  type: 'JOIN_REQUEST',
-                  conversationId: conv.id,
-                  conversationName: conv.groupName || t('notificationDropdown.groupChat'),
-                  requesterId,
-                  requesterName: requesterId,
-                  createdAt: new Date().toISOString(),
-                  isRead: false,
-                });
-              }
+                requesterId,
+                requesterName: requester.fullName || requester.username || requesterId,
+                requesterAvatar: requester.avatar,
+                createdAt: new Date().toISOString(),
+                isRead: false,
+              };
+            } catch (err) {
+              console.error(`Failed to fetch user ${requesterId}:`, err);
+              return {
+                id: `${conv.id}-${requesterId}`,
+                type: 'JOIN_REQUEST' as const,
+                conversationId: conv.id,
+                conversationName: conv.groupName || t('notificationDropdown.groupChat'),
+                requesterId,
+                requesterName: requesterId,
+                createdAt: new Date().toISOString(),
+                isRead: false,
+              };
             }
-          }
-        }
+          }),
+        );
+
+        const requesterResults = await Promise.all(requesterTasks);
+        joinRequestsList.push(...requesterResults);
         
+        if (isCancelled || requestSeq !== loadRequestSeq.current) return;
         setJoinRequests(joinRequestsList);
+        setHasLoadedOnce(true);
       } catch (error) {
-        console.error('Failed to load notifications/join requests:', error);
+        if (!isCancelled) {
+          console.error('Failed to load notifications/join requests:', error);
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled && requestSeq === loadRequestSeq.current) {
+          setLoading(false);
+        }
       }
     };
 
     if (isOpen) {
       loadData();
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, currentUser?.id]);
 
   // Subscribe to socket for real-time notifications and join requests

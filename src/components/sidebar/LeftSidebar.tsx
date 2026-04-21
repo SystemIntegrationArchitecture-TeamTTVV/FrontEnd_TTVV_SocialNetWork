@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, LayoutGrid, Store, Video, Bookmark, ChevronDown, Music2, Gamepad2 } from 'lucide-react';
+import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
@@ -22,7 +22,12 @@ type MenuItem =
       labelKey: LabelKey;
     };
 
-export default function LeftSidebar() {
+type LeftSidebarProps = {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+};
+
+export default function LeftSidebar({ collapsed = false, onToggleCollapse }: LeftSidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { user: currentUser } = useAuth();
@@ -61,22 +66,35 @@ export default function LeftSidebar() {
       : menuItems;
 
   return (
-    <div className="w-full px-2 py-3">
-      <div className="space-y-1">
+    <div className={`w-full py-4 ${collapsed ? 'px-2' : 'px-3'}`}>
+      <div className={`mx-auto w-full space-y-1.5 ${collapsed ? 'max-w-[72px]' : 'max-w-[230px]'}`}>
+        <div className={`mb-2 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="h-8 w-8 rounded-full bg-[#e4e6eb] text-[#7a7d82] hover:bg-[#d8dadf] dark:bg-[#22263a] dark:text-[#9aa3bc] dark:hover:bg-[#2b2f45] transition-colors flex items-center justify-center shadow-sm"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
         {menuItemsWithUser.map((item, index) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           const isDisabled = 'requireAuth' in item && !!item.requireAuth && !currentUser;
 
-          const rowBase = 'flex items-center gap-3 px-2 py-2 rounded-lg transition-colors duration-150 group';
-          const rowActive = 'bg-[#e7f3ff] dark:bg-blue-500/12';
+          const rowBase = `flex items-center rounded-xl transition-all duration-200 group min-h-12 ${
+            collapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2.5'
+          }`;
+          const rowActive = 'bg-[#e7f3ff] dark:bg-blue-500/12 shadow-sm ring-1 ring-[#1877F2]/15 dark:ring-blue-400/20 scale-[1.02]';
           const rowInactive = 'hover:bg-[#f0f2f5] dark:hover:bg-[#1e2133]';
 
           const iconWrap = 'w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0';
-          const iconActive = 'bg-[#1877F2] text-white';
+          const iconActive = 'bg-[#1877F2] text-white shadow-md shadow-blue-500/30';
           const iconInactive = 'bg-[#e4e6eb] text-[#050505] group-hover:bg-[#d8dadf] dark:bg-[#22263a] dark:text-[#c8ccde] dark:group-hover:bg-[#2b2f45]';
 
-          const labelActive = 'text-[#050505] font-semibold dark:text-[#edf0fa]';
+          const labelActive = 'text-[#050505] font-bold text-base dark:text-[#edf0fa]';
           const labelInactive = 'text-[#050505] font-medium group-hover:text-[#050505] dark:text-[#c8ccde] dark:group-hover:text-[#edf0fa]';
 
           const rowLabel = item.isUser ? item.displayName : t(`leftSidebar.${item.labelKey}`);
@@ -87,15 +105,15 @@ export default function LeftSidebar() {
               type="button"
               onClick={() => showAuthRequiredPrompt(location.pathname)}
               className={`w-full ${rowBase} ${rowInactive} text-gray-400 dark:text-[#6a7494]`}
-              title={t('leftSidebar.loginRequired')}
+              title={`${rowLabel} - ${t('leftSidebar.loginRequired')}`}
             >
               <div className={`${iconWrap} ${iconInactive} opacity-60`}>
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[15px] font-medium opacity-60">{rowLabel}</span>
+              {!collapsed && <span className="text-[15px] font-medium opacity-60">{rowLabel}</span>}
             </button>
           ) : (
-            <Link key={index} to={item.path} className={`${rowBase} ${isActive ? rowActive : rowInactive}`}>
+            <Link key={index} to={item.path} className={`${rowBase} ${isActive ? rowActive : rowInactive}`} title={collapsed ? rowLabel : undefined}>
               {item.isUser ? (
                 <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-[#1877F2]/30 dark:ring-blue-500 ring-offset-1 ring-offset-[#f0f2f5] dark:ring-offset-[#13151f]">
                   {userAvatar ? (
@@ -123,22 +141,11 @@ export default function LeftSidebar() {
                   <Icon className="w-5 h-5" />
                 </div>
               )}
-              <span className={`text-[15px] ${isActive ? labelActive : labelInactive}`}>{rowLabel}</span>
+              {!collapsed && <span className={`${isActive ? labelActive : `text-[15px] ${labelInactive}`}`}>{rowLabel}</span>}
             </Link>
           );
         })}
 
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 px-2 py-2 rounded-lg transition-colors duration-150 group hover:bg-[#f0f2f5] dark:hover:bg-[#1e2133]"
-        >
-          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center group-hover:bg-[#d8dadf] dark:bg-[#22263a] dark:group-hover:bg-[#2b2f45] transition-colors shrink-0">
-            <ChevronDown className="w-5 h-5 text-[#65676b] dark:text-[#9aa3bc]" />
-          </div>
-          <span className="text-[15px] font-medium text-[#65676b] group-hover:text-[#050505] dark:text-[#9aa3bc] dark:group-hover:text-[#edf0fa]">
-            {t('leftSidebar.seeMore')}
-          </span>
-        </button>
       </div>
     </div>
   );

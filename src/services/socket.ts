@@ -1,7 +1,7 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { authApi } from "../apis/auth";
-import { API_CONFIG } from "../apis/config";
+import { SocketDestinations } from "./socketEvents";
 
 export interface SocketEvent {
   eventId?: string;
@@ -28,7 +28,6 @@ class SocketService {
   private isConnected = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private heartbeatTimer: number | null = null;
   private recentEventKeys: Map<string, number> = new Map();
   private dedupeWindowMs = 2 * 60 * 1000;
   private roomSubscriptions: Map<string, { subscription: any; refCount: number }> =
@@ -66,13 +65,9 @@ class SocketService {
         this.reconnectAttempts = 0;
         this.subscribeToChannels();
         this.resubscribeRooms();
-        this.markPresenceOnline().catch(() => undefined);
-        this.startPresenceHeartbeat();
       },
       onDisconnect: () => {
         console.log("❌ Socket disconnected from WebSocket server");
-        this.markPresenceOffline().catch(() => undefined);
-        this.stopPresenceHeartbeat();
         this.isConnected = false;
         this.subscriptions.clear();
       },
@@ -121,7 +116,7 @@ class SocketService {
     // IMPORTANT: Spring WebSocket uses username (principal name) for /user/{username}/queue/notifications
     // NOT userId! The principal name is set from JWT token's username field
     const username = user.username || user.id; // Fallback to id if username not available
-    const notificationPath = `/user/${username}/queue/notifications`;
+    const notificationPath = SocketDestinations.userNotifications(username);
     console.log(
       `🔔 Subscribing to notifications at: ${notificationPath} (user.id=${user.id}, username=${username})`,
     );
@@ -158,7 +153,7 @@ class SocketService {
     console.log(`✅ Subscribed to notifications: ${notificationPath}`);
 
     // Subscribe to WebRTC signaling events
-    const webrtcPath = `/user/${username}/queue/webrtc`;
+    const webrtcPath = SocketDestinations.userWebrtc(username);
     console.log(`📞 Subscribing to WebRTC at: ${webrtcPath}`);
 
     const webrtcSub = this.client.subscribe(
@@ -190,7 +185,7 @@ class SocketService {
 
     // Subscribe to public events (posts, reactions, etc.)
     const publicSub = this.client.subscribe(
-      "/topic/public",
+      SocketDestinations.TOPIC_PUBLIC,
       (message: StompMessage) => {
         const event: SocketEvent = JSON.parse(message.body);
         if (!this.shouldProcessEvent(event)) {
@@ -220,8 +215,6 @@ class SocketService {
 
   disconnect(): void {
     if (this.client) {
-      this.markPresenceOffline().catch(() => undefined);
-      this.stopPresenceHeartbeat();
       this.subscriptions.forEach((sub) => sub.unsubscribe());
       this.subscriptions.clear();
       this.roomSubscriptions.forEach((entry) => entry.subscription.unsubscribe());
@@ -314,7 +307,7 @@ class SocketService {
       return { unsubscribe: () => undefined };
     }
 
-    const roomPath = `/topic/rooms.${conversationId}`;
+    const roomPath = SocketDestinations.roomDestination(conversationId);
     return this.client.subscribe(roomPath, (message: StompMessage) => {
       try {
         const event: SocketEvent = JSON.parse(message.body);
@@ -341,54 +334,6 @@ class SocketService {
         continue;
       }
       state.subscription = this.createRoomSubscription(roomId);
-    }
-  }
-
-  private getPresencePayload() {
-    const user = authApi.getCurrentUser();
-    return {
-      userId: user?.id || "",
-      username: user?.username || user?.id || "",
-    };
-  }
-
-  private async callPresenceEndpoint(path: "online" | "heartbeat" | "offline") {
-    const token = authApi.getToken();
-    const payload = this.getPresencePayload();
-    if (!payload.username || !token) {
-      return;
-    }
-
-    await fetch(`${API_CONFIG.BASE_URL}/api/common/socket/presence/${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-      keepalive: path === "offline",
-    });
-  }
-
-  private async markPresenceOnline() {
-    await this.callPresenceEndpoint("online");
-  }
-
-  private async markPresenceOffline() {
-    await this.callPresenceEndpoint("offline");
-  }
-
-  private startPresenceHeartbeat() {
-    this.stopPresenceHeartbeat();
-    this.heartbeatTimer = window.setInterval(() => {
-      this.callPresenceEndpoint("heartbeat").catch(() => undefined);
-    }, 20000);
-  }
-
-  private stopPresenceHeartbeat() {
-    if (this.heartbeatTimer) {
-      window.clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
     }
   }
 

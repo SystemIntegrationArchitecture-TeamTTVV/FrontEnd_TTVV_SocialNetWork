@@ -7,8 +7,9 @@ html {
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* Gần stack hệ thống kiểu Facebook — mượt, “tinh” trên từng OS */
+  scroll-behavior: smooth;
   font-family:
+    'Inter',
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -17,6 +18,7 @@ html {
     Helvetica,
     Arial,
     sans-serif;
+  letter-spacing: -0.01em;
 }
 
 html,
@@ -67,7 +69,13 @@ html:not(.dark) #root {
   z-index: 9999;
 }
 
-/* Better focus styles */
+/* Better focus styles — accessible focus ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 input:focus,
 textarea:focus,
 select:focus {
@@ -564,6 +572,12 @@ html.dark .theme-toggle-track {
   }
 }
 
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
 .animate-fade-in {
   animation: fade-in 0.4s ease-out both;
 }
@@ -574,4 +588,177 @@ html.dark .theme-toggle-track {
 
 .animate-card-in {
   animation: card-in 0.35s ease-out both;
+}
+
+.animate-shake-x {
+  animation: shake-x 180ms ease-in-out 1;
+}
+
+/* ═══════════════════════════════════════════════
+   PREMIUM DESIGN SYSTEM ENHANCEMENTS
+   Senior-level CSS upgrades for typography,
+   micro-interactions, accessibility, and polish.
+═══════════════════════════════════════════════ */
+
+/* --- Typography Hierarchy --- */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+p, li, td, th {
+  line-height: 1.6;
+}
+
+/* --- Micro-interaction System ---
+   Smooth 200ms transitions on ALL interactive elements.
+   This single rule gives the ENTIRE app a premium feel. */
+a,
+button,
+[role="button"],
+[tabindex]:not([tabindex="-1"]) {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 150ms ease,
+    opacity 200ms ease;
+}
+
+/* Active press feedback */
+button:active:not(:disabled),
+[role="button"]:active {
+  transform: scale(0.97);
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* --- Input transitions --- */
+input, textarea, select {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease;
+}
+
+/* --- Custom Scrollbar (thin, elegant) --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+html.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+html.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* --- Brand Selection Color --- */
+::selection {
+  background-color: rgba(24, 119, 242, 0.18);
+  color: inherit;
+}
+
+html.dark ::selection {
+  background-color: rgba(96, 165, 250, 0.25);
+}
+
+/* --- Button Lift Effect ---
+   Cards & buttons with shadow get a subtle lift on hover */
+html:not(.dark) button.shadow-sm:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* --- Staggered Card Entrance ---
+   Children with .animate-card-in get delayed entrance */
+.animate-card-in:nth-child(1) { animation-delay: 0ms; }
+.animate-card-in:nth-child(2) { animation-delay: 50ms; }
+.animate-card-in:nth-child(3) { animation-delay: 100ms; }
+.animate-card-in:nth-child(4) { animation-delay: 150ms; }
+.animate-card-in:nth-child(5) { animation-delay: 200ms; }
+.animate-card-in:nth-child(6) { animation-delay: 250ms; }
+.animate-card-in:nth-child(7) { animation-delay: 300ms; }
+.animate-card-in:nth-child(8) { animation-delay: 350ms; }
+
+/* --- Smooth Image Loading --- */
+img {
+  transition: opacity 300ms ease;
+}
+
+/* --- Skeleton Loading Enhancement --- */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.08) 37%,
+    rgba(0, 0, 0, 0.04) 63%
+  );
+  background-size: 400% 100%;
+}
+
+html.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.07) 37%,
+    rgba(255, 255, 255, 0.03) 63%
+  );
+  background-size: 400% 100%;
+}
+
+/* --- Pulse animation for online indicators --- */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Respect OS accessibility preference to reduce motion sickness */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

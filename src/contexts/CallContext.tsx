@@ -2,8 +2,11 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { webrtcService, type CallType } from '../services/webrtc';
 import { socketService } from '../services/socket';
 import { authApi } from '../apis/auth';
+import { conversationsApi } from '../apis/conversations';
 import CallWindow from '../components/CallWindow';
 import i18n from '../i18n';
+import { useRef } from 'react';
+import { notify } from '../services/notify';
 
 interface CallState {
   isActive: boolean;
@@ -13,8 +16,12 @@ interface CallState {
   callType: CallType | null;
   remoteName: string;
   remoteId: string;
+  conversationId?: string;
+  isGroup: boolean;
+  participantIds: string[];
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  remoteStreams: Array<{ peerId: string; stream: MediaStream }>;
 }
 
 interface CallContextType {
@@ -26,8 +33,15 @@ interface CallContextType {
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
+const PEER_RING_TIMEOUT_MS = 30000;
+const PEER_MAX_RETRY = 1;
 
 export function CallProvider({ children }: { children: ReactNode }) {
+  const peerTimeoutsRef = useRef<Map<string, number>>(new Map());
+  const peerRetryRef = useRef<Map<string, number>>(new Map());
+  const pendingPeersRef = useRef<Set<string>>(new Set());
+  const callIdToPeerRef = useRef<Map<string, string>>(new Map());
+
   const [callState, setCallState] = useState<CallState>({
     isActive: false,
     isCalling: false,
@@ -36,9 +50,55 @@ export function CallProvider({ children }: { children: ReactNode }) {
     callType: null,
     remoteName: '',
     remoteId: '',
+    conversationId: undefined,
+    isGroup: false,
+    participantIds: [],
     localStream: null,
     remoteStream: null,
+    remoteStreams: [],
   });
+
+  const clearPeerTimer = useCallback((peerId: string) => {
+    const timeoutId = peerTimeoutsRef.current.get(peerId);
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+      peerTimeoutsRef.current.delete(peerId);
+    }
+  }, []);
+
+  const resetPeerTracking = useCallback(() => {
+    peerTimeoutsRef.current.forEach(timeoutId => window.clearTimeout(timeoutId));
+    peerTimeoutsRef.current.clear();
+    peerRetryRef.current.clear();
+    pendingPeersRef.current.clear();
+    callIdToPeerRef.current.clear();
+  }, []);
+
+  const schedulePeerTimeout = useCallback((
+    peerId: string,
+    sendOffer: () => Promise<void>,
+    onPeerFailed: () => void
+  ) => {
+    clearPeerTimer(peerId);
+    const timeoutId = window.setTimeout(async () => {
+      if (!pendingPeersRef.current.has(peerId)) return;
+      const retries = peerRetryRef.current.get(peerId) || 0;
+      if (retries < PEER_MAX_RETRY) {
+        peerRetryRef.current.set(peerId, retries + 1);
+        try {
+          await sendOffer();
+          schedulePeerTimeout(peerId, sendOffer, onPeerFailed);
+          return;
+        } catch {
+          // Fall through to failure handling below.
+        }
+      }
+      pendingPeersRef.current.delete(peerId);
+      clearPeerTimer(peerId);
+      onPeerFailed();
+    }, PEER_RING_TIMEOUT_MS);
+    peerTimeoutsRef.current.set(peerId, timeoutId);
+  }, [clearPeerTimer]);
 
   // Subscribe to incoming WebRTC events
   useEffect(() => {
@@ -51,6 +111,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const unsubOffer = socketService.on('CALL_OFFER', async (event) => {
       console.log('📞🎯 CallProvider: CALL_OFFER EVENT RECEIVED!', event);
       const { callerId, callerName, callType } = event.data;
+      const conversationId = event.data?.conversationId as string | undefined;
+      const isGroup = !!event.data?.isGroup;
       console.log('📞 CallProvider: Incoming call from:', callerName, 'callerId:', callerId);
 
       // End any existing call first
@@ -71,8 +133,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
           callType,
           remoteName: callerName,
           remoteId: callerId,
+          conversationId,
+          isGroup,
+          participantIds: isGroup ? [callerId] : [callerId],
           localStream,
           remoteStream: null,
+          remoteStreams: [],
         });
 
         // Handle the offer
@@ -85,18 +151,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
         console.log('✅ CallProvider: Ready to accept/reject incoming call');
       } catch (error: any) {
         console.error('❌ CallProvider: Failed to handle incoming call:', error);
-        alert(error.message || i18n.t('calls.cannotReceive'));
+        notify.error(error.message || i18n.t('calls.cannotReceive'));
       }
     });
 
     // Handle call answer
     const unsubAnswer = socketService.on('CALL_ANSWER', async (event) => {
       console.log('✅ CallProvider: Call answered by remote peer');
+      const senderId = event.data?.senderId as string | undefined;
+      const callId = event.data?.callId as string | undefined;
+      const answerPeerId = senderId || (callId ? callIdToPeerRef.current.get(callId) : undefined);
+      if (!answerPeerId) {
+        console.warn('⚠️ CALL_ANSWER missing senderId');
+        return;
+      }
       await webrtcService.handleAnswer(event.data);
+      pendingPeersRef.current.delete(answerPeerId);
+      clearPeerTimer(answerPeerId);
       
       setCallState(prev => ({
         ...prev,
         isCalling: false,
+        participantIds: prev.participantIds.includes(answerPeerId)
+          ? prev.participantIds
+          : [...prev.participantIds, answerPeerId],
       }));
     });
 
@@ -106,15 +184,47 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await webrtcService.addIceCandidate(event.data);
     });
 
+    const unsubMembersAdded = socketService.on('MEMBERS_ADDED', async (event) => {
+      if (!callState.isActive || !callState.isGroup) return;
+      const payload = event.data as { conversationId?: string; participantIds?: string[] };
+      if (!payload?.conversationId || payload.conversationId !== callState.conversationId) return;
+
+      const currentUser = authApi.getCurrentUser();
+      if (!currentUser?.id) return;
+      const newParticipantIds = (payload.participantIds || []).filter(id => id && id !== currentUser.id);
+      if (newParticipantIds.length === 0) return;
+
+      for (const participantId of newParticipantIds) {
+        await webrtcService.createOffer(
+          callState.callType || 'voice',
+          participantId,
+          currentUser.id,
+          currentUser.fullName || currentUser.username,
+          callState.conversationId,
+          false
+        );
+      }
+    });
+
     // Handle call end/reject
     const unsubEnd = socketService.on('CALL_END', () => {
+      const senderId = authApi.getCurrentUser()?.id;
+      if (callState.isGroup && senderId) {
+        pendingPeersRef.current.delete(senderId);
+        clearPeerTimer(senderId);
+      }
       console.log('📴 CallProvider: Call ended by remote peer');
       endCall();
     });
 
     const unsubReject = socketService.on('CALL_REJECT', () => {
+      const senderId = authApi.getCurrentUser()?.id;
+      if (callState.isGroup && senderId) {
+        pendingPeersRef.current.delete(senderId);
+        clearPeerTimer(senderId);
+      }
       console.log('❌ CallProvider: Call rejected by remote peer');
-      alert(i18n.t('calls.rejected'));
+      notify.error(i18n.t('calls.rejected'));
       endCall();
     });
 
@@ -123,10 +233,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
       unsubOffer();
       unsubAnswer();
       unsubIce();
+      unsubMembersAdded();
       unsubEnd();
       unsubReject();
     };
-  }, []);
+  }, [callState.isActive, callState.isGroup, callState.callType, callState.conversationId]);
 
   const startCall = useCallback(async (
     userId: string,
@@ -162,6 +273,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
 
       const localStream = await webrtcService.initCall(callType);
+      let participantIds: string[] = [];
+      const targetIds: string[] = [];
+      if (isGroup && conversationId) {
+        const conversation = await conversationsApi.getConversationById(conversationId);
+        participantIds = (conversation.participantIds || []).filter(id => id !== currentUser.id);
+        targetIds.push(...participantIds);
+      } else {
+        targetIds.push(userId);
+        participantIds = [userId];
+      }
       
       setCallState({
         isActive: true,
@@ -171,28 +292,54 @@ export function CallProvider({ children }: { children: ReactNode }) {
         callType,
         remoteName: userName,
         remoteId: userId,
+        conversationId,
+        isGroup: !!isGroup,
+        participantIds,
         localStream,
         remoteStream: null,
+        remoteStreams: [],
       });
 
-      // Create and send offer
-      // For group calls: conversationId is passed, for direct calls: userId is the recipient
-      webrtcService.setRemotePeer(userId);
-      await webrtcService.createOffer(
-        callType,
-        userId,
-        currentUser.id,
-        currentUser.fullName || currentUser.username,
-        conversationId,
-        isGroup || false
-      );
+      for (const targetId of targetIds) {
+        const sendOffer = async () => {
+          const offer = await webrtcService.createOffer(
+            callType,
+            targetId,
+            currentUser.id,
+            currentUser.fullName || currentUser.username,
+            conversationId,
+            false
+          );
+          if (offer.callId) {
+            callIdToPeerRef.current.set(offer.callId, targetId);
+          }
+          pendingPeersRef.current.add(targetId);
+        };
+        await sendOffer();
+        schedulePeerTimeout(
+          targetId,
+          sendOffer,
+          () => {
+            setCallState(prev => {
+              const remaining = prev.participantIds.filter(id => id !== targetId);
+              if (!prev.isGroup) {
+                return prev;
+              }
+              return { ...prev, participantIds: remaining };
+            });
+            if (!isGroup) {
+              endCall();
+            }
+          }
+        );
+      }
       console.log('✅ CallProvider: Call offer sent', isGroup ? '(GROUP CALL - will broadcast to all participants)' : '(DIRECT CALL)');
     } catch (error: any) {
       console.error('❌ CallProvider: Failed to start call:', error);
-      alert(error.message || i18n.t('calls.cannotStart'));
+      notify.error(error.message || i18n.t('calls.cannotStart'));
       endCall();
     }
-  }, []);
+  }, [callState.isActive]);
 
   const acceptCall = useCallback(async () => {
     try {
@@ -231,26 +378,49 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
       // Create and send answer
       await webrtcService.createAnswer(callState.remoteId);
+      pendingPeersRef.current.delete(callState.remoteId);
+      clearPeerTimer(callState.remoteId);
+      if (callState.isGroup && callState.conversationId) {
+        const currentUser = authApi.getCurrentUser();
+        if (currentUser?.id) {
+          const conversation = await conversationsApi.getConversationById(callState.conversationId);
+          const peers = (conversation.participantIds || []).filter(id => id !== currentUser.id && id !== callState.remoteId);
+          for (const peerId of peers) {
+            const sendOffer = async () => {
+              const offer = await webrtcService.createOffer(
+                callState.callType || 'voice',
+                peerId,
+                currentUser.id,
+                currentUser.fullName || currentUser.username,
+                callState.conversationId,
+                false
+              );
+              if (offer.callId) {
+                callIdToPeerRef.current.set(offer.callId, peerId);
+              }
+              pendingPeersRef.current.add(peerId);
+            };
+            await sendOffer();
+            schedulePeerTimeout(
+              peerId,
+              sendOffer,
+              () => {
+                setCallState(prev => ({
+                  ...prev,
+                  participantIds: prev.participantIds.filter(id => id !== peerId),
+                }));
+              }
+            );
+          }
+        }
+      }
       console.log('✅ CallProvider: Call answer sent');
     } catch (error: any) {
       console.error('❌ CallProvider: Failed to accept call:', error);
-      alert(error.message || i18n.t('calls.cannotAccept'));
+      notify.error(error.message || i18n.t('calls.cannotAccept'));
       endCall();
     }
-  }, [callState.remoteId, callState.offerProcessed]);
-
-  const rejectCall = useCallback(() => {
-    console.log('❌ CallProvider: Rejecting call');
-    
-    socketService.send('/app/webrtc/reject', {
-      type: 'CALL_REJECT',
-      userId: callState.remoteId,
-      data: {},
-      timestamp: new Date().toISOString(),
-    });
-
-    endCall();
-  }, [callState.remoteId]);
+  }, [callState.remoteId, callState.offerProcessed, callState.isGroup, callState.conversationId, callState.callType]);
 
   const endCall = useCallback(() => {
     console.log('📴 CallProvider: Ending call');
@@ -262,14 +432,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
     });
     console.trace('📴 CallProvider: endCall called from:');
     
-    if (callState.remoteId) {
+    const recipients = callState.isGroup ? callState.participantIds : [callState.remoteId];
+    recipients.filter(Boolean).forEach((recipientId) => {
       socketService.send('/app/webrtc/end', {
         type: 'CALL_END',
-        userId: callState.remoteId,
-        data: {},
+        userId: recipientId,
+        data: { senderId: authApi.getCurrentUser()?.id },
         timestamp: new Date().toISOString(),
       });
-    }
+    });
 
     webrtcService.endCall();
     setCallState({
@@ -280,10 +451,31 @@ export function CallProvider({ children }: { children: ReactNode }) {
       callType: null,
       remoteName: '',
       remoteId: '',
+      conversationId: undefined,
+      isGroup: false,
+      participantIds: [],
       localStream: null,
       remoteStream: null,
+      remoteStreams: [],
     });
-  }, [callState.remoteId]);
+    resetPeerTracking();
+  }, [callState.remoteId, callState.isGroup, callState.participantIds, resetPeerTracking]);
+
+  const rejectCall = useCallback(() => {
+    console.log('❌ CallProvider: Rejecting call');
+    
+    const recipients = callState.isGroup ? callState.participantIds : [callState.remoteId];
+    recipients.filter(Boolean).forEach((recipientId) => {
+      socketService.send('/app/webrtc/reject', {
+        type: 'CALL_REJECT',
+        userId: recipientId,
+        data: { senderId: authApi.getCurrentUser()?.id },
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    endCall();
+  }, [callState.remoteId, callState.isGroup, callState.participantIds, endCall]);
 
   // Update remote stream when available
   useEffect(() => {
@@ -291,6 +483,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const interval = setInterval(() => {
       const remoteStream = webrtcService.getRemoteStream();
+      const remoteStreams = Array.from(webrtcService.getRemoteStreams().entries()).map(([peerId, stream]) => ({
+        peerId,
+        stream,
+      }));
       if (remoteStream && remoteStream !== callState.remoteStream) {
         console.log('🎬 CallProvider: Updating remote stream:', {
           streamId: remoteStream.id,
@@ -301,12 +497,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
         setCallState(prev => ({
           ...prev,
           remoteStream,
+          remoteStreams,
+        }));
+      } else if (remoteStreams.length !== callState.remoteStreams.length) {
+        setCallState(prev => ({
+          ...prev,
+          remoteStreams,
         }));
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [callState.isActive, callState.remoteStream]);
+  }, [callState.isActive, callState.remoteStream, callState.remoteStreams.length]);
 
   return (
     <CallContext.Provider value={{ callState, startCall, acceptCall, rejectCall, endCall }}>
@@ -320,6 +522,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
           callType={callState.callType!}
           localStream={callState.localStream}
           remoteStream={callState.remoteStream}
+          remoteStreams={callState.remoteStreams}
+          isGroup={callState.isGroup}
           onAccept={acceptCall}
           onReject={rejectCall}
           onEnd={endCall}

@@ -61,7 +61,7 @@ export default function AuthFrame({
   }, [isLangOpen]);
 
   return (
-    <div className="relative w-full min-h-screen bg-[#f0f2f5] dark:bg-[#0f111a]">
+    <div className="relative w-full min-h-screen bg-[#f6f7fb] dark:bg-[#0f111a]">
       <Link
         to="/home"
         className="absolute top-5 left-5 z-20 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-[#2b2f45] dark:bg-[#1a1d28] dark:text-[#c8d0e6] dark:hover:bg-[#22263a]"
@@ -153,7 +153,7 @@ export default function AuthFrame({
       </div>
 
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        <div className="hidden lg:flex relative bg-[#f5f7fb] dark:bg-[#141826] px-10 py-16 overflow-hidden">
+        <div className="hidden lg:flex relative bg-linear-to-b from-[#f7f9ff] to-[#f2f4fa] dark:from-[#13182a] dark:to-[#0f1424] px-10 py-16 overflow-hidden border-r border-gray-200/80 dark:border-[#22263a]">
           <div className="w-full max-w-[760px] mx-auto grid grid-cols-[0.95fr_1.05fr] gap-8 items-center">
             <div>
               <div className="w-14 h-14 rounded-full bg-[#1877f2] flex items-center justify-center text-white text-[11px] font-bold leading-[1.05] shadow-sm mb-7 text-center">
@@ -193,7 +193,7 @@ export default function AuthFrame({
         </div>
 
         <div className="relative flex items-center justify-center px-4 py-20">
-          <div className="w-full max-w-[540px] bg-white dark:bg-[#1a1d28] rounded-3xl shadow-xl border border-gray-200/90 dark:border-[#2b2f45] p-8 lg:p-10">
+          <div className="w-full max-w-[540px] bg-white/95 dark:bg-[#1a1d28] rounded-3xl shadow-xl border border-gray-200/90 dark:border-[#2b2f45] p-8 lg:p-10 backdrop-blur-[2px]">
             <div className="lg:hidden mb-6 relative">
               <div className="absolute -top-3 -left-1 w-11 h-11 rounded-full bg-[#1877f2] text-white flex items-center justify-center font-bold text-[10px] leading-none text-center shadow-sm">
                 TTVV
@@ -213,12 +213,17 @@ export default function AuthFrame({
             {children}
           </div>
 
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-gray-500 dark:text-[#5a6278]">
-            {t('auth.frame.carouselHint', {
-              current: activeSlide + 1,
-              total: introSlides.length,
-              title: introSlides[activeSlide]?.title ?? '',
-            })}
+          <div className="absolute bottom-7 left-1/2 -translate-x-1/2 w-[min(90vw,560px)] text-center">
+            <p className="text-xs font-semibold text-gray-600 dark:text-[#7e89a6]">
+              {t('auth.frame.carouselHint', {
+                current: activeSlide + 1,
+                total: introSlides.length,
+                title: introSlides[activeSlide]?.title ?? '',
+              })}
+            </p>
+            <p className="mt-1 text-[12.5px] text-gray-500 dark:text-[#6b7492] line-clamp-2">
+              {introSlides[activeSlide]?.description ?? ''}
+            </p>
           </div>
         </div>
       </div>

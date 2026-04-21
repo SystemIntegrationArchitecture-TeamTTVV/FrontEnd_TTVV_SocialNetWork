@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { passwordResetApi } from '../../apis/passwordReset';
+import { useToast } from '../../contexts/useToast';
 import AuthFrame from '../../components/auth/AuthFrame';
 
 export default function ForgotPassword() {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,12 +23,16 @@ export default function ForgotPassword() {
 
   const goNextStep = () => {
     if (!email.trim()) {
-      setError(t('auth.forgot.emailRequired'));
+      const msg = t('auth.forgot.emailRequired');
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
     if (!isValidEmail(email)) {
-      setError(t('auth.forgot.emailInvalid'));
+      const msg = t('auth.forgot.emailInvalid');
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
@@ -36,7 +42,9 @@ export default function ForgotPassword() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !isValidEmail(email)) {
-      setError(t('auth.forgot.emailInvalid'));
+      const msg = t('auth.forgot.emailInvalid');
+      setError(msg);
+      showToast(msg, 'error');
       setStep(1);
       return;
     }
@@ -48,9 +56,12 @@ export default function ForgotPassword() {
       const response = await passwordResetApi.forgotPassword(email);
       console.log('✅ Password reset email sent:', response.message);
       setSuccess(true);
+      showToast(response.message || t('auth.forgot.successTitle'), 'success');
     } catch (err: unknown) {
       console.error('❌ Failed to send reset email:', err);
-      setError(err instanceof Error ? err.message : t('auth.forgot.errorSend'));
+      const msg = err instanceof Error ? err.message : t('auth.forgot.errorSend');
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setIsLoading(false);
     }

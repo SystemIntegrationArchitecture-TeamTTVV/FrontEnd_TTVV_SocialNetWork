@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Grid3X3, BarChart3 } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
@@ -16,10 +16,58 @@ import { messagesApi, type Message, type MessageAttachment } from '../../apis/me
 import { aiApi, type AIChatRequest, type AIDailySummaryResponse } from '../../apis/ai';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
+import { notify } from '../../services/notify';
 
 interface MessengerLocationState {
   openConversationId?: string;
 }
+
+const STICKER_TOPICS = [
+  {
+    id: 'christmas',
+    label: 'Christmas',
+    files: [
+      'christmas/bear.png',
+      'christmas/fox.png',
+      'christmas/pig.png',
+      'christmas/reindeer.png',
+      'christmas/santa-claus.png',
+    ],
+  },
+  {
+    id: 'home',
+    label: 'Home',
+    files: [
+      'home/coffee-mug.png',
+      'home/reading-book.png',
+      'home/reading.png',
+      'home/stay-home.png',
+      'home/stretching.png',
+    ],
+  },
+  {
+    id: 'pets',
+    label: 'Pets',
+    files: [
+      'pets/adopt.png',
+      'pets/bath.png',
+      'pets/cat.png',
+      'pets/dog.png',
+      'pets/good_morning.png',
+      'pets/have_a_nice_day.png',
+      'pets/pet_food.png',
+    ],
+  },
+] as const;
+
+const STICKER_TOPIC_WITH_ALL = [
+  {
+    id: 'all',
+    label: 'All',
+    files: STICKER_TOPICS.flatMap((topic) => topic.files),
+  },
+  ...STICKER_TOPICS,
+];
 
 export default function Messenger() {
   const navigate = useNavigate();
@@ -44,6 +92,8 @@ export default function Messenger() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [showStickerPanel, setShowStickerPanel] = useState(false);
+  const [activeStickerTopic, setActiveStickerTopic] = useState(STICKER_TOPIC_WITH_ALL[0].id);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUserIds, setTypingUserIds] = useState<string[]>([]);
   const [isForwarding, setIsForwarding] = useState(false);
@@ -335,7 +385,7 @@ export default function Messenger() {
     } catch (err: unknown) {
       console.error('Failed to forward message:', err);
       const errorText = err instanceof Error ? err.message : 'Forward message failed';
-      alert(errorText);
+      notify.error(errorText);
       setIsForwarding(false);
     }
   };
@@ -756,7 +806,34 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert(t('messenger.sendMessageError'));
+      notify.error(t('messenger.sendMessageError'));
+    }
+  };
+
+  const handleSendSticker = async (stickerFile: string) => {
+    if (!activeChat || !user?.id) return;
+    try {
+      await sendMessageAPI(
+        activeChat,
+        '',
+        [
+          {
+            type: 'image',
+            url: `/stickers/${stickerFile}`,
+            fileName: stickerFile,
+          },
+        ],
+        replyTo?.id,
+      );
+      setShowStickerPanel(false);
+      setShowAttachmentMenu(false);
+      setReplyTo(null);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (error) {
+      console.error('Failed to send sticker:', error);
+      notify.error(t('messenger.sendMessageError'));
     }
   };
 
@@ -988,7 +1065,7 @@ export default function Messenger() {
 
   const handleFileSelect = async (file: File) => {
     if (!activeChat) {
-      alert(t('messenger.errors.noConversationSelected'));
+      notify.error(t('messenger.errors.noConversationSelected'));
       return;
     }
 
@@ -1040,7 +1117,7 @@ export default function Messenger() {
       }
     } catch (error) {
       console.error('❌ Failed to upload file:', error);
-      alert(t('messenger.errors.uploadFile'));
+      notify.error(t('messenger.errors.uploadFile'));
       
       // Clear preview on error
       setFilePreview(null);
@@ -1052,7 +1129,7 @@ export default function Messenger() {
 
   const handleVoiceRecording = async (blob: Blob) => {
     if (!activeChat) {
-      alert(t('messenger.errors.noConversationSelected'));
+      notify.error(t('messenger.errors.noConversationSelected'));
       return;
     }
 
@@ -1086,7 +1163,7 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('❌ Failed to upload voice message:', error);
-      alert(t('messenger.errors.voiceMessage'));
+      notify.error(t('messenger.errors.voiceMessage'));
     } finally {
       setUploadingFiles(false);
     }
@@ -1132,14 +1209,14 @@ export default function Messenger() {
         break;
       case 'delete':
         if (!canRecallByCreatedAt(message.createdAt)) {
-          alert('Da qua thoi gian thu hoi (2 phut)');
+          notify.error('Da qua thoi gian thu hoi (2 phut)');
           break;
         }
         if (activeChat && message.isMe && confirm(t('messenger.confirmDeleteMessage'))) {
           removeMessage(activeChat, messageId).catch((err: unknown) => {
             console.error('Failed to delete message:', err);
             const messageText = err instanceof Error ? err.message : t('messenger.errors.deleteMessage');
-            alert(messageText);
+            notify.error(messageText);
           });
         }
         break;
@@ -1147,7 +1224,7 @@ export default function Messenger() {
         if (activeChat && user?.id && confirm('Xoa tin nhan nay o phia ban?')) {
           removeMessageForMe(activeChat, messageId).catch((err: unknown) => {
             console.error('Failed to delete message for me:', err);
-            alert('Xoa phia toi that bai');
+            notify.error('Xoa phia toi that bai');
           });
         }
         break;
@@ -1272,10 +1349,10 @@ export default function Messenger() {
             <div
               key={conv.id}
               onClick={() => setActiveChat(conv.id)}
-              className={`cursor-pointer transition-all duration-200 mx-3 my-1 rounded-2xl flex items-center gap-3 ${
+              className={`cursor-pointer transition-all duration-200 mx-3 my-1 rounded-2xl flex items-center gap-3 border ${
                 activeChat === conv.id 
-                  ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 shadow-sm' 
-                  : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
+                  ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm border-blue-200 dark:border-blue-500/30 ring-1 ring-blue-100 dark:ring-blue-500/20' 
+                  : 'border-transparent hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
               } ${leftSidebarCollapsed ? 'p-3 justify-center' : 'p-3'}`}
               title={leftSidebarCollapsed ? conv.name : ''}
             >
@@ -1345,11 +1422,11 @@ export default function Messenger() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold text-gray-900 text-base truncate">{conv.name}</p>
-                      <span className="text-sm text-gray-500 shrink-0 ml-2">{conv.time}</span>
+                      <p className={`text-base truncate ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{conv.name}</p>
+                      <span className={`text-sm shrink-0 ml-2 ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-500'}`}>{conv.time}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600 truncate">{conv.lastMessage}</p>
+                      <p className={`text-sm truncate ${conv.unread > 0 ? 'text-gray-800 font-medium' : 'text-gray-600'}`}>{conv.lastMessage}</p>
                       {conv.unread > 0 && (
                         <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0 ml-2">
                           {conv.unread}
@@ -1420,7 +1497,7 @@ export default function Messenger() {
                     const isGroup = callInfo.isGroup || false;
                     startCall(callInfo.id, callInfo.name, 'voice', conversationId, isGroup);
                   } else {
-                    alert(t('messenger.errors.startCall'));
+                    notify.error(t('messenger.errors.startCall'));
                   }
                 }}
                 disabled={!activeChat || isAIChat}
@@ -1445,7 +1522,7 @@ export default function Messenger() {
                     const isGroup = callInfo.isGroup || false;
                     startCall(callInfo.id, callInfo.name, 'video', conversationId, isGroup);
                   } else {
-                    alert(t('messenger.errors.startVideoCall'));
+                    notify.error(t('messenger.errors.startVideoCall'));
                   }
                 }}
                 disabled={!activeChat || isAIChat}
@@ -1474,7 +1551,7 @@ export default function Messenger() {
         )}
 
         {/* Search Bar */}
-        {showSearch && (
+        {activeConversation && showSearch && (
           <div className="p-4 border-b border-gray-100 bg-white">
             <div className="relative">
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -1499,12 +1576,13 @@ export default function Messenger() {
         )}
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50" ref={messagesEndRef}>
-          {filteredMessages.map((msg) => {
-            const isSelected = selectedMessage === msg.id;
-            const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
-            return (
-              <div
+        {activeConversation ? (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50" ref={messagesEndRef}>
+            {filteredMessages.map((msg) => {
+              const isSelected = selectedMessage === msg.id;
+              const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
+              return (
+                <div
                 key={msg.id}
                 className={`group flex items-start gap-4 ${msg.isMe ? 'flex-row-reverse' : ''}`}
               >
@@ -1806,11 +1884,24 @@ export default function Messenger() {
                     )}
                   </div>
                 </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
+            <div className="text-center max-w-md">
+              <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-white border border-gray-200 flex items-center justify-center">
+                <Users className="w-6 h-6 text-gray-400" />
               </div>
-            );
-          })}
-        </div>
+              <h3 className="text-lg font-semibold text-gray-700">Chua chon doan chat</h3>
+              <p className="mt-1 text-sm text-gray-500">Hay chon 1 cuoc tro chuyen ben trai de bat dau nhan tin.</p>
+            </div>
+          </div>
+        )}
 
+        {activeConversation && (
+          <>
         {/* Reply Preview */}
         {replyTo && (
           <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
@@ -2002,6 +2093,45 @@ export default function Messenger() {
             </div>
           )}
 
+          {/* Sticker Panel */}
+          {showStickerPanel && (
+            <div className="mb-2 md:mb-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                {STICKER_TOPIC_WITH_ALL.map((topic) => (
+                  <button
+                    key={topic.id}
+                    type="button"
+                    onClick={() => setActiveStickerTopic(topic.id)}
+                    className={`px-3 h-8 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                      activeStickerTopic === topic.id
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {topic.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-6 gap-2 max-h-44 overflow-y-auto">
+                {(STICKER_TOPIC_WITH_ALL.find((topic) => topic.id === activeStickerTopic)?.files ?? []).map((sticker) => (
+                  <button
+                    key={sticker}
+                    type="button"
+                    onClick={() => handleSendSticker(sticker)}
+                    className="aspect-square rounded-lg bg-gray-50 border border-gray-200 p-1 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  >
+                    <img
+                      src={`/stickers/${sticker}`}
+                      alt={sticker}
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Emoji Picker */}
           {showEmojiPicker && (
             <EmojiPicker
@@ -2009,18 +2139,40 @@ export default function Messenger() {
             />
           )}
 
-          <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="flex items-center gap-2 md:gap-2.5">
             <button 
-              onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-              className={`w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                showAttachmentMenu ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+              onClick={() => {
+                setShowAttachmentMenu((prev) => !prev);
+                setShowStickerPanel(false);
+              }}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+                showAttachmentMenu ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
               }`}
               title={t('messenger.attachmentsTitle')}
             >
-              <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              <Plus className="w-5 h-5" />
             </button>
-            <ImageUpload onFileSelect={handleFileSelect} />
-            <VideoUpload onFileSelect={handleFileSelect} />
+            <button
+              type="button"
+              onClick={() => {
+                setShowStickerPanel((prev) => !prev);
+                setShowAttachmentMenu(false);
+                setShowEmojiPicker(false);
+              }}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+                showStickerPanel ? 'text-pink-600 bg-pink-50' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Sticker"
+            >
+              <Grid3X3 className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+              title={t('messenger.groupPanel.customizeChat')}
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
             <input
               type="text"
               value={message}
@@ -2032,37 +2184,35 @@ export default function Messenger() {
                 }
               }}
               placeholder={editingMessageId ? 'Chinh sua tin nhan...' : replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
-              className="flex-1 h-10 md:h-11 lg:h-12 px-4 md:px-5 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm md:text-[15px] transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
+              className="flex-1 h-10 px-4 rounded-full bg-gray-100/70 dark:bg-[#22263a]/60 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
             />
 
             <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+                showEmojiPicker ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
               }`}
               title={t('messenger.emojiPicker.title')}
               disabled={uploadingFiles}
             >
-              <Smile className="w-4 h-4 md:w-5 md:h-5" />
+              <Smile className="w-5 h-5" />
             </button>
-            {message.trim() || replyTo || filePreview || editingMessageId ? (
-              <button
-                onClick={handleSendMessage}
-                disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview)}
-                className="w-10 h-10 md:w-11 md:h-11 lg:w-12 lg:h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all shrink-0 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                title={editingMessageId ? 'Cap nhat tin nhan' : t('messenger.send')}
-              >
-                {isAiLoading ? (
-                  <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Send className="w-4 h-4 md:w-5 md:h-5" />
-                )}
-              </button>
-            ) : (
-              <VoiceRecorder onRecordingComplete={handleVoiceRecording} />
-            )}
+            <button
+              onClick={handleSendMessage}
+              disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview)}
+              className="w-8 h-8 rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={editingMessageId ? 'Cap nhat tin nhan' : t('messenger.send')}
+            >
+              {isAiLoading ? (
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
+          </>
+        )}
       </div>
 
       {/* Right Sidebar - Conversation Info */}
@@ -2386,7 +2536,7 @@ export default function Messenger() {
           <div className="border-t border-gray-100 my-6"></div>
 
           {/* Customize Chat */}
-          <div className="mb-6">
+          <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-3">
             <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.customizeChat')}</h4>
             <div className="space-y-1.5">
               <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
@@ -2407,7 +2557,7 @@ export default function Messenger() {
           <div className="border-t border-gray-100 my-4 md:my-6"></div>
 
           {/* Media */}
-          <div className="mb-6">
+          <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-3">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.photosVideos')}</h4>
               <button className="text-xs md:text-sm text-blue-600 hover:underline font-medium">{t('messenger.groupPanel.seeAll')}</button>
@@ -2428,7 +2578,7 @@ export default function Messenger() {
           <div className="border-t border-gray-100 my-4 md:my-6"></div>
 
           {/* Privacy & Support */}
-          <div>
+          <div className="rounded-2xl border border-gray-100 bg-white p-3">
             <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.privacySupport')}</h4>
             <div className="space-y-1.5">
               <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
