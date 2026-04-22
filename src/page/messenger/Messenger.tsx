@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Grid3X3, BarChart3 } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Grid3X3, BarChart3, MapPin, Contact, Music, Gift } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
@@ -8,8 +8,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
 import { useSocket } from '../../contexts/SocketContext';
 import EmojiPicker from '../../components/chat/EmojiPicker';
-import { ImageUpload, VideoUpload } from '../../components/chat/FileUpload';
-import VoiceRecorder from '../../components/chat/VoiceRecorder';
 import { conversationsApi } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
@@ -23,6 +21,15 @@ interface MessengerLocationState {
 }
 
 const STICKER_TOPICS = [
+  {
+    id: 'emoji',
+    label: 'Emoji',
+    files: [
+      'sticker-01.svg', 'sticker-02.svg', 'sticker-03.svg', 'sticker-04.svg',
+      'sticker-05.svg', 'sticker-06.svg', 'sticker-07.svg', 'sticker-08.svg',
+      'sticker-09.svg', 'sticker-10.svg', 'sticker-11.svg', 'sticker-12.svg',
+    ],
+  },
   {
     id: 'christmas',
     label: 'Christmas',
@@ -69,6 +76,18 @@ const STICKER_TOPIC_WITH_ALL = [
   ...STICKER_TOPICS,
 ];
 
+/** Deterministic color from string — same input always gives same color */
+const hashColor = (str: string): string => {
+  const colors = [
+    '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899',
+    '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
+    '#06b6d4', '#0ea5e9', '#2563eb', '#7c3aed', '#db2777',
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export default function Messenger() {
   const navigate = useNavigate();
   const location = useLocation() as Location & { state?: MessengerLocationState };
@@ -108,6 +127,14 @@ export default function Messenger() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [showVoicePreview, setShowVoicePreview] = useState(false);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const voiceTranscriptRef = useRef('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const recognitionRef = useRef<any>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [filePreview, setFilePreview] = useState<{ file: File; preview: string } | null>(null);
@@ -127,6 +154,7 @@ export default function Messenger() {
   const typingStopTimerRef = useRef<number | null>(null);
   const isTypingRef = useRef(false);
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
+  const lastDeliveredSentMessageIdRef = useRef<string | null>(null);
   const seenRefreshTimerRef = useRef<number | null>(null);
   const openConversationId = location.state?.openConversationId;
   const { t, i18n } = useTranslation();
@@ -194,13 +222,14 @@ export default function Messenger() {
 
   // Load messages when active chat changes
   useEffect(() => {
-    if (activeChat) {
+    if (activeChat && activeChat !== AI_CONVERSATION_ID) {
       loadMessages(activeChat);
       setEditingMessageId(null);
       setReplyTo(null);
       setTypingUserIds([]);
       setIsTyping(false);
       lastSeenSentMessageIdRef.current = null;
+      lastDeliveredSentMessageIdRef.current = null;
       if (typingStopTimerRef.current) {
         window.clearTimeout(typingStopTimerRef.current);
         typingStopTimerRef.current = null;
@@ -326,7 +355,7 @@ export default function Messenger() {
           id: conv.id,
           name,
           avatar: initials,
-          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+          color: hashColor(conv.id),
           online: false,
           lastMessage: conv.lastMessagePreview || '',
           time: formatTime(conv.lastMessageAt),
@@ -526,6 +555,28 @@ export default function Messenger() {
     lastSeenSentMessageIdRef.current = lastIncoming.id;
     messagesApi
       .markSeen(activeChat, { userId: user.id, lastSeenMessageId: lastIncoming.id })
+      .catch(() => undefined);
+  }, [activeApiMessages, activeChat, user?.id]);
+
+  useEffect(() => {
+    if (!activeChat || !user?.id || activeChat === AI_CONVERSATION_ID || activeApiMessages.length === 0) {
+      return;
+    }
+
+    const lastIncoming = [...activeApiMessages]
+      .reverse()
+      .find((m) => !m.isDeleted && m.senderId !== user.id);
+
+    if (!lastIncoming) {
+      return;
+    }
+    if (lastDeliveredSentMessageIdRef.current === lastIncoming.id) {
+      return;
+    }
+
+    lastDeliveredSentMessageIdRef.current = lastIncoming.id;
+    messagesApi
+      .markDelivered(activeChat, { userId: user.id, lastDeliveredMessageId: lastIncoming.id })
       .catch(() => undefined);
   }, [activeApiMessages, activeChat, user?.id]);
 
@@ -1168,6 +1219,8 @@ export default function Messenger() {
       setUploadingFiles(false);
     }
   };
+  void handleFileSelect;
+  void handleVoiceRecording;
 
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
@@ -1245,9 +1298,100 @@ export default function Messenger() {
     setShowAttachmentMenu(false);
   };
 
-  const handleVoiceRecord = () => {
-    setIsRecording(!isRecording);
-    // Voice recording logic here
+  const handleVoiceRecord = async () => {
+    if (isRecording) {
+      // Stop recording + speech recognition
+      mediaRecorderRef.current?.stop();
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        window.clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Start recording
+    try {
+      voiceTranscriptRef.current = '';
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (blob.size > 0) {
+          setVoiceBlob(blob);
+          setShowVoicePreview(true);
+        }
+        setRecordingDuration(0);
+      };
+
+      // Start SpeechRecognition simultaneously (for voice-to-text option)
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        recognition.lang = 'vi-VN';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.onresult = (event: any) => {
+          let text = '';
+          for (let i = 0; i < event.results.length; i++) {
+            text += event.results[i][0].transcript;
+          }
+          voiceTranscriptRef.current = text;
+        };
+        recognition.onerror = () => {};
+        recognition.start();
+      }
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      notify.error(t('messenger.errors.voiceMessage'));
+    }
+  };
+
+  /** Option 1: Send as voice message */
+  const handleVoiceSendAudio = async () => {
+    if (voiceBlob) {
+      await handleVoiceRecording(voiceBlob);
+    }
+    setShowVoicePreview(false);
+    setVoiceBlob(null);
+    voiceTranscriptRef.current = '';
+  };
+
+  /** Option 2: Convert to text → put in input */
+  const handleVoiceConvertToText = () => {
+    const text = voiceTranscriptRef.current.trim();
+    if (text) {
+      setMessage(prev => (prev ? prev + ' ' : '') + text);
+    } else {
+      notify.error('Khong nhan dien duoc giong noi. Hay thu lai.');
+    }
+    setShowVoicePreview(false);
+    setVoiceBlob(null);
+    voiceTranscriptRef.current = '';
+  };
+
+  /** Cancel voice preview */
+  const handleVoiceCancel = () => {
+    setShowVoicePreview(false);
+    setVoiceBlob(null);
+    voiceTranscriptRef.current = '';
   };
 
   const filteredMessages = searchQuery
@@ -1280,7 +1424,7 @@ export default function Messenger() {
 
       {/* Left Sidebar - Conversations */}
       <div className={`border-r border-gray-200/50 dark:border-white/5 glass-surface flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
-        leftSidebarCollapsed ? 'w-20' : 'w-[400px]'
+        leftSidebarCollapsed ? 'w-20' : 'w-[340px]'
       }`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -1349,41 +1493,36 @@ export default function Messenger() {
             <div
               key={conv.id}
               onClick={() => setActiveChat(conv.id)}
-              className={`cursor-pointer transition-all duration-200 mx-3 my-1 rounded-2xl flex items-center gap-3 border ${
+              className={`cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
                 activeChat === conv.id 
-                  ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-sm border-blue-200 dark:border-blue-500/30 ring-1 ring-blue-100 dark:ring-blue-500/20' 
-                  : 'border-transparent hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
-              } ${leftSidebarCollapsed ? 'p-3 justify-center' : 'p-3'}`}
+                  ? 'bg-blue-50 dark:bg-blue-500/15' 
+                  : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
+              } ${leftSidebarCollapsed ? 'p-2 mx-2 my-0.5 flex items-center justify-center' : 'px-3 py-2.5 mx-1 my-0.5 flex items-center gap-3'}`}
               title={leftSidebarCollapsed ? conv.name : ''}
             >
               {leftSidebarCollapsed ? (
-                <div className="relative">
+                <div className="relative shrink-0">
                   {conv.id === AI_CONVERSATION_ID ? (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-                      <Bot className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-white" />
                     </div>
                   ) : conv.isGroup ? (
-                    <div className="relative w-12 h-12">
-                      <div className="absolute top-0 left-0 w-9 h-9 rounded-lg bg-green-500 border-2 border-white flex items-center justify-center shadow-sm">
-                        <span className="text-white text-xs font-bold">S</span>
-                      </div>
-                      <div className="absolute bottom-0 right-0 w-9 h-9 rounded-lg bg-red-500 border-2 border-white flex items-center justify-center shadow-sm">
-                        <span className="text-white text-xs font-bold">M</span>
-                      </div>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: conv.color }}>
+                      <Users className="w-5 h-5 text-white" />
                     </div>
                   ) : (
                     <>
                       <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs"
                         style={{ backgroundColor: conv.color }}
                       >
                         {conv.avatar}
                       </div>
                       {conv.online && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
                       )}
                       {conv.unread > 0 && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
                           {conv.unread}
                         </div>
                       )}
@@ -1391,50 +1530,45 @@ export default function Messenger() {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
+                <>
                   <div className="relative shrink-0">
                     {conv.id === AI_CONVERSATION_ID ? (
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-                        <Bot className="w-7 h-7 text-white" />
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-white" />
                       </div>
                     ) : conv.isGroup ? (
-                      <div className="relative w-14 h-14">
-                        <div className="absolute top-0 left-0 w-11 h-11 rounded-xl bg-green-500 border-3 border-white flex items-center justify-center shadow-sm">
-                          <span className="text-white text-sm font-bold">S</span>
-                        </div>
-                        <div className="absolute bottom-0 right-0 w-11 h-11 rounded-xl bg-red-500 border-3 border-white flex items-center justify-center shadow-sm">
-                          <span className="text-white text-sm font-bold">M</span>
-                        </div>
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ backgroundColor: conv.color }}>
+                        <Users className="w-5 h-5 text-white" />
                       </div>
                     ) : (
                       <>
                         <div
-                          className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm"
+                          className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm"
                           style={{ backgroundColor: conv.color }}
                         >
                           {conv.avatar}
                         </div>
                         {conv.online && (
-                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-3 border-white"></div>
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                         )}
                       </>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className={`text-base truncate ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{conv.name}</p>
-                      <span className={`text-sm shrink-0 ml-2 ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-500'}`}>{conv.time}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{conv.name}</p>
+                      <span className={`text-xs shrink-0 ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>{conv.time}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className={`text-sm truncate ${conv.unread > 0 ? 'text-gray-800 font-medium' : 'text-gray-600'}`}>{conv.lastMessage}</p>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className={`text-xs truncate ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>{conv.lastMessage}</p>
                       {conv.unread > 0 && (
-                        <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0 ml-2">
+                        <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                           {conv.unread}
                         </span>
                       )}
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           ))}
@@ -1448,13 +1582,8 @@ export default function Messenger() {
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shadow-sm">
             <div className="flex items-center gap-4 flex-1 min-w-0">
               {activeConversation.isGroup ? (
-                <div className="relative w-12 h-12 shrink-0">
-                  <div className="absolute top-0 left-0 w-9 h-9 rounded-xl bg-green-500 border-3 border-white flex items-center justify-center shadow-sm">
-                    <span className="text-white text-xs font-bold">S</span>
-                  </div>
-                  <div className="absolute bottom-0 right-0 w-9 h-9 rounded-xl bg-red-500 border-3 border-white flex items-center justify-center shadow-sm">
-                    <span className="text-white text-xs font-bold">M</span>
-                  </div>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: activeConversation.color }}>
+                  <Users className="w-6 h-6 text-white" />
                 </div>
               ) : (
                 <div className="relative shrink-0">
@@ -1584,47 +1713,41 @@ export default function Messenger() {
               return (
                 <div
                 key={msg.id}
-                className={`group flex items-start gap-4 ${msg.isMe ? 'flex-row-reverse' : ''}`}
+                className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''}`}
               >
                 {!msg.isMe && (
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-opacity ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                       msg.senderId === 'ai' 
-                        ? 'bg-gradient-to-br from-indigo-400 to-purple-500 cursor-default' 
-                        : 'bg-green-500 cursor-pointer hover:opacity-90'
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
+                        : 'cursor-pointer'
                     }`}
+                    style={msg.senderId !== 'ai' ? { backgroundColor: hashColor(msg.senderId || 'u') } : undefined}
                     onClick={msg.senderId === 'ai' ? undefined : () => navigate(`/profile/${msg.senderId}`)}
                   >
                     {msg.senderId === 'ai' ? (
-                      <Bot className="w-6 h-6 text-white" />
+                      <Bot className="w-4 h-4 text-white" />
                     ) : (
-                      <span className="text-white font-bold text-base">{msg.sender.charAt(0)}</span>
+                      <span className="text-white font-semibold text-xs">{msg.sender.charAt(0)}</span>
                     )}
                   </div>
                 )}
                 <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
-                  {/* Sender name for group chats or AI */}
-                  {(isGroupChat || msg.senderId === 'ai') && !msg.isMe && (
-                    <div className="flex items-center gap-2 mb-1.5">
-                      {msg.senderId === 'ai' && (
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                      )}
-                      <p className="text-xs font-semibold text-gray-600">
-                        {msg.sender}
-                      </p>
-                    </div>
+                  {/* Sender name — only in group chats */}
+                  {isGroupChat && !msg.isMe && (
+                    <p className="text-[11px] font-medium text-gray-400 mb-0.5 ml-1">{msg.sender}</p>
                   )}
                   {/* Reply To */}
                   {msg.replyTo && (
-                    <div className={`mb-2 p-3 rounded-lg bg-gray-100 border-l-4 border-blue-500 text-left ${msg.isMe ? 'text-right' : ''}`}>
-                      <p className="text-xs font-semibold text-gray-600 mb-1">{msg.replyTo.sender}</p>
-                      <p className="text-sm text-gray-700 line-clamp-2">{msg.replyTo.content}</p>
+                    <div className={`mb-1 p-2 rounded-lg bg-gray-100 border-l-3 border-blue-400 text-left`}>
+                      <p className="text-[11px] font-semibold text-gray-500">{msg.replyTo.sender}</p>
+                      <p className="text-xs text-gray-600 line-clamp-1">{msg.replyTo.content}</p>
                     </div>
                   )}
                   
                   {/* Pinned Badge */}
                   {msg.pinned && (
-                    <div className="mb-2 flex items-center gap-1 text-xs text-gray-500">
+                    <div className="mb-1 flex items-center gap-1 text-[11px] text-gray-400">
                       <Pin className="w-3 h-3" />
                       <span>{t('messenger.messageOptions.pinned')}</span>
                     </div>
@@ -1632,11 +1755,11 @@ export default function Messenger() {
 
                   {/* Attachments */}
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mb-2 space-y-2">
+                    <div className="mb-1 space-y-1">
                       {msg.attachments.map((attachment, idx) => (
                         <div key={idx}>
                           {attachment.type === 'image' && (
-                            <div className="max-w-xs rounded-xl overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                            <div className="max-w-[240px] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
                               <img 
                                 src={attachment.url} 
                                 alt={attachment.fileName || t('messenger.attachment.imageAlt')}
@@ -1646,7 +1769,7 @@ export default function Messenger() {
                             </div>
                           )}
                           {attachment.type === 'video' && (
-                            <div className="max-w-xs rounded-xl overflow-hidden shadow-sm">
+                            <div className="max-w-[240px] rounded-2xl overflow-hidden">
                               <video 
                                 src={attachment.url} 
                                 controls
@@ -1655,9 +1778,9 @@ export default function Messenger() {
                             </div>
                           )}
                           {attachment.type === 'audio' && (
-                            <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-xl max-w-xs">
-                              <Mic className="w-5 h-5 text-blue-500" />
-                              <audio src={attachment.url} controls className="flex-1" />
+                            <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-2xl max-w-[240px]">
+                              <Mic className="w-4 h-4 text-blue-500 shrink-0" />
+                              <audio src={attachment.url} controls className="flex-1 h-8" />
                             </div>
                           )}
                           {attachment.type === 'file' && (
@@ -1665,15 +1788,15 @@ export default function Messenger() {
                               href={attachment.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-3 p-3 bg-gray-100 rounded-xl max-w-xs hover:bg-gray-200 transition-colors"
+                              className="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-2xl max-w-[240px] hover:bg-gray-100 transition-colors"
                             >
-                              <FileText className="w-6 h-6 text-gray-600" />
+                              <FileText className="w-5 h-5 text-gray-500 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
+                                <p className="text-sm font-medium text-gray-800 truncate">
                                   {attachment.fileName || t('messenger.attachment.fileAlt')}
                                 </p>
                                 {attachment.fileSize && (
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-[11px] text-gray-400">
                                     {(attachment.fileSize / 1024).toFixed(1)} KB
                                   </p>
                                 )}
@@ -1686,23 +1809,21 @@ export default function Messenger() {
                   )}
 
                   {msg.image ? (
-                    <div className="max-w-xs rounded-2xl mb-2 overflow-hidden shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                    <div className="max-w-[240px] rounded-2xl mb-1 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
                       {msg.image === 'beach' && <LargeBeachPlaceholder className="w-full h-full" />}
                     </div>
                   ) : null}
 
                   {msg.content && (
                     <div
-                      className={`relative px-5 py-3.5 shadow-sm transition-all hover:shadow-md ${
+                      className={`relative inline-block px-3.5 py-2 ${
                         msg.isMe
-                          ? 'bg-linear-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm'
-                          : msg.senderId === 'ai'
-                          ? 'bg-white dark:bg-[#1a1d28] text-gray-900 dark:text-gray-100 border border-gray-100/50 dark:border-white/5 rounded-2xl rounded-tl-sm'
-                          : 'bg-white dark:bg-[#1a1d28] text-gray-900 dark:text-gray-100 border border-gray-100/50 dark:border-white/5 rounded-2xl rounded-tl-sm'
+                          ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
+                          : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
                       }`}
                       onDoubleClick={() => handleReaction(msg.id, '❤️')}
                     >
-                      <p className="whitespace-pre-line text-[15px] leading-[1.6] font-normal">{msg.content}</p>
+                      <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
                     </div>
                   )}
 
@@ -1869,16 +1990,16 @@ export default function Messenger() {
                   )}
 
                   {/* Time and Status */}
-                  <div className={`flex items-center gap-2 px-2 mt-1 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                    <p className="text-xs text-gray-500">{msg.time}</p>
+                  <div className={`flex items-center gap-1 mt-0.5 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+                    <p className="text-[11px] text-gray-400">{msg.time}</p>
                     {msg.isMe && msg.status && (
                       <div className="flex items-center">
                         {msg.status === 'read' ? (
-                          <CheckCheck className="w-4 h-4 text-blue-500" />
+                          <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
                         ) : msg.status === 'delivered' ? (
-                          <CheckCheck className="w-4 h-4 text-gray-400" />
+                          <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
                         ) : (
-                          <Check className="w-4 h-4 text-gray-400" />
+                          <Check className="w-3.5 h-3.5 text-gray-400" />
                         )}
                       </div>
                     )}
@@ -2037,7 +2158,7 @@ export default function Messenger() {
           {showAttachmentMenu && (
             <div className="mb-2 md:mb-3 p-3 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div className="grid grid-cols-4 gap-2 md:gap-3">
-                <label className="flex flex-col items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -2046,57 +2167,96 @@ export default function Messenger() {
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <ImageIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <ImageIcon className="w-5 h-5 text-blue-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">{t('messenger.attachments.photo')}</span>
+                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.photo')}</span>
                 </label>
-                <label className="flex flex-col items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
                   <input
                     type="file"
                     accept="video/*"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                    <Video className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-green-100 flex items-center justify-center">
+                    <Video className="w-5 h-5 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">{t('messenger.attachments.video')}</span>
+                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.video')}</span>
                 </label>
-                <label className="flex flex-col items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
                   <input
                     type="file"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <FileText className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-purple-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">{t('messenger.attachments.file')}</span>
+                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.file')}</span>
+                </label>
+                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-pink-100 flex items-center justify-center">
+                    <Music className="w-5 h-5 text-pink-600" />
+                  </div>
+                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.audio')}</span>
                 </label>
                 <button
-                  onClick={handleVoiceRecord}
-                  className={`flex flex-col items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg hover:bg-white transition-colors ${
-                    isRecording ? 'bg-red-50' : ''
-                  }`}
+                  onClick={() => {
+                    const text = `[Location] ${t('messenger.attachments.locationShared')}`;
+                    if (activeChat && user?.id) {
+                      sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
+                      setShowAttachmentMenu(false);
+                    }
+                  }}
+                  className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors"
                 >
-                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center ${
-                    isRecording ? 'bg-red-100' : 'bg-orange-100'
-                  }`}>
-                    <Mic className={`w-5 h-5 md:w-6 md:h-6 ${isRecording ? 'text-red-600' : 'text-orange-600'}`} />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-red-100 flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-red-600" />
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">
-                    {isRecording ? t('messenger.attachments.recording') : t('messenger.attachments.voice')}
-                  </span>
+                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.location')}</span>
                 </button>
+                <button
+                  onClick={() => {
+                    if (activeChat && user?.id) {
+                      const card = `[Contact] ${user.fullName || user.username}`;
+                      sendMessageAPI(activeChat, card, [], undefined).catch(() => {});
+                      setShowAttachmentMenu(false);
+                    }
+                  }}
+                  className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors"
+                >
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-cyan-100 flex items-center justify-center">
+                    <Contact className="w-5 h-5 text-cyan-600" />
+                  </div>
+                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.contact')}</span>
+                </button>
+                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/gif"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-yellow-100 flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <span className="text-[11px] text-gray-600 font-medium">GIF</span>
+                </label>
               </div>
             </div>
           )}
 
           {/* Sticker Panel */}
           {showStickerPanel && (
-            <div className="mb-2 md:mb-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+            <div className="mb-2 md:mb-3 p-3 bg-white rounded-xl border border-gray-200 shadow-lg">
+              <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-thin">
                 {STICKER_TOPIC_WITH_ALL.map((topic) => (
                   <button
                     key={topic.id}
@@ -2104,7 +2264,7 @@ export default function Messenger() {
                     onClick={() => setActiveStickerTopic(topic.id)}
                     className={`px-3 h-8 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                       activeStickerTopic === topic.id
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
@@ -2112,13 +2272,13 @@ export default function Messenger() {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-6 gap-2 max-h-44 overflow-y-auto">
+              <div className="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pr-1">
                 {(STICKER_TOPIC_WITH_ALL.find((topic) => topic.id === activeStickerTopic)?.files ?? []).map((sticker) => (
                   <button
                     key={sticker}
                     type="button"
                     onClick={() => handleSendSticker(sticker)}
-                    className="aspect-square rounded-lg bg-gray-50 border border-gray-200 p-1 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                    className="aspect-square rounded-xl bg-gray-50 border border-gray-100 p-2 hover:border-blue-300 hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all duration-150"
                   >
                     <img
                       src={`/stickers/${sticker}`}
@@ -2137,6 +2297,45 @@ export default function Messenger() {
             <EmojiPicker
               onEmojiSelect={handleEmojiSelect}
             />
+          )}
+
+          {/* Voice Preview — after recording, choose: Send Voice or Convert to Text */}
+          {showVoicePreview && (
+            <div className="mb-2 p-3 bg-white rounded-xl border border-gray-200 shadow-md flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <Mic className="w-4 h-4 text-blue-600" />
+                </div>
+                <span className="text-sm text-gray-700 font-medium truncate">
+                  {voiceTranscriptRef.current ? voiceTranscriptRef.current.substring(0, 50) + (voiceTranscriptRef.current.length > 50 ? '...' : '') : 'Da ghi am xong'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleVoiceSendAudio}
+                  className="px-3 h-8 rounded-lg bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition-colors flex items-center gap-1.5"
+                  title="Gui tin nhan thoai"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Gui am</span>
+                </button>
+                <button
+                  onClick={handleVoiceConvertToText}
+                  className="px-3 h-8 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors flex items-center gap-1.5"
+                  title="Chuyen thanh van ban"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Chuyen chu</span>
+                </button>
+                <button
+                  onClick={handleVoiceCancel}
+                  className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                  title="Huy"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           )}
 
           <div className="flex items-center gap-2 md:gap-2.5">
@@ -2162,7 +2361,7 @@ export default function Messenger() {
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
                 showStickerPanel ? 'text-pink-600 bg-pink-50' : 'text-gray-600 hover:bg-gray-100'
               }`}
-              title="Sticker"
+              title="Nhan dan"
             >
               <Grid3X3 className="w-5 h-5" />
             </button>
@@ -2183,9 +2382,33 @@ export default function Messenger() {
                   handleSendMessage();
                 }
               }}
-              placeholder={editingMessageId ? 'Chinh sua tin nhan...' : replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
-              className="flex-1 h-10 px-4 rounded-full bg-gray-100/70 dark:bg-[#22263a]/60 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-100 dark:placeholder:text-gray-500"
+              placeholder={isRecording ? 'Dang ghi am...' : editingMessageId ? 'Chinh sua tin nhan...' : replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
+              className={`flex-1 h-10 px-4 rounded-full border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-100 dark:placeholder:text-gray-500 ${
+                isRecording ? 'bg-red-50 ring-2 ring-red-200' : 'bg-gray-100/70 dark:bg-[#22263a]/60'
+              }`}
             />
+
+            {/* Recording indicator */}
+            {isRecording && (
+              <div className="flex items-center gap-1.5 px-2 shrink-0">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs text-red-600 font-mono font-medium tabular-nums">
+                  {Math.floor(recordingDuration / 60).toString().padStart(2, '0')}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
+            {/* Mic button — unified voice record */}
+            <button
+              onClick={handleVoiceRecord}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+                isRecording ? 'text-red-600 bg-red-100 animate-pulse' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title={isRecording ? 'Dung ghi am' : 'Ghi am giong noi'}
+              disabled={uploadingFiles}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
 
             <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}

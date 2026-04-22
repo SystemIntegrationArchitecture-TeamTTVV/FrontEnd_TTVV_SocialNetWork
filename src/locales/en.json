@@ -546,7 +546,11 @@
       "video": "Video",
       "file": "File",
       "recording": "Recording...",
-      "voice": "Voice"
+      "voice": "Voice",
+      "audio": "Audio",
+      "location": "Location",
+      "locationShared": "Shared location",
+      "contact": "Contact"
     },
     "errors": {
       "noConversationSelected": "Please select a conversation first",
@@ -1851,8 +1855,32 @@
     "genderFemale": "Female",
     "edit": "Edit",
     "accountStatusTitle": "Account status",
-    "deactivateAccount": "Deactivate account",
-    "deleteAccount": "Delete account"
+    "deactivateAccount": "Deactivate",
+    "deleteAccount": "Delete account",
+    "deactivateConfirm": "Are you sure you want to deactivate your account? You can reactivate it later.",
+    "deleteConfirm": "Are you sure you want to permanently delete your account? This action cannot be undone.",
+    "securityDesc": "Manage your password and login security",
+    "changePassword": "Change password",
+    "changePasswordDesc": "Use the password reset feature via email to change your password",
+    "loginHistory": "Login history",
+    "loginHistoryDesc": "View your recent login sessions",
+    "notifDesc": "Manage how you receive notifications",
+    "notifPush": "Push notifications",
+    "notifPushDesc": "Receive notifications in your browser",
+    "notifEmail": "Email notifications",
+    "notifEmailDesc": "Receive notifications via email",
+    "notifComments": "Comments",
+    "notifCommentsDesc": "When someone comments on your post",
+    "notifLikes": "Likes",
+    "notifLikesDesc": "When someone likes your post",
+    "notifFriendReq": "Friend requests",
+    "notifFriendReqDesc": "When someone sends you a friend request",
+    "notifMessages": "Messages",
+    "notifMessagesDesc": "When you receive a new message",
+    "goToPrivacy": "Go to privacy settings",
+    "languageDesc": "Choose the display language for the interface",
+    "displayDesc": "Choose light or dark theme",
+    "logoutConfirm": "Are you sure you want to log out?"
   },
   "privacySettings": {
     "pageTitle": "Privacy settings",
@@ -1885,6 +1913,9 @@
     "sectionBlockTitle": "Blocking",
     "sectionBlockDesc": "View and manage people you’ve blocked",
     "manage": "Manage",
+    "contactInfoTitle": "Contact info",
+    "showEmail": "Show email on profile",
+    "showPhone": "Show phone number on profile",
     "saveChanges": "Save changes"
   },
   "notificationSettings": {

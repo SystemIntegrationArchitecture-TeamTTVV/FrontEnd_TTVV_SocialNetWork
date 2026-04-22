@@ -142,7 +142,7 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
         );
 
         const requesterTasks = eligibleConversations.flatMap((conv) =>
-          conv.pendingJoinIds.map(async (requesterId) => {
+          (conv.pendingJoinIds ?? []).map(async (requesterId) => {
             try {
               const requester = await usersApi.getUserById(requesterId);
               return {

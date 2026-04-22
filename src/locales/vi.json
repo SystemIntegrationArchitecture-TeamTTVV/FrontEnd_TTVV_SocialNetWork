@@ -546,7 +546,11 @@
       "video": "Video",
       "file": "Tệp",
       "recording": "Đang ghi...",
-      "voice": "Giọng nói"
+      "voice": "Giọng nói",
+      "audio": "Âm thanh",
+      "location": "Vị trí",
+      "locationShared": "Đã chia sẻ vị trí",
+      "contact": "Liên hệ"
     },
     "errors": {
       "noConversationSelected": "Vui lòng chọn một cuộc trò chuyện trước",
@@ -1851,8 +1855,32 @@
     "genderFemale": "Nữ",
     "edit": "Sửa",
     "accountStatusTitle": "Trạng thái tài khoản",
-    "deactivateAccount": "Vô hiệu hóa tài khoản",
-    "deleteAccount": "Xóa tài khoản"
+    "deactivateAccount": "Vô hiệu hóa",
+    "deleteAccount": "Xóa tài khoản",
+    "deactivateConfirm": "Bạn có chắc muốn vô hiệu hóa tài khoản? Bạn có thể kích hoạt lại sau.",
+    "deleteConfirm": "Bạn có chắc muốn xóa vĩnh viễn tài khoản? Hành động này không thể hoàn tác.",
+    "securityDesc": "Quản lý mật khẩu và bảo mật đăng nhập",
+    "changePassword": "Đổi mật khẩu",
+    "changePasswordDesc": "Sử dụng chức năng đặt lại mật khẩu qua email để đổi mật khẩu mới",
+    "loginHistory": "Lịch sử đăng nhập",
+    "loginHistoryDesc": "Xem các phiên đăng nhập gần đây của bạn",
+    "notifDesc": "Quản lý cách bạn nhận thông báo",
+    "notifPush": "Thông báo đẩy",
+    "notifPushDesc": "Nhận thông báo trên trình duyệt",
+    "notifEmail": "Thông báo qua email",
+    "notifEmailDesc": "Nhận thông báo qua email",
+    "notifComments": "Bình luận",
+    "notifCommentsDesc": "Khi có người bình luận bài viết của bạn",
+    "notifLikes": "Lượt thích",
+    "notifLikesDesc": "Khi có người thích bài viết của bạn",
+    "notifFriendReq": "Lời mời kết bạn",
+    "notifFriendReqDesc": "Khi có người gửi lời mời kết bạn",
+    "notifMessages": "Tin nhắn",
+    "notifMessagesDesc": "Khi có tin nhắn mới",
+    "goToPrivacy": "Đi tới cài đặt quyền riêng tư",
+    "languageDesc": "Chọn ngôn ngữ hiển thị cho giao diện",
+    "displayDesc": "Chọn giao diện sáng hoặc tối",
+    "logoutConfirm": "Bạn có chắc muốn đăng xuất khỏi tài khoản?"
   },
   "privacySettings": {
     "pageTitle": "Cài đặt quyền riêng tư",
@@ -1885,6 +1913,9 @@
     "sectionBlockTitle": "Chặn người dùng",
     "sectionBlockDesc": "Xem và quản lý danh sách người bị chặn",
     "manage": "Quản lý",
+    "contactInfoTitle": "Thông tin liên hệ",
+    "showEmail": "Hiển thị email trên trang cá nhân",
+    "showPhone": "Hiển thị số điện thoại trên trang cá nhân",
     "saveChanges": "Lưu thay đổi"
   },
   "notificationSettings": {

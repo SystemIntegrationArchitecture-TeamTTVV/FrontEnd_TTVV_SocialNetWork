@@ -120,7 +120,7 @@ export default function Archive() {
                     </div>
                     <p className="text-base text-gray-600 truncate">{conv.lastMessage}</p>
                     {conv.type === 'group' && (
-                      <p className="text-sm text-gray-500 mt-1">{conv.members} thành viên</p>
+                      <p className="text-sm text-gray-500 mt-1">{t('groups.members', { count: conv.members })}</p>
                     )}
                   </div>
 

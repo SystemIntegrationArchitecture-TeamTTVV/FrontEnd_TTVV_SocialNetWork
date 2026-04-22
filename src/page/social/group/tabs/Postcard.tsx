@@ -263,11 +263,11 @@ export default function PostCard({
       {/* Stats & Actions */}
       <div className="px-5 pb-3">
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-          <span className="font-semibold">{post.likeCount || 0} lượt thích</span>
+          <span className="font-semibold">{t("groupTabs.statsLikes", { count: post.likeCount || 0 })}</span>
           <div className="flex items-center gap-4">
-            <span className="font-medium">{post.commentCount || 0} bình luận</span>
+            <span className="font-medium">{t("groupTabs.statsComments", { count: post.commentCount || 0 })}</span>
             <span>·</span>
-            <span className="font-medium">{post.shareCount || 0} lượt chia sẻ</span>
+            <span className="font-medium">{t("groupTabs.statsShares", { count: post.shareCount || 0 })}</span>
           </div>
         </div>
 

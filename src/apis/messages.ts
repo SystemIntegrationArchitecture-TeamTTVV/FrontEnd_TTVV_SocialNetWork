@@ -74,6 +74,11 @@ export interface SeenEventRequest {
   lastSeenMessageId?: string;
 }
 
+export interface DeliveredEventRequest {
+  userId: string;
+  lastDeliveredMessageId?: string;
+}
+
 export interface CreatePollRequest {
   userId: string;
   question: string;
@@ -215,6 +220,10 @@ export const messagesApi = {
 
   markSeen: async (conversationId: string, payload: SeenEventRequest): Promise<void> => {
     return httpClient.post<void>(`/api/message/messages/conversation/${conversationId}/seen`, payload);
+  },
+
+  markDelivered: async (conversationId: string, payload: DeliveredEventRequest): Promise<void> => {
+    return httpClient.post<void>(`/api/message/messages/conversation/${conversationId}/delivered`, payload);
   },
 
   createPoll: async (conversationId: string, payload: CreatePollRequest): Promise<Message> => {

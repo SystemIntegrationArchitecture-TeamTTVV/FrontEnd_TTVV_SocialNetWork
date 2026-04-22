@@ -23,6 +23,13 @@ import { getLocaleTag } from '../../i18n';
 import { resolveMediaUrl, resolveStoryContentUrl } from '../../utils/mediaUrl';
 import { getUserInitials } from '../../utils/userDisplay';
 
+/** Module-level cache — survives component unmount so returning to Newsfeed is instant */
+const _postCache: {
+  posts: PostData[];
+  likedPosts: Set<string> | null;
+  likedComments: Set<string> | null;
+} = { posts: [], likedPosts: null, likedComments: null };
+
 export default function Newsfeed() {
   const { t } = useTranslation();
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -78,85 +85,108 @@ export default function Newsfeed() {
   const { showToast } = useToast();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
 
-  // Load posts — chờ Auth xong để tránh gọi 2 lần (null rồi mới có id)
+  // ── Stale-while-revalidate: show cached posts instantly, refresh in background ──
   useEffect(() => {
     if (authLoading) return;
 
+    // If we have cached posts, show them immediately (no loading spinner)
+    const cached = _postCache.posts;
+    if (cached.length > 0) {
+      setPosts(cached);
+      setIsLoadingPosts(false);
+      if (_postCache.likedPosts) setLikedPosts(_postCache.likedPosts);
+      if (_postCache.likedComments) setLikedComments(_postCache.likedComments);
+    }
+
     const loadPosts = async () => {
       try {
-        setIsLoadingPosts(true);
+        // Only show loading spinner if no cache
+        if (cached.length === 0) {
+          setIsLoadingPosts(true);
+        }
         setError(null);
-        const data = await postsApi.getAllPosts(currentUser?.id);
-        setPosts(Array.isArray(data) ? data : []);
 
-        if (currentUser?.id) {
-          reactionsApi
-            .getReactionsByUserId(currentUser.id)
-            .then((userReactions) => {
-              const likedPostIds = new Set(
-                userReactions.filter((r) => r.postId).map((r) => r.postId!),
-              );
-              setLikedPosts(likedPostIds);
-              const likedCommentIds = new Set(
-                userReactions.filter((r) => r.commentId).map((r) => r.commentId!),
-              );
-              setLikedComments(likedCommentIds);
-            })
-            .catch((err) => console.error('Failed to load user reactions:', err));
+        // Fetch posts and reactions in parallel for faster load
+        const [data, userReactions] = await Promise.all([
+          postsApi.getAllPosts(currentUser?.id),
+          currentUser?.id
+            ? reactionsApi.getReactionsByUserId(currentUser.id)
+            : Promise.resolve([]),
+        ]);
+
+        const freshPosts = Array.isArray(data) ? data : [];
+        setPosts(freshPosts);
+
+        // Update cache
+        _postCache.posts = freshPosts;
+
+        if (currentUser?.id && Array.isArray(userReactions)) {
+          const likedPostIds = new Set(
+            userReactions.filter((r) => r.postId).map((r) => r.postId!),
+          );
+          setLikedPosts(likedPostIds);
+          _postCache.likedPosts = likedPostIds;
+          const likedCommentIds = new Set(
+            userReactions.filter((r) => r.commentId).map((r) => r.commentId!),
+          );
+          setLikedComments(likedCommentIds);
+          _postCache.likedComments = likedCommentIds;
         }
       } catch (err: any) {
         console.error('❌ Failed to load posts:', err);
 
-        // MOCK DATA for testing without authentication
-        console.log('⚠️ Using mock data for testing...');
-        setPosts([
-          {
-            id: 'mock-1',
-            authorId: 'user-1',
-            authorName: 'Sarah Johnson',
-            authorAvatar: '',
-            content: 'Just finished an amazing hike! The view was breathtaking 🏔️',
-            images: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4'],
-            location: 'Swiss Alps',
-            visibility: 'PUBLIC',
-            allowComments: true,
-            allowSharing: true,
-            likeCount: 124,
-            commentCount: 8,
-            shareCount: 12,
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'mock-2',
-            authorId: 'user-2',
-            authorName: 'Mike Chen',
-            authorAvatar: '',
-            content: 'Working on a new project. Excited to share it soon! 💻✨',
-            visibility: 'PUBLIC',
-            allowComments: true,
-            allowSharing: true,
-            likeCount: 89,
-            commentCount: 5,
-            shareCount: 3,
-            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'mock-3',
-            authorId: 'user-3',
-            authorName: 'Emma Davis',
-            authorAvatar: '',
-            content: 'Beautiful sunset today 🌅 Nature never fails to amaze me!',
-            images: ['https://images.unsplash.com/photo-1495616811223-4d98c6e9c869'],
-            visibility: 'PUBLIC',
-            allowComments: true,
-            allowSharing: true,
-            likeCount: 256,
-            commentCount: 15,
-            shareCount: 8,
-            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ]);
-        setError(null); // Clear error when using mock data
+        // Only use mock data if no cache exists
+        if (cached.length === 0) {
+          console.log('⚠️ Using mock data for testing...');
+          setPosts([
+            {
+              id: 'mock-1',
+              authorId: 'user-1',
+              authorName: 'Sarah Johnson',
+              authorAvatar: '',
+              content: 'Just finished an amazing hike! The view was breathtaking 🏔️',
+              images: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4'],
+              location: 'Swiss Alps',
+              visibility: 'PUBLIC',
+              allowComments: true,
+              allowSharing: true,
+              likeCount: 124,
+              commentCount: 8,
+              shareCount: 12,
+              createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+              id: 'mock-2',
+              authorId: 'user-2',
+              authorName: 'Mike Chen',
+              authorAvatar: '',
+              content: 'Working on a new project. Excited to share it soon! 💻✨',
+              visibility: 'PUBLIC',
+              allowComments: true,
+              allowSharing: true,
+              likeCount: 89,
+              commentCount: 5,
+              shareCount: 3,
+              createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+              id: 'mock-3',
+              authorId: 'user-3',
+              authorName: 'Emma Davis',
+              authorAvatar: '',
+              content: 'Beautiful sunset today 🌅 Nature never fails to amaze me!',
+              images: ['https://images.unsplash.com/photo-1495616811223-4d98c6e9c869'],
+              visibility: 'PUBLIC',
+              allowComments: true,
+              allowSharing: true,
+              likeCount: 256,
+              commentCount: 15,
+              shareCount: 8,
+              createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            },
+          ]);
+        }
+        setError(null);
       } finally {
         setIsLoadingPosts(false);
       }

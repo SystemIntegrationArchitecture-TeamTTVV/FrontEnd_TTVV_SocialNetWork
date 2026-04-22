@@ -3,6 +3,7 @@ import { webrtcService, type CallType } from '../services/webrtc';
 import { socketService } from '../services/socket';
 import { authApi } from '../apis/auth';
 import { conversationsApi } from '../apis/conversations';
+import { callsApi } from '../apis/calls';
 import CallWindow from '../components/CallWindow';
 import i18n from '../i18n';
 import { useRef } from 'react';
@@ -41,6 +42,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const peerRetryRef = useRef<Map<string, number>>(new Map());
   const pendingPeersRef = useRef<Set<string>>(new Set());
   const callIdToPeerRef = useRef<Map<string, string>>(new Map());
+  const activeCallLogIdRef = useRef<string | null>(null);
 
   const [callState, setCallState] = useState<CallState>({
     isActive: false,
@@ -72,6 +74,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     peerRetryRef.current.clear();
     pendingPeersRef.current.clear();
     callIdToPeerRef.current.clear();
+    activeCallLogIdRef.current = null;
   }, []);
 
   const schedulePeerTimeout = useCallback((
@@ -225,6 +228,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
       console.log('❌ CallProvider: Call rejected by remote peer');
       notify.error(i18n.t('calls.rejected'));
+      const activeCallId = activeCallLogIdRef.current;
+      if (activeCallId && senderId) {
+        callsApi.missed(activeCallId, { userId: senderId }).catch((error) => {
+          console.warn('CallProvider: failed to record rejected call as missed', error);
+        });
+        activeCallLogIdRef.current = null;
+      }
       endCall();
     });
 
@@ -328,10 +338,31 @@ export function CallProvider({ children }: { children: ReactNode }) {
               return { ...prev, participantIds: remaining };
             });
             if (!isGroup) {
+              const activeCallId = activeCallLogIdRef.current;
+              const currentUserId = authApi.getCurrentUser()?.id;
+              if (activeCallId && currentUserId) {
+                callsApi.missed(activeCallId, { userId: currentUserId }).catch((error) => {
+                  console.warn('CallProvider: failed to record missed call after timeout', error);
+                });
+                activeCallLogIdRef.current = null;
+              }
               endCall();
             }
           }
         );
+      }
+      if (conversationId && targetIds.length > 0) {
+        try {
+          const callRecord = await callsApi.initiate({
+            conversationId,
+            callerId: currentUser.id,
+            calleeIds: targetIds,
+            type: callType === 'video' ? 'VIDEO' : 'VOICE',
+          });
+          activeCallLogIdRef.current = callRecord.id;
+        } catch (error) {
+          console.warn('⚠️ CallProvider: failed to record call initiation', error);
+        }
       }
       console.log('✅ CallProvider: Call offer sent', isGroup ? '(GROUP CALL - will broadcast to all participants)' : '(DIRECT CALL)');
     } catch (error: any) {
@@ -380,8 +411,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await webrtcService.createAnswer(callState.remoteId);
       pendingPeersRef.current.delete(callState.remoteId);
       clearPeerTimer(callState.remoteId);
+      const currentUser = authApi.getCurrentUser();
+      const activeCallId = activeCallLogIdRef.current;
+      if (activeCallId && currentUser?.id) {
+        try {
+          await callsApi.join(activeCallId, { userId: currentUser.id });
+        } catch (error) {
+          console.warn('⚠️ CallProvider: failed to record call join', error);
+        }
+      }
       if (callState.isGroup && callState.conversationId) {
-        const currentUser = authApi.getCurrentUser();
         if (currentUser?.id) {
           const conversation = await conversationsApi.getConversationById(callState.conversationId);
           const peers = (conversation.participantIds || []).filter(id => id !== currentUser.id && id !== callState.remoteId);
@@ -443,6 +482,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     });
 
     webrtcService.endCall();
+    const activeCallId = activeCallLogIdRef.current;
+    const currentUserId = authApi.getCurrentUser()?.id;
+    if (activeCallId && currentUserId) {
+      callsApi.end(activeCallId, { userId: currentUserId }).catch((error) => {
+        console.warn('⚠️ CallProvider: failed to record call end', error);
+      });
+    }
     setCallState({
       isActive: false,
       isCalling: false,
@@ -473,7 +519,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
       });
     });
-
+    const activeCallId = activeCallLogIdRef.current;
+    const currentUserId = authApi.getCurrentUser()?.id;
+    if (activeCallId && currentUserId) {
+      callsApi.missed(activeCallId, { userId: currentUserId }).catch((error) => {
+        console.warn('CallProvider: failed to record local rejected call', error);
+      });
+      activeCallLogIdRef.current = null;
+    }
     endCall();
   }, [callState.remoteId, callState.isGroup, callState.participantIds, endCall]);
 

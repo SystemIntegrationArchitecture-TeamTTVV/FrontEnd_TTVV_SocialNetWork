@@ -85,6 +85,11 @@ export interface ConversationVisibilityRequest {
   userId: string;
 }
 
+export interface ConversationActionRequest {
+  userId: string;
+  payload?: string;
+}
+
 export const conversationsApi = {
   /**
    * Get all conversations for a user
@@ -205,6 +210,47 @@ export const conversationsApi = {
     data: JoinRequestUpdateRequest
   ): Promise<Conversation> => {
     return httpClient.put<Conversation>(`/api/message/conversations/${conversationId}/join-requests`, data);
+  },
+
+  toggleMute: async (conversationId: string, data: ConversationActionRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/mute`, data);
+  },
+
+  togglePinConversation: async (conversationId: string, data: ConversationActionRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/pin`, data);
+  },
+
+  toggleBanMember: async (conversationId: string, data: ConversationActionRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/ban`, data);
+  },
+
+  updateNickname: async (conversationId: string, data: ConversationActionRequest): Promise<Conversation> => {
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/nickname`, data);
+  },
+
+  getInviteLink: async (conversationId: string, requesterId: string): Promise<string> => {
+    const qs = new URLSearchParams({ requesterId }).toString();
+    return httpClient.get<string>(`/api/message/conversations/${conversationId}/invite-link?${qs}`);
+  },
+
+  resetInviteLink: async (conversationId: string, requesterId: string): Promise<string> => {
+    const qs = new URLSearchParams({ requesterId }).toString();
+    return httpClient.post<string>(`/api/message/conversations/${conversationId}/invite-link/reset?${qs}`);
+  },
+
+  joinByInviteLink: async (token: string, requesterId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ token, requesterId }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/join-by-url?${qs}`);
+  },
+
+  toggleBlockConversation: async (conversationId: string, userId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/block?${qs}`);
+  },
+
+  updateConversationBackground: async (conversationId: string, backgroundUrl: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ backgroundUrl }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/background?${qs}`);
   },
 };
 

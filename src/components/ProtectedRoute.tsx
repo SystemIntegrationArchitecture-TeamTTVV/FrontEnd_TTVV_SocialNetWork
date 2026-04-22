@@ -49,7 +49,7 @@ export default function ProtectedRoute({
   }
 
   if (requireAuth && !isAuthenticated) {
-    return null;
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

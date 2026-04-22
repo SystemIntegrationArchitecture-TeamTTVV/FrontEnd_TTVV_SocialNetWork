@@ -1,179 +1,203 @@
-import { Link } from 'react-router-dom';
-import { Globe, Users, Lock, Eye, UserMinus, UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Globe, Users, Lock, Eye, UserMinus, UserPlus, Loader2, ArrowLeft, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
+import { usersApi } from '../../apis/users';
+import { useToast } from '../../contexts/useToast';
 
 export default function PrivacySettings() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { user: currentUser, refreshSessionUser } = useAuth();
+  const { showToast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
-    profileVisibility: 'friends',
-    friendRequests: 'everyone',
-    whoCanPost: 'friends',
-    whoCanSeePosts: 'friends',
-    whoCanSeeFriends: 'friends',
-    whoCanSeeEmail: 'friends',
-    blockUsers: false,
+    profileVisibility: 'PUBLIC' as string,
+    postVisibility: 'PUBLIC' as string,
+    showEmail: true,
+    showPhone: true,
   });
 
-  const handleChange = (key: string, value: string) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  // ── Load real data ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!currentUser?.id) { setLoading(false); return; }
+    usersApi.getUserById(currentUser.id)
+      .then(profile => {
+        setSettings({
+          profileVisibility: profile.profileVisibility || 'PUBLIC',
+          postVisibility: profile.postVisibility || 'PUBLIC',
+          showEmail: profile.showEmail !== false,
+          showPhone: profile.showPhone !== false,
+        });
+      })
+      .catch(err => console.error('Failed to load privacy settings', err))
+      .finally(() => setLoading(false));
+  }, [currentUser?.id]);
+
+  // ── Save real data ──────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!currentUser?.id) return;
+    setSaving(true);
+    try {
+      await usersApi.updateUserProfile(currentUser.id, {
+        profileVisibility: settings.profileVisibility as any,
+        postVisibility: settings.postVisibility as any,
+        showEmail: settings.showEmail,
+        showPhone: settings.showPhone,
+      });
+      await refreshSessionUser();
+      showToast(t('privacySettings.saveChanges') + ' ✓', 'success');
+    } catch (err) {
+      console.error('Save failed', err);
+      showToast(t('common.error'), 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const privacyOptions = [
-    { value: 'public', labelKey: 'privacySettings.visibilityPublic' as const, icon: Globe },
-    { value: 'friends', labelKey: 'privacySettings.visibilityFriends' as const, icon: Users },
-    { value: 'private', labelKey: 'privacySettings.visibilityOnlyMe' as const, icon: Lock },
+  const handleChange = (key: string, value: string | boolean) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const visibilityOptions = [
+    { value: 'PUBLIC', labelKey: 'privacySettings.visibilityPublic', icon: Globe, color: 'blue' },
+    { value: 'FRIENDS', labelKey: 'privacySettings.visibilityFriends', icon: Users, color: 'green' },
+    { value: 'PRIVATE', labelKey: 'privacySettings.visibilityOnlyMe', icon: Lock, color: 'orange' },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6 pb-20">
+    <div className="max-w-3xl mx-auto p-6 pb-20">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('privacySettings.pageTitle')}</h1>
-        <p className="text-base text-gray-600 mt-1">{t('privacySettings.pageSubtitle')}</p>
+        <button
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-3 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {t('settingsPage.title')}
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">{t('privacySettings.pageTitle')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('privacySettings.pageSubtitle')}</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Profile Visibility */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-              <Eye className="w-6 h-6 text-blue-600" />
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+              <Eye className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{t('privacySettings.sectionProfileTitle')}</h2>
-              <p className="text-base text-gray-600">{t('privacySettings.sectionProfileDesc')}</p>
+              <h2 className="text-base font-bold text-gray-900">{t('privacySettings.sectionProfileTitle')}</h2>
+              <p className="text-xs text-gray-500">{t('privacySettings.sectionProfileDesc')}</p>
             </div>
           </div>
-          <div className="flex gap-3">
-            {privacyOptions.map((option) => {
-              const Icon = option.icon;
+          <div className="flex gap-2">
+            {visibilityOptions.map(opt => {
+              const Icon = opt.icon;
+              const active = settings.profileVisibility === opt.value;
               return (
                 <button
-                  type="button"
-                  key={option.value}
-                  onClick={() => handleChange('profileVisibility', option.value)}
-                  className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                    settings.profileVisibility === option.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                  key={opt.value}
+                  onClick={() => handleChange('profileVisibility', opt.value)}
+                  className={`flex-1 p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                    active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className={`w-6 h-6 mb-2 ${settings.profileVisibility === option.value ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <p className={`font-semibold text-base ${settings.profileVisibility === option.value ? 'text-blue-600' : 'text-gray-700'}`}>
-                    {t(option.labelKey)}
-                  </p>
+                  <Icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <span className={`text-xs font-medium ${active ? 'text-blue-600' : 'text-gray-600'}`}>
+                    {t(opt.labelKey)}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Friend Requests */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-              <UserPlus className="w-6 h-6 text-green-600" />
+        {/* Post Visibility */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+              <Eye className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{t('privacySettings.sectionFriendRequestsTitle')}</h2>
-              <p className="text-base text-gray-600">{t('privacySettings.sectionFriendRequestsDesc')}</p>
+              <h2 className="text-base font-bold text-gray-900">{t('privacySettings.sectionWhoCanSeePostsTitle')}</h2>
+              <p className="text-xs text-gray-500">{t('privacySettings.sectionWhoCanSeePostsDesc')}</p>
             </div>
           </div>
-          <select
-            value={settings.friendRequests}
-            onChange={(e) => handleChange('friendRequests', e.target.value)}
-            className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base font-medium"
-          >
-            <option value="everyone">{t('privacySettings.friendFromEveryone')}</option>
-            <option value="friendsOfFriends">{t('privacySettings.friendFromFriendsOfFriends')}</option>
-            <option value="nobody">{t('privacySettings.friendFromNobody')}</option>
-          </select>
+          <div className="flex gap-2">
+            {visibilityOptions.map(opt => {
+              const Icon = opt.icon;
+              const active = settings.postVisibility === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => handleChange('postVisibility', opt.value)}
+                  className={`flex-1 p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                    active ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${active ? 'text-purple-600' : 'text-gray-400'}`} />
+                  <span className={`text-xs font-medium ${active ? 'text-purple-600' : 'text-gray-600'}`}>
+                    {t(opt.labelKey)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Who Can Post */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{t('privacySettings.sectionWhoCanPostTitle')}</h2>
-                <p className="text-base text-gray-600">{t('privacySettings.sectionWhoCanPostDesc')}</p>
-              </div>
+        {/* Show Email / Phone toggles */}
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-green-600" />
             </div>
+            <h2 className="text-base font-bold text-gray-900">{t('privacySettings.contactInfoTitle')}</h2>
           </div>
-          <select
-            value={settings.whoCanPost}
-            onChange={(e) => handleChange('whoCanPost', e.target.value)}
-            className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base font-medium"
-          >
-            <option value="everyone">{t('privacySettings.whoCanPostEveryone')}</option>
-            <option value="friends">{t('privacySettings.whoCanPostFriends')}</option>
-            <option value="onlyMe">{t('privacySettings.whoCanPostOnlyMe')}</option>
-          </select>
-        </div>
 
-        {/* Who Can See Posts */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
-              <Eye className="w-6 h-6 text-orange-600" />
+          {([
+            { key: 'showEmail', labelKey: 'profilePage.edit.showEmail' },
+            { key: 'showPhone', labelKey: 'profilePage.edit.showPhone' },
+          ] as const).map(toggle => (
+            <div key={toggle.key} className="flex items-center justify-between py-2">
+              <span className="text-sm text-gray-700 font-medium">{t(toggle.labelKey)}</span>
+              <button
+                onClick={() => handleChange(toggle.key, !(settings as any)[toggle.key])}
+                className={`w-12 h-7 rounded-full transition-colors relative ${(settings as any)[toggle.key] ? 'bg-blue-500' : 'bg-gray-300'}`}
+              >
+                <span className={`block w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${(settings as any)[toggle.key] ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{t('privacySettings.sectionWhoCanSeePostsTitle')}</h2>
-              <p className="text-base text-gray-600">{t('privacySettings.sectionWhoCanSeePostsDesc')}</p>
-            </div>
-          </div>
-          <select
-            value={settings.whoCanSeePosts}
-            onChange={(e) => handleChange('whoCanSeePosts', e.target.value)}
-            className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base font-medium"
-          >
-            <option value="public">{t('privacySettings.seePostsPublic')}</option>
-            <option value="friends">{t('privacySettings.seePostsFriends')}</option>
-            <option value="onlyMe">{t('privacySettings.seePostsOnlyMe')}</option>
-          </select>
-        </div>
-
-        {/* Who Can See Friends */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
-              <Users className="w-6 h-6 text-pink-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{t('privacySettings.sectionWhoCanSeeFriendsTitle')}</h2>
-              <p className="text-base text-gray-600">{t('privacySettings.sectionWhoCanSeeFriendsDesc')}</p>
-            </div>
-          </div>
-          <select
-            value={settings.whoCanSeeFriends}
-            onChange={(e) => handleChange('whoCanSeeFriends', e.target.value)}
-            className="w-full h-14 px-5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base font-medium"
-          >
-            <option value="public">{t('privacySettings.seeFriendsPublic')}</option>
-            <option value="friends">{t('privacySettings.seeFriendsFriends')}</option>
-            <option value="onlyMe">{t('privacySettings.seeFriendsOnlyMe')}</option>
-          </select>
+          ))}
         </div>
 
         {/* Block Users */}
-        <div className="bg-white rounded-2xl shadow-sm p-8">
+        <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                <UserMinus className="w-6 h-6 text-red-600" />
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <UserMinus className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{t('privacySettings.sectionBlockTitle')}</h2>
-                <p className="text-base text-gray-600">{t('privacySettings.sectionBlockDesc')}</p>
+                <h2 className="text-base font-bold text-gray-900">{t('privacySettings.sectionBlockTitle')}</h2>
+                <p className="text-xs text-gray-500">{t('privacySettings.sectionBlockDesc')}</p>
               </div>
             </div>
             <Link
               to="/settings/blocked"
-              className="px-6 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-base transition-colors"
+              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm transition-colors"
             >
               {t('privacySettings.manage')}
             </Link>
@@ -181,8 +205,13 @@ export default function PrivacySettings() {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end">
-          <button type="button" className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg transition-colors shadow-lg">
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center gap-2"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             {t('privacySettings.saveChanges')}
           </button>
         </div>

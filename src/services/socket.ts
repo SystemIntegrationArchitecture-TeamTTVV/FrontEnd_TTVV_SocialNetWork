@@ -1,6 +1,7 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { authApi } from "../apis/auth";
+import { API_CONFIG } from "../apis/config";
 import { SocketDestinations } from "./socketEvents";
 
 export interface SocketEvent {
