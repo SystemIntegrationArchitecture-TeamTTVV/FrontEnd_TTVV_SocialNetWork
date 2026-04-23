@@ -37,26 +37,17 @@ export default function FindPeople() {
     console.log('🔔 Subscribing to friend request notifications for user:', currentUser.id);
 
     const unsubscribe = subscribe('NOTIFICATION', (event) => {
-      console.log('📨 Received socket notification:', event);
-      
       if (event.type === 'NOTIFICATION' && event.data) {
         const notification = event.data;
         
-        if (notification.type === 'FRIEND_REQUEST') {
-          console.log('👋 Friend request notification received:', notification);
-          // Reload friend requests when new request arrives (someone sent you a request)
-          loadFriendRequests();
-        }
-        
-        if (notification.type === 'FRIEND_ACCEPTED') {
-          console.log('✅ Friend request accepted notification received:', notification);
-          // Reload friend requests when your request is accepted
-          loadFriendRequests();
-        }
-        
-        if (notification.type === 'FRIEND_REJECTED') {
-          console.log('❌ Friend request rejected notification received:', notification);
-          // Reload friend requests when your request is rejected
+        if (
+          notification.type === 'FRIEND_REQUEST' ||
+          notification.type === 'FRIEND_ACCEPTED' ||
+          notification.type === 'FRIEND_REJECTED' ||
+          notification.type === 'FRIEND_CANCELLED' ||
+          notification.type === 'FRIEND_REMOVED'
+        ) {
+          // Reload friend requests on any friend-related socket event
           loadFriendRequests();
         }
       }
@@ -229,6 +220,26 @@ export default function FindPeople() {
       await loadFriendRequests();
     } catch (error: any) {
       alert(error.message || t('findPeople.errorRejectRequest'));
+    }
+  };
+
+  const handleCancelFriendRequest = async (requestId: string) => {
+    try {
+      await friendRequestsApi.cancelFriendRequest(requestId);
+      await loadFriendRequests();
+    } catch (error: any) {
+      alert(error.message || t('findPeople.errorCancelRequest'));
+    }
+  };
+
+  const handleUnfriend = async (userId: string) => {
+    if (!currentUser?.id) return;
+    if (!confirm(t('friendToast.confirmUnfriend', { name: userId }))) return;
+    try {
+      await friendRequestsApi.unfriend(currentUser.id, userId);
+      await loadFriendRequests();
+    } catch (error: any) {
+      alert(error.message || t('findPeople.errorUnfriend'));
     }
   };
 
@@ -427,13 +438,13 @@ export default function FindPeople() {
                           {t('findPeople.addFriendButton')}
                         </button>
                       )}
-                      {status === 'sent' && (
+                      {status === 'sent' && requestId && (
                         <button
-                          disabled
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium"
+                          onClick={() => handleCancelFriendRequest(requestId)}
+                          className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-sm font-medium"
                         >
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="hidden sm:inline">{t('findPeople.pendingLabel')}</span>
+                          <X className="w-4 h-4" />
+                          <span className="hidden sm:inline">{t('friendToast.cancelButton')}</span>
                         </button>
                       )}
                       {status === 'received' && requestId && (
@@ -454,13 +465,13 @@ export default function FindPeople() {
                           </button>
                         </div>
                       )}
-                      {status === 'accepted' && (
+                      {status === 'accepted' && user.id && (
                         <button
-                          disabled
-                          className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg cursor-not-allowed text-sm font-medium"
+                          onClick={() => handleUnfriend(user.id!)}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
                         >
-                          <Check className="w-4 h-4" />
-                          <span className="hidden sm:inline">{t('findPeople.friendsLabel')}</span>
+                          <X className="w-4 h-4" />
+                          <span className="hidden sm:inline">{t('friendToast.unfriendButton')}</span>
                         </button>
                       )}
                     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star, Loader } from 'lucide-react';
+import { Search as SearchIcon, Plus, Home, Car, Building, Shirt, Smartphone, Sofa, Gamepad2, Star, Loader, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
@@ -160,7 +160,7 @@ export default function Marketplace() {
                       }}
                     />
                   ) : (
-                    <span className="text-gray-400">📦</span>
+                    <Package className="w-12 h-12 text-gray-300" />
                   )}
                 </div>
                 <div className="p-4">

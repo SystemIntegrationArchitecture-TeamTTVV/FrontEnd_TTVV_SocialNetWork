@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, MapPin, Star, MessageCircle, Loader, ArrowLeft } from 'lucide-react';
+import { Heart, MapPin, Star, MessageCircle, Loader, ArrowLeft, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { productApi,type ProductDTO } from '../../apis/products';
@@ -120,7 +120,7 @@ export default function ProductDetail() {
                   }}
                 />
               ) : (
-                <span className="text-9xl">📦</span>
+                <Package className="w-24 h-24 text-gray-300" />
               )}
             </div>
             {product.images && product.images.length > 1 && (

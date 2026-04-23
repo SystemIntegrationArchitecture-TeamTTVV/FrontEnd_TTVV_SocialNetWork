@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
+  UsersRound,
   FileText,
   MessageSquare,
   AlertTriangle,
@@ -70,7 +71,7 @@ export default function AdminLayout() {
     },
     {
       id: "groups",
-      icon: Users,
+      icon: UsersRound,
       labelKey: "adminPanel.layout.navGroups",
       path: "/admin/groups",
       badge: null,

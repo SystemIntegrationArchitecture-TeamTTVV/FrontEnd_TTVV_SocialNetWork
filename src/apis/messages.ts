@@ -130,6 +130,17 @@ export const messagesApi = {
     return httpClient.get<Message[]>(`/api/message/messages/conversation/${conversationId}/pinned?${qs}`);
   },
 
+  /**
+   * Search messages in a conversation (server-side)
+   */
+  searchMessages: async (conversationId: string, keyword: string, userId: string, senderId?: string): Promise<Message[]> => {
+    const qs = new URLSearchParams({ keyword, userId });
+    if (senderId) {
+      qs.set('senderId', senderId);
+    }
+    return httpClient.get<Message[]>(`/api/message/messages/conversation/${conversationId}/search?${qs.toString()}`);
+  },
+
   getMediaMessages: async (
     conversationId: string,
     userId: string,

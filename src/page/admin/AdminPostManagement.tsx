@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Filter, Eye, Trash2, X, AlertCircle } from 'lucide-react';
+import { Search, Filter, Eye, Trash2, X, AlertCircle, Heart, MessageSquare, Share2 } from 'lucide-react';
 import { postsApi, type PostData } from '../../apis/posts';
 import { getLocaleTag } from '../../i18n';
 
@@ -227,9 +227,9 @@ export default function AdminPostManagement() {
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex items-center gap-6 text-base text-gray-600">
-                  <span className="font-semibold">❤️ {post.likeCount || 0}</span>
-                  <span className="font-semibold">💬 {post.commentCount || 0}</span>
-                  <span className="font-semibold">📤 {post.shareCount || 0}</span>
+                  <span className="font-semibold inline-flex items-center gap-1"><Heart className="w-4 h-4 text-red-500" /> {post.likeCount || 0}</span>
+                  <span className="font-semibold inline-flex items-center gap-1"><MessageSquare className="w-4 h-4 text-blue-500" /> {post.commentCount || 0}</span>
+                  <span className="font-semibold inline-flex items-center gap-1"><Share2 className="w-4 h-4 text-green-500" /> {post.shareCount || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

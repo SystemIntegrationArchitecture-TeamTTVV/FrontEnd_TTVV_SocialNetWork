@@ -859,7 +859,9 @@
       "editDetails": "Edit details",
       "sendFriendRequestFailed": "Failed to send friend request",
       "acceptFriendRequestFailed": "Failed to accept friend request",
-      "rejectFriendRequestFailed": "Failed to reject friend request"
+      "rejectFriendRequestFailed": "Failed to reject friend request",
+      "cancelFriendRequestFailed": "Failed to cancel friend request",
+      "unfriendFailed": "Failed to unfriend"
     },
     "about": {
       "title": "About",
@@ -2103,5 +2105,16 @@
     },
     "music": { "title": "Music" },
     "events": { "title": "Events" }
+  },
+  "friendToast": {
+    "someone": "Someone",
+    "requestReceived": "{{name}} sent you a friend request",
+    "requestAccepted": "{{name}} accepted your friend request",
+    "requestRejected": "{{name}} rejected your friend request",
+    "requestCancelled": "{{name}} cancelled their friend request",
+    "friendRemoved": "{{name}} removed you from their friend list",
+    "cancelButton": "Cancel",
+    "unfriendButton": "Unfriend",
+    "confirmUnfriend": "Are you sure you want to unfriend {{name}}?"
   }
 }

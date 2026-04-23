@@ -18,6 +18,7 @@ export const SocketEventTypes = {
   MESSAGE_EDITED: "MESSAGE_EDITED",
   MESSAGE_PINNED: "MESSAGE_PINNED",
   MESSAGE_REACTED: "MESSAGE_REACTED",
+  MESSAGE_BLOCKED: "MESSAGE_BLOCKED",
 
   // ── Conversation Events ──
   CONVERSATION_CLEARED: "CONVERSATION_CLEARED",
@@ -41,6 +42,9 @@ export const SocketEventTypes = {
   // ── Poll Events ──
   POLL_CREATED: "POLL_CREATED",
   POLL_UPDATED: "POLL_UPDATED",
+
+  // ── Reminder Events ──
+  REMINDER_TRIGGERED: "REMINDER_TRIGGERED",
 
   // ── Presence Events ──
   USER_PRESENCE_CHANGED: "USER_PRESENCE_CHANGED",

@@ -13,7 +13,7 @@ export default function SharedMedia() {
     {
       id: 1,
       type: 'image',
-      thumbnail: '🖼️',
+
       name: 'photo-1.jpg',
       size: '2.5 MB',
       date: '2 ngày trước',
@@ -22,7 +22,7 @@ export default function SharedMedia() {
     {
       id: 2,
       type: 'image',
-      thumbnail: '📷',
+
       name: 'photo-2.jpg',
       size: '1.8 MB',
       date: '5 ngày trước',
@@ -31,7 +31,7 @@ export default function SharedMedia() {
     {
       id: 3,
       type: 'video',
-      thumbnail: '🎬',
+
       name: 'video-1.mp4',
       size: '15.2 MB',
       date: '1 tuần trước',
@@ -40,7 +40,7 @@ export default function SharedMedia() {
     {
       id: 4,
       type: 'file',
-      thumbnail: '📄',
+
       name: 'document.pdf',
       size: '3.4 MB',
       date: '2 tuần trước',
@@ -49,7 +49,7 @@ export default function SharedMedia() {
     {
       id: 5,
       type: 'image',
-      thumbnail: '🖼️',
+
       name: 'photo-3.jpg',
       size: '4.1 MB',
       date: '3 tuần trước',
@@ -149,7 +149,7 @@ export default function SharedMedia() {
                 className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all group cursor-pointer"
               >
                 <div className="aspect-square bg-gray-100 flex items-center justify-center relative">
-                  <span className="text-6xl">{item.thumbnail}</span>
+                  <TypeIcon className="w-14 h-14 text-gray-400" />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                     <button className="opacity-0 group-hover:opacity-100 w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all">
                       <Download className="w-6 h-6 text-gray-900" />

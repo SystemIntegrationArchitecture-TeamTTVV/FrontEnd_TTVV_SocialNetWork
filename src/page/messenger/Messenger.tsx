@@ -1,17 +1,19 @@
 import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Grid3X3, BarChart3, MapPin, Contact, Music, Gift } from 'lucide-react';
+import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Grid3X3, BarChart3, MapPin, Contact, Music, Gift, EyeOff, Shield, Unlock } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
+import { REACTIONS } from '../../components/chat/ReactionIcons';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
 import { useSocket } from '../../contexts/SocketContext';
 import EmojiPicker from '../../components/chat/EmojiPicker';
-import { conversationsApi } from '../../apis/conversations';
+import { conversationsApi, type Conversation } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
 import { aiApi, type AIChatRequest, type AIDailySummaryResponse } from '../../apis/ai';
+import { usersApi, type PresenceStatus } from '../../apis/users';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
@@ -125,7 +127,13 @@ export default function Messenger() {
   const [forwardNote, setForwardNote] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ReturnType<typeof formatMessageForDisplay>[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showPinnedPanel, setShowPinnedPanel] = useState(false);
+  const [pinnedMessages, setPinnedMessages] = useState<ReturnType<typeof formatMessageForDisplay>[]>([]);
+  const [pinnedLoading, setPinnedLoading] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
@@ -140,6 +148,21 @@ export default function Messenger() {
   const [filePreview, setFilePreview] = useState<{ file: File; preview: string } | null>(null);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+
+  // ── Hidden Conversations State ──────────────────────────────────────────
+  const [showHiddenPanel, setShowHiddenPanel] = useState(false);
+  const [hiddenConversations, setHiddenConversations] = useState<Conversation[]>([]);
+  const [hiddenLoading, setHiddenLoading] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [pendingUnlockConv, setPendingUnlockConv] = useState<Conversation | null>(null);
+  const [unlockPin, setUnlockPin] = useState('');
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [showHideInput, setShowHideInput] = useState<string | null>(null); // conversationId being hidden
+  const [hidePin, setHidePin] = useState('');
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
+  const [hideLoading, setHideLoading] = useState(false);
+  const [hideError, setHideError] = useState<string | null>(null);
   const [groupMemberInput, setGroupMemberInput] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
   const [groupAvatarDraft, setGroupAvatarDraft] = useState('');
@@ -172,12 +195,65 @@ export default function Messenger() {
   const [aiConversationId, setAiConversationId] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Load conversations on mount
+  // ── Presence State ──────────────────────────────────────────────────────
+  const [presenceByUserId, setPresenceByUserId] = useState<Record<string, PresenceStatus>>({});
+
   useEffect(() => {
     if (user?.id) {
       loadConversations();
     }
   }, [user?.id, loadConversations]);
+
+  // Close context menu on global click
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
+  // ── Fetch presence for all conversation participants & subscribe realtime ──
+  useEffect(() => {
+    if (!user?.id || conversations.length === 0) return;
+
+    // Collect all unique other-participant IDs from 1-on-1 and group conversations
+    const participantIdSet = new Set<string>();
+    for (const conv of conversations) {
+      if (conv.participantIds) {
+        for (const pid of conv.participantIds) {
+          if (pid !== user.id) participantIdSet.add(pid);
+        }
+      }
+    }
+    const participantIds = Array.from(participantIdSet);
+    if (participantIds.length === 0) return;
+
+    // Fetch initial presence
+    usersApi.getPresenceByUserIds(participantIds)
+      .then((result) => setPresenceByUserId(result || {}))
+      .catch(() => { /* keep empty state */ });
+  }, [user?.id, conversations]);
+
+  // Subscribe to realtime presence changes
+  useEffect(() => {
+    if (!isConnected || !user?.id) return;
+
+    const unsubPresence = subscribe('USER_PRESENCE_CHANGED', (event) => {
+      const payload = event.data as { userId?: string; username?: string; online?: boolean; lastSeenAt?: string };
+      if (!payload?.userId || payload.userId === user.id) return;
+
+      setPresenceByUserId((prev) => ({
+        ...prev,
+        [payload.userId!]: {
+          userId: payload.userId!,
+          username: payload.username,
+          online: !!payload.online,
+          lastSeenAt: payload.lastSeenAt || null,
+        },
+      }));
+    });
+
+    return unsubPresence;
+  }, [isConnected, user?.id, subscribe]);
 
   // If user opens `/messenger` without selecting a conversation (activeChat === null),
   // auto-open the incoming conversation so messages are visible immediately.
@@ -335,6 +411,7 @@ export default function Messenger() {
     };
 
     const regularConversations = conversations
+      .filter((conv) => !conv.hiddenForCurrentUser)
       .map((conv) => {
         if (!user?.id) return null;
 
@@ -351,12 +428,25 @@ export default function Messenger() {
           .slice(0, 2)
           .toUpperCase();
 
+        // Determine online status from presence data
+        let online = false;
+        if (conv.isGroup) {
+          // Group: online if ANY participant (besides current user) is online
+          online = conv.participantIds.some(
+            (pid) => pid !== user.id && presenceByUserId[pid]?.online
+          );
+        } else {
+          // DM: online if the other participant is online
+          const otherParticipantId = conv.participantIds.find((id) => id !== user.id);
+          online = !!(otherParticipantId && presenceByUserId[otherParticipantId]?.online);
+        }
+
         return {
           id: conv.id,
           name,
           avatar: initials,
           color: hashColor(conv.id),
-          online: false,
+          online,
           lastMessage: conv.lastMessagePreview || '',
           time: formatTime(conv.lastMessageAt),
           unread: 0,
@@ -366,7 +456,7 @@ export default function Messenger() {
       .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c));
 
     return [aiConversation, ...regularConversations];
-  }, [conversations, user?.id, aiMessages, t, i18n.language]);
+  }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId]);
 
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat)
@@ -648,7 +738,7 @@ export default function Messenger() {
     };
   };
 
-  const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
   const isDailySummaryPrompt = (input: string) => {
     const normalized = input.toLowerCase().trim();
     return (
@@ -724,7 +814,7 @@ export default function Messenger() {
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() && !replyTo && !filePreview) return;
+    if (!message.trim() && !replyTo && !filePreview && uploadedFiles.length === 0) return;
     if (!activeChat || !user?.id) return;
 
     if (activeChat !== AI_CONVERSATION_ID && isTypingRef.current) {
@@ -796,21 +886,40 @@ export default function Messenger() {
     try {
       let attachments: MessageAttachment[] = [];
       
-      // If there's a file preview (image), upload and send with caption
-      if (filePreview) {
+      // Upload all queued files and group into a single message
+      if (uploadedFiles.length > 0) {
+        setUploadingFiles(true);
+        try {
+          const uploadResults = await uploadApi.uploadFiles(uploadedFiles);
+          attachments = uploadResults.map((result, i) => {
+            const file = uploadedFiles[i];
+            let type: string = 'file';
+            if (file.type.startsWith('image/')) type = 'image';
+            else if (file.type.startsWith('video/')) type = 'video';
+            else if (file.type.startsWith('audio/')) type = 'audio';
+            return {
+              type,
+              url: result.url,
+              fileName: result.fileName,
+              fileSize: result.fileSize,
+            };
+          });
+        } finally {
+          setUploadingFiles(false);
+        }
+        // Clear uploaded files state
+        setUploadedFiles([]);
+      } else if (filePreview) {
+        // Legacy single-image preview path (fallback)
         const uploadResult = await uploadApi.uploadFile(filePreview.file);
-        
         attachments = [{
           type: 'image',
           url: uploadResult.url,
           fileName: uploadResult.fileName,
           fileSize: uploadResult.fileSize,
         }];
-        
-        // Clear preview
         URL.revokeObjectURL(filePreview.preview);
         setFilePreview(null);
-        setUploadedFiles([]);
       }
 
       // Send message (can have empty content if attachments exist)
@@ -1294,8 +1403,11 @@ export default function Messenger() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setUploadedFiles([...uploadedFiles, ...files]);
+    if (files.length === 0) return;
+    setUploadedFiles((prev) => [...prev, ...files]);
     setShowAttachmentMenu(false);
+    // Reset input so the same file(s) can be re-selected
+    e.target.value = '';
   };
 
   const handleVoiceRecord = async () => {
@@ -1394,9 +1506,27 @@ export default function Messenger() {
     voiceTranscriptRef.current = '';
   };
 
-  const filteredMessages = searchQuery
-    ? messages.filter(m => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    : messages;
+  // Server-side search with debounce
+  useEffect(() => {
+    if (!searchQuery.trim() || !activeChat || !user?.id) {
+      setSearchResults(null);
+      return;
+    }
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await messagesApi.searchMessages(activeChat, searchQuery.trim(), user.id);
+        setSearchResults(results.map(formatMessageForDisplay));
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeChat, user?.id, formatMessageForDisplay]);
+
+  const filteredMessages = searchResults !== null ? searchResults : messages;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1448,6 +1578,22 @@ export default function Messenger() {
                 >
                   <Users className="w-5 h-5 text-gray-700" />
                 </button>
+                <button
+                  onClick={async () => {
+                    setShowHiddenPanel(true);
+                    if (!user?.id) return;
+                    setHiddenLoading(true);
+                    try {
+                      const data = await conversationsApi.getHiddenConversationsByUserId(user.id);
+                      setHiddenConversations(Array.isArray(data) ? data : []);
+                    } catch { setHiddenConversations([]); }
+                    finally { setHiddenLoading(false); }
+                  }}
+                  className="w-10 h-10 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200/60 flex items-center justify-center transition-colors relative group"
+                  title="Chat ẩn"
+                >
+                  <EyeOff className="w-5 h-5 text-amber-600" />
+                </button>
                 <Link
                   to="/messenger/settings"
                   className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
@@ -1477,6 +1623,8 @@ export default function Messenger() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
+                value={sidebarSearch}
+                onChange={(e) => setSidebarSearch(e.target.value)}
                 placeholder={t('messenger.searchMessagesPlaceholder')}
                 className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-200"
               />
@@ -1486,13 +1634,23 @@ export default function Messenger() {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {loading && formattedConversations.length === 0 && (
+           {loading && formattedConversations.length === 0 && (
             <div className="p-4 text-center text-gray-500">{t('messenger.loadingConversations')}</div>
           )}
-          {formattedConversations.map((conv) => (
+          {(sidebarSearch
+            ? formattedConversations.filter(c => c.name.toLowerCase().includes(sidebarSearch.toLowerCase()))
+            : formattedConversations
+          ).map((conv) => (
             <div
               key={conv.id}
-              onClick={() => setActiveChat(conv.id)}
+              onClick={() => {
+                if (showHideInput === conv.id) return;
+                setActiveChat(conv.id);
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, convId: conv.id });
+              }}
               className={`cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
                 activeChat === conv.id 
                   ? 'bg-blue-50 dark:bg-blue-500/15' 
@@ -1500,7 +1658,87 @@ export default function Messenger() {
               } ${leftSidebarCollapsed ? 'p-2 mx-2 my-0.5 flex items-center justify-center' : 'px-3 py-2.5 mx-1 my-0.5 flex items-center gap-3'}`}
               title={leftSidebarCollapsed ? conv.name : ''}
             >
-              {leftSidebarCollapsed ? (
+              {showHideInput === conv.id ? (
+                <div className="w-full flex flex-col gap-2 p-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+                      <EyeOff className="w-3.5 h-3.5 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1">Ẩn "{conv.name}"</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="password"
+                      maxLength={6}
+                      autoFocus
+                      value={hidePin}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => { setHidePin(e.target.value.replace(/\D/g, '')); setHideError(null); }}
+                      placeholder="Mã PIN"
+                      className="w-full h-8 px-2.5 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none dark:text-white transition-all font-mono tracking-widest text-center"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && hidePin.length >= 4) {
+                          e.preventDefault();
+                          // trigger hide
+                          (async () => {
+                            if (!user?.id) return;
+                            setHideLoading(true);
+                            setHideError(null);
+                            try {
+                              await conversationsApi.hideConversation(conv.id, { userId: user.id, pin: hidePin });
+                              setShowHideInput(null);
+                              setHidePin('');
+                              loadConversations();
+                              if (activeChat === conv.id) setActiveChat(null);
+                              notify.success('Đã ẩn hội thoại');
+                            } catch (err: any) {
+                              setHideError(err?.message || 'Lỗi');
+                            } finally {
+                              setHideLoading(false);
+                            }
+                          })();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!user?.id) return;
+                        setHideLoading(true);
+                        setHideError(null);
+                        try {
+                          await conversationsApi.hideConversation(conv.id, { userId: user.id, pin: hidePin });
+                          setShowHideInput(null);
+                          setHidePin('');
+                          loadConversations();
+                          if (activeChat === conv.id) setActiveChat(null);
+                          notify.success('Đã ẩn hội thoại');
+                        } catch (err: any) {
+                          setHideError(err?.message || 'Lỗi');
+                        } finally {
+                          setHideLoading(false);
+                        }
+                      }}
+                      disabled={hidePin.length < 4 || hideLoading}
+                      className="h-8 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors flex items-center justify-center shrink-0"
+                    >
+                      {hideLoading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Ẩn'}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowHideInput(null);
+                        setHidePin('');
+                        setHideError(null);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg shrink-0 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {hideError && <p className="text-[10px] text-red-500 text-center font-medium">{hideError}</p>}
+                </div>
+              ) : leftSidebarCollapsed ? (
                 <div className="relative shrink-0">
                   {conv.id === AI_CONVERSATION_ID ? (
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -1575,6 +1813,194 @@ export default function Messenger() {
         </div>
       </div>
 
+      {/* ── Context Menu ────────────────────────────────────────────────────── */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 w-48 bg-white dark:bg-[#22263a] rounded-xl shadow-xl border border-gray-100 dark:border-white/5 py-1 animate-in fade-in zoom-in-95 duration-150"
+          style={{ top: Math.min(contextMenu.y, window.innerHeight - 150), left: Math.min(contextMenu.x, window.innerWidth - 200) }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              setShowHideInput(contextMenu.convId);
+              setHidePin('');
+              setHideError(null);
+              if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
+              setContextMenu(null);
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 transition-colors"
+          >
+            <EyeOff className="w-4 h-4 text-amber-500" />
+            Ẩn hội thoại
+          </button>
+        </div>
+      )}
+
+      {/* ── Hidden Conversations Panel ────────────────────────────────────── */}
+      {showHiddenPanel && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowHiddenPanel(false); setShowHideInput(null); setHidePin(''); }} />
+          {/* Panel */}
+          <div className="relative w-full max-w-md mx-4 bg-white dark:bg-[#1a1d28] rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                  <EyeOff className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Chat ẩn</h2>
+                  <p className="text-xs text-gray-500">{hiddenConversations.length} hội thoại đang ẩn</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowHiddenPanel(false); setShowHideInput(null); setHidePin(''); }} className="w-9 h-9 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            {/* Panel Body */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              {hiddenLoading ? (
+                <div className="p-8 text-center text-gray-500">Đang tải...</div>
+              ) : hiddenConversations.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-3">
+                    <Shield className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 text-sm">Không có hội thoại nào đang ẩn</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-white/5">
+                  {hiddenConversations.map((conv) => {
+                    const otherIdx = conv.participantIds?.findIndex((id) => id !== user?.id) ?? 0;
+                    const name = conv.isGroup
+                      ? conv.groupName || 'Group Chat'
+                      : conv.participantNames?.[otherIdx] || 'Chat';
+                    const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+                    return (
+                      <div
+                        key={conv.id}
+                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                        onClick={() => {
+                          if (conv.hiddenRequiresPin) {
+                            setPendingUnlockConv(conv);
+                            setUnlockPin('');
+                            setUnlockError(null);
+                            setShowUnlockModal(true);
+                          }
+                        }}
+                      >
+                        <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ backgroundColor: hashColor(conv.id) }}>
+                          {conv.isGroup ? <Users className="w-5 h-5 text-white" /> : initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
+                          <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Cần PIN để mở
+                          </p>
+                        </div>
+                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                            <Unlock className="w-4 h-4 text-amber-600" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Unlock PIN Modal ──────────────────────────────────────────────── */}
+      {showUnlockModal && pendingUnlockConv && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowUnlockModal(false); setPendingUnlockConv(null); setUnlockPin(''); setUnlockError(null); }} />
+          <div className="relative w-full max-w-sm mx-4 bg-white dark:bg-[#1a1d28] rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Mở khóa hội thoại</h3>
+              <p className="text-sm text-gray-500 mb-5">Nhập PIN để xem hội thoại này</p>
+              <input
+                type="password"
+                maxLength={6}
+                value={unlockPin}
+                onChange={(e) => { setUnlockPin(e.target.value.replace(/\D/g, '')); setUnlockError(null); }}
+                placeholder="Nhập PIN (4-6 số)"
+                className="w-full h-12 px-4 rounded-xl bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-amber-400 dark:text-white transition-all"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && unlockPin.length >= 4) {
+                    e.preventDefault();
+                    (async () => {
+                      if (!user?.id || !pendingUnlockConv) return;
+                      setUnlockLoading(true);
+                      setUnlockError(null);
+                      try {
+                        await conversationsApi.unhideConversation(pendingUnlockConv.id, { userId: user.id, pin: unlockPin });
+                        setShowUnlockModal(false);
+                        setShowHiddenPanel(false);
+                        setPendingUnlockConv(null);
+                        setUnlockPin('');
+                        loadConversations();
+                        setActiveChat(pendingUnlockConv.id);
+                        notify.success('Đã mở khóa hội thoại');
+                      } catch (err: any) {
+                        setUnlockError(err?.message || 'PIN không đúng');
+                      } finally {
+                        setUnlockLoading(false);
+                      }
+                    })();
+                  }
+                }}
+              />
+              {unlockError && <p className="text-sm text-red-500 mt-2">{unlockError}</p>}
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => { setShowUnlockModal(false); setPendingUnlockConv(null); setUnlockPin(''); setUnlockError(null); }}
+                  className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  disabled={unlockPin.length < 4 || unlockLoading}
+                  onClick={async () => {
+                    if (!user?.id || !pendingUnlockConv) return;
+                    setUnlockLoading(true);
+                    setUnlockError(null);
+                    try {
+                      await conversationsApi.unhideConversation(pendingUnlockConv.id, { userId: user.id, pin: unlockPin });
+                      setShowUnlockModal(false);
+                      setShowHiddenPanel(false);
+                      setPendingUnlockConv(null);
+                      setUnlockPin('');
+                      loadConversations();
+                      setActiveChat(pendingUnlockConv.id);
+                      notify.success('Đã mở khóa hội thoại');
+                    } catch (err: any) {
+                      setUnlockError(err?.message || 'PIN không đúng');
+                    } finally {
+                      setUnlockLoading(false);
+                    }
+                  }}
+                  className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {unlockLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <><Unlock className="w-4 h-4" /> Mở khóa</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-white min-w-0">
         {/* Chat Header */}
@@ -1615,6 +2041,26 @@ export default function Messenger() {
                 title={t('messenger.header.searchIconTitle')}
               >
                 <SearchIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={async () => {
+                  const next = !showPinnedPanel;
+                  setShowPinnedPanel(next);
+                  if (next && activeChat && user?.id) {
+                    setPinnedLoading(true);
+                    try {
+                      const data = await messagesApi.getPinnedMessages(activeChat, user.id);
+                      setPinnedMessages(data.map(formatMessageForDisplay));
+                    } catch { setPinnedMessages([]); }
+                    finally { setPinnedLoading(false); }
+                  }
+                }}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                  showPinnedPanel ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+                title="Tin nhắn đã ghim"
+              >
+                <Pin className="w-5 h-5" />
               </button>
               <button 
                 onClick={() => {
@@ -1695,11 +2141,53 @@ export default function Messenger() {
                 onClick={() => {
                   setShowSearch(false);
                   setSearchQuery('');
+                  setSearchResults(null);
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
               >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
+            </div>
+            {searchLoading && <p className="text-xs text-gray-400 mt-2 pl-1">Đang tìm...</p>}
+            {searchResults !== null && !searchLoading && (
+              <p className="text-xs text-gray-400 mt-2 pl-1">Tìm thấy {searchResults.length} kết quả</p>
+            )}
+          </div>
+        )}
+
+        {/* Pinned Messages Panel */}
+        {activeConversation && showPinnedPanel && (
+          <div className="border-b border-gray-100 bg-white">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pin className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-semibold text-gray-800">Tin nhắn đã ghim</span>
+                <span className="text-xs text-gray-400">({pinnedMessages.length})</span>
+              </div>
+              <button onClick={() => setShowPinnedPanel(false)} className="w-7 h-7 rounded-md hover:bg-gray-100 flex items-center justify-center">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            <div className="max-h-48 overflow-y-auto px-4 pb-3 space-y-2">
+              {pinnedLoading ? (
+                <p className="text-xs text-gray-400 py-2">Đang tải...</p>
+              ) : pinnedMessages.length === 0 ? (
+                <p className="text-xs text-gray-400 py-2">Chưa có tin nhắn nào được ghim</p>
+              ) : (
+                pinnedMessages.map((msg) => (
+                  <div key={msg.id} className="flex items-start gap-2 p-2 rounded-lg bg-blue-50/60 hover:bg-blue-50 transition-colors cursor-pointer text-left" onClick={() => {
+                    const el = document.getElementById(`msg-${msg.id}`);
+                    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('ring-2', 'ring-blue-400'); setTimeout(() => el.classList.remove('ring-2', 'ring-blue-400'), 2000); }
+                  }}>
+                    <Pin className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-gray-700">{msg.sender}</p>
+                      <p className="text-xs text-gray-600 line-clamp-2">{msg.content || '📎 Tệp đính kèm'}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{msg.time}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -1712,8 +2200,9 @@ export default function Messenger() {
               const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
               return (
                 <div
+                id={`msg-${msg.id}`}
                 key={msg.id}
-                className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''}`}
+                className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''} transition-all duration-300`}
               >
                 {!msg.isMe && (
                   <div
@@ -1754,59 +2243,91 @@ export default function Messenger() {
                   )}
 
                   {/* Attachments */}
-                  {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mb-1 space-y-1">
-                      {msg.attachments.map((attachment, idx) => (
-                        <div key={idx}>
-                          {attachment.type === 'image' && (
-                            <div className="max-w-[240px] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                              <img 
-                                src={attachment.url} 
-                                alt={attachment.fileName || t('messenger.attachment.imageAlt')}
-                                className="w-full h-auto"
-                                onClick={() => window.open(attachment.url, '_blank')}
-                              />
-                            </div>
-                          )}
-                          {attachment.type === 'video' && (
-                            <div className="max-w-[240px] rounded-2xl overflow-hidden">
-                              <video 
-                                src={attachment.url} 
-                                controls
-                                className="w-full h-auto"
-                              />
-                            </div>
-                          )}
-                          {attachment.type === 'audio' && (
-                            <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-2xl max-w-[240px]">
-                              <Mic className="w-4 h-4 text-blue-500 shrink-0" />
-                              <audio src={attachment.url} controls className="flex-1 h-8" />
-                            </div>
-                          )}
-                          {attachment.type === 'file' && (
-                            <a
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-2xl max-w-[240px] hover:bg-gray-100 transition-colors"
-                            >
-                              <FileText className="w-5 h-5 text-gray-500 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-800 truncate">
-                                  {attachment.fileName || t('messenger.attachment.fileAlt')}
-                                </p>
-                                {attachment.fileSize && (
-                                  <p className="text-[11px] text-gray-400">
-                                    {(attachment.fileSize / 1024).toFixed(1)} KB
-                                  </p>
+                  {msg.attachments && msg.attachments.length > 0 && (() => {
+                    const images = msg.attachments!.filter(a => a.type === 'image');
+                    const others = msg.attachments!.filter(a => a.type !== 'image');
+                    return (
+                      <div className="mb-1 space-y-1">
+                        {/* Image grid — groups multiple images together */}
+                        {images.length === 1 && (
+                          <div className="max-w-[240px] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+                            <img
+                              src={images[0].url}
+                              alt={images[0].fileName || t('messenger.attachment.imageAlt')}
+                              className="w-full h-auto"
+                              onClick={() => window.open(images[0].url, '_blank')}
+                            />
+                          </div>
+                        )}
+                        {images.length >= 2 && (
+                          <div className={`grid gap-0.5 rounded-2xl overflow-hidden max-w-[280px] ${
+                            images.length === 2 ? 'grid-cols-2' :
+                            images.length === 3 ? 'grid-cols-2' :
+                            'grid-cols-2'
+                          }`}>
+                            {images.slice(0, 4).map((img, idx) => (
+                              <div
+                                key={idx}
+                                className={`relative cursor-pointer hover:opacity-90 transition-opacity ${
+                                  images.length === 3 && idx === 0 ? 'row-span-2' : ''
+                                }`}
+                                onClick={() => window.open(img.url, '_blank')}
+                              >
+                                <img
+                                  src={img.url}
+                                  alt={img.fileName || ''}
+                                  className={`w-full object-cover ${
+                                    images.length === 3 && idx === 0 ? 'h-full' : 'h-[120px]'
+                                  }`}
+                                />
+                                {idx === 3 && images.length > 4 && (
+                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                    <span className="text-white text-xl font-bold">+{images.length - 4}</span>
+                                  </div>
                                 )}
                               </div>
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            ))}
+                          </div>
+                        )}
+                        {/* Non-image attachments */}
+                        {others.map((attachment, idx) => (
+                          <div key={`other-${idx}`}>
+                            {attachment.type === 'video' && (
+                              <div className="max-w-[240px] rounded-2xl overflow-hidden">
+                                <video src={attachment.url} controls className="w-full h-auto" />
+                              </div>
+                            )}
+                            {attachment.type === 'audio' && (
+                              <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-2xl max-w-[240px]">
+                                <Mic className="w-4 h-4 text-blue-500 shrink-0" />
+                                <audio src={attachment.url} controls className="flex-1 h-8" />
+                              </div>
+                            )}
+                            {attachment.type === 'file' && (
+                              <a
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-2xl max-w-[240px] hover:bg-gray-100 transition-colors"
+                              >
+                                <FileText className="w-5 h-5 text-gray-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-800 truncate">
+                                    {attachment.fileName || t('messenger.attachment.fileAlt')}
+                                  </p>
+                                  {attachment.fileSize && (
+                                    <p className="text-[11px] text-gray-400">
+                                      {(attachment.fileSize / 1024).toFixed(1)} KB
+                                    </p>
+                                  )}
+                                </div>
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {msg.image ? (
                     <div className="max-w-[240px] rounded-2xl mb-1 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
@@ -1821,7 +2342,7 @@ export default function Messenger() {
                           ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
                           : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
                       }`}
-                      onDoubleClick={() => handleReaction(msg.id, '❤️')}
+                      onDoubleClick={() => handleReaction(msg.id, 'LOVE')}
                     >
                       <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
                     </div>
@@ -1969,20 +2490,21 @@ export default function Messenger() {
                         id={`reaction-picker-${msg.id}`}
                         className="hidden absolute bottom-full mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 gap-1 z-20"
                       >
-                        {quickReactions.map((emoji) => (
+                        {REACTIONS.map((r) => (
                           <button
-                            key={emoji}
+                            key={r.key}
                             onClick={() => {
-                              handleReaction(msg.id, emoji);
+                              handleReaction(msg.id, r.key);
                               const picker = document.getElementById(`reaction-picker-${msg.id}`);
                               if (picker) {
                                 picker.classList.add('hidden');
                                 picker.classList.remove('flex');
                               }
                             }}
-                            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-lg transition-colors"
+                            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                            title={r.label}
                           >
-                            {emoji}
+                            <span className="w-5 h-5 inline-block">{r.svg}</span>
                           </button>
                         ))}
                       </div>
@@ -2134,23 +2656,54 @@ export default function Messenger() {
             </div>
           )}
 
-          {/* Uploaded Files Preview */}
+          {/* Uploaded Files Preview — grouped multi-file */}
           {uploadedFiles.length > 0 && (
-            <div className="mb-2 md:mb-3 flex gap-2 overflow-x-auto pb-2">
-              {uploadedFiles.map((file, idx) => (
-                <div key={idx} className="relative shrink-0">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg bg-gray-100 flex items-center justify-center">
-                    <ImageIcon className="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
+            <div className="mb-2 md:mb-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-500">
+                  {uploadedFiles.length} {uploadedFiles.length === 1 ? 'tệp' : 'tệp'} đã chọn
+                </span>
+                <button
+                  onClick={() => setUploadedFiles([])}
+                  className="text-xs text-red-500 hover:text-red-700 font-medium"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {uploadedFiles.map((file, idx) => (
+                  <div key={idx} className="relative shrink-0 group/file">
+                    {file.type.startsWith('image/') ? (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-cover border border-gray-200"
+                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg bg-gray-100 flex flex-col items-center justify-center border border-gray-200">
+                        {file.type.startsWith('video/') ? (
+                          <Video className="w-5 h-5 text-green-500" />
+                        ) : file.type.startsWith('audio/') ? (
+                          <Music className="w-5 h-5 text-pink-500" />
+                        ) : (
+                          <FileText className="w-5 h-5 text-purple-500" />
+                        )}
+                        <span className="text-[9px] text-gray-400 mt-0.5">
+                          {file.name.split('.').pop()?.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors opacity-0 group-hover/file:opacity-100"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate w-16 md:w-20 text-center">{file.name}</p>
                   </div>
-                  <button
-                    onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== idx))}
-                    className="absolute -top-1 -right-1 md:-top-2 md:-right-2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-                  >
-                    <X className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                  </button>
-                  <p className="text-xs text-gray-600 mt-1 truncate w-16 md:w-20">{file.name}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 

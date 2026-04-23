@@ -3,17 +3,18 @@ import { httpClient } from './http';
 export interface Reminder {
   id: string;
   conversationId: string;
-  userId: string;
-  title: string;
+  creatorId: string;
+  content: string;
   remindAt: string;
   isTriggered?: boolean;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateReminderRequest {
   conversationId: string;
-  userId: string;
-  title: string;
+  creatorId: string;
+  content: string;
   remindAt: string;
 }
 

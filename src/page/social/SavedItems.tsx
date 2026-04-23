@@ -26,7 +26,6 @@ export default function SavedItems() {
         color: '#1877F2',
       },
       savedAt: t('saved.items.1.savedAt'),
-      image: '🖥️',
     },
     {
       id: 2,
@@ -44,7 +43,7 @@ export default function SavedItems() {
       id: 3,
       type: 'video',
       title: t('saved.items.3.title'),
-      thumbnail: '🎬',
+
       author: {
         name: t('saved.items.3.author'),
         avatar: demoAuthorInitials(t('saved.items.3.author')),
@@ -56,7 +55,7 @@ export default function SavedItems() {
       id: 4,
       type: 'image',
       title: t('saved.items.4.title'),
-      image: '🏞️',
+
       author: {
         name: t('saved.items.4.author'),
         avatar: demoAuthorInitials(t('saved.items.4.author')),
@@ -153,9 +152,9 @@ export default function SavedItems() {
                 {/* Thumbnail/Icon */}
                 <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
                   {item.image ? (
-                    <span className="text-4xl">{item.image}</span>
+                    <TypeIcon className="w-10 h-10 text-blue-500" />
                   ) : item.thumbnail ? (
-                    <span className="text-4xl">{item.thumbnail}</span>
+                    <TypeIcon className="w-10 h-10 text-red-500" />
                   ) : (
                     <TypeIcon className="w-10 h-10 text-gray-400" />
                   )}

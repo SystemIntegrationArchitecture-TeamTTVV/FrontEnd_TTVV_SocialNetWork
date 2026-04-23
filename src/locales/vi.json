@@ -859,7 +859,9 @@
       "editDetails": "Chỉnh sửa chi tiết",
       "sendFriendRequestFailed": "Không thể gửi lời mời kết bạn",
       "acceptFriendRequestFailed": "Không thể chấp nhận lời mời kết bạn",
-      "rejectFriendRequestFailed": "Không thể từ chối lời mời kết bạn"
+      "rejectFriendRequestFailed": "Không thể từ chối lời mời kết bạn",
+      "cancelFriendRequestFailed": "Không thể thu hồi lời mời kết bạn",
+      "unfriendFailed": "Không thể xóa bạn"
     },
     "about": {
       "title": "Giới thiệu",
@@ -2103,5 +2105,16 @@
     },
     "music": { "title": "Nhạc" },
     "events": { "title": "Sự kiện" }
+  },
+  "friendToast": {
+    "someone": "Ai đó",
+    "requestReceived": "{{name}} đã gửi cho bạn lời mời kết bạn",
+    "requestAccepted": "{{name}} đã chấp nhận lời mời kết bạn của bạn",
+    "requestRejected": "{{name}} đã từ chối lời mời kết bạn của bạn",
+    "requestCancelled": "{{name}} đã thu hồi lời mời kết bạn",
+    "friendRemoved": "{{name}} đã xóa bạn khỏi danh sách bạn bè",
+    "cancelButton": "Thu hồi",
+    "unfriendButton": "Xóa bạn",
+    "confirmUnfriend": "Bạn có chắc muốn xóa {{name}} khỏi danh sách bạn bè?"
   }
 }

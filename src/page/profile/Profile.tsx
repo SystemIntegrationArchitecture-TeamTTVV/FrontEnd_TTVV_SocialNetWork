@@ -118,7 +118,9 @@ export default function Profile() {
         if (
           notification.type === "FRIEND_REQUEST" ||
           notification.type === "FRIEND_ACCEPTED" ||
-          notification.type === "FRIEND_REJECTED"
+          notification.type === "FRIEND_REJECTED" ||
+          notification.type === "FRIEND_CANCELLED" ||
+          notification.type === "FRIEND_REMOVED"
         ) {
           // Reload friend requests when notification arrives
           if (profileUser?.id) {
@@ -239,6 +241,40 @@ export default function Profile() {
         error instanceof Error
           ? error.message
           : t("profilePage.actions.rejectFriendRequestFailed");
+      alert(message);
+    } finally {
+      setLoadingFriendRequest(false);
+    }
+  };
+
+  const handleCancelFriendRequest = async (requestId: string) => {
+    setLoadingFriendRequest(true);
+    try {
+      await friendRequestsApi.cancelFriendRequest(requestId);
+      await loadFriendRequests();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("profilePage.actions.cancelFriendRequestFailed");
+      alert(message);
+    } finally {
+      setLoadingFriendRequest(false);
+    }
+  };
+
+  const handleUnfriend = async (userId: string) => {
+    if (!currentUser?.id) return;
+    if (!confirm(t("friendToast.confirmUnfriend", { name: displayUser?.fullName || '' }))) return;
+    setLoadingFriendRequest(true);
+    try {
+      await friendRequestsApi.unfriend(currentUser.id, userId);
+      await loadFriendRequests();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("profilePage.actions.unfriendFailed");
       alert(message);
     } finally {
       setLoadingFriendRequest(false);
@@ -484,12 +520,18 @@ export default function Profile() {
                     </button>
                   )}
 
-                  {status === "sent" && (
+                  {status === "sent" && requestId && (
                     <button
-                      disabled
-                      className="h-10 px-4 bg-gray-200 text-gray-600 font-medium rounded-lg cursor-not-allowed flex items-center gap-2 text-sm"
+                      onClick={() => handleCancelFriendRequest(requestId)}
+                      disabled={loadingFriendRequest}
+                      className="h-10 px-4 bg-orange-100 text-orange-700 font-medium rounded-lg hover:bg-orange-200 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span>{t("profilePage.actions.pending")}</span>
+                      {loadingFriendRequest ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      <span>{t("friendToast.cancelButton")}</span>
                     </button>
                   )}
 
@@ -514,13 +556,18 @@ export default function Profile() {
                     </div>
                   )}
 
-                  {status === "accepted" && (
+                  {status === "accepted" && safeId && (
                     <button
-                      disabled
-                      className="h-10 px-4 bg-green-100 text-green-700 font-medium rounded-lg cursor-not-allowed flex items-center gap-2 text-sm"
+                      onClick={() => handleUnfriend(safeId)}
+                      disabled={loadingFriendRequest}
+                      className="h-10 px-4 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Check className="w-4 h-4" />
-                      <span>{t("profilePage.actions.friends")}</span>
+                      {loadingFriendRequest ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      <span>{t("friendToast.unfriendButton")}</span>
                     </button>
                   )}
                 </div>

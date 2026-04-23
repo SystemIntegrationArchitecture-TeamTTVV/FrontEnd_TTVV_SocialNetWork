@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Globe, Users, Lock, Eye, UserMinus, UserPlus, Loader2, ArrowLeft, Check } from 'lucide-react';
+import { Globe, Users, Lock, Eye, UserMinus, UserPlus, Loader2, ArrowLeft, Check, MessageCircle, Phone, UsersRound } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +19,9 @@ export default function PrivacySettings() {
     postVisibility: 'PUBLIC' as string,
     showEmail: true,
     showPhone: true,
+    allowMessageFrom: 'EVERYONE' as string,
+    allowCallFrom: 'EVERYONE' as string,
+    allowGroupInviteFrom: 'EVERYONE' as string,
   });
 
   // ── Load real data ──────────────────────────────────────────────
@@ -31,6 +34,9 @@ export default function PrivacySettings() {
           postVisibility: profile.postVisibility || 'PUBLIC',
           showEmail: profile.showEmail !== false,
           showPhone: profile.showPhone !== false,
+          allowMessageFrom: profile.allowMessageFrom || 'EVERYONE',
+          allowCallFrom: profile.allowCallFrom || 'EVERYONE',
+          allowGroupInviteFrom: profile.allowGroupInviteFrom || 'EVERYONE',
         });
       })
       .catch(err => console.error('Failed to load privacy settings', err))
@@ -47,6 +53,9 @@ export default function PrivacySettings() {
         postVisibility: settings.postVisibility as any,
         showEmail: settings.showEmail,
         showPhone: settings.showPhone,
+        allowMessageFrom: settings.allowMessageFrom as any,
+        allowCallFrom: settings.allowCallFrom as any,
+        allowGroupInviteFrom: settings.allowGroupInviteFrom as any,
       });
       await refreshSessionUser();
       showToast(t('privacySettings.saveChanges') + ' ✓', 'success');
@@ -181,6 +190,97 @@ export default function PrivacySettings() {
               </button>
             </div>
           ))}
+        </div>
+
+        {/* ── Messaging & Call Privacy ──────────────────────────── */}
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-5">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Tin nhắn & Cuộc gọi</h2>
+              <p className="text-xs text-gray-500">Kiểm soát ai có thể liên hệ với bạn</p>
+            </div>
+          </div>
+
+          {/* Allow Message From */}
+          <div className="border border-gray-100 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageCircle className="w-4 h-4 text-indigo-500" />
+              <span className="text-sm font-semibold text-gray-800">Ai có thể nhắn tin cho bạn?</span>
+            </div>
+            <div className="flex gap-2">
+              {([{ value: 'EVERYONE', label: 'Mọi người', icon: Globe, color: 'blue' }, { value: 'FRIENDS_ONLY', label: 'Chỉ bạn bè', icon: Users, color: 'green' }] as const).map(opt => {
+                const Icon = opt.icon;
+                const active = settings.allowMessageFrom === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleChange('allowMessageFrom', opt.value)}
+                    className={`flex-1 p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                      active ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${active ? 'text-indigo-600' : 'text-gray-400'}`} />
+                    <span className={`text-xs font-medium ${active ? 'text-indigo-600' : 'text-gray-600'}`}>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Allow Call From */}
+          <div className="border border-gray-100 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Phone className="w-4 h-4 text-teal-500" />
+              <span className="text-sm font-semibold text-gray-800">Ai có thể gọi điện cho bạn?</span>
+            </div>
+            <div className="flex gap-2">
+              {([{ value: 'EVERYONE', label: 'Mọi người', icon: Globe, color: 'blue' }, { value: 'FRIENDS_ONLY', label: 'Chỉ bạn bè', icon: Users, color: 'green' }] as const).map(opt => {
+                const Icon = opt.icon;
+                const active = settings.allowCallFrom === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleChange('allowCallFrom', opt.value)}
+                    className={`flex-1 p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                      active ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${active ? 'text-teal-600' : 'text-gray-400'}`} />
+                    <span className={`text-xs font-medium ${active ? 'text-teal-600' : 'text-gray-600'}`}>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Allow Group Invite From */}
+          <div className="border border-gray-100 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <UsersRound className="w-4 h-4 text-amber-500" />
+              <span className="text-sm font-semibold text-gray-800">Ai có thể mời bạn vào nhóm?</span>
+            </div>
+            <div className="flex gap-2">
+              {([{ value: 'EVERYONE', label: 'Mọi người', icon: Globe, color: 'blue' }, { value: 'FRIENDS_ONLY', label: 'Chỉ bạn bè', icon: Users, color: 'green' }] as const).map(opt => {
+                const Icon = opt.icon;
+                const active = settings.allowGroupInviteFrom === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleChange('allowGroupInviteFrom', opt.value)}
+                    className={`flex-1 p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                      active ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${active ? 'text-amber-600' : 'text-gray-400'}`} />
+                    <span className={`text-xs font-medium ${active ? 'text-amber-600' : 'text-gray-600'}`}>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Block Users */}

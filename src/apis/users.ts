@@ -23,6 +23,10 @@ export interface User {
   postVisibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   showEmail?: boolean;
   showPhone?: boolean;
+  // Messaging & Call privacy
+  allowMessageFrom?: 'EVERYONE' | 'FRIENDS_ONLY';
+  allowCallFrom?: 'EVERYONE' | 'FRIENDS_ONLY';
+  allowGroupInviteFrom?: 'EVERYONE' | 'FRIENDS_ONLY';
   isActive?: boolean;
   isVerified?: boolean;
   role?: string;

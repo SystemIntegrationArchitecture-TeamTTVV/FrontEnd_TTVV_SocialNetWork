@@ -16,6 +16,7 @@ import {
   Laugh,
   Frown,
   Angry,
+  Film,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useRef, useState } from "react";
@@ -361,7 +362,7 @@ export default function WatchVideo() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="text-6xl">🎬</div>
+                      <Film className="w-16 h-16 text-gray-400" />
                     )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -544,7 +545,7 @@ export default function WatchVideo() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          "🎬"
+                          <Film className="w-20 h-20 text-gray-400" />
                         )}
                       </div>
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -879,7 +880,7 @@ export default function WatchVideo() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          "🎬"
+                          <Film className="w-20 h-20 text-gray-400" />
                         )}
                       </div>
                     </>

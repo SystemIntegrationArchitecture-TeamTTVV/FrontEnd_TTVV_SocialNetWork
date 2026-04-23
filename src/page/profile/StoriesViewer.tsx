@@ -3,6 +3,7 @@ import { X, ArrowLeft, ArrowRight, Pause, Play, Heart, MessageCircle, Share2, Se
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImagePlaceholderIcon, CameraIcon, SunIcon } from '../../common/icons/IconComponents';
+import { REACTIONS } from '../../components/chat/ReactionIcons';
 
 export default function StoriesViewer() {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ export default function StoriesViewer() {
 
   const currentStory = stories[currentStoryIndex];
   const currentMedia = currentStory?.media[currentMediaIndex];
-  const quickReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
 
   useEffect(() => {
     if (!isPlaying || !currentMedia) return;
@@ -312,17 +313,18 @@ export default function StoriesViewer() {
             className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20"
             onClick={(e) => e.stopPropagation()}
           >
-            {quickReactions.map((emoji) => (
+            {REACTIONS.map((r) => (
               <button
-                key={emoji}
+                key={r.key}
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('React:', emoji);
+                  console.log('React:', r.key);
                   setShowReactions(false);
                 }}
-                className="w-10 h-10 rounded-full hover:bg-white/20 flex items-center justify-center text-xl transition-colors"
+                className="w-10 h-10 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
+                title={r.label}
               >
-                {emoji}
+                <span className="w-6 h-6 inline-block">{r.svg}</span>
               </button>
             ))}
           </div>

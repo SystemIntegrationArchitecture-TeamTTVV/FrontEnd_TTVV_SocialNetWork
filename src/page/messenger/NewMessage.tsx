@@ -97,7 +97,7 @@ export default function NewMessage() {
           participantIds,
           ownerId: user.id,
           adminIds: [user.id],
-          groupName: groupName.trim() || t('messenger.newMessage.newGroupName'),
+          groupName: groupName.trim() || '', // Empty → BE auto-generates from member names
           isGroup: true,
         });
 

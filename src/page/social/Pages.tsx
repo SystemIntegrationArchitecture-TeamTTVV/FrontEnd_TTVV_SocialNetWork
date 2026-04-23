@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Users, Heart, MapPin, Globe } from 'lucide-react';
+import { Search, Plus, Users, Heart, MapPin, Globe, Monitor, Shirt, UtensilsCrossed, Music } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
 
@@ -15,7 +15,7 @@ export default function Pages() {
       category: t('pagesSocial.sample.techCategory'),
       avatar: 'TN',
       color: '#1877F2',
-      cover: '🖥️',
+      coverIcon: Monitor,
       likes: 125000,
       followers: 98000,
       location: t('pagesSocial.sample.hanoiLocation'),
@@ -28,7 +28,7 @@ export default function Pages() {
       category: t('pagesSocial.sample.fashionCategory'),
       avatar: 'FH',
       color: '#FF6B6B',
-      cover: '👗',
+      coverIcon: Shirt,
       likes: 89000,
       followers: 76000,
       location: t('pagesSocial.sample.hcmLocation'),
@@ -41,7 +41,7 @@ export default function Pages() {
       category: t('pagesSocial.sample.foodTravelCategory'),
       avatar: 'FT',
       color: '#42B72A',
-      cover: '🍜',
+      coverIcon: UtensilsCrossed,
       likes: 145000,
       followers: 120000,
       location: t('pagesSocial.sample.danangLocation'),
@@ -54,7 +54,7 @@ export default function Pages() {
       category: t('pagesSocial.sample.musicCategory'),
       avatar: 'ML',
       color: '#9B59B6',
-      cover: '🎵',
+      coverIcon: Music,
       likes: 67000,
       followers: 55000,
       location: t('pagesSocial.sample.hanoiLocation'),
@@ -125,8 +125,8 @@ export default function Pages() {
         {filteredPages.map((page) => (
           <div key={page.id} className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all">
             {/* Cover */}
-            <div className="h-48 bg-linear-to-r from-blue-500 to-purple-600 flex items-center justify-center text-8xl">
-              {page.cover}
+            <div className="h-48 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+              {(() => { const CoverIcon = page.coverIcon; return <CoverIcon className="w-20 h-20 text-white/80" />; })()}
             </div>
 
             {/* Content */}

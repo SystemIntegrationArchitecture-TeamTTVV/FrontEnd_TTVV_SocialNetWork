@@ -99,6 +99,13 @@ export const conversationsApi = {
   },
 
   /**
+   * Get hidden conversations for a user (requires PIN to unlock)
+   */
+  getHiddenConversationsByUserId: async (userId: string): Promise<Conversation[]> => {
+    return httpClient.get<Conversation[]>(`/api/message/conversations/user/${userId}/hidden`);
+  },
+
+  /**
    * Get or create a direct conversation between two users
    */
   getOrCreateDirectConversation: async (

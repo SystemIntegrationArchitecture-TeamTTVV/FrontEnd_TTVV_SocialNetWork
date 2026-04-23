@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, Heart, ThumbsUp, Users, Palmtree, Mountain, Building2, Umbrella } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function Search() {
@@ -28,10 +28,10 @@ export default function Search() {
   ];
 
   const photos = [
-    { id: 1, emoji: '🏖️', title: t('searchSocial.photos.1') },
-    { id: 2, emoji: '🏔️', title: t('searchSocial.photos.2') },
-    { id: 3, emoji: '🌴', title: t('searchSocial.photos.3') },
-    { id: 4, emoji: '🗼', title: t('searchSocial.photos.4') },
+    { id: 1, icon: Umbrella, color: '#3B82F6', title: t('searchSocial.photos.1') },
+    { id: 2, icon: Mountain, color: '#10B981', title: t('searchSocial.photos.2') },
+    { id: 3, icon: Palmtree, color: '#F59E0B', title: t('searchSocial.photos.3') },
+    { id: 4, icon: Building2, color: '#8B5CF6', title: t('searchSocial.photos.4') },
   ];
 
   const groups = [
@@ -131,14 +131,14 @@ export default function Search() {
                     <div className="flex items-center gap-2 text-sm text-[#65676B]">
                       {post.likes && (
                         <>
-                          <span>❤️ 👍 {post.likes} {t('searchSocial.likes')}</span>
+                          <span className="inline-flex items-center gap-1"><Heart className="w-3.5 h-3.5 text-red-500" /> <ThumbsUp className="w-3.5 h-3.5 text-blue-500" /> {post.likes} {t('searchSocial.likes')}</span>
                           <span>·</span>
                           <span>{post.comments} {t('searchSocial.comments')}</span>
                         </>
                       )}
                       {post.members && (
                         <>
-                          <span>👥 {post.members} {t('searchSocial.members')}</span>
+                          <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {post.members} {t('searchSocial.members')}</span>
                           <span>·</span>
                           <span>{post.posts} {t('searchSocial.postsThisWeek')}</span>
                         </>
@@ -160,7 +160,7 @@ export default function Search() {
               <div className="grid grid-cols-2 gap-3">
                 {photos.map((photo) => (
                   <div key={photo.id} className="bg-[#E4E6EB] rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
-                    <span className="text-5xl mb-2">{photo.emoji}</span>
+                    {(() => { const Icon = photo.icon; return <Icon className="w-12 h-12 mb-2" style={{ color: photo.color }} />; })()}
                     <p className="text-xs text-[#65676B]">{photo.title}</p>
                   </div>
                 ))}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Send,
   Settings,
@@ -13,6 +13,17 @@ import {
   AtSign,
   BarChart3,
   Check,
+  Smile,
+  Pencil,
+  Forward,
+  Star,
+  Copy,
+  Link2,
+  VolumeX,
+  Volume2,
+  Ban,
+  ShieldOff,
+  X,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { conversationsApi, type Conversation } from '../../apis/conversations';
@@ -21,6 +32,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { usersApi, type PresenceStatus, type User } from '../../apis/users';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
+import { REACTIONS, ReactionIcon } from '../../components/chat/ReactionIcons';
 
 export default function GroupChat() {
   const { id } = useParams();
@@ -74,6 +86,16 @@ export default function GroupChat() {
   const isTypingRef = useRef(false);
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const prevConnectedRef = useRef<boolean>(false);
+
+  // ── New feature state ──
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [forwardingMessageId, setForwardingMessageId] = useState<string | null>(null);
+  const [forwardTargetId, setForwardTargetId] = useState('');
+  const [forwardConversations, setForwardConversations] = useState<any[]>([]);
+  const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const conversationId = id || '';
 
@@ -606,7 +628,12 @@ export default function GroupChat() {
       }
     } catch (err: any) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setError(err?.message || 'Gui tin nhan that bai');
+      const msg = err?.message || '';
+      if (err?.status === 403 || msg.includes('friends') || msg.includes('FRIENDS_ONLY')) {
+        setError('Không thể gửi tin nhắn: người nhận chỉ chấp nhận tin nhắn từ bạn bè.');
+      } else {
+        setError(msg || 'Gửi tin nhắn thất bại');
+      }
     } finally {
       setSending(false);
     }
@@ -810,6 +837,148 @@ export default function GroupChat() {
     }
   };
 
+  // ── 1. Edit message ──
+  const startEdit = (msg: Message) => {
+    setEditingMessageId(msg.id);
+    setEditContent(msg.content || '');
+    setContextMenuMsgId(null);
+  };
+  const cancelEdit = () => { setEditingMessageId(null); setEditContent(''); };
+  const submitEdit = async () => {
+    if (!editingMessageId || !user?.id || !editContent.trim()) return;
+    try {
+      const updated = await messagesApi.updateMessage(editingMessageId, {
+        senderId: user.id,
+        content: editContent.trim(),
+        conversationId,
+      });
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      cancelEdit();
+    } catch (err: any) {
+      setError(err?.message || 'Sửa tin nhắn thất bại');
+    }
+  };
+
+  // ── 2. Forward message ──
+  const startForward = async (msgId: string) => {
+    setForwardingMessageId(msgId);
+    setContextMenuMsgId(null);
+    try {
+      const convs = await conversationsApi.getConversationsByUserId(user?.id || '');
+      setForwardConversations(convs.filter((c: any) => c.id !== conversationId));
+    } catch { /* ignore */ }
+  };
+  const submitForward = async () => {
+    if (!forwardingMessageId || !user?.id || !forwardTargetId) return;
+    try {
+      await messagesApi.forwardMessage(forwardingMessageId, {
+        requesterId: user.id,
+        targetConversationId: forwardTargetId,
+      });
+      setForwardingMessageId(null);
+      setForwardTargetId('');
+    } catch (err: any) {
+      setError(err?.message || 'Chuyển tiếp thất bại');
+    }
+  };
+
+  // ── 3. Reaction ──
+  const handleReaction = async (msgId: string, emoji: string) => {
+    try {
+      const updated = await messagesApi.toggleReaction(msgId, emoji);
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } catch (err: any) {
+      setError(err?.message || 'Reaction thất bại');
+    }
+    setContextMenuMsgId(null);
+  };
+
+  // ── 4. Star message ──
+  const handleToggleStar = async (msgId: string) => {
+    if (!user?.id) return;
+    try {
+      const updated = await messagesApi.toggleStar(msgId, user.id);
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } catch (err: any) {
+      setError(err?.message || 'Star thất bại');
+    }
+    setContextMenuMsgId(null);
+  };
+
+  // ── 5. Mark delivered ──
+  useEffect(() => {
+    if (!conversationId || !user?.id || !messages.length) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.senderId !== user.id) {
+      messagesApi.markDelivered(conversationId, {
+        userId: user.id,
+        lastDeliveredMessageId: lastMsg.id,
+      }).catch(() => undefined);
+    }
+  }, [conversationId, user?.id, messages.length]);
+
+  // ── 6. Toggle mute ──
+  const handleToggleMute = async () => {
+    if (!conversationId || !user?.id) return;
+    try {
+      const updated = await conversationsApi.toggleMute(conversationId, { requesterId: user.id });
+      setConversation(updated);
+      setIsMuted((prev) => !prev);
+    } catch (err: any) {
+      setError(err?.message || 'Tắt/bật thông báo thất bại');
+    }
+  };
+
+  // ── 7. Toggle block (DM only) ──
+  const handleToggleBlock = async () => {
+    if (!conversationId || !user?.id) return;
+    try {
+      const updated = await conversationsApi.toggleBlockConversation(conversationId, user.id);
+      setConversation(updated);
+    } catch (err: any) {
+      setError(err?.message || 'Chặn/bỏ chặn thất bại');
+    }
+  };
+
+  // ── 8. Toggle ban member (Group) ──
+  const handleToggleBan = async (targetUserId: string) => {
+    if (!conversationId || !user?.id) return;
+    try {
+      const updated = await conversationsApi.toggleBanMember(conversationId, {
+        requesterId: user.id,
+        targetUserId,
+      });
+      setConversation(updated);
+    } catch (err: any) {
+      setError(err?.message || 'Cấm/bỏ cấm thất bại');
+    }
+  };
+
+  // ── 9. Update nickname ──
+  const handleUpdateNickname = async (nickname: string) => {
+    if (!conversationId || !user?.id) return;
+    try {
+      const updated = await conversationsApi.updateNickname(conversationId, {
+        requesterId: user.id,
+        nickname,
+      });
+      setConversation(updated);
+    } catch (err: any) {
+      setError(err?.message || 'Đổi biệt danh thất bại');
+    }
+  };
+
+  // ── 10. Invite link ──
+  const handleGetInviteLink = async () => {
+    if (!conversationId || !user?.id) return;
+    try {
+      const link = await conversationsApi.getInviteLink(conversationId, user.id);
+      setInviteLink(link);
+      navigator.clipboard.writeText(link).catch(() => undefined);
+    } catch (err: any) {
+      setError(err?.message || 'Lấy link mời thất bại');
+    }
+  };
   const renderAttachments = (msg: Message) => {
     if (!msg.attachments || msg.attachments.length === 0) {
       return null;
@@ -979,9 +1148,14 @@ export default function GroupChat() {
                     {member.isOwner ? ' (owner)' : member.isAdmin ? ' (admin)' : ''}
                   </span>
                   {canManage && !member.isOwner && (
-                    <button onClick={() => removeMember(member.participantId)} className="text-red-600 hover:text-red-700">
-                      Xoa
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleToggleBan(member.participantId)} className="text-orange-600 hover:text-orange-700 inline-flex items-center gap-1" title="Cấm/Bỏ cấm">
+                        <Ban className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => removeMember(member.participantId)} className="text-red-600 hover:text-red-700">
+                        Xóa
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1012,6 +1186,53 @@ export default function GroupChat() {
               </button>
             )}
           </div>
+
+          {/* Mute / Block / Invite Link */}
+          <div className="border-t border-gray-200 pt-3 flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleToggleMute}
+              className={`h-9 px-3 rounded-lg text-sm inline-flex items-center gap-2 border ${
+                isMuted ? 'bg-yellow-50 border-yellow-300 text-yellow-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isMuted ? 'Đã tắt thông báo' : 'Tắt thông báo'}
+            </button>
+
+            {!conversation?.isGroup && (
+              <button
+                onClick={handleToggleBlock}
+                className={`h-9 px-3 rounded-lg text-sm inline-flex items-center gap-2 border ${
+                  conversation?.blockedByUserIds?.includes(user?.id || '') ? 'bg-red-50 border-red-300 text-red-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ShieldOff className="w-4 h-4" />
+                {conversation?.blockedByUserIds?.includes(user?.id || '') ? 'Bỏ chặn' : 'Chặn'}
+              </button>
+            )}
+
+            {conversation?.isGroup && (
+              <button
+                onClick={handleGetInviteLink}
+                className="h-9 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm inline-flex items-center gap-2"
+              >
+                <Link2 className="w-4 h-4" />
+                Lấy link mời
+              </button>
+            )}
+          </div>
+
+          {inviteLink && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 flex items-center gap-2">
+              <span className="text-sm text-blue-800 truncate flex-1">{inviteLink}</span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(inviteLink); }}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1099,35 +1320,109 @@ export default function GroupChat() {
               }
 
               return (
-                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div key={msg.id} className={`group flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[78%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                     {!isMe && <div className="text-xs text-gray-500 mb-1">{msg.senderName}</div>}
-                    <div className={`px-4 py-2 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'}`}>
-                      <div className="whitespace-pre-wrap wrap-break-word">{renderMessageContent(msg.content || '')}</div>
-                      {renderAttachments(msg)}
-                    </div>
+
+                    {/* Edit mode */}
+                    {editingMessageId === msg.id ? (
+                      <div className="w-full space-y-2">
+                        <input
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && submitEdit()}
+                          className="w-full h-10 px-3 rounded-lg border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={submitEdit} className="h-8 px-3 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700">Lưu</button>
+                          <button onClick={cancelEdit} className="h-8 px-3 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200">Hủy</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Message bubble + hover actions */}
+                        <div className="relative">
+                          <div className={`px-4 py-2 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'}`}>
+                            <div className="whitespace-pre-wrap wrap-break-word">{renderMessageContent(msg.content || '')}</div>
+                            {msg.isEdited && <span className="text-[10px] opacity-60 ml-1">(đã sửa)</span>}
+                            {renderAttachments(msg)}
+                          </div>
+
+                          {/* Hover action bar */}
+                          <div className={`absolute top-0 ${isMe ? 'right-full mr-1' : 'left-full ml-1'} hidden group-hover:flex items-center gap-0.5 bg-white border border-gray-200 rounded-lg shadow-sm px-1 py-0.5`}>
+                            <button onClick={() => setContextMenuMsgId(contextMenuMsgId === msg.id ? null : msg.id)} className="w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center" title="Thêm">
+                              <Smile className="w-3.5 h-3.5 text-gray-500" />
+                            </button>
+                            {isMe && canRecallByCreatedAt(msg.createdAt) && (
+                              <button onClick={() => startEdit(msg)} className="w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center" title="Sửa">
+                                <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                              </button>
+                            )}
+                            <button onClick={() => startForward(msg.id)} className="w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center" title="Chuyển tiếp">
+                              <Forward className="w-3.5 h-3.5 text-gray-500" />
+                            </button>
+                            <button onClick={() => handleToggleStar(msg.id)} className="w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center" title="Star">
+                              <Star className={`w-3.5 h-3.5 ${msg.starred ? 'text-yellow-500 fill-yellow-500' : 'text-gray-500'}`} />
+                            </button>
+                          </div>
+
+                          {/* Quick reaction popup */}
+                          {contextMenuMsgId === msg.id && (
+                            <div className={`absolute -top-12 ${isMe ? 'right-0' : 'left-0'} flex items-center gap-1 bg-white border border-gray-200 rounded-full shadow-lg px-2 py-1.5 z-10`}>
+                              {REACTIONS.map((r) => (
+                                <button
+                                  key={r.key}
+                                  onClick={() => handleReaction(msg.id, r.key)}
+                                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-transform hover:scale-125"
+                                  title={r.label}
+                                >
+                                  <span className="w-5 h-5 inline-block">{r.svg}</span>
+                                </button>
+                              ))}
+                              <button onClick={() => setContextMenuMsgId(null)} className="w-6 h-6 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                                <X className="w-3 h-3 text-gray-400" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Reaction display */}
+                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {Object.entries(msg.reactions).map(([key, count]) => (
+                              <button
+                                key={key}
+                                onClick={() => handleReaction(msg.id, key)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs border border-gray-200 transition-colors"
+                              >
+                                <ReactionIcon reactionKey={key} className="w-4 h-4 inline-block" />
+                                <span className="text-gray-600 font-medium">{count as number}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Action row */}
                     <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       <button onClick={() => togglePinMessage(msg.id)} className="hover:text-gray-600 inline-flex items-center gap-1">
                         <Pin className={`w-3 h-3 ${msg.pinned ? 'text-blue-500' : ''}`} />
-                        {msg.pinned ? 'Unpin' : 'Pin'}
+                        {msg.pinned ? 'Bỏ ghim' : 'Ghim'}
                       </button>
                       {canRecall && (
                         <button onClick={() => recallMessage(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
-                          Thu hoi
+                          Thu hồi
                         </button>
                       )}
-                      {isMe && !canRecall && (
-                        <span className="text-gray-300 inline-flex items-center gap-1" title="Chi thu hoi trong 2 phut dau">
-                          Het han thu hoi
-                        </span>
-                      )}
                       <button onClick={() => deleteMessageForMe(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
-                        Xoa phia toi
+                        Xóa phía tôi
                       </button>
                     </div>
                     {isMe && seenList.length > 0 && (
-                      <div className="text-[11px] text-emerald-600 mt-0.5">Seen by {seenList.slice(0, 3).join(', ')}</div>
+                      <div className="text-[11px] text-emerald-600 mt-0.5">Đã xem: {seenList.slice(0, 3).join(', ')}</div>
                     )}
                   </div>
                 </div>
@@ -1325,6 +1620,43 @@ export default function GroupChat() {
           )}
         </div>
       </div>
+
+      {/* Forward modal */}
+      {forwardingMessageId && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setForwardingMessageId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Chuyển tiếp tin nhắn</h3>
+              <button onClick={() => setForwardingMessageId(null)} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {forwardConversations.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-4">Không tìm thấy cuộc trò chuyện</p>
+              )}
+              {forwardConversations.map((conv: any) => (
+                <button
+                  key={conv.id}
+                  onClick={() => setForwardTargetId(conv.id)}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm ${
+                    forwardTargetId === conv.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  {conv.isGroup ? conv.groupName : conv.participantNames?.join(', ') || conv.id}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={submitForward}
+              disabled={!forwardTargetId}
+              className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm disabled:opacity-50"
+            >
+              Chuyển tiếp
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
