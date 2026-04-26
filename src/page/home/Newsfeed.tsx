@@ -11,6 +11,8 @@ import { commentsApi, type CommentData } from '../../apis/comments';
 import { HttpError } from '../../apis/http';
 import { useSocket } from '../../contexts/SocketContext';
 import { storiesApi } from '../../apis/storiesApi';
+import PostSkeleton from '../../components/common/PostSkeleton';
+import StorySkeleton from '../../components/common/StorySkeleton';
 import AddStoryCard from '../../components/story/AddStoryCard';
 import StoryAvatar from '../../components/story/StoryAvatar';
 import StoryViewer from '../../components/story/StoryViewer';
@@ -697,11 +699,7 @@ export default function Newsfeed() {
               onClick={() => setShowCreateStory(true)}
             />
           )}
-          {loadingStories && (
-            <div className="flex items-center justify-center w-full h-48 text-gray-500">
-              {t('newsfeed.loadingStories')}
-            </div>
-          )}
+          {loadingStories && <StorySkeleton />}
           {/* Friends Stories */}
           {storyGroups.map((group, index) => {
             const firstStory = group[0];
@@ -908,13 +906,7 @@ export default function Newsfeed() {
       <div className="space-y-4">
 
         {/* Loading State */}
-        {isLoadingPosts && (
-          <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-12 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none flex flex-col items-center justify-center">
-
-            <Loader2 className="w-7 h-7 text-blue-500 animate-spin mb-3" />
-            <p className="text-gray-400 text-[15px]">{t('newsfeed.loadingPosts')}</p>
-          </div>
-        )}
+        {isLoadingPosts && <PostSkeleton />}
 
         {/* Error State */}
         {error && !isLoadingPosts && (

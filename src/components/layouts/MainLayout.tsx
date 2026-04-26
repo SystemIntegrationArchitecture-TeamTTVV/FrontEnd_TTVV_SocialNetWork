@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar/Navbar';
 import LeftSidebar from '../sidebar/LeftSidebar';
 import RightSidebar from '../sidebar/RightSidebar';
@@ -76,7 +77,17 @@ export default function MainLayout() {
               ? 'w-full'
               : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'
           }>
-            <Outlet />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
         

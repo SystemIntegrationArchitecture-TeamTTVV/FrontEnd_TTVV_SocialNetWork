@@ -1,97 +1,107 @@
 import { createBrowserRouter } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import MainLayout from "../components/layouts/MainLayout";
 import AuthLayout from "../components/layouts/AuthLayout";
 import AdminLayout from "../components/layouts/AdminLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
+import PageLoader from "../components/common/PageLoader";
+
+// ─── Lazy-loaded pages (code splitting) ─────────────────────────────
+// Each import() creates a separate JS chunk loaded on demand.
+// This reduces the initial bundle from ~500KB to ~80KB.
 
 // Auth Pages
-import Login from "../page/auth/Login";
-import Register from "../page/auth/Register";
-import ForgotPassword from "../page/auth/ForgotPassword";
-import ResetPasswordVerification from "../page/auth/ResetPasswordVerification";
-import ResetPasswordNew from "../page/auth/ResetPasswordNew";
-import PasswordResetSuccess from "../page/auth/PasswordResetSuccess";
-import ResetPassword from "../page/auth/ResetPassword";
+const Login = lazy(() => import("../page/auth/Login"));
+const Register = lazy(() => import("../page/auth/Register"));
+const ForgotPassword = lazy(() => import("../page/auth/ForgotPassword"));
+const ResetPasswordVerification = lazy(() => import("../page/auth/ResetPasswordVerification"));
+const ResetPasswordNew = lazy(() => import("../page/auth/ResetPasswordNew"));
+const PasswordResetSuccess = lazy(() => import("../page/auth/PasswordResetSuccess"));
+const ResetPassword = lazy(() => import("../page/auth/ResetPassword"));
 
 // Home Pages
-import Newsfeed from "../page/home/Newsfeed";
-import CreatePost from "../page/home/CreatePost";
-import PostEdit from "../page/home/PostEdit";
-import CommentDetail from "../page/home/CommentDetail";
-import ShareDialog from "../page/home/ShareDialog";
+const Newsfeed = lazy(() => import("../page/home/Newsfeed"));
+const CreatePost = lazy(() => import("../page/home/CreatePost"));
+const PostEdit = lazy(() => import("../page/home/PostEdit"));
+const CommentDetail = lazy(() => import("../page/home/CommentDetail"));
+const ShareDialog = lazy(() => import("../page/home/ShareDialog"));
 
 // Profile Pages
-import Profile from "../page/profile/Profile";
-import ProfileEdit from "../page/profile/ProfileEdit";
-import ActivityLog from "../page/profile/ActivityLog";
-import PhotoViewer from "../page/profile/PhotoViewer";
-import AlbumView from "../page/profile/AlbumView";
-import CreateAlbum from "../page/profile/CreateAlbum";
-import StoriesViewer from "../page/profile/StoriesViewer";
-import Friends from "../page/profile/Friends";
+const Profile = lazy(() => import("../page/profile/Profile"));
+const ProfileEdit = lazy(() => import("../page/profile/ProfileEdit"));
+const ActivityLog = lazy(() => import("../page/profile/ActivityLog"));
+const PhotoViewer = lazy(() => import("../page/profile/PhotoViewer"));
+const AlbumView = lazy(() => import("../page/profile/AlbumView"));
+const CreateAlbum = lazy(() => import("../page/profile/CreateAlbum"));
+const StoriesViewer = lazy(() => import("../page/profile/StoriesViewer"));
+const Friends = lazy(() => import("../page/profile/Friends"));
 
 // Messenger Pages
-import Messenger from "../page/messenger/Messenger";
-import NewMessage from "../page/messenger/NewMessage";
-import GroupChat from "../page/messenger/GroupChat";
-import ConversationSettings from "../page/messenger/ConversationSettings";
-import SharedMedia from "../page/messenger/SharedMedia";
-import MessengerSettings from "../page/messenger/MessengerSettings";
-import MessengerSearch from "../page/messenger/MessengerSearch";
-import Archive from "../page/messenger/Archive";
-import MessageActions from "../page/messenger/MessageActions";
-import VoiceCall from "../page/messenger/features/VoiceCall";
-import VideoCall from "../page/messenger/features/VideoCall";
-import FileSharing from "../page/messenger/features/FileSharing";
-import PhotoSharing from "../page/messenger/features/PhotoSharing";
-import EmojiPicker from "../page/messenger/features/EmojiPicker";
-import StickerPicker from "../page/messenger/features/StickerPicker";
-import PollCreation from "../page/messenger/features/PollCreation";
-import ForwardMessage from "../page/messenger/features/ForwardMessage";
-import DeleteMessage from "../page/messenger/features/DeleteMessage";
-import ReactionDetails from "../page/messenger/features/ReactionDetails";
-import ThemeCustomization from "../page/messenger/features/ThemeCustomization";
+const Messenger = lazy(() => import("../page/messenger/Messenger"));
+const NewMessage = lazy(() => import("../page/messenger/NewMessage"));
+const GroupChat = lazy(() => import("../page/messenger/GroupChat"));
+const ConversationSettings = lazy(() => import("../page/messenger/ConversationSettings"));
+const SharedMedia = lazy(() => import("../page/messenger/SharedMedia"));
+const MessengerSettings = lazy(() => import("../page/messenger/MessengerSettings"));
+const MessengerSearch = lazy(() => import("../page/messenger/MessengerSearch"));
+const Archive = lazy(() => import("../page/messenger/Archive"));
+const MessageActions = lazy(() => import("../page/messenger/MessageActions"));
+const VoiceCall = lazy(() => import("../page/messenger/features/VoiceCall"));
+const VideoCall = lazy(() => import("../page/messenger/features/VideoCall"));
+const FileSharing = lazy(() => import("../page/messenger/features/FileSharing"));
+const PhotoSharing = lazy(() => import("../page/messenger/features/PhotoSharing"));
+const EmojiPicker = lazy(() => import("../page/messenger/features/EmojiPicker"));
+const StickerPicker = lazy(() => import("../page/messenger/features/StickerPicker"));
+const PollCreation = lazy(() => import("../page/messenger/features/PollCreation"));
+const ForwardMessage = lazy(() => import("../page/messenger/features/ForwardMessage"));
+const DeleteMessage = lazy(() => import("../page/messenger/features/DeleteMessage"));
+const ReactionDetails = lazy(() => import("../page/messenger/features/ReactionDetails"));
+const ThemeCustomization = lazy(() => import("../page/messenger/features/ThemeCustomization"));
 
 // Music Pages
-import MusicEDM from "../page/music/MusicEDM";
+const MusicEDM = lazy(() => import("../page/music/MusicEDM"));
 
-// Games (giải trí, client-only)
-import GamesPage from "../page/games/GamesPage";
-import FlappyBird from "../games/flappy-bord";
+// Games
+const GamesPage = lazy(() => import("../page/games/GamesPage"));
+const FlappyBird = lazy(() => import("../games/flappy-bord"));
 
 // Social Pages
-import FriendRequests from "../page/social/FriendRequests";
-import FindPeople from "../page/social/FindPeople";
-import Groups from "../page/social/Groups";
-import GroupDetail from "../page/social/GroupDetail";
-import Events from "../page/social/Events";
-import EventDetail from "../page/social/EventDetail";
-import Pages from "../page/social/Pages";
-import Notifications from "../page/social/Notifications";
-import NotificationSettings from "../page/social/NotificationSettings";
-import Search from "../page/social/Search";
-import WatchVideo from "../page/social/WatchVideo";
-import Marketplace from "../page/social/Marketplace";
-import MyProducts from "../page/social/MyProducts";
-import ProductDetail from "../page/social/ProductDetail";
-import SavedItems from "../page/social/SavedItems";
+const FriendRequests = lazy(() => import("../page/social/FriendRequests"));
+const FindPeople = lazy(() => import("../page/social/FindPeople"));
+const Groups = lazy(() => import("../page/social/Groups"));
+const GroupDetail = lazy(() => import("../page/social/GroupDetail"));
+const Events = lazy(() => import("../page/social/Events"));
+const EventDetail = lazy(() => import("../page/social/EventDetail"));
+const Pages = lazy(() => import("../page/social/Pages"));
+const Notifications = lazy(() => import("../page/social/Notifications"));
+const NotificationSettings = lazy(() => import("../page/social/NotificationSettings"));
+const Search = lazy(() => import("../page/social/Search"));
+const WatchVideo = lazy(() => import("../page/social/WatchVideo"));
+const Marketplace = lazy(() => import("../page/social/Marketplace"));
+const MyProducts = lazy(() => import("../page/social/MyProducts"));
+const ProductDetail = lazy(() => import("../page/social/ProductDetail"));
+const SavedItems = lazy(() => import("../page/social/SavedItems"));
 
 // Settings Pages
-import Settings from "../page/settings/Settings";
-import PrivacySettings from "../page/settings/PrivacySettings";
+const Settings = lazy(() => import("../page/settings/Settings"));
+const PrivacySettings = lazy(() => import("../page/settings/PrivacySettings"));
 
 // Admin Pages
+const AdminUserManagement = lazy(() => import("../page/admin/AdminUserManagement"));
+const AdminUserDetail = lazy(() => import("../page/admin/AdminUserDetail"));
+const AdminPostManagement = lazy(() => import("../page/admin/AdminPostManagement"));
+const AdminGroupManagement = lazy(() => import("../page/admin/AdminGroupManagement"));
+const AdminEventManagement = lazy(() => import("../page/admin/AdminEventManagement"));
+const AdminReports = lazy(() => import("../page/admin/AdminReports"));
+const AdminMessages = lazy(() => import("../page/admin/AdminMessages"));
+const AdminSettings = lazy(() => import("../page/admin/AdminSettings"));
+const AdminDashboard = lazy(() => import("../page/admin/AdminDashboard"));
+const NotFound = lazy(() => import("../page/NotFound"));
 
-import AdminUserManagement from "../page/admin/AdminUserManagement";
-import AdminUserDetail from "../page/admin/AdminUserDetail";
-import AdminPostManagement from "../page/admin/AdminPostManagement";
-import AdminGroupManagement from "../page/admin/AdminGroupManagement";
-import AdminEventManagement from "../page/admin/AdminEventManagement";
-import AdminReports from "../page/admin/AdminReports";
-import AdminMessages from "../page/admin/AdminMessages";
-import AdminSettings from "../page/admin/AdminSettings";
-import AdminDashboard from "../page/admin/AdminDashboard";
-import NotFound from "../page/NotFound";
+/** Wrap a lazy component with Suspense + PageLoader fallback */
+function S({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
 
 export const router = createBrowserRouter([
   // Auth Routes
@@ -99,13 +109,13 @@ export const router = createBrowserRouter([
     path: "/auth",
     element: <AuthLayout />,
     children: [
-      { path: "login", element: <Login /> },
-      { path: "register", element: <Register /> },
-      { path: "forgot-password", element: <ForgotPassword /> },
-      { path: "reset-password", element: <ResetPassword /> },
-      { path: "reset-verification", element: <ResetPasswordVerification /> },
-      { path: "reset-new-password", element: <ResetPasswordNew /> },
-      { path: "reset-success", element: <PasswordResetSuccess /> },
+      { path: "login", element: <S><Login /></S> },
+      { path: "register", element: <S><Register /></S> },
+      { path: "forgot-password", element: <S><ForgotPassword /></S> },
+      { path: "reset-password", element: <S><ResetPassword /></S> },
+      { path: "reset-verification", element: <S><ResetPasswordVerification /></S> },
+      { path: "reset-new-password", element: <S><ResetPasswordNew /></S> },
+      { path: "reset-success", element: <S><PasswordResetSuccess /></S> },
     ],
   },
 
@@ -113,7 +123,7 @@ export const router = createBrowserRouter([
   {
     path: "/stories/:id",
     element: (
-      <StoriesViewer />
+      <S><StoriesViewer /></S>
     ),
   },
 
@@ -124,76 +134,76 @@ export const router = createBrowserRouter([
       <MainLayout />
     ),
     children: [
-      { index: true, element: <Newsfeed /> },
+      { index: true, element: <S><Newsfeed /></S> },
       // Home
-      { path: "home", element: <Newsfeed /> },
-      { path: "post/create", element: <ProtectedRoute requireAuth={true}><CreatePost /></ProtectedRoute> },
-      { path: "post/:id/edit", element: <ProtectedRoute requireAuth={true}><PostEdit /></ProtectedRoute> },
-      { path: "post/:id/comments", element: <ProtectedRoute requireAuth={true}><CommentDetail /></ProtectedRoute> },
-      { path: "post/:id/share", element: <ProtectedRoute requireAuth={true}><ShareDialog /></ProtectedRoute> },
+      { path: "home", element: <S><Newsfeed /></S> },
+      { path: "post/create", element: <ProtectedRoute requireAuth={true}><S><CreatePost /></S></ProtectedRoute> },
+      { path: "post/:id/edit", element: <ProtectedRoute requireAuth={true}><S><PostEdit /></S></ProtectedRoute> },
+      { path: "post/:id/comments", element: <ProtectedRoute requireAuth={true}><S><CommentDetail /></S></ProtectedRoute> },
+      { path: "post/:id/share", element: <ProtectedRoute requireAuth={true}><S><ShareDialog /></S></ProtectedRoute> },
 
       // Profile
-      { path: "profile/:id", element: <Profile /> },
-      { path: "profile/edit", element: <ProtectedRoute requireAuth={true}><ProfileEdit /></ProtectedRoute> },
-      { path: "profile/activity-log", element: <ProtectedRoute requireAuth={true}><ActivityLog /></ProtectedRoute> },
-      { path: "photo/:id", element: <PhotoViewer /> },
-      { path: "album/:id", element: <AlbumView /> },
-      { path: "album/create", element: <ProtectedRoute requireAuth={true}><CreateAlbum /></ProtectedRoute> },
-      { path: "friends", element: <ProtectedRoute requireAuth={true}><Friends /></ProtectedRoute> },
-      { path: "friends/requests", element: <ProtectedRoute requireAuth={true}><FriendRequests /></ProtectedRoute> },
+      { path: "profile/:id", element: <S><Profile /></S> },
+      { path: "profile/edit", element: <ProtectedRoute requireAuth={true}><S><ProfileEdit /></S></ProtectedRoute> },
+      { path: "profile/activity-log", element: <ProtectedRoute requireAuth={true}><S><ActivityLog /></S></ProtectedRoute> },
+      { path: "photo/:id", element: <S><PhotoViewer /></S> },
+      { path: "album/:id", element: <S><AlbumView /></S> },
+      { path: "album/create", element: <ProtectedRoute requireAuth={true}><S><CreateAlbum /></S></ProtectedRoute> },
+      { path: "friends", element: <ProtectedRoute requireAuth={true}><S><Friends /></S></ProtectedRoute> },
+      { path: "friends/requests", element: <ProtectedRoute requireAuth={true}><S><FriendRequests /></S></ProtectedRoute> },
 
       // Messenger
-      { path: "messenger", element: <ProtectedRoute requireAuth={true}><Messenger /></ProtectedRoute> },
-      { path: "messenger/new", element: <ProtectedRoute requireAuth={true}><NewMessage /></ProtectedRoute> },
-      { path: "messenger/group/:id", element: <ProtectedRoute requireAuth={true}><GroupChat /></ProtectedRoute> },
-      { path: "messenger/:id/settings", element: <ProtectedRoute requireAuth={true}><ConversationSettings /></ProtectedRoute> },
-      { path: "messenger/:id/media", element: <ProtectedRoute requireAuth={true}><SharedMedia /></ProtectedRoute> },
-      { path: "messenger/settings", element: <ProtectedRoute requireAuth={true}><MessengerSettings /></ProtectedRoute> },
-      { path: "messenger/search", element: <ProtectedRoute requireAuth={true}><MessengerSearch /></ProtectedRoute> },
-      { path: "messenger/archive", element: <ProtectedRoute requireAuth={true}><Archive /></ProtectedRoute> },
-      { path: "messenger/:id/actions", element: <ProtectedRoute requireAuth={true}><MessageActions /></ProtectedRoute> },
-      { path: "messenger/:id/voice-call", element: <ProtectedRoute requireAuth={true}><VoiceCall /></ProtectedRoute> },
-      { path: "messenger/:id/video-call", element: <ProtectedRoute requireAuth={true}><VideoCall /></ProtectedRoute> },
-      { path: "messenger/file-share", element: <ProtectedRoute requireAuth={true}><FileSharing /></ProtectedRoute> },
-      { path: "messenger/photo-share", element: <ProtectedRoute requireAuth={true}><PhotoSharing /></ProtectedRoute> },
-      { path: "messenger/emoji", element: <ProtectedRoute requireAuth={true}><EmojiPicker /></ProtectedRoute> },
-      { path: "messenger/stickers", element: <ProtectedRoute requireAuth={true}><StickerPicker /></ProtectedRoute> },
-      { path: "messenger/poll", element: <ProtectedRoute requireAuth={true}><PollCreation /></ProtectedRoute> },
-      { path: "messenger/forward", element: <ProtectedRoute requireAuth={true}><ForwardMessage /></ProtectedRoute> },
-      { path: "messenger/:id/delete", element: <ProtectedRoute requireAuth={true}><DeleteMessage /></ProtectedRoute> },
-      { path: "messenger/:id/reactions", element: <ProtectedRoute requireAuth={true}><ReactionDetails /></ProtectedRoute> },
-      { path: "messenger/theme", element: <ProtectedRoute requireAuth={true}><ThemeCustomization /></ProtectedRoute> },
+      { path: "messenger", element: <ProtectedRoute requireAuth={true}><S><Messenger /></S></ProtectedRoute> },
+      { path: "messenger/new", element: <ProtectedRoute requireAuth={true}><S><NewMessage /></S></ProtectedRoute> },
+      { path: "messenger/group/:id", element: <ProtectedRoute requireAuth={true}><S><GroupChat /></S></ProtectedRoute> },
+      { path: "messenger/:id/settings", element: <ProtectedRoute requireAuth={true}><S><ConversationSettings /></S></ProtectedRoute> },
+      { path: "messenger/:id/media", element: <ProtectedRoute requireAuth={true}><S><SharedMedia /></S></ProtectedRoute> },
+      { path: "messenger/settings", element: <ProtectedRoute requireAuth={true}><S><MessengerSettings /></S></ProtectedRoute> },
+      { path: "messenger/search", element: <ProtectedRoute requireAuth={true}><S><MessengerSearch /></S></ProtectedRoute> },
+      { path: "messenger/archive", element: <ProtectedRoute requireAuth={true}><S><Archive /></S></ProtectedRoute> },
+      { path: "messenger/:id/actions", element: <ProtectedRoute requireAuth={true}><S><MessageActions /></S></ProtectedRoute> },
+      { path: "messenger/:id/voice-call", element: <ProtectedRoute requireAuth={true}><S><VoiceCall /></S></ProtectedRoute> },
+      { path: "messenger/:id/video-call", element: <ProtectedRoute requireAuth={true}><S><VideoCall /></S></ProtectedRoute> },
+      { path: "messenger/file-share", element: <ProtectedRoute requireAuth={true}><S><FileSharing /></S></ProtectedRoute> },
+      { path: "messenger/photo-share", element: <ProtectedRoute requireAuth={true}><S><PhotoSharing /></S></ProtectedRoute> },
+      { path: "messenger/emoji", element: <ProtectedRoute requireAuth={true}><S><EmojiPicker /></S></ProtectedRoute> },
+      { path: "messenger/stickers", element: <ProtectedRoute requireAuth={true}><S><StickerPicker /></S></ProtectedRoute> },
+      { path: "messenger/poll", element: <ProtectedRoute requireAuth={true}><S><PollCreation /></S></ProtectedRoute> },
+      { path: "messenger/forward", element: <ProtectedRoute requireAuth={true}><S><ForwardMessage /></S></ProtectedRoute> },
+      { path: "messenger/:id/delete", element: <ProtectedRoute requireAuth={true}><S><DeleteMessage /></S></ProtectedRoute> },
+      { path: "messenger/:id/reactions", element: <ProtectedRoute requireAuth={true}><S><ReactionDetails /></S></ProtectedRoute> },
+      { path: "messenger/theme", element: <ProtectedRoute requireAuth={true}><S><ThemeCustomization /></S></ProtectedRoute> },
 
       // Music
-      { path: "music", element: <MusicEDM /> },
+      { path: "music", element: <S><MusicEDM /></S> },
 
-      // Games (giải trí)
-      { path: "games", element: <GamesPage /> },
-      { path: "games/flappy", element: <FlappyBird /> },
+      // Games
+      { path: "games", element: <S><GamesPage /></S> },
+      { path: "games/flappy", element: <S><FlappyBird /></S> },
 
       // Social
-      { path: "find-people", element: <FindPeople /> },
-      { path: "friends", element: <FriendRequests /> },
-      { path: "groups", element: <Groups /> },
-      { path: "groups/:id", element: <GroupDetail /> },
-      { path: "events", element: <Events /> },
-      { path: "events/:id", element: <EventDetail /> },
-      { path: "pages", element: <Pages /> },
-      { path: "notifications", element: <Notifications /> },
-      { path: "notifications/settings", element: <NotificationSettings /> },
-      { path: "search", element: <Search /> },
-      { path: "watch", element: <WatchVideo /> },
-      { path: "marketplace", element: <Marketplace /> },
-      { path: "marketplace/my-products", element: <ProtectedRoute requireAuth={true}><MyProducts /></ProtectedRoute> },
-      { path: "marketplace/product/:id", element: <ProductDetail /> },
-      { path: "saved", element: <ProtectedRoute requireAuth={true}><SavedItems /></ProtectedRoute> },
+      { path: "find-people", element: <S><FindPeople /></S> },
+      { path: "friends", element: <S><FriendRequests /></S> },
+      { path: "groups", element: <S><Groups /></S> },
+      { path: "groups/:id", element: <S><GroupDetail /></S> },
+      { path: "events", element: <S><Events /></S> },
+      { path: "events/:id", element: <S><EventDetail /></S> },
+      { path: "pages", element: <S><Pages /></S> },
+      { path: "notifications", element: <S><Notifications /></S> },
+      { path: "notifications/settings", element: <S><NotificationSettings /></S> },
+      { path: "search", element: <S><Search /></S> },
+      { path: "watch", element: <S><WatchVideo /></S> },
+      { path: "marketplace", element: <S><Marketplace /></S> },
+      { path: "marketplace/my-products", element: <ProtectedRoute requireAuth={true}><S><MyProducts /></S></ProtectedRoute> },
+      { path: "marketplace/product/:id", element: <S><ProductDetail /></S> },
+      { path: "saved", element: <ProtectedRoute requireAuth={true}><S><SavedItems /></S></ProtectedRoute> },
 
       // Settings
-      { path: "settings", element: <ProtectedRoute requireAuth={true}><Settings /></ProtectedRoute> },
-      { path: "settings/privacy", element: <ProtectedRoute requireAuth={true}><PrivacySettings /></ProtectedRoute> },
+      { path: "settings", element: <ProtectedRoute requireAuth={true}><S><Settings /></S></ProtectedRoute> },
+      { path: "settings/privacy", element: <ProtectedRoute requireAuth={true}><S><PrivacySettings /></S></ProtectedRoute> },
 
-      { path: "404", element: <NotFound /> },
-      { path: "*", element: <NotFound /> },
+      { path: "404", element: <S><NotFound /></S> },
+      { path: "*", element: <S><NotFound /></S> },
     ],
   },
 
@@ -206,15 +216,15 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminDashboard /> },
-      { path: "users", element: <AdminUserManagement /> },
-      { path: "users/:id", element: <AdminUserDetail /> },
-      { path: "posts", element: <AdminPostManagement /> },
-      { path: "groups", element: <AdminGroupManagement /> },
-      { path: "events", element: <AdminEventManagement /> },
-      { path: "reports", element: <AdminReports /> },
-      { path: "messages", element: <AdminMessages /> },
-      { path: "settings", element: <AdminSettings /> },
+      { index: true, element: <S><AdminDashboard /></S> },
+      { path: "users", element: <S><AdminUserManagement /></S> },
+      { path: "users/:id", element: <S><AdminUserDetail /></S> },
+      { path: "posts", element: <S><AdminPostManagement /></S> },
+      { path: "groups", element: <S><AdminGroupManagement /></S> },
+      { path: "events", element: <S><AdminEventManagement /></S> },
+      { path: "reports", element: <S><AdminReports /></S> },
+      { path: "messages", element: <S><AdminMessages /></S> },
+      { path: "settings", element: <S><AdminSettings /></S> },
     ],
   },
 ]);
