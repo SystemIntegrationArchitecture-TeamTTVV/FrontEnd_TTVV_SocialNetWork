@@ -170,10 +170,13 @@ export default function Bomberman() {
         }
 
         // ── Safety: re-sync activeBombs from actual bomb array ──
-        // Prevents counter drift from chain reactions or edge cases
+        // Manual count avoids filter() array allocation (240 allocs/s → 0)
         for (const player of state.players) {
-          const actual = state.bombs.filter((b) => b.ownerId === player.id).length;
-          if (player.activeBombs !== actual) player.activeBombs = actual;
+          let count = 0;
+          for (const b of state.bombs) {
+            if (b.ownerId === player.id) count++;
+          }
+          if (player.activeBombs !== count) player.activeBombs = count;
         }
 
         for (const player of state.players) {
@@ -191,7 +194,7 @@ export default function Bomberman() {
       }
 
       if (ctxRef.current) {
-        render(ctxRef.current, state);
+        render(ctxRef.current, state, timestamp);
       }
     } catch (err) {
       console.error('[Boom V2] Game loop error:', err);

@@ -1,4 +1,7 @@
 // ─── Boom V2 — Bot AI ───────────────────────────────────────────────────
+//
+// Performance: danger grid + bomb set are precomputed ONCE per bot tick,
+// then O(1) lookups replace repeated Array.some() calls inside BFS.
 
 import {
   Direction,
@@ -8,8 +11,9 @@ import {
   BOT_TICK_MAX,
   type GameState,
   type Player,
+  type Bomb,
 } from './types';
-import { movePlayer, placeBomb, isPositionDangerous, isCellFree } from './game';
+import { movePlayer, placeBomb, isCellFree } from './game';
 
 interface BotState {
   nextTick: number;
@@ -34,11 +38,61 @@ export function resetBotStates(): void {
   botStates.clear();
 }
 
+// ─── Precomputed Lookup Grids ──────────────────────────────────────────
+
+/** Build O(1) bomb-position lookup set */
+function buildBombSet(bombs: Bomb[]): Set<string> {
+  const set = new Set<string>();
+  for (const b of bombs) {
+    set.add(`${b.x},${b.y}`);
+  }
+  return set;
+}
+
+/** Build O(1) danger lookup set — cells in explosion or bomb blast radius */
+function buildDangerSet(state: GameState): Set<string> {
+  const danger = new Set<string>();
+
+  // Currently exploding cells
+  for (const e of state.explosions) {
+    danger.add(`${e.x},${e.y}`);
+  }
+
+  // Bomb blast ranges
+  for (const bomb of state.bombs) {
+    danger.add(`${bomb.x},${bomb.y}`);
+
+    const dirs = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+
+    for (const { dx, dy } of dirs) {
+      for (let i = 1; i <= bomb.range; i++) {
+        const bx = bomb.x + dx * i;
+        const by = bomb.y + dy * i;
+        if (bx < 0 || bx >= state.cols || by < 0 || by >= state.rows) break;
+        const tile = state.map[by][bx];
+        if (tile === TileType.WALL || tile === TileType.BREAKABLE) break;
+        danger.add(`${bx},${by}`);
+      }
+    }
+  }
+
+  return danger;
+}
+
+// ─── BFS Pathfinding ───────────────────────────────────────────────────
+
 /** BFS to find nearest safe cell from a position */
 function findSafeCell(
   state: GameState,
   startX: number,
   startY: number,
+  dangerSet: Set<string>,
+  bombSet: Set<string>,
 ): Direction | null {
   const visited = new Set<string>();
   const queue: { x: number; y: number; firstDir: Direction | null }[] = [];
@@ -54,11 +108,11 @@ function findSafeCell(
     const key = `${nx},${ny}`;
     if (visited.has(key)) continue;
     if (!isCellFree(state, nx, ny)) continue;
-    if (state.bombs.some((b) => b.x === nx && b.y === ny)) continue;
+    if (bombSet.has(key)) continue;
 
     visited.add(key);
 
-    if (!isPositionDangerous(state, nx, ny)) {
+    if (!dangerSet.has(key)) {
       return dir;
     }
 
@@ -75,11 +129,11 @@ function findSafeCell(
       const key = `${nx},${ny}`;
       if (visited.has(key)) continue;
       if (!isCellFree(state, nx, ny)) continue;
-      if (state.bombs.some((b) => b.x === nx && b.y === ny)) continue;
+      if (bombSet.has(key)) continue;
 
       visited.add(key);
 
-      if (!isPositionDangerous(state, nx, ny)) {
+      if (!dangerSet.has(key)) {
         return current.firstDir;
       }
 
@@ -92,27 +146,33 @@ function findSafeCell(
 
 /** Check if the bot has a safe escape route from position after placing a bomb */
 function hasEscapeRoute(state: GameState, player: Player): boolean {
-  // Simulate bomb placement
+  // Simulate bomb placement — create temporary lookups including the new bomb
+  const simulatedBomb: Bomb = {
+    x: player.x,
+    y: player.y,
+    ownerId: player.id,
+    timer: 2000,
+    range: player.bombRange,
+    placed: state.elapsed,
+  };
   const simulatedState = {
     ...state,
-    bombs: [
-      ...state.bombs,
-      {
-        x: player.x,
-        y: player.y,
-        ownerId: player.id,
-        timer: 2000,
-        range: player.bombRange,
-        placed: Date.now(),
-      },
-    ],
+    bombs: [...state.bombs, simulatedBomb],
   };
 
-  return findSafeCell(simulatedState, player.x, player.y) !== null;
+  const dangerSet = buildDangerSet(simulatedState);
+  const bombSet = buildBombSet(simulatedState.bombs);
+
+  return findSafeCell(simulatedState, player.x, player.y, dangerSet, bombSet) !== null;
 }
 
 /** Find direction toward nearest breakable block */
-function findTargetDirection(state: GameState, player: Player): Direction | null {
+function findTargetDirection(
+  state: GameState,
+  player: Player,
+  dangerSet: Set<string>,
+  bombSet: Set<string>,
+): Direction | null {
   const visited = new Set<string>();
   const queue: { x: number; y: number; firstDir: Direction }[] = [];
 
@@ -142,8 +202,8 @@ function findTargetDirection(state: GameState, player: Player): Direction | null
     }
 
     if (!isCellFree(state, nx, ny)) continue;
-    if (state.bombs.some((b) => b.x === nx && b.y === ny)) continue;
-    if (isPositionDangerous(state, nx, ny)) continue;
+    if (bombSet.has(key)) continue;
+    if (dangerSet.has(key)) continue;
 
     queue.push({ x: nx, y: ny, firstDir: dir });
   }
@@ -175,8 +235,8 @@ function findTargetDirection(state: GameState, player: Player): Direction | null
       if (enemy) return current.firstDir;
 
       if (!isCellFree(state, nx, ny)) continue;
-      if (state.bombs.some((b) => b.x === nx && b.y === ny)) continue;
-      if (isPositionDangerous(state, nx, ny)) continue;
+      if (bombSet.has(key)) continue;
+      if (dangerSet.has(key)) continue;
 
       queue.push({ x: nx, y: ny, firstDir: current.firstDir });
     }
@@ -187,11 +247,8 @@ function findTargetDirection(state: GameState, player: Player): Direction | null
     const delta = DIRECTION_DELTA[dir];
     const nx = player.x + delta.x;
     const ny = player.y + delta.y;
-    return (
-      isCellFree(state, nx, ny) &&
-      !isPositionDangerous(state, nx, ny) &&
-      !state.bombs.some((b) => b.x === nx && b.y === ny)
-    );
+    const key = `${nx},${ny}`;
+    return isCellFree(state, nx, ny) && !dangerSet.has(key) && !bombSet.has(key);
   });
 
   return safeDirs.length > 0 ? safeDirs[Math.floor(Math.random() * safeDirs.length)] : null;
@@ -222,6 +279,8 @@ function isAdjacentToTarget(state: GameState, player: Player): boolean {
   return false;
 }
 
+// ─── Main Bot AI Entry ─────────────────────────────────────────────────
+
 /** Main bot AI tick — called every frame, internally throttled */
 export function updateBot(state: GameState, player: Player, dt: number): GameState {
   if (!player.alive || !player.isBot || player.moving) return state;
@@ -235,9 +294,14 @@ export function updateBot(state: GameState, player: Player, dt: number): GameSta
   botState.lastAction = 0;
   botState.nextTick = BOT_TICK_MIN + Math.random() * (BOT_TICK_MAX - BOT_TICK_MIN);
 
+  // Precompute lookup grids ONCE per tick — all BFS calls reuse these
+  const dangerSet = buildDangerSet(state);
+  const bombSet = buildBombSet(state.bombs);
+
   // Priority 1: Escape danger
-  if (isPositionDangerous(state, player.x, player.y)) {
-    const escapeDir = findSafeCell(state, player.x, player.y);
+  const playerKey = `${player.x},${player.y}`;
+  if (dangerSet.has(playerKey)) {
+    const escapeDir = findSafeCell(state, player.x, player.y, dangerSet, bombSet);
     if (escapeDir) {
       return movePlayer(state, player.id, escapeDir);
     }
@@ -252,7 +316,7 @@ export function updateBot(state: GameState, player: Player, dt: number): GameSta
   }
 
   // Priority 3: Move toward target
-  const targetDir = findTargetDirection(state, player);
+  const targetDir = findTargetDirection(state, player, dangerSet, bombSet);
   if (targetDir === null) {
     // Adjacent to breakable, place bomb if safe
     if (isAdjacentToTarget(state, player) && hasEscapeRoute(state, player)) {

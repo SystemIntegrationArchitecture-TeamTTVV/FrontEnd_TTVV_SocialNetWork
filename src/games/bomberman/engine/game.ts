@@ -96,7 +96,7 @@ export function placeBomb(state: GameState, playerId: number): GameState {
     ownerId: playerId,
     timer: BOMB_TIMER,
     range: player.bombRange,
-    placed: Date.now(),
+    placed: state.elapsed,
   });
   player.activeBombs++;
 
@@ -232,7 +232,9 @@ export function updateGame(state: GameState, dt: number): GameState {
   }
 
   let hasDetonation = true;
-  while (hasDetonation) {
+  let safetyCounter = 0;
+  while (hasDetonation && safetyCounter < 50) {
+    safetyCounter++;
     hasDetonation = false;
     for (const bomb of state.bombs) {
       if (bomb.timer <= 0) {

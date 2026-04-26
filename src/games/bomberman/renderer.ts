@@ -351,11 +351,11 @@ function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, now: number, 
   ctx.fillText(player.isBot ? `B${player.id}` : 'YOU', cx, cy + baseR + 10 * (ts / 48));
 }
 
-function drawBomb(ctx: CanvasRenderingContext2D, bomb: Bomb, now: number, ts: number): void {
+function drawBomb(ctx: CanvasRenderingContext2D, bomb: Bomb, gameTime: number, ts: number): void {
   const cx = bomb.x * ts + ts / 2;
   const cy = bomb.y * ts + ts / 2;
 
-  const elapsed = now - bomb.placed;
+  const elapsed = gameTime - bomb.placed;
   const progress = elapsed / BOMB_TIMER;
   const pulse = 1 + Math.sin(progress * Math.PI * 8) * 0.08 * (1 + progress);
   const r = ts * 0.3 * pulse;
@@ -392,19 +392,31 @@ function drawBomb(ctx: CanvasRenderingContext2D, bomb: Bomb, now: number, ts: nu
 }
 
 function drawExplosion(ctx: CanvasRenderingContext2D, exp: Explosion, ts: number): void {
-  const cx = exp.x * ts + ts / 2;
-  const cy = exp.y * ts + ts / 2;
-  const maxR = ts * 0.5;
+  const px = exp.x * ts;
+  const py = exp.y * ts;
   const alpha = Math.min(1, exp.timer / 200);
 
-  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-  gradient.addColorStop(0, `rgba(255,255,200,${alpha})`);
-  gradient.addColorStop(0.3, `rgba(255,136,0,${alpha * 0.9})`);
-  gradient.addColorStop(0.6, `rgba(255,68,0,${alpha * 0.7})`);
-  gradient.addColorStop(1, `rgba(255,0,0,${alpha * 0.2})`);
+  // Layered solid fills — avoids createRadialGradient() DOM allocation per frame
+  ctx.globalAlpha = alpha * 0.2;
+  ctx.fillStyle = '#ff0000';
+  ctx.fillRect(px, py, ts, ts);
 
-  ctx.fillStyle = gradient;
-  ctx.fillRect(exp.x * ts, exp.y * ts, ts, ts);
+  const inset1 = ts * 0.12;
+  ctx.globalAlpha = alpha * 0.7;
+  ctx.fillStyle = '#ff4400';
+  ctx.fillRect(px + inset1, py + inset1, ts - inset1 * 2, ts - inset1 * 2);
+
+  const inset2 = ts * 0.25;
+  ctx.globalAlpha = alpha * 0.9;
+  ctx.fillStyle = '#ff8800';
+  ctx.fillRect(px + inset2, py + inset2, ts - inset2 * 2, ts - inset2 * 2);
+
+  const inset3 = ts * 0.38;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#ffffcc';
+  ctx.fillRect(px + inset3, py + inset3, ts - inset3 * 2, ts - inset3 * 2);
+
+  ctx.globalAlpha = 1;
 }
 
 function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp, now: number, ts: number): void {
@@ -501,8 +513,8 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState): void {
 
 // ─── Main Render ───────────────────────────────────────────────────────
 
-export function render(ctx: CanvasRenderingContext2D, state: GameState): void {
-  const now = Date.now();
+export function render(ctx: CanvasRenderingContext2D, state: GameState, timestamp?: number): void {
+  const now = timestamp ?? performance.now();
   const ts = state.tileSize;
   const { w: canvasW, h: canvasH } = getCanvasSize(state);
 
@@ -530,16 +542,25 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState): void {
   }
 
   for (const bomb of state.bombs) {
-    drawBomb(ctx, bomb, now, ts);
+    drawBomb(ctx, bomb, state.elapsed, ts);
   }
 
   for (const exp of state.explosions) {
     drawExplosion(ctx, exp, ts);
   }
 
-  // Sort in-place to avoid allocating a new array every frame (GC pressure)
-  state.players.sort((a, b) => a.visualY - b.visualY);
-  for (const player of state.players) {
+  // Insertion sort by visualY — zero allocations, O(n²) is fast for n≤6 players
+  const players = state.players;
+  for (let i = 1; i < players.length; i++) {
+    const p = players[i];
+    let j = i - 1;
+    while (j >= 0 && players[j].visualY > p.visualY) {
+      players[j + 1] = players[j];
+      j--;
+    }
+    players[j + 1] = p;
+  }
+  for (const player of players) {
     drawPlayer(ctx, player, now, ts);
   }
 
