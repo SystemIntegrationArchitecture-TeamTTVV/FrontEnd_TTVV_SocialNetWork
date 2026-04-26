@@ -48,8 +48,10 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
   // Auth
   AUTH: {
-    LOGIN: "/api/common/auth/login",
-    REGISTER: "/api/common/auth/register",
+    LOGIN: "/api/auth/login",
+    REGISTER: "/api/auth/register",
+    REFRESH: "/api/auth/refresh",
+    LOGOUT: "/api/auth/logout",
   },
   // Add other endpoints here as needed
 };

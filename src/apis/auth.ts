@@ -1,5 +1,5 @@
 import { httpClient } from './http';
-import { API_ENDPOINTS } from './config';
+import { API_ENDPOINTS, API_CONFIG } from './config';
 
 // Types
 export interface LoginRequest {
@@ -21,11 +21,31 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   username: string;
   role: string;
   userId: string;
   fullName: string;
   avatar: string;
+}
+
+/**
+ * Store auth tokens and user info to localStorage.
+ */
+function persistAuth(response: AuthResponse): void {
+  if (response.token) {
+    localStorage.setItem('token', response.token);
+  }
+  if (response.refreshToken) {
+    localStorage.setItem('refreshToken', response.refreshToken);
+  }
+  localStorage.setItem('user', JSON.stringify({
+    id: response.userId,
+    username: response.username,
+    fullName: response.fullName,
+    avatar: response.avatar,
+    role: response.role,
+  }));
 }
 
 /**
@@ -37,22 +57,12 @@ export const authApi = {
    */
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const response = await authApi.loginDirect(credentials);
-    // Store token
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify({
-        id: response.userId,
-        username: response.username,
-        fullName: response.fullName,
-        avatar: response.avatar,
-        role: response.role,
-      }));
-    }
+    persistAuth(response);
     return response;
   },
 
   /**
-   * Login directly to CommonService (bypass gateway if needed)
+   * Login directly to AuthService (bypass gateway if needed)
    */
   loginDirect: async (credentials: LoginRequest): Promise<AuthResponse> => {
     return httpClient.post<AuthResponse>(
@@ -76,22 +86,12 @@ export const authApi = {
    */
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
     const response = await authApi.registerDirect(userData);
-    // Store token
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify({
-        id: response.userId,
-        username: response.username,
-        fullName: response.fullName,
-        avatar: response.avatar,
-        role: response.role,
-      }));
-    }
+    persistAuth(response);
     return response;
   },
 
   /**
-   * Register directly to CommonService (bypass gateway if needed)
+   * Register directly to AuthService (bypass gateway if needed)
    */
   registerDirect: async (userData: RegisterRequest): Promise<AuthResponse> => {
     return httpClient.post<AuthResponse>(
@@ -111,10 +111,56 @@ export const authApi = {
   },
 
   /**
-   * Logout user
+   * Refresh access token using stored refresh token.
+   * Returns new AuthResponse on success, null on failure.
+   */
+  refreshAccessToken: async (): Promise<AuthResponse | null> => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      return null;
+    }
+
+    try {
+      const fullUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`;
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data: AuthResponse = await response.json();
+      persistAuth(data);
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Logout user — invalidate refresh token on backend + clear local storage.
    */
   logout: (): void => {
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    // Fire-and-forget: tell backend to invalidate the refresh token
+    if (refreshToken) {
+      const fullUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.LOGOUT}`;
+      fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ refreshToken }),
+      }).catch(() => { /* ignore logout errors */ });
+    }
+
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   },
 
