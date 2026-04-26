@@ -1,4 +1,4 @@
-import { httpClient } from './http';
+import { httpClient, HttpError } from './http';
 import { API_ENDPOINTS, API_CONFIG } from './config';
 
 // Types
@@ -27,6 +27,26 @@ export interface AuthResponse {
   userId: string;
   fullName: string;
   avatar: string;
+}
+
+async function postToAuthServiceDirect<T>(endpoint: string, payload: unknown): Promise<T> {
+  const fullUrl = `${API_CONFIG.AUTH_SERVICE_URL}${endpoint}`;
+  const response = await fetch(fullUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const contentType = response.headers.get('content-type');
+  const isJson = contentType?.includes('application/json');
+  const data = isJson ? await response.json() : await response.text();
+
+  if (!response.ok) {
+    const message = data?.message || data?.error || `HTTP error! status: ${response.status}`;
+    throw new HttpError(response.status, message, data);
+  }
+
+  return data as T;
 }
 
 /**
@@ -71,13 +91,8 @@ export const authApi = {
       false, // No auth token needed for login
       true // Try gateway first
     ).catch(() => {
-      // Fallback to direct CommonService if gateway fails
-      return httpClient.post<AuthResponse>(
-        '/api/auth/login',
-        credentials,
-        false,
-        false // Direct to CommonService
-      );
+      // Fallback to direct AuthService if gateway fails
+      return postToAuthServiceDirect<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
     });
   },
 
@@ -100,13 +115,8 @@ export const authApi = {
       false, // No auth token needed for register
       true // Try gateway first
     ).catch(() => {
-      // Fallback to direct CommonService if gateway fails
-      return httpClient.post<AuthResponse>(
-        '/api/auth/register',
-        userData,
-        false,
-        false // Direct to CommonService
-      );
+      // Fallback to direct AuthService if gateway fails
+      return postToAuthServiceDirect<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, userData);
     });
   },
 
@@ -121,18 +131,24 @@ export const authApi = {
     }
 
     try {
-      const fullUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`;
-      const response = await fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        return null;
+      let data: AuthResponse;
+      try {
+        const fullUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`;
+        const response = await fetch(fullUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!response.ok) {
+          return null;
+        }
+        data = await response.json();
+      } catch {
+        data = await postToAuthServiceDirect<AuthResponse>(
+          API_ENDPOINTS.AUTH.REFRESH,
+          { refreshToken }
+        );
       }
-
-      const data: AuthResponse = await response.json();
       persistAuth(data);
       return data;
     } catch {
@@ -148,15 +164,24 @@ export const authApi = {
 
     // Fire-and-forget: tell backend to invalidate the refresh token
     if (refreshToken) {
-      const fullUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.LOGOUT}`;
-      fetch(fullUrl, {
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      };
+      const payload = JSON.stringify({ refreshToken });
+      const gatewayUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.LOGOUT}`;
+      fetch(gatewayUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: JSON.stringify({ refreshToken }),
-      }).catch(() => { /* ignore logout errors */ });
+        headers,
+        body: payload,
+      }).catch(() => {
+        const directUrl = `${API_CONFIG.AUTH_SERVICE_URL}${API_ENDPOINTS.AUTH.LOGOUT}`;
+        fetch(directUrl, {
+          method: 'POST',
+          headers,
+          body: payload,
+        }).catch(() => { /* ignore logout errors */ });
+      });
     }
 
     localStorage.removeItem('token');

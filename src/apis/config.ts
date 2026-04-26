@@ -41,6 +41,7 @@ const resolveBaseUrl = (envUrl: string | undefined, devFallback: string) => {
 export const API_CONFIG = {
   BASE_URL: resolveBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:8088'),
   COMMON_SERVICE_URL: resolveBaseUrl(import.meta.env.VITE_COMMON_SERVICE_URL, 'http://localhost:8081'),
+  AUTH_SERVICE_URL: resolveBaseUrl(import.meta.env.VITE_AUTH_SERVICE_URL, 'http://localhost:8083'),
   TIMEOUT: 30000, // 30 seconds
 };
 
