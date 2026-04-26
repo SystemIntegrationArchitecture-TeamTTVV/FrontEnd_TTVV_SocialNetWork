@@ -1,14 +1,11 @@
-import { Link, useNavigate, useLocation, type Location } from 'react-router-dom';
-import { Settings, Edit, Search, Phone, Video, Info, Plus, Send, Check, CheckCheck, MoreVertical, X, User, Bell, Palette, Pencil, Lock, Search as SearchIcon, Reply, Forward, Trash2, Copy, Pin, Star, ChevronLeft, ChevronRight, Smile, Mic, FileText, Image as ImageIcon, Users, Bot, Sparkles, Grid3X3, BarChart3, MapPin, Contact, Music, Gift, EyeOff, Shield, Unlock } from 'lucide-react';
+﻿import { useLocation, type Location } from 'react-router-dom';
+import { Search as SearchIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../common/icons/IconComponents';
-import { REACTIONS } from '../../components/chat/ReactionIcons';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
 import { useSocket } from '../../contexts/SocketContext';
-import EmojiPicker from '../../components/chat/EmojiPicker';
 import { conversationsApi, type Conversation } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
@@ -17,6 +14,18 @@ import { usersApi, type PresenceStatus } from '../../apis/users';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
+import ForwardModal from './components/ForwardModal';
+import PinnedMessagesPanel from './components/PinnedMessagesPanel';
+import ChatHeader from './components/ChatHeader';
+import ChatInfoSidebar from './components/ChatInfoSidebar';
+import TypingIndicator from './shared/TypingIndicator';
+import ChatSidebar from './components/ChatSidebar';
+import HiddenChatsPanel from './components/HiddenChatsPanel';
+import MessageInput from './components/MessageInput';
+import ChatMessages from './components/ChatMessages';
+import { useVoiceRecording } from './hooks/useVoiceRecording';
+import { useAIChat } from './hooks/useAIChat';
+import { useGroupActions } from './hooks/useGroupActions';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -78,7 +87,7 @@ const STICKER_TOPIC_WITH_ALL = [
   ...STICKER_TOPICS,
 ];
 
-/** Deterministic color from string — same input always gives same color */
+/** Deterministic color from string ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â same input always gives same color */
 const hashColor = (str: string): string => {
   const colors = [
     '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899',
@@ -91,7 +100,6 @@ const hashColor = (str: string): string => {
 };
 
 export default function Messenger() {
-  const navigate = useNavigate();
   const location = useLocation() as Location & { state?: MessengerLocationState };
   const { user } = useAuth();
   const { startCall } = useCall();
@@ -120,7 +128,6 @@ export default function Messenger() {
   const [isForwarding, setIsForwarding] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; sender: string } | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<{ id: string; content: string } | null>(null);
   const [forwardTargetConversationId, setForwardTargetConversationId] = useState<string>('');
@@ -134,22 +141,13 @@ export default function Messenger() {
   const [pinnedMessages, setPinnedMessages] = useState<ReturnType<typeof formatMessageForDisplay>[]>([]);
   const [pinnedLoading, setPinnedLoading] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [showVoicePreview, setShowVoicePreview] = useState(false);
-  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
-  const voiceTranscriptRef = useRef('');
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingTimerRef = useRef<number | null>(null);
-  const recognitionRef = useRef<any>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [filePreview, setFilePreview] = useState<{ file: File; preview: string } | null>(null);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
 
-  // ── Hidden Conversations State ──────────────────────────────────────────
+  // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Hidden Conversations State ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   const [showHiddenPanel, setShowHiddenPanel] = useState(false);
   const [hiddenConversations, setHiddenConversations] = useState<Conversation[]>([]);
   const [hiddenLoading, setHiddenLoading] = useState(false);
@@ -195,7 +193,7 @@ export default function Messenger() {
   const [aiConversationId, setAiConversationId] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // ── Presence State ──────────────────────────────────────────────────────
+  // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Presence State ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   const [presenceByUserId, setPresenceByUserId] = useState<Record<string, PresenceStatus>>({});
 
   useEffect(() => {
@@ -211,7 +209,7 @@ export default function Messenger() {
     return () => window.removeEventListener('click', handleClick);
   }, []);
 
-  // ── Fetch presence for all conversation participants & subscribe realtime ──
+  // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Fetch presence for all conversation participants & subscribe realtime ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   useEffect(() => {
     if (!user?.id || conversations.length === 0) return;
 
@@ -295,6 +293,65 @@ export default function Messenger() {
   const isOwner = !!(user?.id && activeConversationRaw?.ownerId === user.id);
   const isAdmin = !!(user?.id && activeConversationRaw?.adminIds?.includes(user.id));
   const canManageGroup = isOwner || isAdmin;
+
+  const {
+    isRecording,
+    recordingDuration,
+    showVoicePreview,
+    voiceTranscriptRef,
+    handleVoiceRecord,
+    handleVoiceSendAudio,
+    handleVoiceConvertToText,
+    handleVoiceCancel,
+  } = useVoiceRecording({
+    onSendVoice: async (blob: Blob) => {
+      await handleVoiceRecording(blob);
+    },
+    setMessage,
+  });
+
+  const {
+    AI_CONVERSATION_ID,
+    aiMessages,
+    isAiLoading,
+    isDailySummaryPrompt,
+    handleGenerateDailySummaryForAi,
+  } = useAIChat({
+    userId: user?.id,
+    getLocaleTag,
+  });
+
+  const {
+    groupMemberInput,
+    setGroupMemberInput,
+    groupNameDraft,
+    setGroupNameDraft,
+    groupAvatarDraft,
+    setGroupAvatarDraft,
+    adminDraft,
+    setAdminDraft,
+    newOwnerId,
+    setNewOwnerId,
+    pendingJoins,
+    groupActionError,
+    groupActionMessage,
+    updatingGroup,
+    handleAddMembers,
+    handleRemoveMember,
+    handleSaveGroupMeta,
+    handleDeleteGroup,
+    handleClearConversationForMe,
+    handleJoinRequestDecision,
+    handleAdminToggle,
+    handleUpdateRoles,
+  } = useGroupActions({
+    activeChat,
+    userId: user?.id,
+    isGroupChat,
+    isOwner,
+    loadConversations,
+    setActiveChat,
+  });
 
   // Load messages when active chat changes
   useEffect(() => {
@@ -721,10 +778,10 @@ export default function Messenger() {
   const isDailySummaryPrompt = (input: string) => {
     const normalized = input.toLowerCase().trim();
     return (
-      normalized.includes('tóm tắt') ||
+      normalized.includes('tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³m tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯t') ||
       normalized.includes('tom tat') ||
       normalized.includes('summary') ||
-      normalized.includes('thông báo hôm nay') ||
+      normalized.includes('thÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ng bÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡o hÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´m nay') ||
       normalized.includes('thong bao hom nay') ||
       normalized.includes('notification')
     );
@@ -785,7 +842,7 @@ export default function Messenger() {
       });
       appendAiMessage(formatDailySummaryMessage(summary));
     } catch (error) {
-      console.error('❌ Error generating AI daily summary:', error);
+      console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Error generating AI daily summary:', error);
       appendAiMessage(t('messenger.aiAssistant.summaryError'));
     } finally {
       setIsAiLoading(false);
@@ -848,7 +905,7 @@ export default function Messenger() {
 
         setAiMessages((prev) => [...prev, aiMessage]);
       } catch (error) {
-        console.error('❌ Error chatting with AI:', error);
+        console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Error chatting with AI:', error);
         const errorMessage = {
           id: (Date.now() + 1).toString(),
           text: t('messenger.aiAssistant.sendError'),
@@ -922,7 +979,7 @@ export default function Messenger() {
         return;
       }
       
-      console.log('📨 Sending message:', {
+      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ Sending message:', {
         conversationId: activeChat,
         content: messageContent,
         attachmentsCount: attachments.length,
@@ -976,44 +1033,6 @@ export default function Messenger() {
     }
   };
 
-  const parseIdsInput = (input: string) =>
-    Array.from(
-      new Set(
-        input
-          .split(/[,;\s]+/)
-          .map((i) => i.trim())
-          .filter(Boolean)
-      )
-    );
-
-  const handleAddMembers = async () => {
-    if (!activeChat || !user?.id) return;
-    const ids = parseIdsInput(groupMemberInput);
-    if (ids.length === 0) {
-      setGroupActionError(t('messenger.group.errorEmptyIds'));
-      return;
-    }
-
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-
-    try {
-      await conversationsApi.addGroupMembers(activeChat, {
-        requesterId: user.id,
-        participantIds: ids,
-      });
-      setGroupMemberInput('');
-      setGroupActionMessage(t('messenger.group.addMembersSuccess'));
-      await loadConversations();
-    } catch (err: unknown) {
-      console.error('Failed to add members', err);
-      const message = err instanceof Error ? err.message : t('messenger.group.addMembersError');
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
 
   const handleRemoveMember = async (memberId: string) => {
     if (!activeChat || !user?.id) return;
@@ -1217,11 +1236,11 @@ export default function Messenger() {
         setFilePreview({ file, preview });
       }
 
-      console.log('📤 Uploading file:', file.name, file.type, file.size);
+      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Uploading file:', file.name, file.type, file.size);
       
       // Upload file to server
       const uploadResult = await uploadApi.uploadFile(file);
-      console.log('✅ File uploaded successfully:', uploadResult);
+      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ File uploaded successfully:', uploadResult);
 
       // Add to uploaded files list (for preview before send)
       setUploadedFiles([...uploadedFiles, file]);
@@ -1229,7 +1248,7 @@ export default function Messenger() {
       // Optionally focus message input for caption
       if (file.type.startsWith('image/')) {
         // For images, keep preview for user to add caption
-        console.log('🖼️ Image preview ready, user can add caption before sending');
+        console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Image preview ready, user can add caption before sending');
       } else {
         // For videos and files, auto-send
         const attachment: MessageAttachment = {
@@ -1239,11 +1258,11 @@ export default function Messenger() {
           fileSize: uploadResult.fileSize,
         };
 
-        const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `📎 ${file.name}`;
+        const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ ${file.name}`;
         await sendMessageAPI(activeChat, messageContent, [attachment], replyTo?.id);
         setReplyTo(null);
         
-        console.log('✅ Message sent with attachment');
+        console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Message sent with attachment');
         
         // Clear preview
         setFilePreview(null);
@@ -1255,7 +1274,7 @@ export default function Messenger() {
         }, 100);
       }
     } catch (error) {
-      console.error('❌ Failed to upload file:', error);
+      console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Failed to upload file:', error);
       notify.error(t('messenger.errors.uploadFile'));
       
       // Clear preview on error
@@ -1274,14 +1293,14 @@ export default function Messenger() {
 
     try {
       setUploadingFiles(true);
-      console.log('🎤 Uploading voice message:', blob.size, 'bytes');
+      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Uploading voice message:', blob.size, 'bytes');
 
       // Convert blob to file
       const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
       
       // Upload voice file
       const uploadResult = await uploadApi.uploadFile(voiceFile);
-      console.log('✅ Voice message uploaded:', uploadResult);
+      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Voice message uploaded:', uploadResult);
 
       // Create attachment object
       const attachment: MessageAttachment = {
@@ -1294,14 +1313,14 @@ export default function Messenger() {
       // Send message with voice attachment
       await sendMessageAPI(activeChat, t('messenger.captionVoice'), [attachment], replyTo?.id);
       setReplyTo(null);
-      console.log('✅ Voice message sent');
+      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Voice message sent');
 
       // Scroll to bottom
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } catch (error) {
-      console.error('❌ Failed to upload voice message:', error);
+      console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Failed to upload voice message:', error);
       notify.error(t('messenger.errors.voiceMessage'));
     } finally {
       setUploadingFiles(false);
@@ -1389,83 +1408,8 @@ export default function Messenger() {
     e.target.value = '';
   };
 
-  const handleVoiceRecord = async () => {
-    if (isRecording) {
-      // Stop recording + speech recognition
-      mediaRecorderRef.current?.stop();
-      recognitionRef.current?.stop();
-      setIsRecording(false);
-      if (recordingTimerRef.current) {
-        window.clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-      return;
-    }
 
-    // Start recording
-    try {
-      voiceTranscriptRef.current = '';
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (blob.size > 0) {
-          setVoiceBlob(blob);
-          setShowVoicePreview(true);
-        }
-        setRecordingDuration(0);
-      };
-
-      // Start SpeechRecognition simultaneously (for voice-to-text option)
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognitionRef.current = recognition;
-        recognition.lang = 'vi-VN';
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.onresult = (event: any) => {
-          let text = '';
-          for (let i = 0; i < event.results.length; i++) {
-            text += event.results[i][0].transcript;
-          }
-          voiceTranscriptRef.current = text;
-        };
-        recognition.onerror = () => {};
-        recognition.start();
-      }
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingDuration(0);
-      recordingTimerRef.current = window.setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-    } catch (err) {
-      console.error('Microphone access denied:', err);
-      notify.error(t('messenger.errors.voiceMessage'));
-    }
-  };
-
-  /** Option 1: Send as voice message */
-  const handleVoiceSendAudio = async () => {
-    if (voiceBlob) {
-      await handleVoiceRecording(voiceBlob);
-    }
-    setShowVoicePreview(false);
-    setVoiceBlob(null);
-    voiceTranscriptRef.current = '';
-  };
-
-  /** Option 2: Convert to text → put in input */
+  /** Option 2: Convert to text ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ put in input */
   const handleVoiceConvertToText = () => {
     const text = voiceTranscriptRef.current.trim();
     if (text) {
@@ -1532,576 +1476,160 @@ export default function Messenger() {
     <div className="h-[calc(100vh-5rem)] bg-slate-50 dark:bg-[#0c0e14] flex relative overflow-hidden transition-colors duration-300">
 
       {/* Left Sidebar - Conversations */}
-      <div className={`border-r border-gray-200/50 dark:border-white/5 glass-surface flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
-        leftSidebarCollapsed ? 'w-20' : 'w-[340px]'
-      }`}>
-        {/* Header */}
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          {!leftSidebarCollapsed && (
-            <h1 className="text-xl font-bold text-gray-900">{t('messenger.messagesHeader')}</h1>
-          )}
-          <div className={`flex gap-2 ${leftSidebarCollapsed ? 'flex-col w-full' : ''}`}>
-            {!leftSidebarCollapsed && (
-              <>
-                <button 
-                  onClick={() => navigate('/messenger/new')}
-                  className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title={t('messenger.newMessageIconTitle')}
-                >
-                  <Edit className="w-5 h-5 text-gray-700" />
-                </button>
-                <button 
-                  onClick={() => navigate('/messenger/new', { state: { createGroup: true } })}
-                  className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title={t('messenger.createGroupIconTitle')}
-                >
-                  <Users className="w-5 h-5 text-gray-700" />
-                </button>
-                <button
-                  onClick={async () => {
-                    setShowHiddenPanel(true);
-                    if (!user?.id) return;
-                    setHiddenLoading(true);
-                    try {
-                      const data = await conversationsApi.getHiddenConversationsByUserId(user.id);
-                      setHiddenConversations(Array.isArray(data) ? data : []);
-                    } catch { setHiddenConversations([]); }
-                    finally { setHiddenLoading(false); }
-                  }}
-                  className="w-10 h-10 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200/60 flex items-center justify-center transition-colors relative group"
-                  title="Chat ẩn"
-                >
-                  <EyeOff className="w-5 h-5 text-amber-600" />
-                </button>
-                <Link
-                  to="/messenger/settings"
-                  className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                  title={t('messenger.settingsIconTitle')}
-                >
-                  <Settings className="w-5 h-5 text-gray-700" />
-                </Link>
-              </>
-            )}
-            <button
-              onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-              className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-              title={leftSidebarCollapsed ? t('messenger.expandSidebarTitle') : t('messenger.collapseSidebarTitle')}
-            >
-              {leftSidebarCollapsed ? (
-                <ChevronRight className="w-5 h-5 text-gray-700" />
-              ) : (
-                <ChevronLeft className="w-5 h-5 text-gray-700" />
-              )}
-            </button>
-          </div>
-        </div>
+      <ChatSidebar
+        formattedConversations={formattedConversations}
+        activeChat={activeChat}
+        onSelectChat={setActiveChat}
+        collapsed={leftSidebarCollapsed}
+        onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+        sidebarSearch={sidebarSearch}
+        onSearchChange={setSidebarSearch}
+        loading={loading}
+        aiConversationId={AI_CONVERSATION_ID}
+        contextMenu={contextMenu}
+        onContextMenu={(e, convId) => {
+          setContextMenu({ x: e.clientX, y: e.clientY, convId });
+        }}
+        showHideInput={showHideInput}
+        hidePin={hidePin}
+        onHidePinChange={setHidePin}
+        hideLoading={hideLoading}
+        hideError={hideError}
+        onHideError={setHideError}
+        onHideConversation={async (convId, pin) => {
+          if (!user?.id) return;
+          setHideLoading(true);
+          setHideError(null);
+          try {
+            await conversationsApi.hideConversation(convId, { userId: user.id, pin });
+            setShowHideInput(null);
+            setHidePin('');
+            loadConversations();
+            if (activeChat === convId) setActiveChat(null);
+            notify.success('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ ÃƒÂ¡Ã‚ÂºÃ‚Â©n hÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢i thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i');
+          } catch (err: any) {
+            setHideError(err?.message || 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i');
+          } finally {
+            setHideLoading(false);
+          }
+        }}
+        onCancelHide={() => { setShowHideInput(null); setHidePin(''); setHideError(null); }}
+        onShowHidden={async () => {
+          setShowHiddenPanel(true);
+          if (!user?.id) return;
+          setHiddenLoading(true);
+          try {
+            const data = await conversationsApi.getHiddenConversationsByUserId(user.id);
+            setHiddenConversations(Array.isArray(data) ? data : []);
+          } catch { setHiddenConversations([]); }
+          finally { setHiddenLoading(false); }
+        }}
+        onStartHide={(convId) => {
+          setShowHideInput(convId);
+          setHidePin('');
+          setHideError(null);
+          if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
+          setContextMenu(null);
+        }}
+      />
 
-        {/* Search */}
-          <div className="p-4 border-b border-gray-100/50 dark:border-white/5">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={sidebarSearch}
-                onChange={(e) => setSidebarSearch(e.target.value)}
-                placeholder={t('messenger.searchMessagesPlaceholder')}
-                className="w-full h-11 pl-11 pr-4 rounded-2xl bg-gray-100/50 dark:bg-[#22263a]/50 border border-transparent focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-200"
-              />
-            </div>
-          </div>
-
-
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-           {loading && formattedConversations.length === 0 && (
-            <div className="p-4 text-center text-gray-500">{t('messenger.loadingConversations')}</div>
-          )}
-          {(sidebarSearch
-            ? formattedConversations.filter(c => c.name.toLowerCase().includes(sidebarSearch.toLowerCase()))
-            : formattedConversations
-          ).map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => {
-                if (showHideInput === conv.id) return;
-                setActiveChat(conv.id);
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, convId: conv.id });
-              }}
-              className={`cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
-                activeChat === conv.id 
-                  ? 'bg-blue-50 dark:bg-blue-500/15' 
-                  : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
-              } ${leftSidebarCollapsed ? 'p-2 mx-2 my-0.5 flex items-center justify-center' : 'px-3 py-2.5 mx-1 my-0.5 flex items-center gap-3'}`}
-              title={leftSidebarCollapsed ? conv.name : ''}
-            >
-              {showHideInput === conv.id ? (
-                <div className="w-full flex flex-col gap-2 p-1 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
-                      <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate flex-1">Ẩn "{conv.name}"</p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="password"
-                      maxLength={6}
-                      autoFocus
-                      value={hidePin}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => { setHidePin(e.target.value.replace(/\D/g, '')); setHideError(null); }}
-                      placeholder="Mã PIN"
-                      className="w-full h-8 px-2.5 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none dark:text-white transition-all font-mono tracking-widest text-center"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && hidePin.length >= 4) {
-                          e.preventDefault();
-                          // trigger hide
-                          (async () => {
-                            if (!user?.id) return;
-                            setHideLoading(true);
-                            setHideError(null);
-                            try {
-                              await conversationsApi.hideConversation(conv.id, { userId: user.id, pin: hidePin });
-                              setShowHideInput(null);
-                              setHidePin('');
-                              loadConversations();
-                              if (activeChat === conv.id) setActiveChat(null);
-                              notify.success('Đã ẩn hội thoại');
-                            } catch (err: any) {
-                              setHideError(err?.message || 'Lỗi');
-                            } finally {
-                              setHideLoading(false);
-                            }
-                          })();
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!user?.id) return;
-                        setHideLoading(true);
-                        setHideError(null);
-                        try {
-                          await conversationsApi.hideConversation(conv.id, { userId: user.id, pin: hidePin });
-                          setShowHideInput(null);
-                          setHidePin('');
-                          loadConversations();
-                          if (activeChat === conv.id) setActiveChat(null);
-                          notify.success('Đã ẩn hội thoại');
-                        } catch (err: any) {
-                          setHideError(err?.message || 'Lỗi');
-                        } finally {
-                          setHideLoading(false);
-                        }
-                      }}
-                      disabled={hidePin.length < 4 || hideLoading}
-                      className="h-8 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors flex items-center justify-center shrink-0"
-                    >
-                      {hideLoading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Ẩn'}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowHideInput(null);
-                        setHidePin('');
-                        setHideError(null);
-                      }}
-                      className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg shrink-0 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {hideError && <p className="text-[10px] text-red-500 text-center font-medium">{hideError}</p>}
-                </div>
-              ) : leftSidebarCollapsed ? (
-                <div className="relative shrink-0">
-                  {conv.id === AI_CONVERSATION_ID ? (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-white" />
-                    </div>
-                  ) : conv.isGroup ? (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: conv.color }}>
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                  ) : (
-                    <>
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs"
-                        style={{ backgroundColor: conv.color }}
-                      >
-                        {conv.avatar}
-                      </div>
-                      {conv.online && (
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
-                      {conv.unread > 0 && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
-                          {conv.unread}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="relative shrink-0">
-                    {conv.id === AI_CONVERSATION_ID ? (
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-white" />
-                      </div>
-                    ) : conv.isGroup ? (
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ backgroundColor: conv.color }}>
-                        <Users className="w-5 h-5 text-white" />
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                          style={{ backgroundColor: conv.color }}
-                        >
-                          {conv.avatar}
-                        </div>
-                        {conv.online && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{conv.name}</p>
-                      <span className={`text-xs shrink-0 ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>{conv.time}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className={`text-xs truncate ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>{conv.lastMessage}</p>
-                      {conv.unread > 0 && (
-                        <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                          {conv.unread}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Context Menu ────────────────────────────────────────────────────── */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 w-48 bg-white dark:bg-[#22263a] rounded-xl shadow-xl border border-gray-100 dark:border-white/5 py-1 animate-in fade-in zoom-in-95 duration-150"
-          style={{ top: Math.min(contextMenu.y, window.innerHeight - 150), left: Math.min(contextMenu.x, window.innerWidth - 200) }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => {
-              setShowHideInput(contextMenu.convId);
-              setHidePin('');
-              setHideError(null);
-              if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
-              setContextMenu(null);
-            }}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 transition-colors"
-          >
-            <EyeOff className="w-4 h-4 text-amber-500" />
-            Ẩn hội thoại
-          </button>
-        </div>
-      )}
-
-      {/* ── Hidden Conversations Panel ────────────────────────────────────── */}
-      {showHiddenPanel && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowHiddenPanel(false); setShowHideInput(null); setHidePin(''); }} />
-          {/* Panel */}
-          <div className="relative w-full max-w-md mx-4 bg-white dark:bg-[#1a1d28] rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Panel Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                  <EyeOff className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Chat ẩn</h2>
-                  <p className="text-xs text-gray-500">{hiddenConversations.length} hội thoại đang ẩn</p>
-                </div>
-              </div>
-              <button onClick={() => { setShowHiddenPanel(false); setShowHideInput(null); setHidePin(''); }} className="w-9 h-9 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            {/* Panel Body */}
-            <div className="max-h-[60vh] overflow-y-auto">
-              {hiddenLoading ? (
-                <div className="p-8 text-center text-gray-500">Đang tải...</div>
-              ) : hiddenConversations.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-3">
-                    <Shield className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-gray-500 text-sm">Không có hội thoại nào đang ẩn</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-white/5">
-                  {hiddenConversations.map((conv) => {
-                    const otherIdx = conv.participantIds?.findIndex((id) => id !== user?.id) ?? 0;
-                    const name = conv.isGroup
-                      ? conv.groupName || 'Group Chat'
-                      : conv.participantNames?.[otherIdx] || 'Chat';
-                    const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-                    return (
-                      <div
-                        key={conv.id}
-                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
-                        onClick={() => {
-                          if (conv.hiddenRequiresPin) {
-                            setPendingUnlockConv(conv);
-                            setUnlockPin('');
-                            setUnlockError(null);
-                            setShowUnlockModal(true);
-                          }
-                        }}
-                      >
-                        <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ backgroundColor: hashColor(conv.id) }}>
-                          {conv.isGroup ? <Users className="w-5 h-5 text-white" /> : initials}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
-                          <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                            <Lock className="w-3 h-3" /> Cần PIN để mở
-                          </p>
-                        </div>
-                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                            <Unlock className="w-4 h-4 text-amber-600" />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Unlock PIN Modal ──────────────────────────────────────────────── */}
-      {showUnlockModal && pendingUnlockConv && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowUnlockModal(false); setPendingUnlockConv(null); setUnlockPin(''); setUnlockError(null); }} />
-          <div className="relative w-full max-w-sm mx-4 bg-white dark:bg-[#1a1d28] rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
-                <Lock className="w-8 h-8 text-amber-600" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Mở khóa hội thoại</h3>
-              <p className="text-sm text-gray-500 mb-5">Nhập PIN để xem hội thoại này</p>
-              <input
-                type="password"
-                maxLength={6}
-                value={unlockPin}
-                onChange={(e) => { setUnlockPin(e.target.value.replace(/\D/g, '')); setUnlockError(null); }}
-                placeholder="Nhập PIN (4-6 số)"
-                className="w-full h-12 px-4 rounded-xl bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-center text-xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-amber-400 dark:text-white transition-all"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && unlockPin.length >= 4) {
-                    e.preventDefault();
-                    (async () => {
-                      if (!user?.id || !pendingUnlockConv) return;
-                      setUnlockLoading(true);
-                      setUnlockError(null);
-                      try {
-                        await conversationsApi.unhideConversation(pendingUnlockConv.id, { userId: user.id, pin: unlockPin });
-                        setShowUnlockModal(false);
-                        setShowHiddenPanel(false);
-                        setPendingUnlockConv(null);
-                        setUnlockPin('');
-                        loadConversations();
-                        setActiveChat(pendingUnlockConv.id);
-                        notify.success('Đã mở khóa hội thoại');
-                      } catch (err: any) {
-                        setUnlockError(err?.message || 'PIN không đúng');
-                      } finally {
-                        setUnlockLoading(false);
-                      }
-                    })();
-                  }
-                }}
-              />
-              {unlockError && <p className="text-sm text-red-500 mt-2">{unlockError}</p>}
-              <div className="flex gap-3 mt-5">
-                <button
-                  onClick={() => { setShowUnlockModal(false); setPendingUnlockConv(null); setUnlockPin(''); setUnlockError(null); }}
-                  className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  disabled={unlockPin.length < 4 || unlockLoading}
-                  onClick={async () => {
-                    if (!user?.id || !pendingUnlockConv) return;
-                    setUnlockLoading(true);
-                    setUnlockError(null);
-                    try {
-                      await conversationsApi.unhideConversation(pendingUnlockConv.id, { userId: user.id, pin: unlockPin });
-                      setShowUnlockModal(false);
-                      setShowHiddenPanel(false);
-                      setPendingUnlockConv(null);
-                      setUnlockPin('');
-                      loadConversations();
-                      setActiveChat(pendingUnlockConv.id);
-                      notify.success('Đã mở khóa hội thoại');
-                    } catch (err: any) {
-                      setUnlockError(err?.message || 'PIN không đúng');
-                    } finally {
-                      setUnlockLoading(false);
-                    }
-                  }}
-                  className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {unlockLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <><Unlock className="w-4 h-4" /> Mở khóa</>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Hidden Chats Panel + Context Menu + Unlock Modal */}
+      <HiddenChatsPanel
+        contextMenu={contextMenu}
+        onContextMenuAction={(convId) => {
+          setShowHideInput(convId);
+          setHidePin('');
+          setHideError(null);
+          if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
+          setContextMenu(null);
+        }}
+        showHiddenPanel={showHiddenPanel}
+        hiddenConversations={hiddenConversations}
+        hiddenLoading={hiddenLoading}
+        onCloseHiddenPanel={() => { setShowHiddenPanel(false); setShowHideInput(null); setHidePin(''); }}
+        onSelectHiddenConv={(conv) => {
+          setPendingUnlockConv(conv);
+          setUnlockPin('');
+          setUnlockError(null);
+          setShowUnlockModal(true);
+        }}
+        hashColor={hashColor}
+        userId={user?.id}
+        showUnlockModal={showUnlockModal}
+        pendingUnlockConv={pendingUnlockConv}
+        unlockPin={unlockPin}
+        onUnlockPinChange={setUnlockPin}
+        unlockLoading={unlockLoading}
+        unlockError={unlockError}
+        onUnlockErrorChange={setUnlockError}
+        onUnlock={async () => {
+          if (!user?.id || !pendingUnlockConv) return;
+          setUnlockLoading(true);
+          setUnlockError(null);
+          try {
+            await conversationsApi.unhideConversation(pendingUnlockConv.id, { userId: user.id, pin: unlockPin });
+            setShowUnlockModal(false);
+            setShowHiddenPanel(false);
+            setPendingUnlockConv(null);
+            setUnlockPin('');
+            loadConversations();
+            setActiveChat(pendingUnlockConv.id);
+            notify.success('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ mÃƒÂ¡Ã‚Â»Ã…Â¸ khÃƒÆ’Ã‚Â³a hÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢i thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i');
+          } catch (err: any) {
+            setUnlockError(err?.message || 'PIN khÃƒÆ’Ã‚Â´ng Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Âºng');
+          } finally {
+            setUnlockLoading(false);
+          }
+        }}
+        onCloseUnlockModal={() => { setShowUnlockModal(false); setPendingUnlockConv(null); setUnlockPin(''); setUnlockError(null); }}
+      />
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-white min-w-0">
         {/* Chat Header */}
         {activeConversation && (
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shadow-sm">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              {activeConversation.isGroup ? (
-                <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: activeConversation.color }}>
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-              ) : (
-                <div className="relative shrink-0">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: activeConversation.color }}
-                    onClick={() => navigate(`/profile/${activeConversation.id}`)}
-                  >
-                    {activeConversation.avatar}
-                  </div>
-                  {activeConversation.online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-3 border-white"></div>
-                  )}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 text-lg truncate">{activeConversation.name}</p>
-                {activeConversation.online && (
-                  <p className="text-sm text-green-500 font-medium">{t('messenger.activeNow')}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button 
-                onClick={() => setShowSearch(!showSearch)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                  showSearch ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-                title={t('messenger.header.searchIconTitle')}
-              >
-                <SearchIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={async () => {
-                  const next = !showPinnedPanel;
-                  setShowPinnedPanel(next);
-                  if (next && activeChat && user?.id) {
-                    setPinnedLoading(true);
-                    try {
-                      const data = await messagesApi.getPinnedMessages(activeChat, user.id);
-                      setPinnedMessages(data.map(formatMessageForDisplay));
-                    } catch { setPinnedMessages([]); }
-                    finally { setPinnedLoading(false); }
-                  }
-                }}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                  showPinnedPanel ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-                title="Tin nhắn đã ghim"
-              >
-                <Pin className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => {
-                  const callInfo = getCallInfo();
-                  if (callInfo?.id && callInfo?.name) {
-                    // For group calls: pass conversationId and isGroup=true
-                    // For direct calls: pass userId and isGroup=false
-                    const conversationId = callInfo.isGroup ? callInfo.id : undefined;
-                    const isGroup = callInfo.isGroup || false;
-                    startCall(callInfo.id, callInfo.name, 'voice', conversationId, isGroup);
-                  } else {
-                    notify.error(t('messenger.errors.startCall'));
-                  }
-                }}
-                disabled={!activeChat || isAIChat}
-                className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title={
-                  isAIChat
-                    ? t('messenger.header.voiceCallNotAvailable')
-                    : isGroupChat
-                      ? t('messenger.header.groupCall')
-                      : t('messenger.header.call')
-                }
-              >
-                <Phone className="w-5 h-5 text-gray-700" />
-              </button>
-              <button 
-                onClick={() => {
-                  const callInfo = getCallInfo();
-                  if (callInfo?.id && callInfo?.name) {
-                    // For group calls: pass conversationId and isGroup=true
-                    // For direct calls: pass userId and isGroup=false
-                    const conversationId = callInfo.isGroup ? callInfo.id : undefined;
-                    const isGroup = callInfo.isGroup || false;
-                    startCall(callInfo.id, callInfo.name, 'video', conversationId, isGroup);
-                  } else {
-                    notify.error(t('messenger.errors.startVideoCall'));
-                  }
-                }}
-                disabled={!activeChat || isAIChat}
-                className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                title={
-                  isAIChat
-                    ? t('messenger.header.videoCallNotAvailable')
-                    : isGroupChat
-                      ? t('messenger.header.groupVideoCall')
-                      : t('messenger.header.videoCall')
-                }
-              >
-                <Video className="w-5 h-5 text-gray-700" />
-              </button>
-              <button 
-                onClick={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                  !rightSidebarCollapsed ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-blue-100 text-blue-600'
-                }`}
-                title={t('messenger.header.infoIconTitle')}
-              >
-                <Info className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+          <ChatHeader
+            conversation={activeConversation}
+            isGroupChat={isGroupChat}
+            isAIChat={isAIChat}
+            showSearch={showSearch}
+            showPinnedPanel={showPinnedPanel}
+            rightSidebarCollapsed={rightSidebarCollapsed}
+            onToggleSearch={() => setShowSearch(!showSearch)}
+            onTogglePinned={async () => {
+              const next = !showPinnedPanel;
+              setShowPinnedPanel(next);
+              if (next && activeChat && user?.id) {
+                setPinnedLoading(true);
+                try {
+                  const data = await messagesApi.getPinnedMessages(activeChat, user.id);
+                  setPinnedMessages(data.map(formatMessageForDisplay));
+                } catch { setPinnedMessages([]); }
+                finally { setPinnedLoading(false); }
+              }
+            }}
+            onToggleRightSidebar={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
+            onVoiceCall={() => {
+              const callInfo = getCallInfo();
+              if (callInfo?.id && callInfo?.name) {
+                const conversationId = callInfo.isGroup ? callInfo.id : undefined;
+                const isGroup = callInfo.isGroup || false;
+                startCall(callInfo.id, callInfo.name, 'voice', conversationId, isGroup);
+              } else {
+                notify.error(t('messenger.errors.startCall'));
+              }
+            }}
+            onVideoCall={() => {
+              const callInfo = getCallInfo();
+              if (callInfo?.id && callInfo?.name) {
+                const conversationId = callInfo.isGroup ? callInfo.id : undefined;
+                const isGroup = callInfo.isGroup || false;
+                startCall(callInfo.id, callInfo.name, 'video', conversationId, isGroup);
+              } else {
+                notify.error(t('messenger.errors.startVideoCall'));
+              }
+            }}
+          />
         )}
 
         {/* Search Bar */}
@@ -2127,400 +1655,35 @@ export default function Messenger() {
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
-            {searchLoading && <p className="text-xs text-gray-400 mt-2 pl-1">Đang tìm...</p>}
+            {searchLoading && <p className="text-xs text-gray-400 mt-2 pl-1">ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âang tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬m...</p>}
             {searchResults !== null && !searchLoading && (
-              <p className="text-xs text-gray-400 mt-2 pl-1">Tìm thấy {searchResults.length} kết quả</p>
+              <p className="text-xs text-gray-400 mt-2 pl-1">TÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬m thÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥y {searchResults.length} kÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿t quÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£</p>
             )}
           </div>
         )}
 
         {/* Pinned Messages Panel */}
         {activeConversation && showPinnedPanel && (
-          <div className="border-b border-gray-100 bg-white">
-            <div className="px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Pin className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-semibold text-gray-800">Tin nhắn đã ghim</span>
-                <span className="text-xs text-gray-400">({pinnedMessages.length})</span>
-              </div>
-              <button onClick={() => setShowPinnedPanel(false)} className="w-7 h-7 rounded-md hover:bg-gray-100 flex items-center justify-center">
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
-            <div className="max-h-48 overflow-y-auto px-4 pb-3 space-y-2">
-              {pinnedLoading ? (
-                <p className="text-xs text-gray-400 py-2">Đang tải...</p>
-              ) : pinnedMessages.length === 0 ? (
-                <p className="text-xs text-gray-400 py-2">Chưa có tin nhắn nào được ghim</p>
-              ) : (
-                pinnedMessages.map((msg) => (
-                  <div key={msg.id} className="flex items-start gap-2 p-2 rounded-lg bg-blue-50/60 hover:bg-blue-50 transition-colors cursor-pointer text-left" onClick={() => {
-                    const el = document.getElementById(`msg-${msg.id}`);
-                    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('ring-2', 'ring-blue-400'); setTimeout(() => el.classList.remove('ring-2', 'ring-blue-400'), 2000); }
-                  }}>
-                    <Pin className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-gray-700">{msg.sender}</p>
-                      <p className="text-xs text-gray-600 line-clamp-2">{msg.content || '📎 Tệp đính kèm'}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{msg.time}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <PinnedMessagesPanel
+            messages={pinnedMessages}
+            loading={pinnedLoading}
+            onClose={() => setShowPinnedPanel(false)}
+          />
         )}
 
         {/* Messages Area */}
-        {activeConversation ? (
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50" ref={messagesEndRef}>
-            {filteredMessages.map((msg) => {
-              const isSelected = selectedMessage === msg.id;
-              const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
-              return (
-                <div
-                id={`msg-${msg.id}`}
-                key={msg.id}
-                className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''} transition-all duration-300`}
-              >
-                {!msg.isMe && (
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.senderId === 'ai' 
-                        ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
-                        : 'cursor-pointer'
-                    }`}
-                    style={msg.senderId !== 'ai' ? { backgroundColor: hashColor(msg.senderId || 'u') } : undefined}
-                    onClick={msg.senderId === 'ai' ? undefined : () => navigate(`/profile/${msg.senderId}`)}
-                  >
-                    {msg.senderId === 'ai' ? (
-                      <Bot className="w-4 h-4 text-white" />
-                    ) : (
-                      <span className="text-white font-semibold text-xs">{msg.sender.charAt(0)}</span>
-                    )}
-                  </div>
-                )}
-                <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
-                  {/* Sender name — only in group chats */}
-                  {isGroupChat && !msg.isMe && (
-                    <p className="text-[11px] font-medium text-gray-400 mb-0.5 ml-1">{msg.sender}</p>
-                  )}
-                  {/* Reply To */}
-                  {msg.replyTo && (
-                    <div className={`mb-1 p-2 rounded-lg bg-gray-100 border-l-3 border-blue-400 text-left`}>
-                      <p className="text-[11px] font-semibold text-gray-500">{msg.replyTo.sender}</p>
-                      <p className="text-xs text-gray-600 line-clamp-1">{msg.replyTo.content}</p>
-                    </div>
-                  )}
-                  
-                  {/* Pinned Badge */}
-                  {msg.pinned && (
-                    <div className="mb-1 flex items-center gap-1 text-[11px] text-gray-400">
-                      <Pin className="w-3 h-3" />
-                      <span>{t('messenger.messageOptions.pinned')}</span>
-                    </div>
-                  )}
-
-                  {/* Attachments */}
-                  {msg.attachments && msg.attachments.length > 0 && (() => {
-                    const images = msg.attachments!.filter(a => a.type === 'image');
-                    const others = msg.attachments!.filter(a => a.type !== 'image');
-                    return (
-                      <div className="mb-1 space-y-1">
-                        {/* Image grid — groups multiple images together */}
-                        {images.length === 1 && (
-                          <div className="max-w-[240px] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                            <img
-                              src={images[0].url}
-                              alt={images[0].fileName || t('messenger.attachment.imageAlt')}
-                              className="w-full h-auto"
-                              onClick={() => window.open(images[0].url, '_blank')}
-                            />
-                          </div>
-                        )}
-                        {images.length >= 2 && (
-                          <div className={`grid gap-0.5 rounded-2xl overflow-hidden max-w-[280px] ${
-                            images.length === 2 ? 'grid-cols-2' :
-                            images.length === 3 ? 'grid-cols-2' :
-                            'grid-cols-2'
-                          }`}>
-                            {images.slice(0, 4).map((img, idx) => (
-                              <div
-                                key={idx}
-                                className={`relative cursor-pointer hover:opacity-90 transition-opacity ${
-                                  images.length === 3 && idx === 0 ? 'row-span-2' : ''
-                                }`}
-                                onClick={() => window.open(img.url, '_blank')}
-                              >
-                                <img
-                                  src={img.url}
-                                  alt={img.fileName || ''}
-                                  className={`w-full object-cover ${
-                                    images.length === 3 && idx === 0 ? 'h-full' : 'h-[120px]'
-                                  }`}
-                                />
-                                {idx === 3 && images.length > 4 && (
-                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                    <span className="text-white text-xl font-bold">+{images.length - 4}</span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {/* Non-image attachments */}
-                        {others.map((attachment, idx) => (
-                          <div key={`other-${idx}`}>
-                            {attachment.type === 'video' && (
-                              <div className="max-w-[240px] rounded-2xl overflow-hidden">
-                                <video src={attachment.url} controls className="w-full h-auto" />
-                              </div>
-                            )}
-                            {attachment.type === 'audio' && (
-                              <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-2xl max-w-[240px]">
-                                <Mic className="w-4 h-4 text-blue-500 shrink-0" />
-                                <audio src={attachment.url} controls className="flex-1 h-8" />
-                              </div>
-                            )}
-                            {attachment.type === 'file' && (
-                              <a
-                                href={attachment.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-2xl max-w-[240px] hover:bg-gray-100 transition-colors"
-                              >
-                                <FileText className="w-5 h-5 text-gray-500 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate">
-                                    {attachment.fileName || t('messenger.attachment.fileAlt')}
-                                  </p>
-                                  {attachment.fileSize && (
-                                    <p className="text-[11px] text-gray-400">
-                                      {(attachment.fileSize / 1024).toFixed(1)} KB
-                                    </p>
-                                  )}
-                                </div>
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-
-                  {msg.image ? (
-                    <div className="max-w-[240px] rounded-2xl mb-1 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                      {msg.image === 'beach' && <LargeBeachPlaceholder className="w-full h-full" />}
-                    </div>
-                  ) : null}
-
-                  {msg.content && (
-                    <div
-                      className={`relative inline-block px-3.5 py-2 ${
-                        msg.isMe
-                          ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
-                          : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
-                      }`}
-                      onDoubleClick={() => handleReaction(msg.id, 'LOVE')}
-                    >
-                      <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
-                    </div>
-                  )}
-
-
-                  {/* Message Options */}
-                  <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
-                    <div className="relative">
-                      <button
-                        ref={isSelected ? menuButtonRef : null}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isSelected) {
-                            const buttonRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            if (msg.isMe) {
-                              setMenuPosition({ 
-                                top: buttonRect.top, 
-                                right: window.innerWidth - buttonRect.left + 8 
-                              });
-                            } else {
-                              setMenuPosition({ 
-                                top: buttonRect.top, 
-                                left: buttonRect.right + 8 
-                              });
-                            }
-                            setSelectedMessage(msg.id);
-                          } else {
-                            setSelectedMessage(null);
-                            setMenuPosition(null);
-                          }
-                        }}
-                        className="w-8 h-8 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-20"
-                      >
-                        <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </button>
-                      
-                      {isSelected && selectedMessage === msg.id && menuPosition && (
-                        <div 
-                          data-message-menu
-                          className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999] min-w-[180px]"
-                          style={menuPosition}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                              <button
-                                onClick={() => handleMessageAction('reply', msg.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                              >
-                                <Reply className="w-4 h-4" />
-                                <span>{t('messenger.messageOptions.reply')}</span>
-                              </button>
-                              <button
-                                onClick={() => handleMessageAction('forward', msg.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                              >
-                                <Forward className="w-4 h-4" />
-                                <span>{t('messenger.messageOptions.forward')}</span>
-                              </button>
-                              <button
-                                onClick={() => handleMessageAction('copy', msg.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                              >
-                                <Copy className="w-4 h-4" />
-                                <span>{t('messenger.messageOptions.copy')}</span>
-                              </button>
-                              <button
-                                onClick={() => handleMessageAction('pin', msg.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                              >
-                                <Pin className="w-4 h-4" />
-                                <span>{msg.pinned ? t('messenger.messageOptions.unpin') : t('messenger.messageOptions.pin')}</span>
-                              </button>
-                              <button
-                                onClick={() => handleMessageAction('star', msg.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                              >
-                                <Star className={`w-4 h-4 ${msg.starred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                                <span>{msg.starred ? t('messenger.messageOptions.unstar') : t('messenger.messageOptions.star')}</span>
-                              </button>
-                              {msg.isMe && (
-                                <button
-                                  onClick={() => handleMessageAction('edit', msg.id)}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                  <span>{t('messenger.messageOptions.edit')}</span>
-                                </button>
-                              )}
-                              <div className="border-t border-gray-100 my-1"></div>
-                              {canRecall && (
-                                <button
-                                  onClick={() => handleMessageAction('delete', msg.id)}
-                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  <span>{t('messenger.messageOptions.delete')}</span>
-                                </button>
-                              )}
-                              {msg.isMe && !canRecall && (
-                                <div className="w-full px-4 py-2 text-left text-sm text-gray-400 flex items-center gap-3" title="Chi thu hoi trong 2 phut dau">
-                                  <Trash2 className="w-4 h-4" />
-                                  <span>Het han thu hoi</span>
-                                </div>
-                              )}
-                              <button
-                                onClick={() => handleMessageAction('delete_for_me', msg.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Xoa phia toi</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                  {/* Reactions */}
-                  {msg.reactions && msg.reactions.length > 0 && (
-                    <div className={`flex flex-wrap gap-1 mt-2 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                      {msg.reactions.map((reaction, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleReaction(msg.id, reaction.emoji)}
-                          className="px-2 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-1 text-xs"
-                        >
-                          <span>{reaction.emoji}</span>
-                          <span className="text-gray-600 font-medium">{reaction.users.length}</span>
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => {
-                          const picker = document.getElementById(`reaction-picker-${msg.id}`);
-                          if (picker) {
-                            picker.classList.toggle('hidden');
-                            picker.classList.toggle('flex');
-                          }
-                        }}
-                        className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
-                      >
-                        <Plus className="w-3 h-3 text-gray-600" />
-                      </button>
-                      
-                      {/* Quick Reactions Picker */}
-                      <div
-                        id={`reaction-picker-${msg.id}`}
-                        className="hidden absolute bottom-full mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 gap-1 z-20"
-                      >
-                        {REACTIONS.map((r) => (
-                          <button
-                            key={r.key}
-                            onClick={() => {
-                              handleReaction(msg.id, r.key);
-                              const picker = document.getElementById(`reaction-picker-${msg.id}`);
-                              if (picker) {
-                                picker.classList.add('hidden');
-                                picker.classList.remove('flex');
-                              }
-                            }}
-                            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-                            title={r.label}
-                          >
-                            <span className="w-5 h-5 inline-block">{r.svg}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Time and Status */}
-                  <div className={`flex items-center gap-1 mt-0.5 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-                    <p className="text-[11px] text-gray-400">{msg.time}</p>
-                    {msg.isMe && msg.status && (
-                      <div className="flex items-center">
-                        {msg.status === 'read' ? (
-                          <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
-                        ) : msg.status === 'delivered' ? (
-                          <CheckCheck className="w-3.5 h-3.5 text-gray-400" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5 text-gray-400" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
-            <div className="text-center max-w-md">
-              <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-                <Users className="w-6 h-6 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-700">Chua chon doan chat</h3>
-              <p className="mt-1 text-sm text-gray-500">Hay chon 1 cuoc tro chuyen ben trai de bat dau nhan tin.</p>
-            </div>
-          </div>
-        )}
+        <ChatMessages
+          activeConversation={activeConversation ?? null}
+          filteredMessages={filteredMessages}
+          isGroupChat={isGroupChat}
+          selectedMessage={selectedMessage}
+          menuPosition={menuPosition}
+          onSelectMessage={setSelectedMessage}
+          onSetMenuPosition={setMenuPosition}
+          onMessageAction={handleMessageAction}
+          onReaction={handleReaction}
+          messagesEndRef={messagesEndRef}
+        />
 
         {activeConversation && (
           <>
@@ -2566,853 +1729,127 @@ export default function Messenger() {
 
         {/* Typing Indicator */}
         {(((isTyping && !isAIChat && typingNames.length > 0) || (isAIChat && isAiLoading))) && (
-          <div className="px-4 md:px-6 py-3 bg-white border-t border-gray-100">
-            <div className="flex items-center gap-3">
-              {isAIChat && (
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 shadow-sm">
-                  <Bot className="w-5 h-5 text-white" />
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-                <span className="text-sm text-gray-600 font-medium">
-                  {isAIChat
-                    ? t('messenger.typing.ai')
-                    : typingNames.length > 1
-                      ? `${typingNames[0]} +${typingNames.length - 1} dang nhap...`
-                      : t('messenger.typing.user', { name: typingNames[0] ?? activeConversation?.name ?? '' })}
-                </span>
-              </div>
-            </div>
-          </div>
+          <TypingIndicator
+            isAIChat={isAIChat}
+            typingNames={typingNames}
+            conversationName={activeConversation?.name}
+          />
         )}
 
         {/* Message Input */}
-        <div className="p-3 md:p-4 lg:p-5 border-t border-gray-100 bg-white">
-          {isAIChat && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              <button
-                onClick={() => handleGenerateDailySummaryForAi(t('messenger.aiAssistant.summaryQuickPrompt'))}
-                disabled={isAiLoading}
-                className="inline-flex items-center gap-2 h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
-                title={t('messenger.aiAssistant.summarizeToday')}
-              >
-                <Sparkles className="w-4 h-4" />
-                {t('messenger.aiAssistant.summarizeToday')}
-              </button>
-            </div>
-          )}
-
-          {/* Loading Indicator */}
-          {uploadingFiles && (
-            <div className="mb-3 flex items-center gap-2 text-sm text-blue-600">
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span>{t('messenger.uploadingFiles')}</span>
-            </div>
-          )}
-
-          {/* File Preview */}
-          {filePreview && (
-            <div className="mb-3 relative inline-block">
-              <img 
-                src={filePreview.preview} 
-                alt="Preview" 
-                className="max-w-xs max-h-40 rounded-lg shadow-sm"
-              />
-              <button
-                onClick={() => {
-                  URL.revokeObjectURL(filePreview.preview);
-                  setFilePreview(null);
-                }}
-                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {/* Uploaded Files Preview — grouped multi-file */}
-          {uploadedFiles.length > 0 && (
-            <div className="mb-2 md:mb-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gray-500">
-                  {uploadedFiles.length} {uploadedFiles.length === 1 ? 'tệp' : 'tệp'} đã chọn
-                </span>
-                <button
-                  onClick={() => setUploadedFiles([])}
-                  className="text-xs text-red-500 hover:text-red-700 font-medium"
-                >
-                  Xóa tất cả
-                </button>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {uploadedFiles.map((file, idx) => (
-                  <div key={idx} className="relative shrink-0 group/file">
-                    {file.type.startsWith('image/') ? (
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-cover border border-gray-200"
-                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                      />
-                    ) : (
-                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg bg-gray-100 flex flex-col items-center justify-center border border-gray-200">
-                        {file.type.startsWith('video/') ? (
-                          <Video className="w-5 h-5 text-green-500" />
-                        ) : file.type.startsWith('audio/') ? (
-                          <Music className="w-5 h-5 text-pink-500" />
-                        ) : (
-                          <FileText className="w-5 h-5 text-purple-500" />
-                        )}
-                        <span className="text-[9px] text-gray-400 mt-0.5">
-                          {file.name.split('.').pop()?.toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <button
-                      onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors opacity-0 group-hover/file:opacity-100"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                    <p className="text-[10px] text-gray-500 mt-0.5 truncate w-16 md:w-20 text-center">{file.name}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Attachment Menu */}
-          {showAttachmentMenu && (
-            <div className="mb-2 md:mb-3 p-3 md:p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="grid grid-cols-4 gap-2 md:gap-3">
-                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <ImageIcon className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.photo')}</span>
-                </label>
-                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-green-100 flex items-center justify-center">
-                    <Video className="w-5 h-5 text-green-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.video')}</span>
-                </label>
-                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-purple-100 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.file')}</span>
-                </label>
-                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-pink-100 flex items-center justify-center">
-                    <Music className="w-5 h-5 text-pink-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.audio')}</span>
-                </label>
-                <button
-                  onClick={() => {
-                    const text = `[Location] ${t('messenger.attachments.locationShared')}`;
-                    if (activeChat && user?.id) {
-                      sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
-                      setShowAttachmentMenu(false);
-                    }
-                  }}
-                  className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors"
-                >
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-red-100 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-red-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.location')}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    if (activeChat && user?.id) {
-                      const card = `[Contact] ${user.fullName || user.username}`;
-                      sendMessageAPI(activeChat, card, [], undefined).catch(() => {});
-                      setShowAttachmentMenu(false);
-                    }
-                  }}
-                  className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors"
-                >
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-cyan-100 flex items-center justify-center">
-                    <Contact className="w-5 h-5 text-cyan-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{t('messenger.attachments.contact')}</span>
-                </button>
-                <label className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-lg hover:bg-white transition-colors cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/gif"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-yellow-100 flex items-center justify-center">
-                    <Gift className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium">GIF</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Sticker Panel */}
-          {showStickerPanel && (
-            <div className="mb-2 md:mb-3 p-3 bg-white rounded-xl border border-gray-200 shadow-lg">
-              <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-thin">
-                {STICKER_TOPIC_WITH_ALL.map((topic) => (
-                  <button
-                    key={topic.id}
-                    type="button"
-                    onClick={() => setActiveStickerTopic(topic.id)}
-                    className={`px-3 h-8 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                      activeStickerTopic === topic.id
-                        ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {topic.label}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pr-1">
-                {(STICKER_TOPIC_WITH_ALL.find((topic) => topic.id === activeStickerTopic)?.files ?? []).map((sticker) => (
-                  <button
-                    key={sticker}
-                    type="button"
-                    onClick={() => handleSendSticker(sticker)}
-                    className="aspect-square rounded-xl bg-gray-50 border border-gray-100 p-2 hover:border-blue-300 hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all duration-150"
-                  >
-                    <img
-                      src={`/stickers/${sticker}`}
-                      alt={sticker}
-                      className="w-full h-full object-contain"
-                      loading="lazy"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Emoji Picker */}
-          {showEmojiPicker && (
-            <EmojiPicker
-              onEmojiSelect={handleEmojiSelect}
-            />
-          )}
-
-          {/* Voice Preview — after recording, choose: Send Voice or Convert to Text */}
-          {showVoicePreview && (
-            <div className="mb-2 p-3 bg-white rounded-xl border border-gray-200 shadow-md flex items-center gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                  <Mic className="w-4 h-4 text-blue-600" />
-                </div>
-                <span className="text-sm text-gray-700 font-medium truncate">
-                  {voiceTranscriptRef.current ? voiceTranscriptRef.current.substring(0, 50) + (voiceTranscriptRef.current.length > 50 ? '...' : '') : 'Da ghi am xong'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={handleVoiceSendAudio}
-                  className="px-3 h-8 rounded-lg bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition-colors flex items-center gap-1.5"
-                  title="Gui tin nhan thoai"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Gui am</span>
-                </button>
-                <button
-                  onClick={handleVoiceConvertToText}
-                  className="px-3 h-8 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors flex items-center gap-1.5"
-                  title="Chuyen thanh van ban"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Chuyen chu</span>
-                </button>
-                <button
-                  onClick={handleVoiceCancel}
-                  className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors flex items-center justify-center"
-                  title="Huy"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 md:gap-2.5">
-            <button 
-              onClick={() => {
-                setShowAttachmentMenu((prev) => !prev);
-                setShowStickerPanel(false);
-              }}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                showAttachmentMenu ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title={t('messenger.attachmentsTitle')}
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowStickerPanel((prev) => !prev);
-                setShowAttachmentMenu(false);
-                setShowEmojiPicker(false);
-              }}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                showStickerPanel ? 'text-pink-600 bg-pink-50' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title="Nhan dan"
-            >
-              <Grid3X3 className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
-              title={t('messenger.groupPanel.customizeChat')}
-            >
-              <BarChart3 className="w-5 h-5" />
-            </button>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => handleMessageInputChange(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              placeholder={isRecording ? 'Dang ghi am...' : editingMessageId ? 'Chinh sua tin nhan...' : replyTo ? t('messenger.replyingTo', { sender: replyTo.sender }) : t('messenger.typeMessagePlaceholder')}
-              className={`flex-1 h-10 px-4 rounded-full border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:bg-white dark:focus:bg-[#1a1d28] text-sm transition-all dark:text-gray-100 dark:placeholder:text-gray-500 ${
-                isRecording ? 'bg-red-50 ring-2 ring-red-200' : 'bg-gray-100/70 dark:bg-[#22263a]/60'
-              }`}
-            />
-
-            {/* Recording indicator */}
-            {isRecording && (
-              <div className="flex items-center gap-1.5 px-2 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-xs text-red-600 font-mono font-medium tabular-nums">
-                  {Math.floor(recordingDuration / 60).toString().padStart(2, '0')}:{(recordingDuration % 60).toString().padStart(2, '0')}
-                </span>
-              </div>
-            )}
-
-            {/* Mic button — unified voice record */}
-            <button
-              onClick={handleVoiceRecord}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                isRecording ? 'text-red-600 bg-red-100 animate-pulse' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title={isRecording ? 'Dung ghi am' : 'Ghi am giong noi'}
-              disabled={uploadingFiles}
-            >
-              <Mic className="w-4 h-4" />
-            </button>
-
-            <button 
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                showEmojiPicker ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title={t('messenger.emojiPicker.title')}
-              disabled={uploadingFiles}
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleSendMessage}
-              disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview)}
-              className="w-8 h-8 rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-              title={editingMessageId ? 'Cap nhat tin nhan' : t('messenger.send')}
-            >
-              {isAiLoading ? (
-                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
+        {/* Message Input */}
+        <MessageInput
+          message={message}
+          onMessageChange={handleMessageInputChange}
+          onSend={handleSendMessage}
+          editingMessageId={editingMessageId}
+          isAIChat={isAIChat}
+          isAiLoading={isAiLoading}
+          uploadingFiles={uploadingFiles}
+          filePreview={filePreview}
+          onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
+          uploadedFiles={uploadedFiles}
+          onSetUploadedFiles={setUploadedFiles}
+          fileInputRef={fileInputRef}
+          onFileUpload={handleFileUpload}
+          showAttachmentMenu={showAttachmentMenu}
+          onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
+          onShareLocation={() => {
+            const text = `[Location] ${t('messenger.attachments.locationShared')}`;
+            if (activeChat && user?.id) {
+              sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
+              setShowAttachmentMenu(false);
+            }
+          }}
+          onShareContact={() => {
+            if (activeChat && user?.id) {
+              const card = `[Contact] ${user.fullName || user.username}`;
+              sendMessageAPI(activeChat, card, [], undefined).catch(() => {});
+              setShowAttachmentMenu(false);
+            }
+          }}
+          showStickerPanel={showStickerPanel}
+          onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
+          activeStickerTopic={activeStickerTopic}
+          onStickerTopicChange={setActiveStickerTopic}
+          onSendSticker={handleSendSticker}
+          showEmojiPicker={showEmojiPicker}
+          onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
+          onEmojiSelect={handleEmojiSelect}
+          showVoicePreview={showVoicePreview}
+          voiceTranscript={voiceTranscriptRef.current}
+          onVoiceSendAudio={handleVoiceSendAudio}
+          onVoiceConvertToText={handleVoiceConvertToText}
+          onVoiceCancel={handleVoiceCancel}
+          isRecording={isRecording}
+          recordingDuration={recordingDuration}
+          onVoiceRecord={handleVoiceRecord}
+          onGenerateDailySummary={handleGenerateDailySummaryForAi}
+          replyTo={replyTo}
+        />
           </>
         )}
       </div>
 
       {/* Right Sidebar - Conversation Info */}
       {activeConversation && !rightSidebarCollapsed && (
-        <div className="border-l border-gray-200/50 dark:border-white/5 glass-surface overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-[360px] p-4 md:p-6 shadow-sm">
-
-          {/* Profile Section */}
-          <div className="text-center mb-6">
-            <div
-              className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: activeConversation.color }}
-              onClick={() => navigate(`/profile/${activeConversation.id}`)}
-            >
-              {activeConversation.avatar}
-            </div>
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">{activeConversation.name}</h3>
-            {activeConversation.online && (
-              <p className="text-sm md:text-base text-green-500 font-medium">{t('messenger.activeNow')}</p>
-            )}
-          </div>
-
-          {isGroupChat && activeConversationRaw && (
-            <div className="mb-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.title')}</h4>
-                <span className="text-xs text-gray-500">
-                  {t('messenger.groupPanel.memberCount', { count: activeConversationRaw.participantIds.length })}
-                </span>
-              </div>
-
-              {groupActionMessage && (
-                <div className="p-3 rounded-lg bg-green-50 text-green-700 text-sm border border-green-100">
-                  {groupActionMessage}
-                </div>
-              )}
-              {groupActionError && (
-                <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">
-                  {groupActionError}
-                </div>
-              )}
-
-              {canManageGroup && (
-                <div className="space-y-2">
-                  <h5 className="text-sm font-semibold text-gray-800">{t('messenger.groupPanel.groupInfo')}</h5>
-                  <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.groupName')}</label>
-                  <input
-                    type="text"
-                    value={groupNameDraft}
-                    onChange={(e) => setGroupNameDraft(e.target.value)}
-                    className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder={t('messenger.groupPanel.groupNamePlaceholder')}
-                    disabled={updatingGroup}
-                  />
-                  <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.groupAvatarUrl')}</label>
-                  <input
-                    type="text"
-                    value={groupAvatarDraft}
-                    onChange={(e) => setGroupAvatarDraft(e.target.value)}
-                    className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder={t('messenger.groupPanel.groupAvatarPlaceholder')}
-                    disabled={updatingGroup}
-                  />
-                  <button
-                    onClick={handleSaveGroupMeta}
-                    disabled={updatingGroup}
-                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-                  >
-                    {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveInfo')}
-                  </button>
-                </div>
-              )}
-
-              {canManageGroup && (
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      {t('messenger.groupPanel.requireApproval')}
-                    </span>
-                    <button
-                      onClick={() => {
-                        const next = !activeConversationRaw.approvalsRequired;
-                        handleSaveGroupMeta();
-                        conversationsApi
-                          .updateConversationMeta(activeConversationRaw.id, {
-                            requesterId: user!.id,
-                            approvalsRequired: next,
-                          })
-                          .then(() => loadConversations())
-                          .catch((err) => {
-                            console.error('Failed to toggle approvalsRequired', err);
-                          });
-                      }}
-                      disabled={updatingGroup}
-                      className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors ${
-                        activeConversationRaw.approvalsRequired ? 'bg-blue-500' : 'bg-gray-300'
-                      }`}
-                    >
-                      <div
-                        className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                          activeConversationRaw.approvalsRequired ? 'translate-x-5' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {canManageGroup && activeConversationRaw.approvalsRequired && pendingJoins.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <h5 className="text-sm font-semibold text-gray-800">
-                    {t('messenger.groupPanel.joinRequestsTitle', { count: pendingJoins.length })}
-                  </h5>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {pendingJoins.map((pid) => (
-                      <div
-                        key={pid}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-100"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{pid}</p>
-                          <p className="text-xs text-gray-600">{t('messenger.groupPanel.pendingApproval')}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleJoinRequestDecision(pid, true)}
-                            disabled={updatingGroup}
-                            className="px-2 py-1 rounded-md text-xs bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60"
-                          >
-                            {t('messenger.groupPanel.accept')}
-                          </button>
-                          <button
-                            onClick={() => handleJoinRequestDecision(pid, false)}
-                            disabled={updatingGroup}
-                            className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60"
-                          >
-                            {t('messenger.groupPanel.reject')}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {canManageGroup && (
-                <div className="space-y-2 pt-2 border-t border-gray-200">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={groupMemberInput}
-                      onChange={(e) => setGroupMemberInput(e.target.value)}
-                      placeholder={t('messenger.groupPanel.addMembersPrompt')}
-                      disabled={updatingGroup}
-                      className="flex-1 h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-60"
-                    />
-                    <button
-                      onClick={handleAddMembers}
-                      disabled={updatingGroup}
-                      className="h-11 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      <Users className="w-4 h-4" />
-                      <span>{updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.addMembers')}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <h5 className="text-sm font-semibold text-gray-800">{t('messenger.groupPanel.membersTitle')}</h5>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {activeConversationRaw.participantIds.map((pid, idx) => {
-                    const name = activeConversationRaw.participantNames?.[idx] || pid;
-                    const isMemberOwner = pid === activeConversationRaw.ownerId;
-                    const isMemberAdmin = activeConversationRaw.adminIds?.includes(pid);
-                    const isSelf = pid === user?.id;
-                    
-                    // Permission logic:
-                    // - Owner can kick anyone (except themselves, but they can leave)
-                    // - Admin can only kick regular members (not owner, not other admins)
-                    // - Regular members can only leave themselves
-                    const canKick = isSelf || (
-                      isOwner && !isMemberOwner // Owner can kick anyone except themselves
-                    ) || (
-                      isAdmin && !isOwner && !isMemberOwner && !isMemberAdmin // Admin can only kick regular members
-                    );
-
-                    return (
-                      <div key={pid} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{name}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isMemberOwner && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">
-                              {t('messenger.groupPanel.ownerBadge')}
-                            </span>
-                          )}
-                          {isMemberAdmin && !isMemberOwner && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">
-                              {t('messenger.groupPanel.adminBadge')}
-                            </span>
-                          )}
-                          {canKick && (
-                            <button
-                              onClick={() => handleRemoveMember(pid)}
-                              disabled={updatingGroup}
-                              className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60 font-medium"
-                            >
-                              {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Role Management & Delete Group - Owner Only */}
-              {isOwner && (
-                <>
-                  <div className="space-y-3 pt-3 border-t border-gray-200">
-                    <h5 className="text-sm font-semibold text-gray-800 mb-2">{t('messenger.groupPanel.roleManagement')}</h5>
-                    
-                    {/* Transfer Ownership */}
-                <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.transferOwnership')}</label>
-                  <select
-                    value={newOwnerId}
-                    onChange={(e) => setNewOwnerId(e.target.value)}
-                    className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    disabled={updatingGroup}
-                  >
-                    {activeConversationRaw.participantIds.map((pid, idx) => {
-                      const name = activeConversationRaw.participantNames?.[idx] || pid;
-                      return (
-                        <option key={pid} value={pid}>
-                          {name} {pid === activeConversationRaw.ownerId ? t('messenger.groupPanel.currentOwnerSuffix') : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                    </div>
-
-                    {/* Manage Admins */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.assignAdmin')}</label>
-                      <p className="text-xs text-gray-500 mb-2">{t('messenger.groupPanel.assignAdminHint')}</p>
-                      <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
-                        {activeConversationRaw.participantIds
-                          .filter(pid => pid !== activeConversationRaw.ownerId)
-                          .map((pid) => {
-                            const name = activeConversationRaw.participantNames?.[activeConversationRaw.participantIds.indexOf(pid)] || pid;
-                            const isMemberAdmin = activeConversationRaw.adminIds?.includes(pid);
-                            return (
-                              <label key={pid} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                  type="checkbox"
-                                  checked={adminDraft.includes(pid)}
-                                  onChange={() => handleAdminToggle(pid)}
-                                  className="rounded border-gray-300"
-                                  disabled={updatingGroup}
-                                />
-                                <span className="text-sm text-gray-700 flex-1">{name}</span>
-                                {isMemberAdmin && !adminDraft.includes(pid) && (
-                                  <span className="text-xs text-gray-400">{t('messenger.groupPanel.currentlyAdmin')}</span>
-                                )}
-                              </label>
-                            );
-                          })}
-                      </div>
-                    </div>
-
-                  <button
-                    onClick={handleUpdateRoles}
-                    disabled={updatingGroup}
-                    className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-                  >
-                    {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveRoles')}
-                  </button>
-                </div>
-
-                  <div className="pt-3 border-t border-gray-200">
-                  <button
-                    onClick={handleDeleteGroup}
-                    disabled={updatingGroup}
-                    className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
-                  >
-                    {updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.disbandGroup')}
-                  </button>
-                </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-3 md:gap-4 mb-6">
-            <button className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                <User className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
-              </div>
-              <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarProfile')}</span>
-            </button>
-            <button className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                <Bell className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
-              </div>
-              <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarMute')}</span>
-            </button>
-            {!isAIChat && (
-              <button onClick={handleClearConversationForMe} className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
-                  <Trash2 className="w-6 h-6 md:w-7 md:h-7 text-red-500" />
-                </div>
-                <span className="text-xs md:text-sm text-red-600 font-medium">Xoa doan chat</span>
-              </button>
-            )}
-          </div>
-
-          <div className="border-t border-gray-100 my-6"></div>
-
-          {/* Customize Chat */}
-          <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-3">
-            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.customizeChat')}</h4>
-            <div className="space-y-1.5">
-              <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-                <Palette className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>{t('messenger.groupPanel.changeTheme')}</span>
-              </button>
-              <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-                <Smile className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>{t('messenger.groupPanel.changeEmoji')}</span>
-              </button>
-              <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-                <Pencil className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>{t('messenger.groupPanel.changeName')}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-100 my-4 md:my-6"></div>
-
-          {/* Media */}
-          <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-3">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.photosVideos')}</h4>
-              <button className="text-xs md:text-sm text-blue-600 hover:underline font-medium">{t('messenger.groupPanel.seeAll')}</button>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 md:gap-2">
-              <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                <LargeBeachPlaceholder className="w-full h-full" />
-              </div>
-              <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                <LargeSunPlaceholder className="w-full h-full" />
-              </div>
-              <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                <LargePartyPlaceholder className="w-full h-full" />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-100 my-4 md:my-6"></div>
-
-          {/* Privacy & Support */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-3">
-            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.privacySupport')}</h4>
-            <div className="space-y-1.5">
-              <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-                <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>{t('messenger.groupPanel.disappearingMessages')}</span>
-              </button>
-              <button 
-                onClick={() => {
-                  setShowSearch(true);
-                  setRightSidebarCollapsed(true);
-                }}
-                className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3"
-              >
-                <SearchIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-                <span>{t('messenger.groupPanel.searchInConversation')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <ChatInfoSidebar
+          conversation={activeConversation}
+          conversationRaw={activeConversationRaw ?? null}
+          isGroupChat={isGroupChat}
+          isAIChat={isAIChat}
+          isOwner={isOwner}
+          isAdmin={isAdmin}
+          canManageGroup={canManageGroup}
+          groupNameDraft={groupNameDraft}
+          onGroupNameChange={setGroupNameDraft}
+          groupAvatarDraft={groupAvatarDraft}
+          onGroupAvatarChange={setGroupAvatarDraft}
+          groupMemberInput={groupMemberInput}
+          onGroupMemberInputChange={setGroupMemberInput}
+          groupActionMessage={groupActionMessage}
+          groupActionError={groupActionError}
+          updatingGroup={updatingGroup}
+          pendingJoins={pendingJoins}
+          adminDraft={adminDraft}
+          newOwnerId={newOwnerId}
+          onNewOwnerIdChange={setNewOwnerId}
+          onSaveGroupMeta={handleSaveGroupMeta}
+          onAddMembers={handleAddMembers}
+          onRemoveMember={handleRemoveMember}
+          onJoinRequestDecision={handleJoinRequestDecision}
+          onAdminToggle={handleAdminToggle}
+          onUpdateRoles={handleUpdateRoles}
+          onDeleteGroup={handleDeleteGroup}
+          onClearConversationForMe={handleClearConversationForMe}
+          onShowSearch={() => setShowSearch(true)}
+          onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
+          userId={user?.id}
+        />
       )}
 
+
       {forwardingMessage && (
-        <div
-          className="absolute inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
-          onClick={resetForwardDialog}
-        >
-          <div
-            className="w-full max-w-md rounded-xl bg-white border border-gray-200 shadow-2xl p-4 space-y-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Forward message</h3>
-              <p className="text-sm text-gray-600 mt-1">Select a conversation and optionally add a note.</p>
-            </div>
-
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700 max-h-24 overflow-auto whitespace-pre-wrap">
-              {forwardingMessage.content || '[No text content]'}
-            </div>
-
-            <select
-              value={forwardTargetConversationId}
-              onChange={(e) => setForwardTargetConversationId(e.target.value)}
-              className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">Select conversation</option>
-              {conversations.map((conv) => (
-                <option key={conv.id} value={conv.id}>
-                  {getConversationDisplayName(conv)}
-                </option>
-              ))}
-            </select>
-
-            <textarea
-              value={forwardNote}
-              onChange={(e) => setForwardNote(e.target.value)}
-              placeholder="Add an optional note"
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-            />
-
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                onClick={resetForwardDialog}
-                disabled={isForwarding}
-                className="h-10 px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmForward}
-                disabled={!forwardTargetConversationId || isForwarding}
-                className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
-              >
-                {isForwarding ? 'Forwarding...' : 'Forward'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ForwardModal
+          message={forwardingMessage}
+          conversations={conversations}
+          getConversationDisplayName={getConversationDisplayName}
+          targetConversationId={forwardTargetConversationId}
+          onTargetChange={setForwardTargetConversationId}
+          note={forwardNote}
+          onNoteChange={setForwardNote}
+          isForwarding={isForwarding}
+          onConfirm={handleConfirmForward}
+          onCancel={resetForwardDialog}
+        />
       )}
     </div>
   );
 }
+
+
+
+
+
+
+

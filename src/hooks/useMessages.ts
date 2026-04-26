@@ -6,6 +6,27 @@ import { useSocket } from '../contexts/SocketContext';
 import { authApi } from '../apis/auth';
 import { getLocaleTag } from '../i18n';
 
+// Exported so components (MessageBubble, ChatMessages, etc.) can type their props
+export interface DisplayMessage {
+  id: string;
+  sender: string;
+  senderId: string;
+  content: string;
+  time: string;
+  isMe: boolean;
+  status: 'read' | 'delivered' | null;
+  reactions?: { emoji: string; users: string[] }[];
+  attachments?: Message['attachments'];
+  isEdited?: boolean;
+  createdAt: string;
+  // Legacy UI fields (for backward compatibility with Messenger.tsx)
+  image?: string;
+  pinned?: boolean;
+  starred?: boolean;
+  replyTo?: { id: string; content: string; sender: string };
+}
+
+
 export function useMessages() {
   const { user } = useAuth();
   const { subscribe, isConnected } = useSocket();
@@ -584,24 +605,6 @@ export function useMessages() {
   }, [isConnected, user?.id, subscribe]);
 
   // Format message for display (convert Message to display format)
-  interface DisplayMessage {
-    id: string;
-    sender: string;
-    senderId: string;
-    content: string;
-    time: string;
-    isMe: boolean;
-    status: 'read' | 'delivered' | null;
-    reactions?: { emoji: string; users: string[] }[];
-    attachments?: Message['attachments'];
-    isEdited?: boolean;
-    createdAt: string;
-    // Legacy UI fields (for backward compatibility with Messenger.tsx)
-    image?: string;
-    pinned?: boolean;
-    starred?: boolean;
-    replyTo?: { id: string; content: string; sender: string };
-  }
 
   const formatMessageForDisplay = useCallback((message: Message): DisplayMessage => {
     const currentUser = authApi.getCurrentUser();
