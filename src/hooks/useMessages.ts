@@ -92,9 +92,7 @@ export function useMessages() {
     try {
       setLoading(true);
       setError(null);
-      console.log('📥 Loading messages for conversation:', conversationId);
       const data = await messagesApi.getMessagesByConversationId(conversationId, user?.id);
-      console.log('✅ Loaded', data.length, 'messages for conversation:', conversationId);
       setMessages(prev => ({
         ...prev,
         [conversationId]: data,
@@ -285,20 +283,9 @@ export function useMessages() {
   useEffect(() => {
     if (!isConnected || !user?.id) return;
 
-    console.log('🔔 Subscribing to MESSAGE_RECEIVED events');
-
     const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
-      console.log('📨 Received MESSAGE_RECEIVED via socket:', event);
-      
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
         const message: Message = event.data;
-        console.log('📬 Processing message:', {
-          messageId: message.id,
-          conversationId: message.conversationId,
-          senderId: message.senderId,
-          currentUserId: user.id,
-          content: message.content,
-        });
         
         // 🔒 SECURITY: Only add message if current user is a participant.
         // Duplicate events (including same-user events from other devices) are deduped by message id below.
@@ -311,11 +298,6 @@ export function useMessages() {
             : true;
 
         if (!isParticipant) {
-          console.warn('🚫 SECURITY: Ignoring message - current user is not a participant of this conversation:', {
-            conversationId: message.conversationId,
-            currentUserId: user.id,
-            senderId: message.senderId
-          });
           return;
         }
 
@@ -458,12 +440,56 @@ export function useMessages() {
       });
     });
 
-    const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
-      console.log('🔔 Received NOTIFICATION via socket:', event);
+    // ── MESSAGE_DELIVERED — update delivery status for sent messages ──
+    const unsubscribeDelivered = subscribe('MESSAGE_DELIVERED', (event) => {
+      if (event.type !== 'MESSAGE_DELIVERED' || !event.data) return;
+      const payload = event.data as {
+        conversationId?: string;
+        userId?: string;
+        lastDeliveredMessageId?: string;
+      };
+      if (!payload.conversationId || !payload.lastDeliveredMessageId || !payload.userId) return;
+      // Skip own delivery events
+      if (payload.userId === user?.id) return;
 
+      setMessages(prev => {
+        const list = prev[payload.conversationId!];
+        if (!list) return prev;
+        return {
+          ...prev,
+          [payload.conversationId!]: list.map(m => {
+            if (!m.deliveredToUserIds) {
+              return { ...m, deliveredToUserIds: [payload.userId!] };
+            }
+            if (m.deliveredToUserIds.includes(payload.userId!)) return m;
+            return { ...m, deliveredToUserIds: [...m.deliveredToUserIds, payload.userId!] };
+          }),
+        };
+      });
+    });
+
+    // ── Group management events — reload conversations to keep sidebar in sync ──
+    const GROUP_EVENTS = [
+      'GROUP_RENAMED',
+      'MEMBERS_ADDED',
+      'MEMBER_REMOVED',
+      'MEMBER_LEFT',
+      'OWNER_TRANSFERRED',
+      'ADMINS_UPDATED',
+    ] as const;
+    const unsubscribeGroupEvents = GROUP_EVENTS.map(eventType =>
+      subscribe(eventType, (event) => {
+        if (event.type !== eventType || !event.data) return;
+        const payload = event.data as { conversationId?: string };
+        if (!payload.conversationId) return;
+        // Reload full conversation list so sidebar reflects the change
+        loadConversations();
+      })
+    );
+
+    const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
       if (event.type === 'JOIN_REQUEST_CREATED' && event.data) {
         const { conversationId, requesterId } = event.data as { conversationId: string; requesterId: string };
-        console.log('👥 JOIN_REQUEST_CREATED for conversation:', conversationId, 'from:', requesterId);
         setConversations(prev =>
           prev.map(conv =>
             conv.id === conversationId
@@ -548,6 +574,8 @@ export function useMessages() {
       unsubscribePinned();
       unsubscribeReacted();
       unsubscribePollUpdated();
+      unsubscribeDelivered();
+      unsubscribeGroupEvents.forEach(unsub => unsub());
       unsubscribeNotification();
       unsubscribeConversationCleared();
       unsubscribeConversationRestored();

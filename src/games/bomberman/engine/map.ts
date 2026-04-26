@@ -1,15 +1,18 @@
-// ─── Bomberman Game — Map Generator ────────────────────────────────────
+// ─── Boom V2 — Map Generator ───────────────────────────────────────────
 
 import {
   TileType,
   PowerUpType,
   MAP_COLS,
   MAP_ROWS,
+  TILE_SIZE,
+  MAP_SIZES,
   CHARACTERS,
   Direction,
   type Player,
   type PowerUp,
   type GameState,
+  type MapSizeDef,
 } from './types';
 
 // ─── Map Templates ─────────────────────────────────────────────────────
@@ -19,23 +22,23 @@ export interface MapTemplate {
   name: string;
   description: string;
   color: string;
-  generate: () => TileType[][];
+  generate: (cols: number, rows: number) => TileType[][];
 }
 
 /** Get the 3 cells around each spawn corner that must stay clear */
-function getSpawnZones(): { x: number; y: number }[][] {
+function getSpawnZones(cols: number, rows: number): { x: number; y: number }[][] {
   return [
     [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }],
-    [{ x: MAP_COLS - 2, y: 1 }, { x: MAP_COLS - 3, y: 1 }, { x: MAP_COLS - 2, y: 2 }],
-    [{ x: 1, y: MAP_ROWS - 2 }, { x: 2, y: MAP_ROWS - 2 }, { x: 1, y: MAP_ROWS - 3 }],
-    [{ x: MAP_COLS - 2, y: MAP_ROWS - 2 }, { x: MAP_COLS - 3, y: MAP_ROWS - 2 }, { x: MAP_COLS - 2, y: MAP_ROWS - 3 }],
+    [{ x: cols - 2, y: 1 }, { x: cols - 3, y: 1 }, { x: cols - 2, y: 2 }],
+    [{ x: 1, y: rows - 2 }, { x: 2, y: rows - 2 }, { x: 1, y: rows - 3 }],
+    [{ x: cols - 2, y: rows - 2 }, { x: cols - 3, y: rows - 2 }, { x: cols - 2, y: rows - 3 }],
   ];
 }
 
 /** Build clear-set from spawn zones */
-function buildClearSet(): Set<string> {
+function buildClearSet(cols: number, rows: number): Set<string> {
   const clearSet = new Set<string>();
-  for (const zone of getSpawnZones()) {
+  for (const zone of getSpawnZones(cols, rows)) {
     for (const pos of zone) {
       clearSet.add(`${pos.x},${pos.y}`);
     }
@@ -44,12 +47,12 @@ function buildClearSet(): Set<string> {
 }
 
 /** Create empty bordered map with pillar pattern */
-function createBaseMap(usePillars: boolean): TileType[][] {
+function createBaseMap(usePillars: boolean, cols: number, rows: number): TileType[][] {
   const map: TileType[][] = [];
-  for (let row = 0; row < MAP_ROWS; row++) {
+  for (let row = 0; row < rows; row++) {
     const line: TileType[] = [];
-    for (let col = 0; col < MAP_COLS; col++) {
-      if (row === 0 || row === MAP_ROWS - 1 || col === 0 || col === MAP_COLS - 1) {
+    for (let col = 0; col < cols; col++) {
+      if (row === 0 || row === rows - 1 || col === 0 || col === cols - 1) {
         line.push(TileType.WALL);
       } else if (usePillars && row % 2 === 0 && col % 2 === 0) {
         line.push(TileType.WALL);
@@ -63,10 +66,10 @@ function createBaseMap(usePillars: boolean): TileType[][] {
 }
 
 /** Fill breakable blocks at given density, respecting spawn zones */
-function fillBreakable(map: TileType[][], density: number): void {
-  const clearSet = buildClearSet();
-  for (let row = 1; row < MAP_ROWS - 1; row++) {
-    for (let col = 1; col < MAP_COLS - 1; col++) {
+function fillBreakable(map: TileType[][], density: number, cols: number, rows: number): void {
+  const clearSet = buildClearSet(cols, rows);
+  for (let row = 1; row < rows - 1; row++) {
+    for (let col = 1; col < cols - 1; col++) {
       if (map[row][col] !== TileType.EMPTY) continue;
       if (clearSet.has(`${col},${row}`)) continue;
       if (Math.random() < density) {
@@ -77,23 +80,23 @@ function fillBreakable(map: TileType[][], density: number): void {
 }
 
 // ─── Map 1: Classic ────────────────────────────────────────────────────
-function generateClassic(): TileType[][] {
-  const map = createBaseMap(true);
-  fillBreakable(map, 0.4);
+function generateClassic(cols: number, rows: number): TileType[][] {
+  const map = createBaseMap(true, cols, rows);
+  fillBreakable(map, 0.4, cols, rows);
   return map;
 }
 
 // ─── Map 2: Arena (open center, walls around edges) ────────────────────
-function generateArena(): TileType[][] {
-  const map = createBaseMap(false);
+function generateArena(cols: number, rows: number): TileType[][] {
+  const map = createBaseMap(false, cols, rows);
 
   // Ring of walls inside border (2 tiles from edge)
-  for (let row = 2; row < MAP_ROWS - 2; row++) {
-    for (let col = 2; col < MAP_COLS - 2; col++) {
-      if (row === 2 || row === MAP_ROWS - 3 || col === 2 || col === MAP_COLS - 3) {
+  for (let row = 2; row < rows - 2; row++) {
+    for (let col = 2; col < cols - 2; col++) {
+      if (row === 2 || row === rows - 3 || col === 2 || col === cols - 3) {
         // Leave gaps at midpoints for access
-        const midCol = Math.floor(MAP_COLS / 2);
-        const midRow = Math.floor(MAP_ROWS / 2);
+        const midCol = Math.floor(cols / 2);
+        const midRow = Math.floor(rows / 2);
         if (col === midCol || row === midRow) continue;
         map[row][col] = TileType.BREAKABLE;
       }
@@ -101,48 +104,48 @@ function generateArena(): TileType[][] {
   }
 
   // Scattered pillars in center
-  for (let row = 4; row < MAP_ROWS - 4; row += 3) {
-    for (let col = 4; col < MAP_COLS - 4; col += 3) {
+  for (let row = 4; row < rows - 4; row += 3) {
+    for (let col = 4; col < cols - 4; col += 3) {
       map[row][col] = TileType.WALL;
     }
   }
 
-  fillBreakable(map, 0.2);
+  fillBreakable(map, 0.2, cols, rows);
   return map;
 }
 
 // ─── Map 3: Maze (dense corridors) ─────────────────────────────────────
-function generateMaze(): TileType[][] {
-  const map = createBaseMap(true);
-  const clearSet = buildClearSet();
+function generateMaze(cols: number, rows: number): TileType[][] {
+  const map = createBaseMap(true, cols, rows);
+  const clearSet = buildClearSet(cols, rows);
 
   // Extra wall corridors
-  for (let row = 1; row < MAP_ROWS - 1; row++) {
-    for (let col = 1; col < MAP_COLS - 1; col++) {
+  for (let row = 1; row < rows - 1; row++) {
+    for (let col = 1; col < cols - 1; col++) {
       if (map[row][col] !== TileType.EMPTY) continue;
       if (clearSet.has(`${col},${row}`)) continue;
 
       // Create long horizontal and vertical wall segments
-      if (row % 4 === 0 && col > 2 && col < MAP_COLS - 3 && Math.random() < 0.5) {
+      if (row % 4 === 0 && col > 2 && col < cols - 3 && Math.random() < 0.5) {
         map[row][col] = TileType.WALL;
       }
     }
   }
 
-  fillBreakable(map, 0.55);
+  fillBreakable(map, 0.55, cols, rows);
   return map;
 }
 
 // ─── Map 4: Cross (X-shaped open paths) ────────────────────────────────
-function generateCross(): TileType[][] {
-  const map = createBaseMap(false);
-  const midCol = Math.floor(MAP_COLS / 2);
-  const midRow = Math.floor(MAP_ROWS / 2);
-  const clearSet = buildClearSet();
+function generateCross(cols: number, rows: number): TileType[][] {
+  const map = createBaseMap(false, cols, rows);
+  const midCol = Math.floor(cols / 2);
+  const midRow = Math.floor(rows / 2);
+  const clearSet = buildClearSet(cols, rows);
 
   // Fill everything as breakable first
-  for (let row = 1; row < MAP_ROWS - 1; row++) {
-    for (let col = 1; col < MAP_COLS - 1; col++) {
+  for (let row = 1; row < rows - 1; row++) {
+    for (let col = 1; col < cols - 1; col++) {
       if (map[row][col] !== TileType.EMPTY) continue;
       if (clearSet.has(`${col},${row}`)) continue;
       map[row][col] = TileType.BREAKABLE;
@@ -150,11 +153,11 @@ function generateCross(): TileType[][] {
   }
 
   // Carve cross paths (horizontal + vertical corridors)
-  for (let col = 1; col < MAP_COLS - 1; col++) {
+  for (let col = 1; col < cols - 1; col++) {
     map[midRow][col] = TileType.EMPTY;
     if (midRow - 1 > 0) map[midRow - 1][col] = TileType.EMPTY;
   }
-  for (let row = 1; row < MAP_ROWS - 1; row++) {
+  for (let row = 1; row < rows - 1; row++) {
     map[row][midCol] = TileType.EMPTY;
     if (midCol - 1 > 0) map[row][midCol - 1] = TileType.EMPTY;
   }
@@ -163,20 +166,20 @@ function generateCross(): TileType[][] {
   for (let i = 0; i < Math.min(midRow, midCol) - 1; i++) {
     const positions = [
       { r: 1 + i, c: 1 + i },
-      { r: MAP_ROWS - 2 - i, c: MAP_COLS - 2 - i },
-      { r: 1 + i, c: MAP_COLS - 2 - i },
-      { r: MAP_ROWS - 2 - i, c: 1 + i },
+      { r: rows - 2 - i, c: cols - 2 - i },
+      { r: 1 + i, c: cols - 2 - i },
+      { r: rows - 2 - i, c: 1 + i },
     ];
     for (const { r, c } of positions) {
-      if (r > 0 && r < MAP_ROWS - 1 && c > 0 && c < MAP_COLS - 1) {
+      if (r > 0 && r < rows - 1 && c > 0 && c < cols - 1) {
         map[r][c] = TileType.EMPTY;
       }
     }
   }
 
   // Add some pillars for cover
-  for (let row = 3; row < MAP_ROWS - 3; row += 4) {
-    for (let col = 3; col < MAP_COLS - 3; col += 4) {
+  for (let row = 3; row < rows - 3; row += 4) {
+    for (let col = 3; col < cols - 3; col += 4) {
       if (row === midRow || col === midCol) continue;
       map[row][col] = TileType.WALL;
     }
@@ -186,22 +189,27 @@ function generateCross(): TileType[][] {
 }
 
 // ─── Map 5: Fortress (rooms connected by corridors) ────────────────────
-function generateFortress(): TileType[][] {
-  const map = createBaseMap(false);
-  const clearSet = buildClearSet();
+function generateFortress(cols: number, rows: number): TileType[][] {
+  const map = createBaseMap(false, cols, rows);
+  const clearSet = buildClearSet(cols, rows);
 
   // Create 4 "rooms" as wall outlines
   const rooms = [
     { r1: 2, c1: 2, r2: 5, c2: 5 },
-    { r1: 2, c1: MAP_COLS - 6, r2: 5, c2: MAP_COLS - 3 },
-    { r1: MAP_ROWS - 6, c1: 2, r2: MAP_ROWS - 3, c2: 5 },
-    { r1: MAP_ROWS - 6, c1: MAP_COLS - 6, r2: MAP_ROWS - 3, c2: MAP_COLS - 3 },
+    { r1: 2, c1: cols - 6, r2: 5, c2: cols - 3 },
+    { r1: rows - 6, c1: 2, r2: rows - 3, c2: 5 },
+    { r1: rows - 6, c1: cols - 6, r2: rows - 3, c2: cols - 3 },
   ];
 
   for (const room of rooms) {
-    for (let row = room.r1; row <= room.r2; row++) {
-      for (let col = room.c1; col <= room.c2; col++) {
-        if (row === room.r1 || row === room.r2 || col === room.c1 || col === room.c2) {
+    // Clamp room bounds to valid range
+    const r1 = Math.max(1, room.r1);
+    const r2 = Math.min(rows - 2, room.r2);
+    const c1 = Math.max(1, room.c1);
+    const c2 = Math.min(cols - 2, room.c2);
+    for (let row = r1; row <= r2; row++) {
+      for (let col = c1; col <= c2; col++) {
+        if (row === r1 || row === r2 || col === c1 || col === c2) {
           if (!clearSet.has(`${col},${row}`)) {
             map[row][col] = TileType.BREAKABLE;
           }
@@ -211,8 +219,8 @@ function generateFortress(): TileType[][] {
   }
 
   // Central pillar cluster
-  const midR = Math.floor(MAP_ROWS / 2);
-  const midC = Math.floor(MAP_COLS / 2);
+  const midR = Math.floor(rows / 2);
+  const midC = Math.floor(cols / 2);
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       if (dr === 0 && dc === 0) continue;
@@ -220,7 +228,74 @@ function generateFortress(): TileType[][] {
     }
   }
 
-  fillBreakable(map, 0.25);
+  fillBreakable(map, 0.25, cols, rows);
+  return map;
+}
+
+// ─── Map 6: Desert (Sa Mạc — Boom Online style) ─────────────────────
+function generateDesert(cols: number, rows: number): TileType[][] {
+  const map = createBaseMap(false, cols, rows);
+  const clearSet = buildClearSet(cols, rows);
+  const midC = Math.floor(cols / 2);
+  const midR = Math.floor(rows / 2);
+
+  // 1) Oasis clusters — tent/camp areas (wall groups like in the image)
+  const oasisCenters = [
+    { r: midR, c: midC },                         // center camp
+    { r: 3, c: Math.floor(cols * 0.3) },           // top-left oasis
+    { r: rows - 4, c: Math.floor(cols * 0.7) },    // bottom-right oasis
+  ];
+
+  for (const oc of oasisCenters) {
+    // Place a small cross of walls ("tent" structure)
+    const spots = [
+      { r: oc.r, c: oc.c },
+      { r: oc.r - 1, c: oc.c },
+      { r: oc.r + 1, c: oc.c },
+      { r: oc.r, c: oc.c - 1 },
+      { r: oc.r, c: oc.c + 1 },
+    ];
+    for (const s of spots) {
+      if (s.r > 0 && s.r < rows - 1 && s.c > 0 && s.c < cols - 1) {
+        if (!clearSet.has(`${s.c},${s.r}`)) {
+          map[s.r][s.c] = TileType.WALL;
+        }
+      }
+    }
+  }
+
+  // 2) Scattered "cactus" pillars (single walls at regular intervals)
+  for (let r = 3; r < rows - 3; r += 3) {
+    for (let c = 3; c < cols - 3; c += 4) {
+      if (map[r][c] !== TileType.EMPTY) continue;
+      if (clearSet.has(`${c},${r}`)) continue;
+      // Skip if too close to an oasis center
+      const tooClose = oasisCenters.some(oc => Math.abs(oc.r - r) <= 1 && Math.abs(oc.c - c) <= 1);
+      if (tooClose) continue;
+      if (Math.random() < 0.45) {
+        map[r][c] = TileType.WALL;
+      }
+    }
+  }
+
+  // 3) Sand dunes — rows of breakable blocks with gaps
+  for (let r = 2; r < rows - 2; r++) {
+    for (let c = 2; c < cols - 2; c++) {
+      if (map[r][c] !== TileType.EMPTY) continue;
+      if (clearSet.has(`${c},${r}`)) continue;
+
+      // Denser near the edges, lighter in center
+      const distToCenter = Math.abs(r - midR) + Math.abs(c - midC);
+      const maxDist = midR + midC;
+      const edgeFactor = distToCenter / maxDist;
+      const density = 0.25 + edgeFactor * 0.25;
+
+      if (Math.random() < density) {
+        map[r][c] = TileType.BREAKABLE;
+      }
+    }
+  }
+
   return map;
 }
 
@@ -230,7 +305,7 @@ export const MAP_TEMPLATES: MapTemplate[] = [
   {
     id: 'classic',
     name: 'Classic',
-    description: 'Standard Bomberman grid with pillars',
+    description: 'Standard grid with pillars',
     color: '#3b82f6',
     generate: generateClassic,
   },
@@ -262,23 +337,32 @@ export const MAP_TEMPLATES: MapTemplate[] = [
     color: '#eab308',
     generate: generateFortress,
   },
+  {
+    id: 'desert',
+    name: 'Sa Mạc',
+    description: 'Open dunes, oasis camps, cactus pillars',
+    color: '#d97706',
+    generate: generateDesert,
+  },
 ];
 
 // ─── Spawn + Power-ups + State Creation ────────────────────────────────
 
-const SPAWN_POSITIONS = [
-  { x: 1, y: 1 },
-  { x: MAP_COLS - 2, y: MAP_ROWS - 2 },
-  { x: MAP_COLS - 2, y: 1 },
-  { x: 1, y: MAP_ROWS - 2 },
-];
+function getSpawnPositions(cols: number, rows: number) {
+  return [
+    { x: 1, y: 1 },
+    { x: cols - 2, y: rows - 2 },
+    { x: cols - 2, y: 1 },
+    { x: 1, y: rows - 2 },
+  ];
+}
 
-function generatePowerUps(map: TileType[][]): PowerUp[] {
+function generatePowerUps(map: TileType[][], cols: number, rows: number): PowerUp[] {
   const powerUps: PowerUp[] = [];
   const types = [PowerUpType.BOMB_COUNT, PowerUpType.BOMB_RANGE, PowerUpType.SPEED];
 
-  for (let row = 1; row < MAP_ROWS - 1; row++) {
-    for (let col = 1; col < MAP_COLS - 1; col++) {
+  for (let row = 1; row < rows - 1; row++) {
+    for (let col = 1; col < cols - 1; col++) {
       if (map[row][col] === TileType.BREAKABLE && Math.random() < 0.25) {
         powerUps.push({
           x: col,
@@ -293,11 +377,20 @@ function generatePowerUps(map: TileType[][]): PowerUp[] {
   return powerUps;
 }
 
-/** Create the initial game state with a specific map template and character */
-export function createGameState(botCount: number, mapId?: string, characterId?: number): GameState {
+/** Create the initial game state with a specific map template, character, and size */
+export function createGameState(
+  botCount: number,
+  mapId?: string,
+  characterId?: number,
+  sizeId?: string,
+): GameState {
   const template = MAP_TEMPLATES.find((t) => t.id === mapId) || MAP_TEMPLATES[0];
-  const map = template.generate();
-  const powerUps = generatePowerUps(map);
+  const sizeDef = MAP_SIZES.find((s) => s.id === sizeId) || MAP_SIZES[0];
+  const { cols, rows, tileSize } = sizeDef;
+
+  const map = template.generate(cols, rows);
+  const powerUps = generatePowerUps(map, cols, rows);
+  const spawnPositions = getSpawnPositions(cols, rows);
 
   // Human gets selected character, bots get remaining characters
   const humanCharIdx = characterId ?? 0;
@@ -310,7 +403,7 @@ export function createGameState(botCount: number, mapId?: string, characterId?: 
 
   const players: Player[] = [];
   for (let i = 0; i <= botCount; i++) {
-    const spawn = SPAWN_POSITIONS[i];
+    const spawn = spawnPositions[i];
     const charDef = i === 0
       ? CHARACTERS[humanCharIdx]
       : availableBotChars[(i - 1) % availableBotChars.length];
@@ -337,6 +430,9 @@ export function createGameState(botCount: number, mapId?: string, characterId?: 
   return {
     map,
     mapId: template.id,
+    cols,
+    rows,
+    tileSize,
     players,
     bombs: [],
     explosions: [],

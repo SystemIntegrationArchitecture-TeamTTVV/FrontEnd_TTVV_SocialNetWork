@@ -1,11 +1,9 @@
-// ─── Bomberman Game — Bot AI ───────────────────────────────────────────
+// ─── Boom V2 — Bot AI ───────────────────────────────────────────────────
 
 import {
   Direction,
   DIRECTION_DELTA,
   TileType,
-  MAP_COLS,
-  MAP_ROWS,
   BOT_TICK_MIN,
   BOT_TICK_MAX,
   type GameState,
@@ -136,7 +134,7 @@ function findTargetDirection(state: GameState, player: Player): Direction | null
     if (visited.has(key)) continue;
     visited.add(key);
 
-    if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+    if (nx < 0 || nx >= state.cols || ny < 0 || ny >= state.rows) continue;
 
     // Found adjacent breakable block -> stay and bomb
     if (state.map[ny][nx] === TileType.BREAKABLE) {
@@ -163,7 +161,7 @@ function findTargetDirection(state: GameState, player: Player): Direction | null
       if (visited.has(key)) continue;
       visited.add(key);
 
-      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      if (nx < 0 || nx >= state.cols || ny < 0 || ny >= state.rows) continue;
 
       // Found target
       if (state.map[ny][nx] === TileType.BREAKABLE) {
@@ -211,7 +209,7 @@ function isAdjacentToTarget(state: GameState, player: Player): boolean {
   for (const { dx, dy } of dirs) {
     const nx = player.x + dx;
     const ny = player.y + dy;
-    if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+    if (nx < 0 || nx >= state.cols || ny < 0 || ny >= state.rows) continue;
 
     if (state.map[ny][nx] === TileType.BREAKABLE) return true;
 

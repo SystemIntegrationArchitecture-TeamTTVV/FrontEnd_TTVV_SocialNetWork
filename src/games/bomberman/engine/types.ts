@@ -1,4 +1,4 @@
-// ─── Bomberman Game — Type Definitions ─────────────────────────────────
+// ─── Boom V2 — Type Definitions ────────────────────────────────────────
 
 export const TILE_SIZE = 48;
 export const MAP_COLS = 15;
@@ -7,6 +7,22 @@ export const BOMB_TIMER = 2000;       // ms before detonation
 export const EXPLOSION_DURATION = 400; // ms explosion stays visible
 export const BOT_TICK_MIN = 200;
 export const BOT_TICK_MAX = 500;
+
+// ─── Map Size Presets ──────────────────────────────────────────────────
+
+export interface MapSizeDef {
+  id: string;
+  label: string;
+  cols: number;
+  rows: number;
+  tileSize: number;
+}
+
+export const MAP_SIZES: MapSizeDef[] = [
+  { id: 'small',  label: 'Nhỏ',  cols: 15, rows: 13, tileSize: 48 },
+  { id: 'medium', label: 'Vừa',  cols: 21, rows: 15, tileSize: 36 },
+  { id: 'large',  label: 'Lớn',  cols: 27, rows: 19, tileSize: 28 },
+];
 
 export enum TileType {
   EMPTY = 0,
@@ -79,6 +95,9 @@ export type GameStatus = 'menu' | 'playing' | 'paused' | 'gameover';
 export interface GameState {
   map: TileType[][];
   mapId: string;
+  cols: number;
+  rows: number;
+  tileSize: number;
   players: Player[];
   bombs: Bomb[];
   explosions: Explosion[];

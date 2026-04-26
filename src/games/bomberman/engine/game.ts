@@ -1,4 +1,4 @@
-// ─── Bomberman Game — Core Engine ──────────────────────────────────────
+// ─── Boom V2 — Core Engine ─────────────────────────────────────────────
 
 import {
   TileType,
@@ -6,8 +6,6 @@ import {
   DIRECTION_DELTA,
   BOMB_TIMER,
   EXPLOSION_DURATION,
-  MAP_COLS,
-  MAP_ROWS,
   type GameState,
   type Player,
   type Bomb,
@@ -15,12 +13,13 @@ import {
   type PowerUp,
   PowerUpType,
 } from './types';
+import { bumpMapVersion } from '../renderer';
 
 // ─── Movement ──────────────────────────────────────────────────────────
 
 /** Check if a grid cell is walkable (empty, no bomb on it) */
 function isWalkable(state: GameState, gx: number, gy: number): boolean {
-  if (gx < 0 || gx >= MAP_COLS || gy < 0 || gy >= MAP_ROWS) return false;
+  if (gx < 0 || gx >= state.cols || gy < 0 || gy >= state.rows) return false;
   const tile = state.map[gy][gx];
   if (tile === TileType.WALL || tile === TileType.BREAKABLE) return false;
   // Cannot walk through bombs
@@ -31,7 +30,7 @@ function isWalkable(state: GameState, gx: number, gy: number): boolean {
 /** Attempt to move a player in a direction */
 export function movePlayer(state: GameState, playerId: number, dir: Direction): GameState {
   const player = state.players.find((p) => p.id === playerId);
-  if (!player || !player.alive || player.moving) return state;
+  if (!player || !player.alive) return state;
 
   const delta = DIRECTION_DELTA[dir];
   const nx = player.x + delta.x;
@@ -41,6 +40,10 @@ export function movePlayer(state: GameState, playerId: number, dir: Direction): 
   player.direction = dir;
 
   if (!isWalkable(state, nx, ny)) return state;
+
+  // Snap visual to current grid before starting new move (prevents stuck animation)
+  player.visualX = player.x;
+  player.visualY = player.y;
 
   // Start movement interpolation
   player.x = nx;
@@ -120,7 +123,7 @@ function detonateBomb(state: GameState, bomb: Bomb): void {
       const ex = bomb.x + dx * i;
       const ey = bomb.y + dy * i;
 
-      if (ex < 0 || ex >= MAP_COLS || ey < 0 || ey >= MAP_ROWS) break;
+      if (ex < 0 || ex >= state.cols || ey < 0 || ey >= state.rows) break;
 
       const tile = state.map[ey][ex];
 
@@ -130,6 +133,7 @@ function detonateBomb(state: GameState, bomb: Bomb): void {
       // Breakable block: destroy it, add explosion, stop propagation
       if (tile === TileType.BREAKABLE) {
         state.map[ey][ex] = TileType.EMPTY;
+        bumpMapVersion();
         state.explosions.push({ x: ex, y: ey, timer: EXPLOSION_DURATION });
 
         // Reveal hidden power-up
@@ -197,7 +201,7 @@ export function updateGame(state: GameState, dt: number): GameState {
   state.elapsed += dt;
 
   // Update movement interpolation
-  const moveSpeed = 0.008; // base interpolation speed
+  const moveSpeed = 0.016; // base interpolation speed (fast & responsive)
   for (const player of state.players) {
     if (!player.alive) continue;
     if (player.moving) {
@@ -220,20 +224,24 @@ export function updateGame(state: GameState, dt: number): GameState {
     }
   }
 
-  // Update bomb timers
-  const detonated: Bomb[] = [];
+  // Update bomb timers and handle chain reactions in a single pass.
+  // Chain detonation can set other bombs' timer to 0, so we loop until
+  // no more bombs need detonating — prevents activeBombs counter leak.
   for (const bomb of state.bombs) {
     bomb.timer -= dt;
-    if (bomb.timer <= 0) {
-      detonated.push(bomb);
-    }
   }
 
-  // Detonate expired bombs
-  for (const bomb of detonated) {
-    detonateBomb(state, bomb);
+  let hasDetonation = true;
+  while (hasDetonation) {
+    hasDetonation = false;
+    for (const bomb of state.bombs) {
+      if (bomb.timer <= 0) {
+        detonateBomb(state, bomb);
+        hasDetonation = true;
+      }
+    }
+    state.bombs = state.bombs.filter((b) => b.timer > 0);
   }
-  state.bombs = state.bombs.filter((b) => b.timer > 0);
 
   // Update explosion timers
   for (const exp of state.explosions) {
@@ -274,7 +282,7 @@ export function isPositionDangerous(state: GameState, gx: number, gy: number): b
       for (let i = 1; i <= bomb.range; i++) {
         const bx = bomb.x + dx * i;
         const by = bomb.y + dy * i;
-        if (bx < 0 || bx >= MAP_COLS || by < 0 || by >= MAP_ROWS) break;
+        if (bx < 0 || bx >= state.cols || by < 0 || by >= state.rows) break;
         const tile = state.map[by][bx];
         if (tile === TileType.WALL || tile === TileType.BREAKABLE) break;
         if (bx === gx && by === gy) return true;
@@ -287,6 +295,6 @@ export function isPositionDangerous(state: GameState, gx: number, gy: number): b
 
 /** Check if a cell can be walked on (no wall, no breakable) */
 export function isCellFree(state: GameState, gx: number, gy: number): boolean {
-  if (gx < 0 || gx >= MAP_COLS || gy < 0 || gy >= MAP_ROWS) return false;
+  if (gx < 0 || gx >= state.cols || gy < 0 || gy >= state.rows) return false;
   return state.map[gy][gx] === TileType.EMPTY;
 }

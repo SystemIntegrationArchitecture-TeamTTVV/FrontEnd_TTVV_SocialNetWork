@@ -49,6 +49,8 @@
     "flappyTapHint": "Just a few seconds",
     "flappyLoading": "Loading game",
     "flappyLoadingSub": "Please wait while we load graphics and sounds.",
+    "bombermanTitle": "Boom V2",
+    "bombermanDesc": "Place bombs, destroy blocks, and be the last one standing. Battle against AI bots on a classic grid map.",
     "play": "Play now →"
   },
   "minigame": {
@@ -2116,5 +2118,43 @@
     "cancelButton": "Cancel",
     "unfriendButton": "Unfriend",
     "confirmUnfriend": "Are you sure you want to unfriend {{name}}?"
+  },
+  "boom": {
+    "title": "BOOM V2",
+    "backToGames": "← Back to Games",
+    "hintPlaying": "P: Pause | F: Fullscreen",
+    "hintPaused": "P: Resume",
+    "hintGameover": "R: Play again",
+    "fullscreenExit": "Exit fullscreen",
+    "fullscreenEnter": "Fullscreen",
+    "subtitle": "Place bombs. Destroy blocks. Survive.",
+    "gameMode": "Game Mode",
+    "modeBot": "Play vs Bot",
+    "modeFriends": "Play with Friends",
+    "chooseCharacter": "Choose Character",
+    "selectMap": "Select Map",
+    "mapSize": "Map Size",
+    "opponents": "Opponents",
+    "comingSoon": "Coming Soon",
+    "comingSoonDesc": "Invite friends to a room and play together.\nThis feature is under development!",
+    "startGame": "START GAME",
+    "comingSoonBtn": "COMING SOON",
+    "controls": "Move: Arrow keys / WASD | Bomb: Space | Pause: P | Fullscreen: F",
+    "paused": "PAUSED",
+    "pauseHint": "Press P to resume",
+    "gameOver": "GAME OVER",
+    "youWin": "You win!",
+    "botWins": "Bot {{id}} wins!",
+    "draw": "Draw!",
+    "playAgain": "PLAY AGAIN",
+    "exit": "EXIT",
+    "maps": {
+      "classic": { "name": "Classic", "desc": "Standard grid with pillars" },
+      "arena": { "name": "Arena", "desc": "Open center with ring walls" },
+      "maze": { "name": "Maze", "desc": "Dense corridors and tight spaces" },
+      "cross": { "name": "Cross", "desc": "X-shaped paths from corners to center" },
+      "fortress": { "name": "Fortress", "desc": "Four rooms connected by hallways" },
+      "desert": { "name": "Desert", "desc": "Open dunes, oasis camps, cactus pillars" }
+    }
   }
 }

@@ -49,6 +49,8 @@
     "flappyTapHint": "Nhẹ nhàng, chỉ mất vài giây",
     "flappyLoading": "Đang tải game",
     "flappyLoadingSub": "Vui lòng chờ trong giây lát — đang tải hình ảnh và âm thanh.",
+    "bombermanTitle": "Boom V2",
+    "bombermanDesc": "Đặt bom, phá khối và trở thành người sống sót cuối cùng. Chiến đấu với AI bot trên bản đồ lưới cổ điển.",
     "play": "Chơi ngay →"
   },
   "minigame": {
@@ -2116,5 +2118,43 @@
     "cancelButton": "Thu hồi",
     "unfriendButton": "Xóa bạn",
     "confirmUnfriend": "Bạn có chắc muốn xóa {{name}} khỏi danh sách bạn bè?"
+  },
+  "boom": {
+    "title": "BOOM V2",
+    "backToGames": "← Quay lại Trò chơi",
+    "hintPlaying": "P: Tạm dừng | F: Toàn màn hình",
+    "hintPaused": "P: Tiếp tục",
+    "hintGameover": "R: Chơi lại",
+    "fullscreenExit": "Thoát toàn màn hình",
+    "fullscreenEnter": "Toàn màn hình",
+    "subtitle": "Đặt bom. Phá khối. Sống sót.",
+    "gameMode": "Chế độ chơi",
+    "modeBot": "Chơi với Bot",
+    "modeFriends": "Chơi với Bạn",
+    "chooseCharacter": "Chọn nhân vật",
+    "selectMap": "Chọn bản đồ",
+    "mapSize": "Kích thước bản đồ",
+    "opponents": "Đối thủ",
+    "comingSoon": "Sắp ra mắt",
+    "comingSoonDesc": "Mời bạn bè vào phòng và chơi cùng nhau.\nTính năng đang được phát triển!",
+    "startGame": "BẮT ĐẦU CHƠI",
+    "comingSoonBtn": "SẮP RA MẮT",
+    "controls": "Di chuyển: Phím mũi tên / WASD | Bom: Space | Tạm dừng: P | Toàn màn hình: F",
+    "paused": "TẠM DỪNG",
+    "pauseHint": "Nhấn P để tiếp tục",
+    "gameOver": "KẾT THÚC",
+    "youWin": "Bạn thắng!",
+    "botWins": "Bot {{id}} thắng!",
+    "draw": "Hòa!",
+    "playAgain": "CHƠI LẠI",
+    "exit": "THOÁT",
+    "maps": {
+      "classic": { "name": "Cổ Điển", "desc": "Lưới chuẩn với các cột trụ" },
+      "arena": { "name": "Đấu Trường", "desc": "Trung tâm mở với tường vòng" },
+      "maze": { "name": "Mê Cung", "desc": "Hành lang dày đặc và chật hẹp" },
+      "cross": { "name": "Chữ Thập", "desc": "Đường chéo X từ góc đến trung tâm" },
+      "fortress": { "name": "Pháo Đài", "desc": "Bốn phòng nối bằng hành lang" },
+      "desert": { "name": "Sa Mạc", "desc": "Đồi cát, trại ốc đảo, cột xương rồng" }
+    }
   }
 }

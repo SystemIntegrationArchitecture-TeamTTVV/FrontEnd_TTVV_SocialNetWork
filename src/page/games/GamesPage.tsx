@@ -63,10 +63,10 @@ export default function GamesPage() {
             </svg>
           </div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
-            Bomberman
+            {t('gamesPage.bombermanTitle')}
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-[#9aa3bc] leading-relaxed">
-            {t('gamesPage.bombermanDesc', 'Place bombs, destroy blocks, and be the last one standing. Battle against AI bots on a classic grid map.')}
+            {t('gamesPage.bombermanDesc')}
           </p>
           <span className="mt-4 text-sm font-semibold text-orange-600 dark:text-orange-400">
             {t('gamesPage.play')}

@@ -1,4 +1,4 @@
-// ─── Bomberman Game — Canvas Renderer ──────────────────────────────────
+// ─── Boom V2 — Canvas Renderer ─────────────────────────────────────────
 //
 // Performance: Static tiles (walls, floor) are drawn ONCE to an offscreen
 // canvas and blitted each frame. Only dynamic entities (players, bombs,
@@ -8,8 +8,6 @@ import {
   TileType,
   PowerUpType,
   TILE_SIZE,
-  MAP_COLS,
-  MAP_ROWS,
   BOMB_TIMER,
   Direction,
   type GameState,
@@ -19,55 +17,65 @@ import {
   type PowerUp,
 } from './engine/types';
 
-const CANVAS_W = MAP_COLS * TILE_SIZE;
-const CANVAS_H = MAP_ROWS * TILE_SIZE;
+// ─── Canvas Size Helper ────────────────────────────────────────────────
+
+/** Compute canvas pixel dimensions from game state */
+export function getCanvasSize(state: GameState): { w: number; h: number } {
+  return {
+    w: state.cols * state.tileSize,
+    h: state.rows * state.tileSize,
+  };
+}
 
 // ─── Offscreen Cache ───────────────────────────────────────────────────
 
 let cachedMapCanvas: OffscreenCanvas | HTMLCanvasElement | null = null;
-let cachedMapHash = '';
+let cachedMapVersion = -1;
+let cachedTileSize = 0;
+let cachedMapDims = '';
 
-/** Invalidate cache when map changes (block destroyed) */
-function getMapHash(map: TileType[][]): string {
-  let hash = '';
-  for (let r = 0; r < MAP_ROWS; r++) {
-    for (let c = 0; c < MAP_COLS; c++) {
-      hash += map[r][c];
-    }
-  }
-  return hash;
+// Lightweight dirty-tracking: incremented whenever a tile changes.
+// Avoids building a huge hash string (cols×rows chars) 60 times/sec.
+let mapVersion = 0;
+
+/** Call this whenever a tile is destroyed so the cache rebuilds next frame */
+export function bumpMapVersion(): void {
+  mapVersion++;
 }
 
-function rebuildStaticCache(map: TileType[][]): void {
+function rebuildStaticCache(state: GameState): void {
+  const { w, h } = getCanvasSize(state);
+  const ts = state.tileSize;
+
   if (typeof OffscreenCanvas !== 'undefined') {
-    cachedMapCanvas = new OffscreenCanvas(CANVAS_W, CANVAS_H);
+    cachedMapCanvas = new OffscreenCanvas(w, h);
   } else {
     cachedMapCanvas = document.createElement('canvas');
-    cachedMapCanvas.width = CANVAS_W;
-    cachedMapCanvas.height = CANVAS_H;
+    cachedMapCanvas.width = w;
+    cachedMapCanvas.height = h;
   }
 
   const ctx = cachedMapCanvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
   if (!ctx) return;
 
-  for (let row = 0; row < MAP_ROWS; row++) {
-    for (let col = 0; col < MAP_COLS; col++) {
-      const px = col * TILE_SIZE;
-      const py = row * TILE_SIZE;
-      const tile = map[row][col];
+  for (let row = 0; row < state.rows; row++) {
+    for (let col = 0; col < state.cols; col++) {
+      const px = col * ts;
+      const py = row * ts;
+      const tile = state.map[row][col];
       const alt = (row + col) % 2 === 0;
 
-      drawFloor(ctx as CanvasRenderingContext2D, px, py, alt);
+      drawFloor(ctx as CanvasRenderingContext2D, px, py, alt, ts);
 
       if (tile === TileType.WALL) {
-        drawWall(ctx as CanvasRenderingContext2D, px, py);
+        drawWall(ctx as CanvasRenderingContext2D, px, py, ts);
       } else if (tile === TileType.BREAKABLE) {
-        drawBreakable(ctx as CanvasRenderingContext2D, px, py);
+        drawBreakable(ctx as CanvasRenderingContext2D, px, py, ts);
       }
     }
   }
 
-  cachedMapHash = getMapHash(map);
+  cachedTileSize = ts;
 }
 
 // ─── Character Sprite Cache ────────────────────────────────────────────
@@ -83,7 +91,7 @@ let spritesLoaded = false;
 export function preloadSprites(imageSources: string[]): Promise<void> {
   if (spritesLoaded) return Promise.resolve();
 
-  const spriteSize = TILE_SIZE; // 48px
+  const spriteSize = TILE_SIZE; // Always preload at max size (48px), scale at draw time
 
   return Promise.all(
     imageSources.map((src, index) => {
@@ -173,6 +181,11 @@ const MAP_THEMES: Record<string, MapTheme> = {
     wall: '#8b7355', wallHighlight: '#a08a6a', wallShadow: '#5a4a35',
     breakable: '#b8860b', breakableHighlight: '#d4a017', breakableShadow: '#8b6508', breakableCrack: '#6b4e06',
   },
+  desert: {
+    floor: '#d4a94b', floorAlt: '#c99b3e',
+    wall: '#8b6b3e', wallHighlight: '#a07f50', wallShadow: '#6b4e2a',
+    breakable: '#c4944a', breakableHighlight: '#daa960', breakableShadow: '#9a7535', breakableCrack: '#7a5a28',
+  },
 };
 
 let activeTheme: MapTheme = MAP_THEMES.classic;
@@ -186,63 +199,62 @@ const COLORS = {
 
 // ─── Tile Drawing (used for offscreen cache) ───────────────────────────
 
-function drawFloor(ctx: CanvasRenderingContext2D, px: number, py: number, alt: boolean): void {
+function drawFloor(ctx: CanvasRenderingContext2D, px: number, py: number, alt: boolean, ts: number): void {
   ctx.fillStyle = alt ? activeTheme.floorAlt : activeTheme.floor;
-  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+  ctx.fillRect(px, py, ts, ts);
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(px + 0.5, py + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+  ctx.strokeRect(px + 0.5, py + 0.5, ts - 1, ts - 1);
 }
 
-function drawWall(ctx: CanvasRenderingContext2D, px: number, py: number): void {
-  const s = TILE_SIZE;
-  const inset = 2;
+function drawWall(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const inset = Math.max(1, Math.floor(ts / 24));
+  const barH = Math.max(2, Math.floor(ts / 12));
 
   ctx.fillStyle = activeTheme.wall;
-  ctx.fillRect(px, py, s, s);
+  ctx.fillRect(px, py, ts, ts);
 
   ctx.fillStyle = activeTheme.wallHighlight;
-  ctx.fillRect(px + inset, py + inset, s - inset * 2, 4);
-  ctx.fillRect(px + inset, py + inset, 4, s - inset * 2);
+  ctx.fillRect(px + inset, py + inset, ts - inset * 2, barH);
+  ctx.fillRect(px + inset, py + inset, barH, ts - inset * 2);
 
   ctx.fillStyle = activeTheme.wallShadow;
-  ctx.fillRect(px + inset, py + s - inset - 4, s - inset * 2, 4);
-  ctx.fillRect(px + s - inset - 4, py + inset, 4, s - inset * 2);
+  ctx.fillRect(px + inset, py + ts - inset - barH, ts - inset * 2, barH);
+  ctx.fillRect(px + ts - inset - barH, py + inset, barH, ts - inset * 2);
 
   ctx.strokeStyle = activeTheme.wallShadow;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(px + s / 2, py + inset);
-  ctx.lineTo(px + s / 2, py + s - inset);
-  ctx.moveTo(px + inset, py + s / 2);
-  ctx.lineTo(px + s - inset, py + s / 2);
+  ctx.moveTo(px + ts / 2, py + inset);
+  ctx.lineTo(px + ts / 2, py + ts - inset);
+  ctx.moveTo(px + inset, py + ts / 2);
+  ctx.lineTo(px + ts - inset, py + ts / 2);
   ctx.stroke();
 }
 
-function drawBreakable(ctx: CanvasRenderingContext2D, px: number, py: number): void {
-  const s = TILE_SIZE;
+function drawBreakable(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
   const inset = 1;
 
   ctx.fillStyle = activeTheme.breakable;
-  ctx.fillRect(px + inset, py + inset, s - inset * 2, s - inset * 2);
+  ctx.fillRect(px + inset, py + inset, ts - inset * 2, ts - inset * 2);
 
   ctx.strokeStyle = activeTheme.breakableShadow;
   ctx.lineWidth = 1;
 
-  const brickH = (s - inset * 2) / 3;
+  const brickH = (ts - inset * 2) / 3;
   for (let i = 1; i < 3; i++) {
     ctx.beginPath();
     ctx.moveTo(px + inset, py + inset + brickH * i);
-    ctx.lineTo(px + s - inset, py + inset + brickH * i);
+    ctx.lineTo(px + ts - inset, py + inset + brickH * i);
     ctx.stroke();
   }
 
-  const brickW = (s - inset * 2) / 2;
+  const brickW = (ts - inset * 2) / 2;
   for (let row = 0; row < 3; row++) {
     const offset = row % 2 === 0 ? 0 : brickW / 2;
     for (let i = 1; i < 3; i++) {
       const lx = px + inset + brickW * i - brickW + offset;
-      if (lx > px + inset && lx < px + s - inset) {
+      if (lx > px + inset && lx < px + ts - inset) {
         ctx.beginPath();
         ctx.moveTo(lx, py + inset + brickH * row);
         ctx.lineTo(lx, py + inset + brickH * (row + 1));
@@ -252,51 +264,51 @@ function drawBreakable(ctx: CanvasRenderingContext2D, px: number, py: number): v
   }
 
   ctx.fillStyle = activeTheme.breakableHighlight;
-  ctx.fillRect(px + inset, py + inset, s - inset * 2, 2);
+  ctx.fillRect(px + inset, py + inset, ts - inset * 2, 2);
 
   ctx.strokeStyle = activeTheme.breakableCrack;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(px + s * 0.3, py + s * 0.4);
-  ctx.lineTo(px + s * 0.45, py + s * 0.55);
-  ctx.lineTo(px + s * 0.35, py + s * 0.7);
+  ctx.moveTo(px + ts * 0.3, py + ts * 0.4);
+  ctx.lineTo(px + ts * 0.45, py + ts * 0.55);
+  ctx.lineTo(px + ts * 0.35, py + ts * 0.7);
   ctx.stroke();
 }
 
 // ─── Dynamic Entity Drawing ────────────────────────────────────────────
 
-function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, now: number): void {
+function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, now: number, ts: number): void {
   if (!player.alive) return;
 
-  const cx = player.visualX * TILE_SIZE + TILE_SIZE / 2;
-  const cy = player.visualY * TILE_SIZE + TILE_SIZE / 2;
-  const baseR = TILE_SIZE * 0.35;
-  const spriteSize = TILE_SIZE * 0.9;
+  const cx = player.visualX * ts + ts / 2;
+  const cy = player.visualY * ts + ts / 2;
+  const baseR = ts * 0.35;
+  const spriteSize = ts * 0.9;
 
   // Movement animation
   const isMoving = player.moving;
   const bouncePhase = isMoving ? Math.sin(player.moveProgress * Math.PI * 2) : 0;
-  const bounceY = bouncePhase * -5;
+  const bounceY = bouncePhase * -3 * (ts / 48); // scale bounce with tile size
   const scaleX = isMoving ? 1 + Math.sin(player.moveProgress * Math.PI * 2) * 0.08 : 1;
   const scaleY = isMoving ? 1 - Math.sin(player.moveProgress * Math.PI * 2) * 0.08 : 1;
 
   // Idle bob
-  const idleBob = isMoving ? 0 : Math.sin(now * 0.003 + player.id * 1.5) * 1.5;
+  const idleBob = isMoving ? 0 : Math.sin(now * 0.003 + player.id * 1.5) * 1.5 * (ts / 48);
 
   // Shadow
   ctx.fillStyle = COLORS.shadow;
   ctx.beginPath();
-  ctx.ellipse(cx, cy + baseR + 6, baseR * 0.9, baseR * 0.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy + baseR + 4 * (ts / 48), baseR * 0.9, baseR * 0.3, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Glow ring for human player
   if (!player.isBot) {
     ctx.save();
     ctx.strokeStyle = player.color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, ts / 24);
     ctx.globalAlpha = 0.35 + Math.sin(now * 0.005) * 0.15;
     ctx.beginPath();
-    ctx.arc(cx, cy + bounceY + idleBob, baseR + 6, 0, Math.PI * 2);
+    ctx.arc(cx, cy + bounceY + idleBob, baseR + 4 * (ts / 48), 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -332,20 +344,21 @@ function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, now: number):
 
   // Label below
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 9px monospace';
+  const fontSize = Math.max(7, Math.floor(ts * 0.19));
+  ctx.font = `bold ${fontSize}px monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(player.isBot ? `B${player.id}` : 'YOU', cx, cy + baseR + 16);
+  ctx.fillText(player.isBot ? `B${player.id}` : 'YOU', cx, cy + baseR + 10 * (ts / 48));
 }
 
-function drawBomb(ctx: CanvasRenderingContext2D, bomb: Bomb, now: number): void {
-  const cx = bomb.x * TILE_SIZE + TILE_SIZE / 2;
-  const cy = bomb.y * TILE_SIZE + TILE_SIZE / 2;
+function drawBomb(ctx: CanvasRenderingContext2D, bomb: Bomb, now: number, ts: number): void {
+  const cx = bomb.x * ts + ts / 2;
+  const cy = bomb.y * ts + ts / 2;
 
   const elapsed = now - bomb.placed;
   const progress = elapsed / BOMB_TIMER;
   const pulse = 1 + Math.sin(progress * Math.PI * 8) * 0.08 * (1 + progress);
-  const r = TILE_SIZE * 0.3 * pulse;
+  const r = ts * 0.3 * pulse;
 
   ctx.fillStyle = COLORS.shadow;
   ctx.beginPath();
@@ -362,25 +375,26 @@ function drawBomb(ctx: CanvasRenderingContext2D, bomb: Bomb, now: number): void 
   ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.35, 0, Math.PI * 2);
   ctx.fill();
 
+  const fuseScale = ts / 48;
   ctx.strokeStyle = COLORS.bombFuse;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = Math.max(1, 2 * fuseScale);
   ctx.beginPath();
   ctx.moveTo(cx, cy - r);
-  ctx.quadraticCurveTo(cx + 6, cy - r - 8, cx + 4, cy - r - 12);
+  ctx.quadraticCurveTo(cx + 6 * fuseScale, cy - r - 8 * fuseScale, cx + 4 * fuseScale, cy - r - 12 * fuseScale);
   ctx.stroke();
 
   if (Math.sin(elapsed * 0.02) > 0) {
     ctx.fillStyle = '#ffff00';
     ctx.beginPath();
-    ctx.arc(cx + 4, cy - r - 12, 3 * pulse, 0, Math.PI * 2);
+    ctx.arc(cx + 4 * fuseScale, cy - r - 12 * fuseScale, 3 * pulse * fuseScale, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
-function drawExplosion(ctx: CanvasRenderingContext2D, exp: Explosion): void {
-  const cx = exp.x * TILE_SIZE + TILE_SIZE / 2;
-  const cy = exp.y * TILE_SIZE + TILE_SIZE / 2;
-  const maxR = TILE_SIZE * 0.5;
+function drawExplosion(ctx: CanvasRenderingContext2D, exp: Explosion, ts: number): void {
+  const cx = exp.x * ts + ts / 2;
+  const cy = exp.y * ts + ts / 2;
+  const maxR = ts * 0.5;
   const alpha = Math.min(1, exp.timer / 200);
 
   const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
@@ -390,24 +404,25 @@ function drawExplosion(ctx: CanvasRenderingContext2D, exp: Explosion): void {
   gradient.addColorStop(1, `rgba(255,0,0,${alpha * 0.2})`);
 
   ctx.fillStyle = gradient;
-  ctx.fillRect(exp.x * TILE_SIZE, exp.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  ctx.fillRect(exp.x * ts, exp.y * ts, ts, ts);
 }
 
-function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp, now: number): void {
+function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp, now: number, ts: number): void {
   if (!pu.revealed) return;
 
-  const cx = pu.x * TILE_SIZE + TILE_SIZE / 2;
-  const cy = pu.y * TILE_SIZE + TILE_SIZE / 2;
+  const cx = pu.x * ts + ts / 2;
+  const cy = pu.y * ts + ts / 2;
   const bounce = Math.sin(now * 0.004) * 2;
+  const sc = ts / 48; // scale factor relative to default 48px
 
   ctx.fillStyle = 'rgba(255,255,100,0.15)';
   ctx.beginPath();
-  ctx.arc(cx, cy + bounce, TILE_SIZE * 0.4, 0, Math.PI * 2);
+  ctx.arc(cx, cy + bounce, ts * 0.4, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.save();
   ctx.translate(cx, cy + bounce);
-  ctx.font = 'bold 14px monospace';
+  ctx.font = `bold ${Math.max(8, Math.floor(14 * sc))}px monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -415,7 +430,7 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp, now: number): v
     case PowerUpType.BOMB_COUNT:
       ctx.fillStyle = '#ff6600';
       ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.arc(0, 0, 8 * sc, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.fillText('+', 0, -1);
@@ -423,22 +438,22 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp, now: number): v
     case PowerUpType.BOMB_RANGE:
       ctx.fillStyle = '#ff2200';
       ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.quadraticCurveTo(8, -4, 5, 4);
-      ctx.quadraticCurveTo(0, 0, 0, 10);
-      ctx.quadraticCurveTo(0, 0, -5, 4);
-      ctx.quadraticCurveTo(-8, -4, 0, -10);
+      ctx.moveTo(0, -10 * sc);
+      ctx.quadraticCurveTo(8 * sc, -4 * sc, 5 * sc, 4 * sc);
+      ctx.quadraticCurveTo(0, 0, 0, 10 * sc);
+      ctx.quadraticCurveTo(0, 0, -5 * sc, 4 * sc);
+      ctx.quadraticCurveTo(-8 * sc, -4 * sc, 0, -10 * sc);
       ctx.fill();
       break;
     case PowerUpType.SPEED:
       ctx.fillStyle = '#ffcc00';
       ctx.beginPath();
-      ctx.moveTo(2, -10);
-      ctx.lineTo(-4, -1);
-      ctx.lineTo(0, -1);
-      ctx.lineTo(-2, 10);
-      ctx.lineTo(4, 1);
-      ctx.lineTo(0, 1);
+      ctx.moveTo(2 * sc, -10 * sc);
+      ctx.lineTo(-4 * sc, -1 * sc);
+      ctx.lineTo(0, -1 * sc);
+      ctx.lineTo(-2 * sc, 10 * sc);
+      ctx.lineTo(4 * sc, 1 * sc);
+      ctx.lineTo(0, 1 * sc);
       ctx.closePath();
       ctx.fill();
       break;
@@ -450,19 +465,21 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp, now: number): v
 // ─── HUD ───────────────────────────────────────────────────────────────
 
 function drawHUD(ctx: CanvasRenderingContext2D, state: GameState): void {
+  const { w: canvasW, h: canvasH } = getCanvasSize(state);
   const barH = 32;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, CANVAS_H, CANVAS_W, barH);
+  ctx.fillRect(0, canvasH, canvasW, barH);
 
-  ctx.font = '12px monospace';
+  const fontSize = Math.max(9, Math.min(12, Math.floor(canvasW / state.players.length / 16)));
+  ctx.font = `${fontSize}px monospace`;
   ctx.textBaseline = 'middle';
 
-  const spacing = CANVAS_W / state.players.length;
+  const spacing = canvasW / state.players.length;
 
   for (let i = 0; i < state.players.length; i++) {
     const p = state.players[i];
     const x = spacing * i + 12;
-    const y = CANVAS_H + barH / 2;
+    const y = canvasH + barH / 2;
 
     ctx.fillStyle = p.alive ? p.color : '#555555';
     ctx.beginPath();
@@ -471,8 +488,8 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState): void {
 
     ctx.fillStyle = p.alive ? '#ffffff' : '#666666';
     ctx.textAlign = 'left';
-    const label = p.isBot ? `BOT${p.id}` : 'YOU';
-    const stats = `${label}  B:${p.maxBombs} R:${p.bombRange} S:${p.speed}`;
+    const label = p.isBot ? `B${p.id}` : 'YOU';
+    const stats = `${label} B:${p.maxBombs} R:${p.bombRange} S:${p.speed}`;
     ctx.fillText(stats, x + 10, y);
 
     if (!p.alive) {
@@ -486,16 +503,20 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState): void {
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState): void {
   const now = Date.now();
+  const ts = state.tileSize;
+  const { w: canvasW, h: canvasH } = getCanvasSize(state);
 
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H + 32);
+  ctx.clearRect(0, 0, canvasW, canvasH + 32);
 
   // Set active theme from map ID
   activeTheme = MAP_THEMES[state.mapId] || MAP_THEMES.classic;
 
-  // Rebuild static tile cache only when map changes (block destroyed)
-  const currentHash = getMapHash(state.map);
-  if (!cachedMapCanvas || cachedMapHash !== currentHash) {
-    rebuildStaticCache(state.map);
+  // Rebuild static tile cache only when map changes (block destroyed) or size changes
+  const dims = `${state.cols}x${state.rows}`;
+  if (!cachedMapCanvas || cachedMapVersion !== mapVersion || cachedTileSize !== ts || cachedMapDims !== dims) {
+    rebuildStaticCache(state);
+    cachedMapVersion = mapVersion;
+    cachedMapDims = dims;
   }
 
   // Blit cached static tiles (single drawImage call = instant)
@@ -505,20 +526,21 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState): void {
 
   // Draw only dynamic entities below
   for (const pu of state.powerUps) {
-    drawPowerUp(ctx, pu, now);
+    drawPowerUp(ctx, pu, now, ts);
   }
 
   for (const bomb of state.bombs) {
-    drawBomb(ctx, bomb, now);
+    drawBomb(ctx, bomb, now, ts);
   }
 
   for (const exp of state.explosions) {
-    drawExplosion(ctx, exp);
+    drawExplosion(ctx, exp, ts);
   }
 
-  const sortedPlayers = [...state.players].sort((a, b) => a.visualY - b.visualY);
-  for (const player of sortedPlayers) {
-    drawPlayer(ctx, player, now);
+  // Sort in-place to avoid allocating a new array every frame (GC pressure)
+  state.players.sort((a, b) => a.visualY - b.visualY);
+  for (const player of state.players) {
+    drawPlayer(ctx, player, now, ts);
   }
 
   drawHUD(ctx, state);
@@ -527,7 +549,8 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState): void {
 /** Force cache invalidation (call on game restart) */
 export function invalidateMapCache(): void {
   cachedMapCanvas = null;
-  cachedMapHash = '';
+  cachedMapVersion = -1;
+  cachedTileSize = 0;
+  cachedMapDims = '';
+  mapVersion = 0;
 }
-
-export { CANVAS_W, CANVAS_H };

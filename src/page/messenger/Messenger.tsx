@@ -95,7 +95,7 @@ export default function Messenger() {
   const location = useLocation() as Location & { state?: MessengerLocationState };
   const { user } = useAuth();
   const { startCall } = useCall();
-  const { isConnected, subscribe } = useSocket();
+  const { isConnected, subscribe, subscribeConversationRoom } = useSocket();
   const {
     conversations,
     messages: apiMessages,
@@ -313,6 +313,13 @@ export default function Messenger() {
       isTypingRef.current = false;
     }
   }, [activeChat, loadMessages]);
+
+  // Subscribe to room channel for active conversation (ensures no missed events)
+  useEffect(() => {
+    if (!activeChat || activeChat === AI_CONVERSATION_ID || !isConnected) return;
+    const unsubscribeRoom = subscribeConversationRoom(activeChat);
+    return unsubscribeRoom;
+  }, [activeChat, isConnected, subscribeConversationRoom]);
 
   // Sync admin/owner draft state when switching conversations
   useEffect(() => {
@@ -683,54 +690,26 @@ export default function Messenger() {
   
   // Get call info - supports both direct and group calls
   const getCallInfo = () => {
-    if (!activeChat || !user?.id) {
-      console.log('❌ getCallInfo: No active chat or user');
-      return null;
-    }
-    
-    // AI chat doesn't support calls
-    if (activeChat === AI_CONVERSATION_ID) {
-      return null;
-    }
-    
+    if (!activeChat || !user?.id) return null;
+    if (activeChat === AI_CONVERSATION_ID) return null;
+
     const conv = conversations.find(c => c.id === activeChat);
-    console.log('🔍 getCallInfo: Found conversation:', conv);
-    
-    if (!conv) {
-      console.log('❌ getCallInfo: Conversation not found for activeChat:', activeChat);
-      return null;
-    }
-    
-    // For group calls: use conversationId as the "recipient" ID
+    if (!conv) return null;
+
     if (conv.isGroup) {
-      console.log('📞 getCallInfo: Group call - conversationId:', activeChat);
       return {
-        id: activeChat, // Use conversationId for group calls
+        id: activeChat,
         name: conv.groupName || 'Group Chat',
         isGroup: true,
       };
     }
-    
-    // For direct calls: return other participant info
-    console.log('👥 getCallInfo: Direct call - Participant IDs:', conv.participantIds);
-    console.log('👤 getCallInfo: Current user ID:', user.id);
-    
+
     const otherParticipantId = conv.participantIds.find(id => id !== user.id);
     const otherParticipantIndex = conv.participantIds.findIndex(id => id !== user.id);
     const otherParticipantName = conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
-    
-    console.log('🎯 getCallInfo: Returning recipient:', {
-      id: otherParticipantId,
-      name: otherParticipantName,
-      conversationId: activeChat,
-      isGroup: false,
-    });
-    
-    if (!otherParticipantId) {
-      console.error('❌ getCallInfo: No other participant found!');
-      return null;
-    }
-    
+
+    if (!otherParticipantId) return null;
+
     return {
       id: otherParticipantId,
       name: otherParticipantName,
