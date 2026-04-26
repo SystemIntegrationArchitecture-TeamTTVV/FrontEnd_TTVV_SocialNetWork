@@ -57,7 +57,7 @@ export default function AdminSettings() {
       localStorage.setItem('admin_settings', JSON.stringify(settings));
       // Optionally persist to backend (if endpoint exists)
       try {
-        await httpClient.put('/api/common/settings', settings);
+        await httpClient.put('/api/social/settings', settings);
       } catch {
         // Backend endpoint not available — local save is enough
       }

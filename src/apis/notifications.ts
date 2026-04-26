@@ -19,31 +19,31 @@ export interface Notification {
 
 export const notificationsApi = {
   getNotificationsByRecipientId: async (recipientId: string): Promise<Notification[]> => {
-    return httpClient.get<Notification[]>(`/api/common/notifications/recipient/${recipientId}`);
+    return httpClient.get<Notification[]>(`/api/social/notifications/recipient/${recipientId}`);
   },
 
   getUnreadNotificationsByRecipientId: async (recipientId: string): Promise<Notification[]> => {
-    return httpClient.get<Notification[]>(`/api/common/notifications/recipient/${recipientId}/unread`);
+    return httpClient.get<Notification[]>(`/api/social/notifications/recipient/${recipientId}/unread`);
   },
 
   getUnreadNotificationCount: async (recipientId: string): Promise<number> => {
-    return httpClient.get<number>(`/api/common/notifications/recipient/${recipientId}/unread/count`);
+    return httpClient.get<number>(`/api/social/notifications/recipient/${recipientId}/unread/count`);
   },
 
   getNotificationById: async (id: string): Promise<Notification> => {
-    return httpClient.get<Notification>(`/api/common/notifications/${id}`);
+    return httpClient.get<Notification>(`/api/social/notifications/${id}`);
   },
 
   markAsRead: async (id: string): Promise<Notification> => {
-    return httpClient.put<Notification>(`/api/common/notifications/${id}/read`);
+    return httpClient.put<Notification>(`/api/social/notifications/${id}/read`);
   },
 
   markAllAsRead: async (recipientId: string): Promise<void> => {
-    return httpClient.put<void>(`/api/common/notifications/recipient/${recipientId}/read-all`);
+    return httpClient.put<void>(`/api/social/notifications/recipient/${recipientId}/read-all`);
   },
 
   deleteNotification: async (id: string): Promise<void> => {
-    return httpClient.delete<void>(`/api/common/notifications/${id}`);
+    return httpClient.delete<void>(`/api/social/notifications/${id}`);
   },
 };
 

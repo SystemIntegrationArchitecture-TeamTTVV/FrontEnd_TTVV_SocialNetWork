@@ -55,7 +55,7 @@ export type {
   AIDailySummaryResponse,
 };
 
-const baseUrl = '/api/common/ai';
+const baseUrl = '/api/social/ai';
 
 export const aiApi = {
   chat: async (request: AIChatRequest): Promise<AIChatResponse> => {

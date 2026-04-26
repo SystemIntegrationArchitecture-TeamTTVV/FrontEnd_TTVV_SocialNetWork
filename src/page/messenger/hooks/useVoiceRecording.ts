@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { notify } from '../../../utils/toast';
+import { notify } from '../../../services/notify';
 import { useTranslation } from 'react-i18next';
 
 interface UseVoiceRecordingProps {

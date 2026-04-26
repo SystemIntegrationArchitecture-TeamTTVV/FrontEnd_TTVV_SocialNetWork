@@ -49,7 +49,7 @@ export interface UpdatePostRequest {
 }
 
 class PostsApi {
-  private baseUrl = '/api/common/posts';
+  private baseUrl = '/api/social/posts';
 
   /**
    * Get all posts (newsfeed)

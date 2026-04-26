@@ -12,7 +12,7 @@ function sanitizeStoryAvatar(avatar: string | undefined): string {
 }
 
 class StoriesApi {
-    private baseUrl = '/api/common/stories';
+    private baseUrl = '/api/social/stories';
 
     async getStoryFeed(userId: string): Promise<Story[]> {
         return await httpClient.get<Story[]>(

@@ -31,7 +31,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Fetching reactions for post ${postId}...`,
       );
       const response = await httpClient.get<ReactionData[]>(
-        `/api/common/reactions/post/${postId}`,
+        `/api/social/reactions/post/${postId}`,
       );
       console.log(
         "✅ [Reactions API] Successfully fetched post reactions:",
@@ -58,7 +58,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Fetching reactions for comment ${commentId}...`,
       );
       const response = await httpClient.get<ReactionData[]>(
-        `/api/common/reactions/comment/${commentId}`,
+        `/api/social/reactions/comment/${commentId}`,
       );
       console.log(
         "✅ [Reactions API] Successfully fetched comment reactions:",
@@ -83,7 +83,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Fetching reactions for video ${videoId}...`,
       );
       const response = await httpClient.get<ReactionData[]>(
-        `/api/common/reactions/video/${videoId}`, // ✨ SỬA LẠI ENDPOINT (bỏ /user/)
+        `/api/social/reactions/video/${videoId}`, // ✨ SỬA LẠI ENDPOINT (bỏ /user/)
       );
       console.log(
         "✅ [Reactions API] Successfully fetched video reactions:",
@@ -108,7 +108,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Fetching reactions for user ${userId}...`,
       );
       const response = await httpClient.get<ReactionData[]>(
-        `/api/common/reactions/user/${userId}`,
+        `/api/social/reactions/user/${userId}`,
       );
       console.log(
         "✅ [Reactions API] Successfully fetched user reactions:",
@@ -133,7 +133,7 @@ export const reactionsApi = {
     try {
       console.log("📡 [Reactions API] Creating reaction...", reactionData);
       const response = await httpClient.post<ReactionData>(
-        "/api/common/reactions",
+        "/api/social/reactions",
         reactionData,
       );
       console.log(
@@ -153,7 +153,7 @@ export const reactionsApi = {
   async deleteReaction(id: string): Promise<void> {
     try {
       console.log(`📡 [Reactions API] Deleting reaction ${id}...`);
-      await httpClient.delete(`/api/common/reactions/${id}`);
+      await httpClient.delete(`/api/social/reactions/${id}`);
       console.log("✅ [Reactions API] Successfully deleted reaction");
     } catch (error) {
       console.error(
@@ -176,7 +176,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Deleting reaction for post ${postId} by user ${userId}...`,
       );
       await httpClient.delete(
-        `/api/common/reactions/post/${postId}/user/${userId}`,
+        `/api/social/reactions/post/${postId}/user/${userId}`,
       );
       console.log("✅ [Reactions API] Successfully deleted post reaction");
     } catch (error) {
@@ -200,7 +200,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Deleting reaction for comment ${commentId} by user ${userId}...`,
       );
       await httpClient.delete(
-        `/api/common/reactions/comment/${commentId}/user/${userId}`,
+        `/api/social/reactions/comment/${commentId}/user/${userId}`,
       );
       console.log("✅ [Reactions API] Successfully deleted comment reaction");
     } catch (error) {
@@ -224,7 +224,7 @@ export const reactionsApi = {
         `📡 [Reactions API] Deleting reaction for video ${videoId} by user ${userId}...`,
       );
       await httpClient.delete(
-        `/api/common/reactions/video/${videoId}/user/${userId}`,
+        `/api/social/reactions/video/${videoId}/user/${userId}`,
       );
       console.log("✅ [Reactions API] Successfully deleted video reaction");
     } catch (error) {

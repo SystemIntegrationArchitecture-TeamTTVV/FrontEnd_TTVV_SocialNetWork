@@ -63,7 +63,7 @@ export interface UpdateProductRequest {
 }
 
 class ProductApi {
-    private baseUrl = '/api/common/products';
+    private baseUrl = '/api/social/products';
 
     /**
      * Get all products with pagination and filters

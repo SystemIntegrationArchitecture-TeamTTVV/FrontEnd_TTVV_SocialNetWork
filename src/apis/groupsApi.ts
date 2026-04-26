@@ -55,7 +55,7 @@ export interface UpdateGroupRequest {
 
 class GroupsApi {
 
-    private baseUrl = '/api/common/groups';
+    private baseUrl = '/api/social/groups';
 
     /**
      * Get all groups

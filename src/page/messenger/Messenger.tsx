@@ -1,4 +1,4 @@
-﻿import { useLocation, type Location } from 'react-router-dom';
+import { useLocation, type Location } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import { conversationsApi, type Conversation } from '../../apis/conversations';
 import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
-import { aiApi, type AIChatRequest, type AIDailySummaryResponse } from '../../apis/ai';
+import { aiApi, type AIChatRequest } from '../../apis/ai';
 import { usersApi, type PresenceStatus } from '../../apis/users';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
@@ -161,15 +161,6 @@ export default function Messenger() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
   const [hideLoading, setHideLoading] = useState(false);
   const [hideError, setHideError] = useState<string | null>(null);
-  const [groupMemberInput, setGroupMemberInput] = useState('');
-  const [groupNameDraft, setGroupNameDraft] = useState('');
-  const [groupAvatarDraft, setGroupAvatarDraft] = useState('');
-  const [adminDraft, setAdminDraft] = useState<string[]>([]);
-  const [newOwnerId, setNewOwnerId] = useState<string>('');
-  const [pendingJoins, setPendingJoins] = useState<string[]>([]);
-  const [groupActionError, setGroupActionError] = useState<string | null>(null);
-  const [groupActionMessage, setGroupActionMessage] = useState<string | null>(null);
-  const [updatingGroup, setUpdatingGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingStopTimerRef = useRef<number | null>(null);
@@ -180,18 +171,6 @@ export default function Messenger() {
   const openConversationId = location.state?.openConversationId;
   const { t, i18n } = useTranslation();
   
-  // AI Chat state
-  const AI_CONVERSATION_ID = 'ai_assistant';
-  const [aiMessages, setAiMessages] = useState<Array<{ id: string; text: string; isUser: boolean; timestamp: Date }>>([
-    {
-      id: '1',
-      text: t('messenger.aiAssistant.welcome'),
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ]);
-  const [aiConversationId, setAiConversationId] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Presence State ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   const [presenceByUserId, setPresenceByUserId] = useState<Record<string, PresenceStatus>>({});
@@ -287,6 +266,22 @@ export default function Messenger() {
     }
   }, [openConversationId, conversations]);
 
+  const {
+    AI_CONVERSATION_ID,
+    aiMessages,
+    setAiMessages,
+    aiConversationId,
+    setAiConversationId,
+    isAiLoading,
+    setIsAiLoading,
+    isDailySummaryPrompt,
+    appendAiMessage,
+    handleGenerateDailySummaryForAi,
+  } = useAIChat({
+    userId: user?.id,
+    getLocaleTag,
+  });
+
   const activeConversationRaw = activeChat && activeChat !== AI_CONVERSATION_ID ? conversations.find((c) => c.id === activeChat) : undefined;
   const isGroupChat = activeChat !== AI_CONVERSATION_ID && !!activeConversationRaw?.isGroup;
   const isAIChat = activeChat === AI_CONVERSATION_ID;
@@ -310,16 +305,6 @@ export default function Messenger() {
     setMessage,
   });
 
-  const {
-    AI_CONVERSATION_ID,
-    aiMessages,
-    isAiLoading,
-    isDailySummaryPrompt,
-    handleGenerateDailySummaryForAi,
-  } = useAIChat({
-    userId: user?.id,
-    getLocaleTag,
-  });
 
   const {
     groupMemberInput,
@@ -333,8 +318,11 @@ export default function Messenger() {
     newOwnerId,
     setNewOwnerId,
     pendingJoins,
+    setPendingJoins,
     groupActionError,
+    setGroupActionError,
     groupActionMessage,
+    setGroupActionMessage,
     updatingGroup,
     handleAddMembers,
     handleRemoveMember,
@@ -775,80 +763,6 @@ export default function Messenger() {
   };
 
 
-  const isDailySummaryPrompt = (input: string) => {
-    const normalized = input.toLowerCase().trim();
-    return (
-      normalized.includes('tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³m tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯t') ||
-      normalized.includes('tom tat') ||
-      normalized.includes('summary') ||
-      normalized.includes('thÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ng bÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡o hÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´m nay') ||
-      normalized.includes('thong bao hom nay') ||
-      normalized.includes('notification')
-    );
-  };
-
-  const appendAiMessage = (text: string) => {
-    const aiMessage = {
-      id: Date.now().toString(),
-      text,
-      isUser: false,
-      timestamp: new Date(),
-    };
-    setAiMessages((prev) => [...prev, aiMessage]);
-  };
-
-  const formatDailySummaryMessage = (data: AIDailySummaryResponse) => {
-    const generatedAt = data.generatedAt
-      ? new Date(data.generatedAt).toLocaleTimeString(getLocaleTag(), {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : '';
-
-    return [
-      t('messenger.aiAssistant.summaryHeader'),
-      t('messenger.aiAssistant.summaryCounts', {
-        notifications: data.notificationsCount,
-        posts: data.friendsPostCount,
-        messages: data.incomingMessageCount,
-      }),
-      '',
-      data.summary,
-      generatedAt ? '' : null,
-      generatedAt ? t('messenger.aiAssistant.summaryGeneratedAt', { time: generatedAt }) : null,
-    ]
-      .filter(Boolean)
-      .join('\n');
-  };
-
-  const handleGenerateDailySummaryForAi = async (userPrompt?: string) => {
-    if (!user?.id) return;
-
-    if (userPrompt) {
-      const userMessage = {
-        id: Date.now().toString(),
-        text: userPrompt,
-        isUser: true,
-        timestamp: new Date(),
-      };
-      setAiMessages((prev) => [...prev, userMessage]);
-    }
-
-    setIsAiLoading(true);
-    try {
-      const summary = await aiApi.dailySummary({
-        userId: user.id,
-        limit: 6,
-      });
-      appendAiMessage(formatDailySummaryMessage(summary));
-    } catch (error) {
-      console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Error generating AI daily summary:', error);
-      appendAiMessage(t('messenger.aiAssistant.summaryError'));
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!message.trim() && !replyTo && !filePreview && uploadedFiles.length === 0) return;
     if (!activeChat || !user?.id) return;
@@ -1033,189 +947,6 @@ export default function Messenger() {
     }
   };
 
-
-  const handleRemoveMember = async (memberId: string) => {
-    if (!activeChat || !user?.id) return;
-
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-
-    try {
-      // Owner leave flow: must transfer ownership first
-      if (memberId === user.id && isGroupChat && isOwner) {
-        if (!newOwnerId || newOwnerId === user.id) {
-          setGroupActionError(t('messenger.group.ownerMustChooseNewOwner'));
-          return;
-        }
-        await conversationsApi.leaveGroup(activeChat, {
-          requesterId: user.id,
-          newOwnerId,
-        });
-        setGroupActionMessage(t('messenger.group.leaveSuccess'));
-        await loadConversations();
-        setActiveChat(null);
-        return;
-      }
-
-      await conversationsApi.removeGroupMember(activeChat, {
-        requesterId: user.id,
-        participantId: memberId,
-      });
-      const selfRemoved = memberId === user.id;
-      setGroupActionMessage(selfRemoved ? t('messenger.group.leaveSuccess') : t('messenger.group.removeMemberSuccess'));
-      await loadConversations();
-      if (selfRemoved) {
-        setActiveChat(null);
-      }
-    } catch (err: unknown) {
-      console.error('Failed to remove member', err);
-      const message = err instanceof Error ? err.message : t('messenger.group.removeMemberError');
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
-
-  const handleSaveGroupMeta = async () => {
-    if (!activeChat || !user?.id) return;
-    if (!isGroupChat) return;
-
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-
-    try {
-      await conversationsApi.updateConversationMeta(activeChat, {
-        requesterId: user.id,
-        groupName: groupNameDraft.trim(),
-        groupAvatar: groupAvatarDraft.trim(),
-      });
-      setGroupActionMessage(t('messenger.group.updateMetaSuccess'));
-      await loadConversations();
-    } catch (err: unknown) {
-      console.error('Failed to update group meta', err);
-      const message = err instanceof Error ? err.message : t('messenger.group.updateMetaError');
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
-
-  const handleDeleteGroup = async () => {
-    if (!activeChat || !user?.id) return;
-    if (!isGroupChat || !isOwner) {
-      setGroupActionError(t('messenger.group.onlyOwnerCanDisband'));
-      return;
-    }
-    const ok = confirm(t('messenger.group.confirmDisband'));
-    if (!ok) return;
-
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-
-    try {
-      await conversationsApi.deleteConversationAsUser(activeChat, user.id);
-      setGroupActionMessage(t('messenger.group.disbandSuccess'));
-      setActiveChat(null);
-      await loadConversations();
-    } catch (err: unknown) {
-      console.error('Failed to delete group', err);
-      const message = err instanceof Error ? err.message : t('messenger.group.disbandError');
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
-
-  const handleClearConversationForMe = async () => {
-    if (!activeChat || !user?.id) return;
-    if (activeChat === AI_CONVERSATION_ID) return;
-
-    const ok = confirm('Ban co chac muon xoa doan chat cho rieng minh khong?');
-    if (!ok) return;
-
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-
-    try {
-      await conversationsApi.clearConversationForUser(activeChat, { userId: user.id });
-      setActiveChat(null);
-      await loadConversations();
-    } catch (err: unknown) {
-      console.error('Failed to clear conversation for current user', err);
-      const message = err instanceof Error ? err.message : 'Xoa doan chat that bai';
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
-
-  const handleJoinRequestDecision = async (requesterId: string, approved: boolean) => {
-    if (!activeChat || !user?.id) return;
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-    try {
-      await conversationsApi.handleJoinRequest(activeChat, {
-        requesterId,
-        approverId: user.id,
-        approved,
-      });
-      setGroupActionMessage(approved ? t('messenger.group.approveJoinSuccess') : t('messenger.group.rejectJoinSuccess'));
-      // Refresh pending list and conversation
-      if (activeConversationRaw?.approvalsRequired) {
-        const list = await conversationsApi.getPendingJoinRequests(activeChat, user.id);
-        setPendingJoins(list);
-      }
-      await loadConversations();
-    } catch (err) {
-      console.error('Failed to handle join request', err);
-      const message = err instanceof Error ? err.message : t('messenger.group.handleJoinError');
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
-
-  const handleAdminToggle = (memberId: string) => {
-    if (!activeConversationRaw) return;
-    if (memberId === activeConversationRaw.ownerId) return; // owner always has full rights
-    setAdminDraft((prev) =>
-      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
-    );
-  };
-
-  const handleUpdateRoles = async () => {
-    if (!activeChat || !user?.id || !isOwner) {
-      setGroupActionError(t('messenger.group.onlyOwnerCanUpdateRoles'));
-      return;
-    }
-
-    setUpdatingGroup(true);
-    setGroupActionError(null);
-    setGroupActionMessage(null);
-
-    try {
-      const payload = {
-        requesterId: user.id,
-        newOwnerId: newOwnerId || undefined,
-        adminIds: adminDraft.filter((id) => id !== newOwnerId),
-      };
-
-      await conversationsApi.updateGroupRoles(activeChat, payload);
-      setGroupActionMessage(t('messenger.group.updateRolesSuccess'));
-      await loadConversations();
-    } catch (err: unknown) {
-      console.error('Failed to update group roles', err);
-      const message = err instanceof Error ? err.message : t('messenger.group.updateRolesError');
-      setGroupActionError(message);
-    } finally {
-      setUpdatingGroup(false);
-    }
-  };
 
   const handleEmojiSelect = (emoji: string) => {
     setMessage(prev => prev + emoji);
@@ -1408,26 +1139,6 @@ export default function Messenger() {
     e.target.value = '';
   };
 
-
-  /** Option 2: Convert to text ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ put in input */
-  const handleVoiceConvertToText = () => {
-    const text = voiceTranscriptRef.current.trim();
-    if (text) {
-      setMessage(prev => (prev ? prev + ' ' : '') + text);
-    } else {
-      notify.error('Khong nhan dien duoc giong noi. Hay thu lai.');
-    }
-    setShowVoicePreview(false);
-    setVoiceBlob(null);
-    voiceTranscriptRef.current = '';
-  };
-
-  /** Cancel voice preview */
-  const handleVoiceCancel = () => {
-    setShowVoicePreview(false);
-    setVoiceBlob(null);
-    voiceTranscriptRef.current = '';
-  };
 
   // Server-side search with debounce
   useEffect(() => {
@@ -1846,10 +1557,3 @@ export default function Messenger() {
     </div>
   );
 }
-
-
-
-
-
-
-

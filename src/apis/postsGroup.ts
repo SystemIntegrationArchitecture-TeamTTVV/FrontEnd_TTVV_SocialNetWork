@@ -47,7 +47,7 @@ export interface UpdatePostGroupRequest {
 }
 
 class PostGroupApi {
-  private baseUrl = '/api/common/group-posts';
+  private baseUrl = '/api/social/group-posts';
 
   /**
    * 🔥 Get all posts in a group

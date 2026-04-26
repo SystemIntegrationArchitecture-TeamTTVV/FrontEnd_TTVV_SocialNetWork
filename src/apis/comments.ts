@@ -39,7 +39,7 @@ export const commentsApi = {
     try {
       console.log(`📡 [Comments API] Fetching comments for post ${postId}...`);
       const response = await httpClient.get<CommentData[]>(
-        `/api/common/comments/post/${postId}`,
+        `/api/social/comments/post/${postId}`,
       );
       console.log(
         "✅ [Comments API] Successfully fetched post comments:",
@@ -64,7 +64,7 @@ export const commentsApi = {
         `📡 [Comments API] Fetching comments for video ${videoId}...`,
       );
       const response = await httpClient.get<CommentData[]>(
-        `/api/common/comments/video/${videoId}`,
+        `/api/social/comments/video/${videoId}`,
       );
       console.log(
         "✅ [Comments API] Successfully fetched video comments:",
@@ -89,7 +89,7 @@ export const commentsApi = {
         `📡 [Comments API] Fetching replies for comment ${commentId}...`,
       );
       const response = await httpClient.get<CommentData[]>(
-        `/api/common/comments/parent/${commentId}/replies`,
+        `/api/social/comments/parent/${commentId}/replies`,
       );
       console.log(
         "✅ [Comments API] Successfully fetched comment replies:",
@@ -112,7 +112,7 @@ export const commentsApi = {
     try {
       console.log(`📡 [Comments API] Fetching comment ${id}...`);
       const response = await httpClient.get<CommentData>(
-        `/api/common/comments/${id}`,
+        `/api/social/comments/${id}`,
       );
       console.log("✅ [Comments API] Successfully fetched comment:", response);
       return response;
@@ -131,7 +131,7 @@ export const commentsApi = {
     try {
       console.log("📡 [Comments API] Creating comment...", commentData);
       const response = await httpClient.post<CommentData>(
-        "/api/common/comments",
+        "/api/social/comments",
         commentData,
       );
       console.log("✅ [Comments API] Successfully created comment:", response);
@@ -152,7 +152,7 @@ export const commentsApi = {
     try {
       console.log(`📡 [Comments API] Updating comment ${id}...`, commentData);
       const response = await httpClient.put<CommentData>(
-        `/api/common/comments/${id}`,
+        `/api/social/comments/${id}`,
         commentData,
       );
       console.log("✅ [Comments API] Successfully updated comment:", response);
@@ -169,7 +169,7 @@ export const commentsApi = {
   deleteComment: async (id: string): Promise<void> => {
     try {
       console.log(`📡 [Comments API] Deleting comment ${id}...`);
-      await httpClient.delete(`/api/common/comments/${id}`);
+      await httpClient.delete(`/api/social/comments/${id}`);
       console.log("✅ [Comments API] Successfully deleted comment");
     } catch (error) {
       console.error(`❌ [Comments API] Failed to delete comment ${id}:`, error);

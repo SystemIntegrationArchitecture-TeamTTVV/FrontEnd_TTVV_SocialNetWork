@@ -51,7 +51,7 @@ class SocketService {
     const base =
       API_CONFIG.BASE_URL ||
       (typeof window !== "undefined" ? window.location.origin : "");
-    const socketUrl = new URL("/api/common/ws", base).toString();
+    const socketUrl = new URL("/api/social/ws", base).toString();
     console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
     const socket = new SockJS(socketUrl);
     this.client = new Client({

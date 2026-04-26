@@ -88,6 +88,16 @@ class HttpClient {
     return url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
   }
 
+  /**
+   * Force auth endpoints through API Gateway to avoid wrong service fallback.
+   */
+  private buildFullUrl(url: string, useGateway: boolean): string {
+    const shouldUseGateway = this.isAuthUrl(url) ? true : useGateway;
+    return shouldUseGateway
+      ? `${API_CONFIG.BASE_URL}${url}`
+      : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
+  }
+
   private async handleResponse<T>(
     response: Response,
     retryFn?: () => Promise<T>
@@ -141,9 +151,7 @@ class HttpClient {
     includeAuth: boolean = true,
     useGateway: boolean = true
   ): Promise<T> {
-    const fullUrl = useGateway
-      ? `${API_CONFIG.BASE_URL}${url}`
-      : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
+    const fullUrl = this.buildFullUrl(url, useGateway);
 
     const doFetch = async (): Promise<T> => {
       const response = await fetch(fullUrl, {
@@ -162,9 +170,7 @@ class HttpClient {
     includeAuth: boolean = true,
     useGateway: boolean = true
   ): Promise<T> {
-    const fullUrl = useGateway
-      ? `${API_CONFIG.BASE_URL}${url}`
-      : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
+    const fullUrl = this.buildFullUrl(url, useGateway);
 
     const doFetch = async (): Promise<T> => {
       const response = await fetch(fullUrl, {
@@ -184,9 +190,7 @@ class HttpClient {
     includeAuth: boolean = true,
     useGateway: boolean = true
   ): Promise<T> {
-    const fullUrl = useGateway
-      ? `${API_CONFIG.BASE_URL}${url}`
-      : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
+    const fullUrl = this.buildFullUrl(url, useGateway);
 
     const doFetch = async (): Promise<T> => {
       const response = await fetch(fullUrl, {
@@ -206,9 +210,7 @@ class HttpClient {
     useGateway: boolean = true,
     data?: any
   ): Promise<T> {
-    const fullUrl = useGateway
-      ? `${API_CONFIG.BASE_URL}${url}`
-      : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
+    const fullUrl = this.buildFullUrl(url, useGateway);
 
     const doFetch = async (): Promise<T> => {
       const response = await fetch(fullUrl, {

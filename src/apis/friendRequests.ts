@@ -20,39 +20,39 @@ export interface CreateFriendRequestData {
 
 export const friendRequestsApi = {
   getFriendRequestsBySenderId: async (senderId: string): Promise<FriendRequest[]> => {
-    return httpClient.get<FriendRequest[]>(`/api/common/friend-requests/sender/${senderId}`);
+    return httpClient.get<FriendRequest[]>(`/api/social/friend-requests/sender/${senderId}`);
   },
 
   getFriendRequestsByReceiverId: async (receiverId: string): Promise<FriendRequest[]> => {
-    return httpClient.get<FriendRequest[]>(`/api/common/friend-requests/receiver/${receiverId}`);
+    return httpClient.get<FriendRequest[]>(`/api/social/friend-requests/receiver/${receiverId}`);
   },
 
   getPendingFriendRequestsByReceiverId: async (receiverId: string): Promise<FriendRequest[]> => {
-    return httpClient.get<FriendRequest[]>(`/api/common/friend-requests/receiver/${receiverId}/pending`);
+    return httpClient.get<FriendRequest[]>(`/api/social/friend-requests/receiver/${receiverId}/pending`);
   },
 
   createFriendRequest: async (data: CreateFriendRequestData): Promise<FriendRequest> => {
-    return httpClient.post<FriendRequest>('/api/common/friend-requests', data);
+    return httpClient.post<FriendRequest>('/api/social/friend-requests', data);
   },
 
   acceptFriendRequest: async (id: string): Promise<FriendRequest> => {
-    return httpClient.put<FriendRequest>(`/api/common/friend-requests/${id}/accept`, null);
+    return httpClient.put<FriendRequest>(`/api/social/friend-requests/${id}/accept`, null);
   },
 
   rejectFriendRequest: async (id: string): Promise<void> => {
-    return httpClient.put<void>(`/api/common/friend-requests/${id}/reject`, null);
+    return httpClient.put<void>(`/api/social/friend-requests/${id}/reject`, null);
   },
 
   cancelFriendRequest: async (id: string): Promise<void> => {
-    return httpClient.put<void>(`/api/common/friend-requests/${id}/cancel`, null);
+    return httpClient.put<void>(`/api/social/friend-requests/${id}/cancel`, null);
   },
 
   unfriend: async (userId1: string, userId2: string): Promise<void> => {
-    return httpClient.delete<void>(`/api/common/friend-requests/unfriend?userId1=${userId1}&userId2=${userId2}`);
+    return httpClient.delete<void>(`/api/social/friend-requests/unfriend?userId1=${userId1}&userId2=${userId2}`);
   },
 
   deleteFriendRequest: async (id: string): Promise<void> => {
-    return httpClient.delete<void>(`/api/common/friend-requests/${id}`);
+    return httpClient.delete<void>(`/api/social/friend-requests/${id}`);
   },
 };
 export interface FriendDTO {
@@ -68,10 +68,10 @@ export interface FriendDTO {
 export const friendsApi = {
   /** Lấy danh sách bạn bè từ bảng Friend (sau khi accept) */
   getFriendsByUserId: async (userId: string): Promise<FriendDTO[]> => {
-    return httpClient.get<FriendDTO[]>(`/api/common/friends/user/${userId}`);
+    return httpClient.get<FriendDTO[]>(`/api/social/friends/user/${userId}`);
   },
   checkIfFriends: async (userId: string, friendId: string): Promise<boolean> => {
-    return httpClient.get<boolean>(`/api/common/friends/check?userId=${userId}&friendId=${friendId}`);
+    return httpClient.get<boolean>(`/api/social/friends/check?userId=${userId}&friendId=${friendId}`);
   },
 };
 

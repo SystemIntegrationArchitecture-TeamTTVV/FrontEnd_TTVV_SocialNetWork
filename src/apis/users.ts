@@ -129,6 +129,6 @@ export const usersApi = {
       return {};
     }
     const query = encodeURIComponent(userIds.join(','));
-    return httpClient.get<Record<string, PresenceStatus>>(`/api/common/socket/presence?userIds=${query}`);
+    return httpClient.get<Record<string, PresenceStatus>>(`/api/social/socket/presence?userIds=${query}`);
   },
 };
