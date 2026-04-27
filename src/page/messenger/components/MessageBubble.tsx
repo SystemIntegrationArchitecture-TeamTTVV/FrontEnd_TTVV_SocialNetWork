@@ -269,11 +269,29 @@ export default function MessageBubble({
                 ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
                 : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
             }`}
-            onDoubleClick={() => onReaction(msg.id, 'LOVE')}
+            onDoubleClick={() => onReaction(msg.id, '❤️')}
           >
             <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
           </div>
         )}
+
+        {/* Quick Reactions - Top bar on hover */}
+        <div className={`absolute -top-10 ${msg.isMe ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 pointer-events-none group-hover:pointer-events-auto transform translate-y-2 group-hover:translate-y-0`}>
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-full px-2 py-1.5 backdrop-blur-md">
+            {['👍', '❤️', '😂', '😮', '😢', '🔥'].map((emoji) => (
+              <button
+                key={emoji}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReaction(msg.id, emoji);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-125 transition-all text-lg"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Message Options */}
         <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
