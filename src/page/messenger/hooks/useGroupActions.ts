@@ -66,6 +66,32 @@ export function useGroupActions({
     }
   };
 
+  const handleInviteFriends = async (selectedIds: string[]) => {
+    if (!activeChat || !userId || selectedIds.length === 0) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      const updatedConversation = await conversationsApi.addGroupMembers(activeChat, {
+        requesterId: userId,
+        participantIds: selectedIds,
+      });
+      // If some/all invitees were routed to pending, update local pending list
+      if (updatedConversation.pendingJoinIds && updatedConversation.pendingJoinIds.length > 0) {
+        setPendingJoins(updatedConversation.pendingJoinIds);
+        setGroupActionMessage('Lời mời đã được gửi, chờ admin phê duyệt');
+      } else {
+        setGroupActionMessage('Đã mời thành công');
+      }
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to invite friends', err);
+      setGroupActionError(err instanceof Error ? err.message : 'Không thể mời bạn bè');
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   const handleRemoveMember = async (memberId: string) => {
     if (!activeChat || !userId) return;
 
@@ -178,9 +204,9 @@ export function useGroupActions({
     setGroupActionMessage(null);
     try {
       await conversationsApi.handleJoinRequest(activeChat, {
-        adminId: userId,
+        approverId: userId,
         requesterId,
-        action: approved ? 'approve' : 'reject',
+        approved,
       });
       setGroupActionMessage(approved ? t('messenger.group.approveJoinSuccess') : t('messenger.group.rejectJoinSuccess'));
       setPendingJoins((prev) => prev.filter((id) => id !== requesterId));
@@ -306,6 +332,7 @@ export function useGroupActions({
     setUpdatingGroup,
     parseIdsInput,
     handleAddMembers,
+    handleInviteFriends,
     handleRemoveMember,
     handleSaveGroupMeta,
     handleDeleteGroup,

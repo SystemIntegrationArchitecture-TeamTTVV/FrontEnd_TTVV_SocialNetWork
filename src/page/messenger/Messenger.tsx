@@ -11,6 +11,7 @@ import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
 import { aiApi, type AIChatRequest } from '../../apis/ai';
 import { usersApi, type PresenceStatus } from '../../apis/users';
+import { friendsApi, type FriendDTO } from '../../apis/friendRequests';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
@@ -108,7 +109,6 @@ export default function Messenger() {
   const {
     conversations,
     messages: apiMessages,
-    loading,
     conversationsLoading,
     loadConversations,
     loadMessages,
@@ -159,6 +159,7 @@ export default function Messenger() {
   const [unlockPin, setUnlockPin] = useState('');
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [friendList, setFriendList] = useState<FriendDTO[]>([]);
   const [showHideInput, setShowHideInput] = useState<string | null>(null); // conversationId being hidden
   const [hidePin, setHidePin] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
@@ -174,6 +175,14 @@ export default function Messenger() {
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const lastDeliveredSentMessageIdRef = useRef<string | null>(null);
   const seenRefreshTimerRef = useRef<number | null>(null);
+  // Load friend list once on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    friendsApi.getFriendsByUserId(user.id)
+      .then(setFriendList)
+      .catch(() => undefined);
+  }, [user?.id]);
+
   const openConversationId = location.state?.openConversationId;
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -357,7 +366,6 @@ export default function Messenger() {
     isAiLoading,
     setIsAiLoading,
     isDailySummaryPrompt,
-    appendAiMessage,
     handleGenerateDailySummaryForAi,
   } = useAIChat({
     userId: user?.id,
@@ -389,8 +397,6 @@ export default function Messenger() {
 
 
   const {
-    groupMemberInput,
-    setGroupMemberInput,
     groupNameDraft,
     setGroupNameDraft,
     groupAvatarDraft,
@@ -402,7 +408,7 @@ export default function Messenger() {
     groupActionMessage,
     setGroupActionMessage,
     updatingGroup,
-    handleAddMembers,
+    handleInviteFriends,
     handleRemoveMember,
     handleSaveGroupMeta,
     handleClearConversationForMe,
@@ -1641,20 +1647,19 @@ export default function Messenger() {
           onGroupNameChange={setGroupNameDraft}
           groupAvatarDraft={groupAvatarDraft}
           onGroupAvatarChange={setGroupAvatarDraft}
-          groupMemberInput={groupMemberInput}
-          onGroupMemberInputChange={setGroupMemberInput}
           groupActionMessage={groupActionMessage}
           groupActionError={groupActionError}
           updatingGroup={updatingGroup}
           pendingJoins={pendingJoins}
           onSaveGroupMeta={handleSaveGroupMeta}
-          onAddMembers={handleAddMembers}
           onRemoveMember={handleRemoveMember}
           onJoinRequestDecision={handleJoinRequestDecision}
           onClearConversationForMe={handleClearConversationForMe}
           onToggleRequireApproval={handleToggleRequireApproval}
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
           onTransferOwnership={handleTransferOwnership}
+          friendList={friendList}
+          onInviteFriends={handleInviteFriends}
           onShowSearch={() => setShowSearch(true)}
           onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
           userId={user?.id}

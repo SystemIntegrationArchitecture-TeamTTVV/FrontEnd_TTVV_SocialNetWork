@@ -587,17 +587,22 @@ export function useMessages() {
 
     const unsubscribeNotification = subscribe('NOTIFICATION', (event) => {
       if (event.type === 'JOIN_REQUEST_CREATED' && event.data) {
-        const { conversationId, requesterId } = event.data as { conversationId: string; requesterId: string };
+        const { conversationId, requesterId, pendingIds } = event.data as {
+          conversationId: string;
+          requesterId: string;
+          pendingIds?: string[];
+        };
+        // pendingIds is present when a member invites friends (multiple invitees).
+        // requesterId is used for the classic self-join-request flow.
+        const idsToAdd: string[] = pendingIds && pendingIds.length > 0 ? pendingIds : [requesterId];
         setConversations(prev =>
           prev.map(conv =>
             conv.id === conversationId
               ? {
                   ...conv,
-                  pendingJoinIds: conv.pendingJoinIds
-                    ? conv.pendingJoinIds.includes(requesterId)
-                      ? conv.pendingJoinIds
-                      : [...conv.pendingJoinIds, requesterId]
-                    : [requesterId],
+                  pendingJoinIds: Array.from(
+                    new Set([...(conv.pendingJoinIds ?? []), ...idsToAdd])
+                  ),
                 }
               : conv
           )
