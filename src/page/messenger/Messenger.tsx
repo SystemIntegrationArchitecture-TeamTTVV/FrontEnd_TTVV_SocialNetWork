@@ -122,6 +122,9 @@ export default function Messenger() {
     forwardMessage,
     toggleReaction,
     formatMessageForDisplay,
+    loadMoreMessages,
+    loadingMore,
+    hasMoreMap,
   } = useMessages();
 
   const [message, setMessage] = useState('');
@@ -173,6 +176,8 @@ export default function Messenger() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingStopTimerRef = useRef<number | null>(null);
   const isTypingRef = useRef(false);
@@ -439,7 +444,7 @@ export default function Messenger() {
   } = useGroupPolls({
     conversationId: activeChat || '',
     userId: user?.id || '',
-    loadMessages,
+    userName: user?.fullName || '',
   });
 
   const {
@@ -452,6 +457,7 @@ export default function Messenger() {
   } = useGroupAppointments({
     conversationId: activeChat || '',
     userId: user?.id || '',
+    userName: user?.fullName || '',
     loadMessages,
   });
 
@@ -459,6 +465,7 @@ export default function Messenger() {
   useEffect(() => {
     if (activeChat && activeChat !== AI_CONVERSATION_ID) {
       loadMessages(activeChat);
+      isInitialLoadRef.current = true;
       setEditingMessageId(null);
       setReplyTo(null);
       setTypingUserIds([]);
@@ -1283,6 +1290,14 @@ export default function Messenger() {
     return () => clearTimeout(timer);
   }, [searchQuery, activeChat, user?.id, formatMessageForDisplay]);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.scrollTop === 0 && !loadingMore && activeChat && hasMoreMap[activeChat]) {
+      prevScrollHeightRef.current = container.scrollHeight;
+      loadMoreMessages(activeChat);
+    }
+  };
+
   const filteredMessages = searchResults !== null ? searchResults : messages;
 
   // Smart auto-scroll: only scroll when user is near the bottom or sent a message.
@@ -1296,6 +1311,21 @@ export default function Messenger() {
     // No new messages, skip
     if (currentCount <= prevCount) return;
 
+    if (isInitialLoadRef.current) {
+      if (container) container.scrollTop = container.scrollHeight;
+      isInitialLoadRef.current = false;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
+    if (prevScrollHeightRef.current > 0 && container) {
+      const newHeight = container.scrollHeight;
+      const diff = newHeight - prevScrollHeightRef.current;
+      container.scrollTop = diff;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
     // Check if the newest message is from the current user (they just sent it)
     const newestMessage = messages[messages.length - 1];
     const isSentByMe = newestMessage?.isMe;
@@ -1306,7 +1336,6 @@ export default function Messenger() {
       : true;
 
     if (isSentByMe || isNearBottom) {
-      // Small delay to let DOM render the new message first
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 50);
@@ -1549,6 +1578,8 @@ export default function Messenger() {
           participantIds={activeConversationRaw?.participantIds}
           onJoinAppointment={handleJoinAppointment}
           joiningAppointment={joiningAppointmentId}
+          onScroll={handleScroll}
+          loadingMore={loadingMore}
         />
 
         {activeConversation && (

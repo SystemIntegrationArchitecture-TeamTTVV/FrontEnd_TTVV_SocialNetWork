@@ -25,6 +25,8 @@ interface ChatMessagesProps {
   userId: string;
   participantNames?: string[];
   participantIds?: string[];
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  loadingMore?: boolean;
 }
 
 export default function ChatMessages({
@@ -46,6 +48,8 @@ export default function ChatMessages({
   userId,
   participantNames = [],
   participantIds = [],
+  onScroll,
+  loadingMore = false,
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -65,7 +69,13 @@ export default function ChatMessages({
     <div
       className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50"
       ref={scrollContainerRef}
+      onScroll={onScroll}
     >
+      {loadingMore && (
+        <div className="flex justify-center py-2">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
       {filteredMessages.map((msg) => {
         // System / group-event messages → centered notification banner
         if (msg.messageType === 'SYSTEM') {

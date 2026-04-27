@@ -46,6 +46,9 @@ export function useMessages() {
   const [loading, setLoading] = useState(false);
   const [conversationsLoading, setConversationsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cursors, setCursors] = useState<Record<string, string | null>>({});
+  const [hasMoreMap, setHasMoreMap] = useState<Record<string, boolean>>({});
+  const [loadingMore, setLoadingMore] = useState(false);
   const conversationsRef = useRef<Conversation[]>([]);
   const messagesRef = useRef<Record<string, Message[]>>({});
   const prevConnectedRef = useRef(false);
@@ -158,18 +161,20 @@ export function useMessages() {
       const page = await messagesApi.getMessagesByConversationCursor(
         conversationId,
         undefined,
-        50,
+        30,
         user.id
       );
-      if (latestLoadRequestRef.current[conversationId] !== requestId) {
-        return;
-      }
+      
+      if (latestLoadRequestRef.current[conversationId] !== requestId) return;
+
+      const initialMessages = page.messages || [];
       setMessages((prev) => ({
         ...prev,
-        // Merge instead of hard-replace to avoid dropping freshly sent/socket messages
-        // when a near-real-time reload returns a slightly stale page.
-        [conversationId]: mergeMessageLists(prev[conversationId] || [], page.messages || []),
+        [conversationId]: initialMessages,
       }));
+      
+      setCursors(prev => ({ ...prev, [conversationId]: page.nextCursor || null }));
+      setHasMoreMap(prev => ({ ...prev, [conversationId]: !!page.hasMore }));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
       console.error('Failed to load messages:', err);
@@ -178,6 +183,30 @@ export function useMessages() {
       setLoading(false);
     }
   }, [user?.id]);
+
+  const loadMoreMessages = useCallback(async (conversationId: string) => {
+    const cursor = cursors[conversationId];
+    const hasMore = hasMoreMap[conversationId];
+    if (!conversationId || !user?.id || !cursor || !hasMore || loadingMore) return;
+
+    try {
+      setLoadingMore(true);
+      const page = await messagesApi.getMessagesByConversationCursor(conversationId, cursor, 20, user.id);
+      
+      const olderMessages = page.messages || [];
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: [...olderMessages, ...(prev[conversationId] || [])],
+      }));
+      
+      setCursors(prev => ({ ...prev, [conversationId]: page.nextCursor || null }));
+      setHasMoreMap(prev => ({ ...prev, [conversationId]: !!page.hasMore }));
+    } catch (err) {
+      console.error('Failed to load more messages:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [user?.id, cursors, hasMoreMap, loadingMore]);
 
   // Send a message
   const sendMessage = useCallback(async (
@@ -813,7 +842,25 @@ export function useMessages() {
       appointmentLocation: message.appointmentLocation,
       appointmentParticipants: message.appointmentParticipants,
     };
-  }, []);
+  }, [user?.id]);
+
+  const handleToggleStar = useCallback(async (messageId: string) => {
+    if (!user?.id) return;
+    try {
+      const updated = await messagesApi.toggleStar(messageId, user.id);
+      setMessages((prev) => {
+        const next = { ...prev };
+        for (const cid in next) {
+          if (next[cid].some((m) => m.id === messageId)) {
+            next[cid] = next[cid].map((m) => (m.id === messageId ? updated : m));
+          }
+        }
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to toggle star:', err);
+    }
+  }, [user?.id]);
 
   return {
     conversations,
@@ -830,7 +877,10 @@ export function useMessages() {
     toggleReaction,
     getOrCreateDirectConversation,
     formatMessageForDisplay,
-    subscribeToMessages: subscribe, // Export for ChatBoxContext
+    subscribeToMessages: subscribe,
+    handleToggleStar,
+    loadMoreMessages,
+    loadingMore,
+    hasMoreMap,
   };
 }
-

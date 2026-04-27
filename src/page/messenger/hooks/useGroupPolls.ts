@@ -6,9 +6,10 @@ import type { PollFormData } from '../components/CreatePollModal';
 interface UseGroupPollsProps {
   conversationId: string;
   userId?: string;
+  userName?: string;
 }
 
-export function useGroupPolls({ conversationId, userId }: UseGroupPollsProps) {
+export function useGroupPolls({ conversationId, userId, userName }: UseGroupPollsProps) {
   const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
   const [creatingPoll, setCreatingPoll] = useState(false);
   const [votingPollMessageId, setVotingPollMessageId] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export function useGroupPolls({ conversationId, userId }: UseGroupPollsProps) {
         canAddOptions: form.canAddOptions,
         hideResultsBeforeVote: form.hideResultsBeforeVote,
         hideVoters: form.hideVoters,
+        actorName: userName,
         deadline: form.deadline || undefined,
       });
       setIsCreatePollOpen(false);

@@ -95,6 +95,7 @@ export interface CreatePollRequest {
   canAddOptions?: boolean;
   hideResultsBeforeVote?: boolean;
   hideVoters?: boolean;
+  actorName?: string;
   deadline?: string; // ISO string
 }
 
@@ -109,6 +110,7 @@ export interface CreateAppointmentRequest {
   time: string; // ISO string
   location?: string;
   description?: string;
+  actorName?: string;
 }
 
 export interface JoinAppointmentRequest {

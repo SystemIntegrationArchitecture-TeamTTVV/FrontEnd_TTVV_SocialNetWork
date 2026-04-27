@@ -6,10 +6,11 @@ import type { AppointmentFormData } from '../components/CreateAppointmentModal';
 interface UseGroupAppointmentsProps {
   conversationId: string;
   userId?: string;
+  userName?: string;
   loadMessages: (convId: string) => void;
 }
 
-export function useGroupAppointments({ conversationId, userId, loadMessages }: UseGroupAppointmentsProps) {
+export function useGroupAppointments({ conversationId, userId, userName, loadMessages }: UseGroupAppointmentsProps) {
   const [isCreateAppointmentOpen, setIsCreateAppointmentOpen] = useState(false);
   const [creatingAppointment, setCreatingAppointment] = useState(false);
   const [joiningAppointmentId, setJoiningAppointmentId] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export function useGroupAppointments({ conversationId, userId, loadMessages }: U
         time: form.time,
         location: form.location,
         description: form.description,
+        actorName: userName,
       });
       setIsCreateAppointmentOpen(false);
       loadMessages(conversationId);

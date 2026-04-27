@@ -91,6 +91,11 @@ export default function GroupChat() {
   const isTypingRef = useRef(false);
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const prevConnectedRef = useRef<boolean>(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
 
   // Ã¢â€ â‚¬Ã¢â€ â‚¬ New feature state Ã¢â€ â‚¬Ã¢â€ â‚¬
   const [forwardConversations, setForwardConversations] = useState<any[]>([]);
@@ -108,7 +113,11 @@ export default function GroupChat() {
     votingPollMessageId,
     handleCreatePoll,
     handleVotePoll,
-  } = useGroupPolls({ conversationId: id || '', userId: user?.id });
+  } = useGroupPolls({ 
+    conversationId: id || '', 
+    userId: user?.id, 
+    userName: user?.fullName 
+  });
 
   const {
     isCreateAppointmentOpen,
@@ -120,6 +129,7 @@ export default function GroupChat() {
   } = useGroupAppointments({
     conversationId: conversationId || '',
     userId: user?.id,
+    userName: user?.fullName,
     loadMessages: resyncRecentMessages,
   });
 
@@ -210,6 +220,7 @@ export default function GroupChat() {
     setNextCursor(page.nextCursor || null);
     setHasMore(!!page.hasMore);
     syncSeenMapFromMessages(initial);
+    isInitialLoadRef.current = true;
   };
 
   const refreshPresence = async (participantIds?: string[]) => {
@@ -260,6 +271,43 @@ export default function GroupChat() {
     }
   };
 
+  // Smart auto-scroll and scroll-position maintenance
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const prevCount = prevMessageCountRef.current;
+    const currentCount = messages.length;
+    prevMessageCountRef.current = currentCount;
+
+    if (currentCount <= prevCount) return;
+
+    if (isInitialLoadRef.current) {
+      if (container) container.scrollTop = container.scrollHeight;
+      isInitialLoadRef.current = false;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
+    if (prevScrollHeightRef.current > 0 && container) {
+      const newHeight = container.scrollHeight;
+      const diff = newHeight - prevScrollHeightRef.current;
+      container.scrollTop = diff;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
+    const newestMessage = messages[messages.length - 1];
+    const isSentByMe = newestMessage?.senderId === user?.id;
+    const isNearBottom = container
+      ? container.scrollHeight - container.scrollTop - container.clientHeight < 200
+      : true;
+
+    if (isSentByMe || isNearBottom) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
+  }, [messages, user?.id]);
+
   const loadMore = async () => {
     if (!conversationId || !nextCursor || loadingMore) return;
     try {
@@ -280,6 +328,14 @@ export default function GroupChat() {
       });
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.scrollTop === 0 && !loadingMore && hasMore && nextCursor) {
+      prevScrollHeightRef.current = container.scrollHeight;
+      loadMore();
     }
   };
 
@@ -929,18 +985,16 @@ export default function GroupChat() {
         />
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-white"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+      >
         {activeTab === 'chat' && (
           <>
-            {hasMore && (
-              <div className="flex justify-center">
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="h-9 px-4 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm disabled:opacity-60"
-                >
-                  {loadingMore ? 'Dang tai them...' : 'Tai tin nhan cu hon'}
-                </button>
+            {loadingMore && (
+              <div className="flex justify-center py-2">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
 
@@ -1215,6 +1269,7 @@ export default function GroupChat() {
             creating={creatingAppointment}
           />
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Forward modal */}
