@@ -207,7 +207,7 @@ export function useGroupActions({
 
     setUpdatingGroup(true);
     try {
-      await conversationsApi.clearConversationForUser(activeChat, userId);
+      await conversationsApi.clearConversationForUser(activeChat, { requesterId: userId });
       await loadConversations();
       setActiveChat(null);
     } catch (err: unknown) {

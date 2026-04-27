@@ -219,7 +219,7 @@ export default function ChatInfoSidebar({
                 <span className="text-xs text-red-500 font-medium">Giải tán nhóm</span>
               </button>
             ) : !isDisbanded ? (
-              <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
+              <button onClick={() => userId && onRemoveMember(userId)} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
                 <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
                   <Trash2 className="w-5 h-5 text-red-500" />
                 </div>
