@@ -873,6 +873,12 @@ export function useMessages() {
       appointmentTime: message.appointmentTime,
       appointmentLocation: message.appointmentLocation,
       appointmentParticipants: message.appointmentParticipants,
+      // Reply
+      replyTo: message.replyTo ? {
+        id: message.replyTo.messageId,
+        content: message.replyTo.contentPreview,
+        sender: message.replyTo.senderName,
+      } : undefined,
     };
   }, [user?.id]);
 

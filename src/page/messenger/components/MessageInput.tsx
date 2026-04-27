@@ -3,7 +3,7 @@ import { useRef, type RefObject, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus, Send, Smile, Mic, Grid3X3, BarChart3, Calendar,
-  X, FileText, Video, Music, Sparkles,
+  X, FileText, Video, Music, Sparkles, Reply,
 } from 'lucide-react';
 import EmojiPicker from '../../../components/chat/EmojiPicker';
 import StickerPanel from '../shared/StickerPanel';
@@ -54,6 +54,7 @@ interface MessageInputProps {
   onGenerateDailySummary?: (prompt: string) => void;
   // Reply
   replyTo: { sender: string; content: string } | null;
+  onCancelReply?: () => void;
   // Poll
   onOpenPollModal?: () => void;
   // Appointment
@@ -100,6 +101,7 @@ export default function MessageInput({
   onVoiceRecord,
   onGenerateDailySummary,
   replyTo,
+  onCancelReply,
   onOpenPollModal,
   onOpenAppointmentModal,
   isGroup,
@@ -251,6 +253,30 @@ export default function MessageInput({
           onConvertToText={onVoiceConvertToText}
           onCancel={onVoiceCancel}
         />
+      )}
+
+      {/* Reply Preview */}
+      {replyTo && (
+        <div className="mb-3 p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border-l-4 border-blue-500 flex items-center gap-3 relative animate-in slide-in-from-bottom-2 duration-300">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Reply className="w-3 h-3 text-blue-600" />
+              <p className="text-[11px] font-bold text-blue-600 uppercase tracking-tight">
+                {t('messenger.replyingTo', { sender: replyTo.sender })}
+              </p>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 truncate leading-relaxed">
+              {replyTo.content}
+            </p>
+          </div>
+          <button
+            onClick={onCancelReply}
+            className="w-7 h-7 rounded-full hover:bg-white dark:hover:bg-gray-800 shadow-sm flex items-center justify-center transition-all group"
+            title={t('common.cancel')}
+          >
+            <X className="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          </button>
+        </div>
       )}
 
       <div className="flex items-center gap-2 md:gap-2.5">

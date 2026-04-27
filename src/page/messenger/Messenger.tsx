@@ -1738,6 +1738,7 @@ export default function Messenger() {
                 onVoiceRecord={handleVoiceRecord}
                 onGenerateDailySummary={handleGenerateDailySummaryForAi}
                 replyTo={replyTo}
+                onCancelReply={() => setReplyTo(null)}
                 canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
                 sendBlockedReason={t('messenger.onlyAdminsCanSend')}
                 onOpenPollModal={() => setIsCreatePollOpen(true)}

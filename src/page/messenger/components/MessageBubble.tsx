@@ -97,9 +97,17 @@ export default function MessageBubble({
         )}
         {/* Reply To */}
         {msg.replyTo && (
-          <div className="mb-1 p-2 rounded-lg bg-gray-100 border-l-3 border-blue-400 text-left">
-            <p className="text-[11px] font-semibold text-gray-500">{msg.replyTo.sender}</p>
-            <p className="text-xs text-gray-600 line-clamp-1">{msg.replyTo.content}</p>
+          <div className={`mb-1.5 p-2 rounded-lg border-l-4 text-left cursor-pointer hover:bg-opacity-80 transition-all ${
+            msg.isMe 
+              ? 'bg-black/20 border-white/60 text-white' 
+              : 'bg-gray-100/80 dark:bg-gray-700/50 border-blue-400'
+          }`}>
+            <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${msg.isMe ? 'text-blue-200' : 'text-blue-600'}`}>
+              {msg.replyTo.sender}
+            </p>
+            <p className={`text-[13px] line-clamp-2 leading-relaxed ${msg.isMe ? 'text-white/90' : 'text-gray-600 dark:text-gray-300'}`}>
+              {msg.replyTo.content}
+            </p>
           </div>
         )}
 
