@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { socketService } from '../services/socket';
 import type { SocketEvent } from '../services/socket';
 import { SocketEventTypes } from '../services/socketEvents';
@@ -36,14 +36,14 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     console.log('🔌 Attempting to connect socket...');
     socketService.connect();
 
-    // Listen to connection state
-    const checkConnection = setInterval(() => {
-      const connected = socketService.isSocketConnected();
-      setIsConnected(connected);
-      if (connected) {
-        console.log('✅ Socket connected successfully');
-      }
-    }, 1000);
+    // Event-driven connection tracking (replaces CPU-wasting setInterval polling)
+    const unsubConnect = socketService.on('__CONNECTED__', () => {
+      console.log('✅ Socket connected successfully');
+      setIsConnected(true);
+    });
+    const unsubDisconnect = socketService.on('__DISCONNECTED__', () => {
+      setIsConnected(false);
+    });
 
     // Subscribe to socket events for testing
     const unsubscribeNotification = socketService.on('NOTIFICATION', (event) => {
@@ -69,7 +69,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      clearInterval(checkConnection);
+      unsubConnect();
+      unsubDisconnect();
       unsubscribeNotification();
       unsubscribeAll();
       unsubscribeBlocked();
@@ -78,20 +79,29 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated]);
 
-  const subscribe = (eventType: string, handler: (event: SocketEvent) => void) => {
+  // ⚡ CRITICAL: Stable references prevent consumer effects from re-subscribing on every render.
+  // Without useCallback, every SocketProvider render creates new function references,
+  // causing ALL useEffect([..., subscribe]) in consumers (useMessages, ChatBoxContext, etc.)
+  // to unsubscribe→resubscribe, creating a race condition that misses socket events.
+  const subscribe = useCallback((eventType: string, handler: (event: SocketEvent) => void) => {
     return socketService.on(eventType, handler);
-  };
+  }, []);
 
-  const subscribeConversationRoom = (conversationId: string) => {
+  const subscribeConversationRoom = useCallback((conversationId: string) => {
     return socketService.subscribeConversationRoom(conversationId);
-  };
+  }, []);
 
-  const send = (destination: string, body: unknown) => {
+  const send = useCallback((destination: string, body: unknown) => {
     socketService.send(destination, body);
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders of all consumers
+  const contextValue = useMemo(() => ({
+    isConnected, subscribe, subscribeConversationRoom, send,
+  }), [isConnected, subscribe, subscribeConversationRoom, send]);
 
   return (
-    <SocketContext.Provider value={{ isConnected, subscribe, subscribeConversationRoom, send }}>
+    <SocketContext.Provider value={contextValue}>
       <FriendSocketListener />
       <PrivacyBlockedToast />
       {children}

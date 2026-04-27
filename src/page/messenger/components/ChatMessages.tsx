@@ -17,6 +17,7 @@ interface ChatMessagesProps {
   onMessageAction: (action: string, msg: DisplayMessage) => void;
   onReaction: (messageId: string, emoji: string) => void;
   messagesEndRef: RefObject<HTMLDivElement | null>;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export default function ChatMessages({
@@ -30,6 +31,7 @@ export default function ChatMessages({
   onMessageAction,
   onReaction,
   messagesEndRef,
+  scrollContainerRef,
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -46,7 +48,10 @@ export default function ChatMessages({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50" ref={messagesEndRef}>
+    <div
+      className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50"
+      ref={scrollContainerRef}
+    >
       {filteredMessages.map((msg) => {
         const isSelected = selectedMessage === msg.id;
         const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
@@ -66,6 +71,8 @@ export default function ChatMessages({
           />
         );
       })}
+      {/* Invisible anchor at the bottom for auto-scroll */}
+      <div ref={messagesEndRef} />
     </div>
   );
 }

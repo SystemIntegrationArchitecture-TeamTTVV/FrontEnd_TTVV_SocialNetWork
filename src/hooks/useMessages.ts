@@ -145,9 +145,11 @@ export function useMessages() {
       if (latestLoadRequestRef.current[conversationId] !== requestId) {
         return;
       }
-      setMessages(prev => ({
+      setMessages((prev) => ({
         ...prev,
-        [conversationId]: page.messages || [],
+        // Merge instead of hard-replace to avoid dropping freshly sent/socket messages
+        // when a near-real-time reload returns a slightly stale page.
+        [conversationId]: mergeMessageLists(prev[conversationId] || [], page.messages || []),
       }));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
@@ -339,18 +341,18 @@ export function useMessages() {
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
         const message: Message = event.data;
         
-        // 🔒 SECURITY: Only add message if current user is a participant.
         // Duplicate events (including same-user events from other devices) are deduped by message id below.
-        // Check if current user is a participant of this conversation.
-        // If conversation data is not loaded yet, trust server-side filtering.
+        // Do not hard-drop realtime events using local participant cache because stale conversation state
+        // can incorrectly filter valid messages and break realtime delivery.
         const conversation = conversationsRef.current.find(conv => conv.id === message.conversationId);
-        const isParticipant =
-          conversation?.participantIds?.length
-            ? conversation.participantIds.includes(user.id)
-            : true;
-
-        if (!isParticipant) {
-          return;
+        if (conversation?.participantIds?.length && !conversation.participantIds.includes(user.id)) {
+          console.warn(
+            '[useMessages] Conversation participant cache mismatch, accepting socket event anyway',
+            {
+              conversationId: message.conversationId,
+              currentUserId: user.id,
+            }
+          );
         }
 
         setMessages(prev => {
@@ -649,15 +651,20 @@ export function useMessages() {
 
     const starred = !!message.starredByUserIds?.includes(currentUser?.id || '');
 
+    const createdAtDate = new Date(message.createdAt);
+    const time = Number.isNaN(createdAtDate.getTime())
+      ? ''
+      : createdAtDate.toLocaleTimeString(getLocaleTag(), {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
     return {
       id: message.id,
       sender: message.senderName,
       senderId: message.senderId,
       content: message.content,
-      time: new Date(message.createdAt).toLocaleTimeString(getLocaleTag(), {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time,
       isMe,
       status,
       reactions: message.emojis?.map(emoji => ({ emoji, users: [] })),

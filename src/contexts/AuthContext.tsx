@@ -64,10 +64,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const loadUser = async () => {
-      if (!authApi.isAuthenticated()) {
+      const hasSession = authApi.isAuthenticated();
+      if (!hasSession) {
         setUser(null);
         setIsLoading(false);
         return;
+      }
+
+      // If access token is expired but refresh token exists, refresh before any protected calls.
+      if (authApi.isAccessTokenExpired()) {
+        const ok = await authApi.ensureValidAccessToken();
+        if (!ok) {
+          authApi.logout();
+          if (!cancelled) {
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
       }
 
       const savedUser = authApi.getCurrentUser();

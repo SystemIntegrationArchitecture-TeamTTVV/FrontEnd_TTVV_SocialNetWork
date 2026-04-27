@@ -164,6 +164,8 @@ export default function Messenger() {
   const [hideLoading, setHideLoading] = useState(false);
   const [hideError, setHideError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingStopTimerRef = useRef<number | null>(null);
   const isTypingRef = useRef(false);
@@ -472,8 +474,14 @@ export default function Messenger() {
     const formatTime = (dateStr?: string) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
       const now = new Date();
       const diff = now.getTime() - date.getTime();
+      if (Number.isNaN(diff) || diff < 0) {
+        return t('messenger.time.justNow');
+      }
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const days = Math.floor(hours / 24);
 
@@ -856,7 +864,7 @@ export default function Messenger() {
 
         setAiMessages((prev) => [...prev, aiMessage]);
       } catch (error) {
-        console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Error chatting with AI:', error);
+        console.error('[Messenger] Error chatting with AI:', error);
         const errorMessage = {
           id: (Date.now() + 1).toString(),
           text: t('messenger.aiAssistant.sendError'),
@@ -930,7 +938,7 @@ export default function Messenger() {
         return;
       }
       
-      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ Sending message:', {
+      console.log('[Messenger] Sending message:', {
         conversationId: activeChat,
         content: messageContent,
         attachmentsCount: attachments.length,
@@ -1004,11 +1012,11 @@ export default function Messenger() {
         setFilePreview({ file, preview });
       }
 
-      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Uploading file:', file.name, file.type, file.size);
+      console.log('[Messenger] Uploading file:', file.name, file.type, file.size);
       
       // Upload file to server
       const uploadResult = await uploadApi.uploadFile(file);
-      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ File uploaded successfully:', uploadResult);
+      console.log('[Messenger] File uploaded successfully:', uploadResult);
 
       // Add to uploaded files list (for preview before send)
       setUploadedFiles([...uploadedFiles, file]);
@@ -1016,7 +1024,7 @@ export default function Messenger() {
       // Optionally focus message input for caption
       if (file.type.startsWith('image/')) {
         // For images, keep preview for user to add caption
-        console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Image preview ready, user can add caption before sending');
+        console.log('[Messenger] Image preview ready, user can add caption before sending');
       } else {
         // For videos and files, auto-send
         const attachment: MessageAttachment = {
@@ -1026,11 +1034,11 @@ export default function Messenger() {
           fileSize: uploadResult.fileSize,
         };
 
-        const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ ${file.name}`;
+        const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `File: ${file.name}`;
         await sendMessageAPI(activeChat, messageContent, [attachment], replyTo?.id);
         setReplyTo(null);
         
-        console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Message sent with attachment');
+        console.log('[Messenger] Message sent with attachment');
         
         // Clear preview
         setFilePreview(null);
@@ -1042,7 +1050,7 @@ export default function Messenger() {
         }, 100);
       }
     } catch (error) {
-      console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Failed to upload file:', error);
+      console.error('[Messenger] Failed to upload file:', error);
       notify.error(t('messenger.errors.uploadFile'));
       
       // Clear preview on error
@@ -1061,14 +1069,14 @@ export default function Messenger() {
 
     try {
       setUploadingFiles(true);
-      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Uploading voice message:', blob.size, 'bytes');
+      console.log('[Messenger] Uploading voice message:', blob.size, 'bytes');
 
       // Convert blob to file
       const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
       
       // Upload voice file
       const uploadResult = await uploadApi.uploadFile(voiceFile);
-      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Voice message uploaded:', uploadResult);
+      console.log('[Messenger] Voice message uploaded:', uploadResult);
 
       // Create attachment object
       const attachment: MessageAttachment = {
@@ -1081,14 +1089,14 @@ export default function Messenger() {
       // Send message with voice attachment
       await sendMessageAPI(activeChat, t('messenger.captionVoice'), [attachment], replyTo?.id);
       setReplyTo(null);
-      console.log('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Voice message sent');
+      console.log('[Messenger] Voice message sent');
 
       // Scroll to bottom
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } catch (error) {
-      console.error('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Failed to upload voice message:', error);
+      console.error('[Messenger] Failed to upload voice message:', error);
       notify.error(t('messenger.errors.voiceMessage'));
     } finally {
       setUploadingFiles(false);
@@ -1199,8 +1207,32 @@ export default function Messenger() {
 
   const filteredMessages = searchResults !== null ? searchResults : messages;
 
+  // Smart auto-scroll: only scroll when user is near the bottom or sent a message.
+  // If user is scrolled up reading old messages, don't interrupt them.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollContainerRef.current;
+    const prevCount = prevMessageCountRef.current;
+    const currentCount = messages.length;
+    prevMessageCountRef.current = currentCount;
+
+    // No new messages, skip
+    if (currentCount <= prevCount) return;
+
+    // Check if the newest message is from the current user (they just sent it)
+    const newestMessage = messages[messages.length - 1];
+    const isSentByMe = newestMessage?.isMe;
+
+    // Check if user is near the bottom (within 200px)
+    const isNearBottom = container
+      ? container.scrollHeight - container.scrollTop - container.clientHeight < 200
+      : true;
+
+    if (isSentByMe || isNearBottom) {
+      // Small delay to let DOM render the new message first
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
   }, [messages]);
 
   // Close menu when clicking outside
@@ -1431,6 +1463,7 @@ export default function Messenger() {
           onMessageAction={handleMessageAction}
           onReaction={handleReaction}
           messagesEndRef={messagesEndRef}
+          scrollContainerRef={scrollContainerRef}
         />
 
         {activeConversation && (

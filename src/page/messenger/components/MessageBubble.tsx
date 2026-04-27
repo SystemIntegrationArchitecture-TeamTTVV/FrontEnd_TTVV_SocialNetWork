@@ -64,8 +64,8 @@ export default function MessageBubble({
         </div>
       )}
       <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
-        {/* Sender name — only in group chats */}
-        {isGroupChat && !msg.isMe && (
+        {/* Sender name for incoming messages (group + direct) */}
+        {!msg.isMe && (
           <p className="text-[11px] font-medium text-gray-400 mb-0.5 ml-1">{msg.sender}</p>
         )}
         {/* Reply To */}

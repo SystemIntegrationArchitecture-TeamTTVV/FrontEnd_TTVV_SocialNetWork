@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { ChatContact, ChatMessage } from '../types/chat';
 import { useMessages } from '../hooks/useMessages';
@@ -39,6 +39,11 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
 
   const [openChatBoxes, setOpenChatBoxes] = useState<ChatContact[]>([]);
   const [minimizedBoxes, setMinimizedBoxes] = useState<Set<string>>(new Set());
+  const conversationsRef = useRef(conversations);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   const storageKey = useCallback(
     (suffix: string) => `chatbox:${suffix}:${user?.id || 'anonymous'}`,
@@ -291,7 +296,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         // Backend already verified user is participant before emitting event to /user/{username}/queue/notifications
         if (message.senderId !== user.id && message.conversationId) {
           // Optional: Verify participant if conversation is already loaded
-          const conversation = conversations.find(conv => conv.id === message.conversationId);
+          const conversation = conversationsRef.current.find(conv => conv.id === message.conversationId);
           if (conversation) {
             const isParticipant = conversation.participantIds?.includes(user.id);
             if (!isParticipant) {
@@ -314,7 +319,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
           let userIdForCall: string | undefined = message.senderId;
           let isGroupConversation = false;
 
-          const inState = conversations.find((c) => c.id === message.conversationId);
+          const inState = conversationsRef.current.find((c) => c.id === message.conversationId);
           if (inState?.isGroup) {
             contactName = inState.groupName || 'Group Chat';
             userIdForCall = undefined;
@@ -355,7 +360,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
     });
 
     return unsubscribe;
-  }, [isConnected, user?.id, subscribe, openChatBox, conversations]);
+  }, [isConnected, user?.id, subscribe, openChatBox]);
 
   return (
     <ChatBoxContext.Provider

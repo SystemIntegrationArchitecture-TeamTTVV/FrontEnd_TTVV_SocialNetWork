@@ -31,12 +31,12 @@ class SocketService {
   private maxReconnectAttempts = 5;
   private recentEventKeys: Map<string, number> = new Map();
   private dedupeWindowMs = 2 * 60 * 1000;
-  private roomSubscriptions: Map<string, { subscription: any; refCount: number }> =
+  private roomSubscriptions: Map<string, { subscription: any | null; refCount: number }> =
     new Map();
 
   connect(): void {
-    if (this.client?.connected) {
-      console.log("ℹ️ Socket already connected");
+    if (this.client?.active) {
+      console.log("ℹ️ Socket already connected or connecting");
       return;
     }
 
@@ -46,45 +46,49 @@ class SocketService {
       return;
     }
 
+    // Cleanup previous client to avoid SockJS instance leak
+    if (this.client) {
+      try { this.client.deactivate(); } catch { /* ignore */ }
+      this.client = null;
+    }
+
     // Connect directly to SocialService for WebSocket (bypasses Gateway auth issues)
     const base = API_CONFIG.COMMON_SERVICE_URL || "http://localhost:8081";
     const socketUrl = new URL("/ws", base);
     socketUrl.searchParams.set("token", token);
     console.log(`🔌 Connecting to WebSocket directly at ${socketUrl.toString()}...`);
-    const socket = new SockJS(socketUrl.toString());
     this.client = new Client({
-      webSocketFactory: () => socket,
+      // IMPORTANT: return a NEW SockJS instance for each (re)connect attempt.
+      // Reusing a single instance can make reconnect unstable after disconnect/HMR.
+      webSocketFactory: () => new SockJS(socketUrl.toString()),
       reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
       onConnect: () => {
         console.log("✅ Socket connected successfully to WebSocket server");
         console.log("📡 Subscribing to channels...");
         this.isConnected = true;
         this.reconnectAttempts = 0;
+        this.recentEventKeys.clear();
         this.subscribeToChannels();
         this.resubscribeRooms();
+        // Emit internal connection event for event-driven tracking
+        this.handleEvent("__CONNECTED__", { type: "__CONNECTED__", userId: "", data: null, timestamp: "" });
       },
       onDisconnect: () => {
         console.log("❌ Socket disconnected from WebSocket server");
         this.isConnected = false;
         this.subscriptions.clear();
+        this.recentEventKeys.clear();
+        // Emit internal disconnection event
+        this.handleEvent("__DISCONNECTED__", { type: "__DISCONNECTED__", userId: "", data: null, timestamp: "" });
       },
       onStompError: (frame) => {
         console.error("STOMP error:", frame);
         this.isConnected = false;
-        this.reconnectAttempts++;
-
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          setTimeout(() => {
-            console.log(
-              `Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
-            );
-            this.connect();
-          }, 5000);
-        } else {
-          console.error("Max reconnect attempts reached");
-        }
+        // STOMP client handles reconnection automatically via reconnectDelay.
+        // Do NOT manually reconnect here — avoids double reconnect storms.
+        console.warn("STOMP error occurred, auto-reconnect will handle recovery");
       },
       onWebSocketError: (error) => {
         console.error("WebSocket error:", error);
@@ -120,36 +124,48 @@ class SocketService {
       `🔔 Subscribing to notifications at: ${notificationPath} (user.id=${user.id}, username=${username})`,
     );
 
+    const handleUserEvent = (message: StompMessage, channelLabel: string) => {
+      try {
+        const event: SocketEvent = JSON.parse(message.body);
+        if (!this.shouldProcessEvent(event)) {
+          return;
+        }
+        console.log(`📨 Received ${channelLabel} via socket:`, event);
+        console.log("📨 Event details:", {
+          type: event.type,
+          userId: event.userId,
+          data: event.data,
+          timestamp: event.timestamp,
+        });
+        // Emit both as NOTIFICATION (for notification handlers) and as the actual event type (e.g., MESSAGE_RECEIVED)
+        this.handleEvent("NOTIFICATION", event);
+        this.handleEvent(event.type, event);
+        this.handleEvent("*", event);
+      } catch (error) {
+        console.error(
+          `❌ Error parsing ${channelLabel} message:`,
+          error,
+          message.body,
+        );
+      }
+    };
+
     const notificationSub = this.client.subscribe(
       notificationPath,
-      (message: StompMessage) => {
-        try {
-          const event: SocketEvent = JSON.parse(message.body);
-          if (!this.shouldProcessEvent(event)) {
-            return;
-          }
-          console.log("📨 Received notification via socket:", event);
-          console.log("📨 Event details:", {
-            type: event.type,
-            userId: event.userId,
-            data: event.data,
-            timestamp: event.timestamp,
-          });
-          // Emit both as NOTIFICATION (for notification handlers) and as the actual event type (e.g., MESSAGE_RECEIVED)
-          this.handleEvent("NOTIFICATION", event);
-          this.handleEvent(event.type, event); // Emit with actual event type (MESSAGE_RECEIVED, JOIN_REQUEST_CREATED, etc.)
-          this.handleEvent("*", event); // Wildcard handler
-        } catch (error) {
-          console.error(
-            "❌ Error parsing notification message:",
-            error,
-            message.body,
-          );
-        }
-      },
+      (message: StompMessage) => handleUserEvent(message, "notification"),
     );
     this.subscriptions.set("notifications", notificationSub);
     console.log(`✅ Subscribed to notifications: ${notificationPath}`);
+
+    // Fallback destination style used by Spring's user-destination resolver in many setups.
+    // Keep both subscriptions; duplicates are filtered by eventId-based dedupe.
+    const fallbackNotificationPath = "/user/queue/notifications";
+    const notificationFallbackSub = this.client.subscribe(
+      fallbackNotificationPath,
+      (message: StompMessage) => handleUserEvent(message, "notification(fallback)"),
+    );
+    this.subscriptions.set("notifications-fallback", notificationFallbackSub);
+    console.log(`✅ Subscribed to fallback notifications: ${fallbackNotificationPath}`);
 
     // Subscribe to WebRTC signaling events
     const webrtcPath = SocketDestinations.userWebrtc(username);
@@ -181,6 +197,34 @@ class SocketService {
     );
     this.subscriptions.set("webrtc", webrtcSub);
     console.log(`✅ Subscribed to WebRTC: ${webrtcPath}`);
+
+    const fallbackWebrtcPath = "/user/queue/webrtc";
+    const webrtcFallbackSub = this.client.subscribe(
+      fallbackWebrtcPath,
+      (message: StompMessage) => {
+        try {
+          const event: SocketEvent = JSON.parse(message.body);
+          if (!this.shouldProcessEvent(event)) {
+            return;
+          }
+          console.log(
+            "📞 Received WebRTC event via fallback socket:",
+            event.type,
+            event,
+          );
+          this.handleEvent(event.type, event);
+          this.handleEvent("*", event);
+        } catch (error) {
+          console.error(
+            "❌ Error parsing fallback WebRTC message:",
+            error,
+            message.body,
+          );
+        }
+      },
+    );
+    this.subscriptions.set("webrtc-fallback", webrtcFallbackSub);
+    console.log(`✅ Subscribed to fallback WebRTC: ${fallbackWebrtcPath}`);
 
     // Subscribe to public events (posts, reactions, etc.)
     const publicSub = this.client.subscribe(
@@ -275,7 +319,22 @@ class SocketService {
 
     const existing = this.roomSubscriptions.get(conversationId);
     if (existing) {
+      // If room was added while disconnected, attach real STOMP subscription now.
+      if (!existing.subscription && this.client?.connected) {
+        existing.subscription = this.createRoomSubscription(conversationId);
+      }
       existing.refCount += 1;
+      console.log(`🏠 Room ${conversationId}: refCount++ → ${existing.refCount}`);
+      return () => this.unsubscribeConversationRoom(conversationId);
+    }
+
+    console.log(`🏠 Subscribing to room: ${conversationId}, client connected: ${this.client?.connected}`);
+    if (!this.client?.connected) {
+      // Keep pending room intent; it will be attached in onConnect/resubscribeRooms.
+      this.roomSubscriptions.set(conversationId, { subscription: null, refCount: 1 });
+      if (!this.client?.active) {
+        this.connect();
+      }
       return () => this.unsubscribeConversationRoom(conversationId);
     }
 
@@ -293,7 +352,7 @@ class SocketService {
     existing.refCount -= 1;
     if (existing.refCount <= 0) {
       try {
-        existing.subscription.unsubscribe();
+        existing.subscription?.unsubscribe();
       } catch {
         // ignore unsubscribe errors
       }
@@ -303,14 +362,18 @@ class SocketService {
 
   private createRoomSubscription(conversationId: string): any {
     if (!this.client?.connected) {
+      console.warn(`⚠️ Cannot subscribe to room ${conversationId}: client not connected`);
       return { unsubscribe: () => undefined };
     }
 
     const roomPath = SocketDestinations.roomDestination(conversationId);
+    console.log(`🏠 STOMP subscribing to: ${roomPath}`);
     return this.client.subscribe(roomPath, (message: StompMessage) => {
       try {
         const event: SocketEvent = JSON.parse(message.body);
+        console.log(`🏠 Room ${conversationId} received:`, event.type);
         if (!this.shouldProcessEvent(event)) {
+          console.log(`🏠 Room ${conversationId}: event deduped`);
           return;
         }
         this.handleEvent(event.type, event);

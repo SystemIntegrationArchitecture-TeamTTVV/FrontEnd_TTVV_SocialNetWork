@@ -48,6 +48,22 @@ function persistAuth(response: AuthResponse): void {
   }));
 }
 
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+function isExpiredToken(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload.exp !== 'number') {
+    return true;
+  }
+  return payload.exp * 1000 <= Date.now();
+}
+
 /**
  * Auth API Service
  */
@@ -175,32 +191,54 @@ export const authApi = {
   },
 
   /**
+   * Check whether the current access token is missing/expired.
+   */
+  isAccessTokenExpired: (): boolean => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return true;
+    }
+    return isExpiredToken(token);
+  },
+
+  /**
+   * Ensure access token is valid; try refresh when expired.
+   */
+  ensureValidAccessToken: async (): Promise<boolean> => {
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (!token) {
+      return false;
+    }
+
+    if (!isExpiredToken(token)) {
+      return true;
+    }
+
+    if (!refreshToken) {
+      return false;
+    }
+
+    const refreshed = await authApi.refreshAccessToken();
+    return !!refreshed?.token;
+  },
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
     const token = localStorage.getItem('token');
-    if (!token) return false;
-    
-    // Check if token is expired
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const exp = payload.exp * 1000; // Convert to milliseconds
-      const now = Date.now();
-      
-      if (exp < now) {
-        // Token expired, clear it
-        console.warn('⚠️ [Auth] Token expired, clearing...');
-        authApi.logout();
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      // Invalid token format, clear it
-      console.warn('⚠️ [Auth] Invalid token format, clearing...');
-      authApi.logout();
+    if (!token) {
       return false;
     }
+
+    // Access token expired: keep session recoverable if refresh token exists.
+    if (isExpiredToken(token)) {
+      return !!localStorage.getItem('refreshToken');
+    }
+
+    return true;
   },
 };
 
