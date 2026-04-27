@@ -609,6 +609,8 @@
       "saving": "Saving...",
       "saveInfo": "Save group info",
       "requireApproval": "Require approval when someone joins",
+      "permissionsTitle": "Group permissions",
+      "onlyAdminsCanSend": "Only owner & admins can send messages",
       "joinRequestsTitle": "Join requests ({{count}})",
       "pendingApproval": "Pending approval",
       "accept": "Accept",

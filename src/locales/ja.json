@@ -605,6 +605,8 @@
       "saving": "保存中...",
       "saveInfo": "グループ情報を保存",
       "requireApproval": "参加時に承認を求める",
+      "permissionsTitle": "グループ権限",
+      "onlyAdminsCanSend": "オーナーと管理者のみ送信可能",
       "joinRequestsTitle": "参加リクエスト（{{count}}）",
       "pendingApproval": "承認待ち",
       "accept": "承認",

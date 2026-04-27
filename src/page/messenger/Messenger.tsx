@@ -395,10 +395,6 @@ export default function Messenger() {
     setGroupNameDraft,
     groupAvatarDraft,
     setGroupAvatarDraft,
-    adminDraft,
-    setAdminDraft,
-    newOwnerId,
-    setNewOwnerId,
     pendingJoins,
     setPendingJoins,
     groupActionError,
@@ -409,11 +405,10 @@ export default function Messenger() {
     handleAddMembers,
     handleRemoveMember,
     handleSaveGroupMeta,
-    handleDeleteGroup,
     handleClearConversationForMe,
     handleJoinRequestDecision,
-    handleAdminToggle,
-    handleUpdateRoles,
+    handleToggleRequireApproval,
+    handleToggleOnlyAdminsCanSend,
   } = useGroupActions({
     activeChat,
     userId: user?.id,
@@ -453,8 +448,6 @@ export default function Messenger() {
     if (activeConversationRaw) {
       setGroupNameDraft(activeConversationRaw.groupName || '');
       setGroupAvatarDraft(activeConversationRaw.groupAvatar || '');
-      setAdminDraft((activeConversationRaw.adminIds || []).filter(id => id !== activeConversationRaw.ownerId));
-      setNewOwnerId(activeConversationRaw.ownerId || '');
       setGroupActionError(null);
       setGroupActionMessage(null);
       if (user?.id && (isOwner || isAdmin) && activeConversationRaw.approvalsRequired) {
@@ -471,8 +464,6 @@ export default function Messenger() {
     } else {
       setGroupNameDraft('');
       setGroupAvatarDraft('');
-      setAdminDraft([]);
-      setNewOwnerId('');
       setPendingJoins([]);
     }
   }, [activeConversationRaw, user?.id, isOwner, isAdmin, loadConversations]);
@@ -1655,17 +1646,13 @@ export default function Messenger() {
           groupActionError={groupActionError}
           updatingGroup={updatingGroup}
           pendingJoins={pendingJoins}
-          adminDraft={adminDraft}
-          newOwnerId={newOwnerId}
-          onNewOwnerIdChange={setNewOwnerId}
           onSaveGroupMeta={handleSaveGroupMeta}
           onAddMembers={handleAddMembers}
           onRemoveMember={handleRemoveMember}
           onJoinRequestDecision={handleJoinRequestDecision}
-          onAdminToggle={handleAdminToggle}
-          onUpdateRoles={handleUpdateRoles}
-          onDeleteGroup={handleDeleteGroup}
           onClearConversationForMe={handleClearConversationForMe}
+          onToggleRequireApproval={handleToggleRequireApproval}
+          onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
           onShowSearch={() => setShowSearch(true)}
           onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
           userId={user?.id}

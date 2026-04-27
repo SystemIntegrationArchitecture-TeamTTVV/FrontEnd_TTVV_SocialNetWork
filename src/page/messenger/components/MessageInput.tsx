@@ -102,14 +102,16 @@ export default function MessageInput({
 
   if (!canSend) {
     return (
-      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6V7a4 4 0 00-8 0v4" />
-          <rect x="3" y="11" width="18" height="11" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span className="text-sm text-gray-500">
+      <div className="border-t border-gray-100 bg-gradient-to-b from-gray-50 to-white px-4 py-4 flex flex-col items-center gap-2">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <rect x="3" y="11" width="18" height="11" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+        </div>
+        <p className="text-sm font-medium text-gray-500 text-center leading-snug">
           {sendBlockedReason || 'Chỉ trưởng nhóm và phó nhóm mới được gửi tin nhắn'}
-        </span>
+        </p>
       </div>
     );
   }

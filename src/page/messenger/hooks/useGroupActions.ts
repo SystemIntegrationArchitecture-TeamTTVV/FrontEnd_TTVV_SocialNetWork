@@ -226,6 +226,44 @@ export function useGroupActions({
     }
   };
 
+  const handleToggleRequireApproval = async (currentValue: boolean) => {
+    if (!activeChat || !userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateConversationMeta(activeChat, {
+        requesterId: userId,
+        approvalsRequired: !currentValue,
+      });
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to toggle require approval', err);
+      setGroupActionError(err instanceof Error ? err.message : t('messenger.group.updateMetaError'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleToggleOnlyAdminsCanSend = async (currentValue: boolean) => {
+    if (!activeChat || !userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateConversationMeta(activeChat, {
+        requesterId: userId,
+        onlyAdminsCanSend: !currentValue,
+      });
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to toggle onlyAdminsCanSend', err);
+      setGroupActionError(err instanceof Error ? err.message : t('messenger.group.updateMetaError'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   return {
     groupMemberInput,
     setGroupMemberInput,
@@ -254,5 +292,7 @@ export function useGroupActions({
     handleJoinRequestDecision,
     handleAdminToggle,
     handleUpdateRoles,
+    handleToggleRequireApproval,
+    handleToggleOnlyAdminsCanSend,
   };
 }

@@ -609,6 +609,8 @@
       "saving": "Đang lưu...",
       "saveInfo": "Lưu thông tin nhóm",
       "requireApproval": "Yêu cầu phê duyệt khi có người tham gia",
+      "permissionsTitle": "Quyền nhóm",
+      "onlyAdminsCanSend": "Chỉ trưởng/phó nhóm được gửi tin",
       "joinRequestsTitle": "Yêu cầu tham gia ({{count}})",
       "pendingApproval": "Đang chờ duyệt",
       "accept": "Chấp nhận",
