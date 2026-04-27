@@ -56,6 +56,17 @@ export function useMessages() {
 
   const sortConversationsByActivity = (list: Conversation[]): Conversation[] => {
     return [...list].sort((a, b) => {
+      // 1. AI Assistant always on top
+      if (a.aiAssistantEnabled && !b.aiAssistantEnabled) return -1;
+      if (!a.aiAssistantEnabled && b.aiAssistantEnabled) return 1;
+
+      // 2. Pinned conversations next
+      const isAPinned = !!user?.id && !!a.pinnedByUserIds?.includes(user.id);
+      const isBPinned = !!user?.id && !!b.pinnedByUserIds?.includes(user.id);
+      if (isAPinned && !isBPinned) return -1;
+      if (!isAPinned && isBPinned) return 1;
+
+      // 3. Sort by lastMessageAt
       const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
       const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
       return timeB - timeA;
@@ -164,7 +175,7 @@ export function useMessages() {
         30,
         user.id
       );
-      
+
       if (latestLoadRequestRef.current[conversationId] !== requestId) return;
 
       const initialMessages = page.messages || [];
@@ -172,7 +183,7 @@ export function useMessages() {
         ...prev,
         [conversationId]: initialMessages,
       }));
-      
+
       setCursors(prev => ({ ...prev, [conversationId]: page.nextCursor || null }));
       setHasMoreMap(prev => ({ ...prev, [conversationId]: !!page.hasMore }));
     } catch (err: unknown) {
@@ -192,13 +203,13 @@ export function useMessages() {
     try {
       setLoadingMore(true);
       const page = await messagesApi.getMessagesByConversationCursor(conversationId, cursor, 20, user.id);
-      
+
       const olderMessages = page.messages || [];
       setMessages((prev) => ({
         ...prev,
         [conversationId]: [...olderMessages, ...(prev[conversationId] || [])],
       }));
-      
+
       setCursors(prev => ({ ...prev, [conversationId]: page.nextCursor || null }));
       setHasMoreMap(prev => ({ ...prev, [conversationId]: !!page.hasMore }));
     } catch (err) {
@@ -231,7 +242,7 @@ export function useMessages() {
       };
 
       const newMessage = await messagesApi.createMessage(messageData);
-      
+
       // Optimistically update UI
       setMessages(prev => ({
         ...prev,
@@ -246,17 +257,17 @@ export function useMessages() {
         const exists = prev.some(conv => conv.id === conversationId);
         const updated = exists
           ? prev.map(conv =>
-              conv.id === conversationId
-                ? { 
-                    ...conv, 
-                    lastMessagePreview: preview || ' ', 
-                    lastMessageType: newMessage.messageType,
-                    lastMessageSenderId: newMessage.senderId,
-                    lastMessageSenderName: newMessage.senderName,
-                    lastMessageAt: newMessage.createdAt 
-                  }
-                : conv
-            )
+            conv.id === conversationId
+              ? {
+                ...conv,
+                lastMessagePreview: preview || ' ',
+                lastMessageType: newMessage.messageType,
+                lastMessageSenderId: newMessage.senderId,
+                lastMessageSenderName: newMessage.senderName,
+                lastMessageAt: newMessage.createdAt
+              }
+              : conv
+          )
           : prev;
 
         return sortConversationsByActivity(updated);
@@ -325,20 +336,20 @@ export function useMessages() {
       const exists = prev.some(conv => conv.id === targetConversationId);
       const updated = exists
         ? prev.map(conv =>
-            conv.id === targetConversationId
-                  ? {
-                      ...conv,
-                      lastMessagePreview: buildConversationPreview(forwarded),
-                      lastMessageType: forwarded.messageType,
-                      lastMessageSenderId: forwarded.senderId,
-                      lastMessageSenderName: forwarded.senderName,
-                      lastMessageAt: forwarded.createdAt,
-                    }
-              : conv
-          )
+          conv.id === targetConversationId
+            ? {
+              ...conv,
+              lastMessagePreview: buildConversationPreview(forwarded),
+              lastMessageType: forwarded.messageType,
+              lastMessageSenderId: forwarded.senderId,
+              lastMessageSenderName: forwarded.senderName,
+              lastMessageAt: forwarded.createdAt,
+            }
+            : conv
+        )
         : prev;
 
-        return sortConversationsByActivity(updated);
+      return sortConversationsByActivity(updated);
     });
 
     if (!conversationsRef.current.some(conv => conv.id === targetConversationId)) {
@@ -380,7 +391,7 @@ export function useMessages() {
 
     try {
       const conversation = await conversationsApi.getOrCreateDirectConversation(user.id, otherUserId);
-      
+
       // Add to conversations list if not exists
       setConversations(prev => {
         if (prev.find(c => c.id === conversation.id)) {
@@ -421,7 +432,7 @@ export function useMessages() {
     const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
         const message: Message = event.data;
-        
+
         // Duplicate events (including same-user events from other devices) are deduped by message id below.
         // Do not hard-drop realtime events using local participant cache because stale conversation state
         // can incorrectly filter valid messages and break realtime delivery.
@@ -466,21 +477,21 @@ export function useMessages() {
 
           const updated = prev.map(conv =>
             conv.id === message.conversationId
-                  ? {
-                      ...conv,
-                      lastMessagePreview: buildConversationPreview(message),
-                      lastMessageType: message.messageType,
-                      lastMessageSenderId: message.senderId,
-                      lastMessageSenderName: message.senderName,
-                      // Guard against backend sending LocalDateTime as an array instead of ISO string
-                      lastMessageAt: typeof message.createdAt === 'string' && message.createdAt
-                        ? message.createdAt
-                        : new Date().toISOString(),
-                    }
+              ? {
+                ...conv,
+                lastMessagePreview: buildConversationPreview(message),
+                lastMessageType: message.messageType,
+                lastMessageSenderId: message.senderId,
+                lastMessageSenderName: message.senderName,
+                // Guard against backend sending LocalDateTime as an array instead of ISO string
+                lastMessageAt: typeof message.createdAt === 'string' && message.createdAt
+                  ? message.createdAt
+                  : new Date().toISOString(),
+              }
               : conv
           );
 
-            return sortConversationsByActivity(updated);
+          return sortConversationsByActivity(updated);
         });
 
         // Backend emits group changes as SYSTEM messages via MESSAGE_RECEIVED.
@@ -662,11 +673,11 @@ export function useMessages() {
           prev.map(conv =>
             conv.id === conversationId
               ? {
-                  ...conv,
-                  pendingJoinIds: Array.from(
-                    new Set([...(conv.pendingJoinIds ?? []), ...idsToAdd])
-                  ),
-                }
+                ...conv,
+                pendingJoinIds: Array.from(
+                  new Set([...(conv.pendingJoinIds ?? []), ...idsToAdd])
+                ),
+              }
               : conv
           )
         );
@@ -752,30 +763,30 @@ export function useMessages() {
         const updated = prev.map((conv) =>
           conv.id === payload.conversationId
             ? {
-                ...conv,
-                ownerId: payload.ownerId ?? conv.ownerId,
-                adminIds: payload.adminIds ?? conv.adminIds,
-                participantIds: payload.participantIds ?? conv.participantIds,
-                participantNames: payload.participantNames ?? conv.participantNames,
-                participantAvatars: payload.participantAvatars ?? conv.participantAvatars,
-                groupName: payload.groupName ?? conv.groupName,
-                groupAvatar: payload.groupAvatar ?? conv.groupAvatar,
-                description: payload.description ?? conv.description,
-                approvalsRequired: payload.approvalsRequired ?? conv.approvalsRequired,
-                onlyAdminsCanSend: payload.onlyAdminsCanSend ?? conv.onlyAdminsCanSend,
-                onlyAdminsCanAddMembers: payload.onlyAdminsCanAddMembers ?? conv.onlyAdminsCanAddMembers,
-                pendingJoinIds: payload.pendingJoinIds ?? conv.pendingJoinIds,
-                hiddenForCurrentUser: payload.hiddenForCurrentUser ?? conv.hiddenForCurrentUser,
-                hiddenRequiresPin: payload.hiddenRequiresPin ?? conv.hiddenRequiresPin,
-                clearBeforeAt: payload.clearBeforeAt ?? conv.clearBeforeAt,
-                updatedAt: payload.updatedAt ?? conv.updatedAt,
-                lastMessagePreview: payload.lastMessagePreview ?? conv.lastMessagePreview,
-                lastMessageType: payload.lastMessageType ?? conv.lastMessageType,
-                lastMessageSenderId: payload.lastMessageSenderId ?? conv.lastMessageSenderId,
-                lastMessageSenderName: payload.lastMessageSenderName ?? conv.lastMessageSenderName,
-                lastMessageAt: payload.lastMessageAt ?? conv.lastMessageAt,
-                isDisbanded: payload.isDisbanded ?? conv.isDisbanded,
-              }
+              ...conv,
+              ownerId: payload.ownerId ?? conv.ownerId,
+              adminIds: payload.adminIds ?? conv.adminIds,
+              participantIds: payload.participantIds ?? conv.participantIds,
+              participantNames: payload.participantNames ?? conv.participantNames,
+              participantAvatars: payload.participantAvatars ?? conv.participantAvatars,
+              groupName: payload.groupName ?? conv.groupName,
+              groupAvatar: payload.groupAvatar ?? conv.groupAvatar,
+              description: payload.description ?? conv.description,
+              approvalsRequired: payload.approvalsRequired ?? conv.approvalsRequired,
+              onlyAdminsCanSend: payload.onlyAdminsCanSend ?? conv.onlyAdminsCanSend,
+              onlyAdminsCanAddMembers: payload.onlyAdminsCanAddMembers ?? conv.onlyAdminsCanAddMembers,
+              pendingJoinIds: payload.pendingJoinIds ?? conv.pendingJoinIds,
+              hiddenForCurrentUser: payload.hiddenForCurrentUser ?? conv.hiddenForCurrentUser,
+              hiddenRequiresPin: payload.hiddenRequiresPin ?? conv.hiddenRequiresPin,
+              clearBeforeAt: payload.clearBeforeAt ?? conv.clearBeforeAt,
+              updatedAt: payload.updatedAt ?? conv.updatedAt,
+              lastMessagePreview: payload.lastMessagePreview ?? conv.lastMessagePreview,
+              lastMessageType: payload.lastMessageType ?? conv.lastMessageType,
+              lastMessageSenderId: payload.lastMessageSenderId ?? conv.lastMessageSenderId,
+              lastMessageSenderName: payload.lastMessageSenderName ?? conv.lastMessageSenderName,
+              lastMessageAt: payload.lastMessageAt ?? conv.lastMessageAt,
+              isDisbanded: payload.isDisbanded ?? conv.isDisbanded,
+            }
             : conv
         );
 
@@ -820,9 +831,9 @@ export function useMessages() {
     const time = Number.isNaN(createdAtDate.getTime())
       ? ''
       : createdAtDate.toLocaleTimeString(getLocaleTag(), {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
     const reactionCounts = (message.emojis || []).reduce<Record<string, number>>((acc, item) => {
       acc[item] = (acc[item] || 0) + 1;

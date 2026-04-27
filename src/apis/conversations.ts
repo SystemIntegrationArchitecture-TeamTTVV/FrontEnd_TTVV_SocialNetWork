@@ -24,6 +24,8 @@ export interface Conversation {
   lastMessageSenderName?: string;
   lastMessageAt?: string;
   isDisbanded?: boolean;
+  pinnedByUserIds?: string[];
+  aiAssistantEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

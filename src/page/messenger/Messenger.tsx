@@ -172,6 +172,7 @@ export default function Messenger() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
   const [hideLoading, setHideLoading] = useState(false);
   const [hideError, setHideError] = useState<string | null>(null);
+  const [pinLoading, setPinLoading] = useState(false);
   const [unreadByConversationId, setUnreadByConversationId] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -635,13 +636,29 @@ export default function Messenger() {
           unread: unreadByConversationId[conv.id] || 0,
           isGroup: conv.isGroup,
           sortTime: Number.isNaN(lastActivity) ? 0 : lastActivity,
+          pinned: conv.pinnedByUserIds?.includes(user.id) || false,
         };
       })
-      .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean; sortTime: number } => Boolean(c))
-      .sort((a, b) => b.sortTime - a.sortTime);
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .sort((a, b) => {
+        // Pinned conversations first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // Then by time
+        return b.sortTime - a.sortTime;
+      });
 
-    return [{ ...aiConversation, sortTime: Infinity }, ...regularConversations]
-      .sort((a, b) => b.sortTime - a.sortTime)
+    return [{ ...aiConversation, sortTime: Infinity, pinned: false }, ...regularConversations]
+      .sort((a, b) => {
+        // AI conversation always first (sortTime Infinity handles this)
+        if (a.sortTime === Infinity && b.sortTime !== Infinity) return -1;
+        if (a.sortTime !== Infinity && b.sortTime === Infinity) return 1;
+        // Pinned conversations next
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // Then by time
+        return b.sortTime - a.sortTime;
+      })
       .map(({ sortTime: _s, ...item }) => item);
   }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId, unreadByConversationId]);
 
@@ -1424,6 +1441,20 @@ export default function Messenger() {
           if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
           setContextMenu(null);
         }}
+        onTogglePinConversation={async (convId) => {
+          if (!user?.id || pinLoading) return;
+          setPinLoading(true);
+          try {
+            await conversationsApi.togglePinConversation(convId, { userId: user.id });
+            await loadConversations();
+          } catch (err: any) {
+            const msg = err?.message || 'Không thể ghim hội thoại';
+            notify.error(msg);
+          } finally {
+            setPinLoading(false);
+          }
+        }}
+        pinLoading={pinLoading}
       />
 
       {/* Hidden Chats Panel + Context Menu + Unlock Modal */}
@@ -1648,70 +1679,70 @@ export default function Messenger() {
               <MessageInput
                 message={message}
                 onMessageChange={handleMessageInputChange}
-              onSend={handleSendMessage}
-              editingMessageId={editingMessageId}
-              isAIChat={isAIChat}
-              isAiLoading={isAiLoading}
-              uploadingFiles={uploadingFiles}
-              filePreview={filePreview}
-              onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
-              uploadedFiles={uploadedFiles}
-              onSetUploadedFiles={setUploadedFiles}
-              onOpenPollModal={() => setIsCreatePollOpen(true)}
-              onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
-              isGroup={isGroupChat}
-              fileInputRef={fileInputRef}
-              onFileUpload={handleFileUpload}
-              showAttachmentMenu={showAttachmentMenu}
-              onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
-              onShareLocation={() => {
-                const text = `[Location] ${t('messenger.attachments.locationShared')}`;
-                if (activeChat && user?.id) {
-                  sendMessageAPI(activeChat, text, [], undefined).catch(() => { });
-                  setShowAttachmentMenu(false);
-                }
-              }}
-              onShareContact={() => {
-                if (activeChat && user?.id) {
-                  const contactName = user.fullName || user.username || user.id;
-                  sendMessageAPI(
-                    activeChat,
-                    '',
-                    [
-                      {
-                        type: 'contact',
-                        url: `user:${user.id}`,
-                        fileName: contactName,
-                      },
-                    ],
-                    undefined
-                  ).catch(() => { });
-                  setShowAttachmentMenu(false);
-                }
-              }}
-              showStickerPanel={showStickerPanel}
-              onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
-              activeStickerTopic={activeStickerTopic}
-              onStickerTopicChange={setActiveStickerTopic}
-              onSendSticker={handleSendSticker}
-              showEmojiPicker={showEmojiPicker}
-              onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
-              onEmojiSelect={handleEmojiSelect}
-              showVoicePreview={showVoicePreview}
-              voiceTranscript={voiceTranscriptRef.current}
-              onVoiceSendAudio={handleVoiceSendAudio}
-              onVoiceConvertToText={handleVoiceConvertToText}
-              onVoiceCancel={handleVoiceCancel}
-              isRecording={isRecording}
-              recordingDuration={recordingDuration}
-              onVoiceRecord={handleVoiceRecord}
-              onGenerateDailySummary={handleGenerateDailySummaryForAi}
-              replyTo={replyTo}
-              canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
-              sendBlockedReason={t('messenger.onlyAdminsCanSend')}
-              onOpenPollModal={() => setIsCreatePollOpen(true)}
-              isGroup={isGroupChat}
-            />
+                onSend={handleSendMessage}
+                editingMessageId={editingMessageId}
+                isAIChat={isAIChat}
+                isAiLoading={isAiLoading}
+                uploadingFiles={uploadingFiles}
+                filePreview={filePreview}
+                onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
+                uploadedFiles={uploadedFiles}
+                onSetUploadedFiles={setUploadedFiles}
+                onOpenPollModal={() => setIsCreatePollOpen(true)}
+                onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+                isGroup={isGroupChat}
+                fileInputRef={fileInputRef}
+                onFileUpload={handleFileUpload}
+                showAttachmentMenu={showAttachmentMenu}
+                onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
+                onShareLocation={() => {
+                  const text = `[Location] ${t('messenger.attachments.locationShared')}`;
+                  if (activeChat && user?.id) {
+                    sendMessageAPI(activeChat, text, [], undefined).catch(() => { });
+                    setShowAttachmentMenu(false);
+                  }
+                }}
+                onShareContact={() => {
+                  if (activeChat && user?.id) {
+                    const contactName = user.fullName || user.username || user.id;
+                    sendMessageAPI(
+                      activeChat,
+                      '',
+                      [
+                        {
+                          type: 'contact',
+                          url: `user:${user.id}`,
+                          fileName: contactName,
+                        },
+                      ],
+                      undefined
+                    ).catch(() => { });
+                    setShowAttachmentMenu(false);
+                  }
+                }}
+                showStickerPanel={showStickerPanel}
+                onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
+                activeStickerTopic={activeStickerTopic}
+                onStickerTopicChange={setActiveStickerTopic}
+                onSendSticker={handleSendSticker}
+                showEmojiPicker={showEmojiPicker}
+                onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
+                onEmojiSelect={handleEmojiSelect}
+                showVoicePreview={showVoicePreview}
+                voiceTranscript={voiceTranscriptRef.current}
+                onVoiceSendAudio={handleVoiceSendAudio}
+                onVoiceConvertToText={handleVoiceConvertToText}
+                onVoiceCancel={handleVoiceCancel}
+                isRecording={isRecording}
+                recordingDuration={recordingDuration}
+                onVoiceRecord={handleVoiceRecord}
+                onGenerateDailySummary={handleGenerateDailySummaryForAi}
+                replyTo={replyTo}
+                canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
+                sendBlockedReason={t('messenger.onlyAdminsCanSend')}
+                onOpenPollModal={() => setIsCreatePollOpen(true)}
+                isGroup={isGroupChat}
+              />
             )}
             {isCreatePollOpen && (
               <CreatePollModal
