@@ -41,6 +41,14 @@ export function useMessages() {
   const prevConnectedRef = useRef(false);
   const latestLoadRequestRef = useRef<Record<string, number>>({});
 
+  const sortConversationsByActivity = (list: Conversation[]): Conversation[] => {
+    return [...list].sort((a, b) => {
+      const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return timeB - timeA;
+    });
+  };
+
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
@@ -71,7 +79,7 @@ export function useMessages() {
       setConversationsLoading(true);
       setError(null);
       const data = await conversationsApi.getConversationsByUserId(user.id);
-      setConversations(Array.isArray(data) ? data : []);
+      setConversations(sortConversationsByActivity(Array.isArray(data) ? data : []));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations';
       console.error('Failed to load conversations:', err);
@@ -129,7 +137,7 @@ export function useMessages() {
               if (current.some((item) => item.id === conv.id)) {
                 return current;
               }
-              return [conv, ...current];
+              return sortConversationsByActivity([conv, ...current]);
             });
           })
           .catch(() => undefined);
@@ -205,11 +213,7 @@ export function useMessages() {
             )
           : prev;
 
-        return updated.sort((a, b) => {
-          const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-          const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-          return timeB - timeA;
-        });
+        return sortConversationsByActivity(updated);
       });
 
       return newMessage;
@@ -285,11 +289,7 @@ export function useMessages() {
           )
         : prev;
 
-      return updated.sort((a, b) => {
-        const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-        const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-        return timeB - timeA;
-      });
+        return sortConversationsByActivity(updated);
     });
 
     if (!conversationsRef.current.some(conv => conv.id === targetConversationId)) {
@@ -353,6 +353,22 @@ export function useMessages() {
   useEffect(() => {
     if (!isConnected || !user?.id) return;
 
+    const SYSTEM_GROUP_ACTIONS = new Set([
+      'GROUP_RENAMED',
+      'MEMBERS_ADDED',
+      'MEMBER_REMOVED',
+      'MEMBER_LEFT',
+      'OWNER_TRANSFERRED',
+      'ADMINS_UPDATED',
+      'JOIN_REQUEST_CREATED',
+      'JOIN_REQUEST_UPDATED',
+      'JOIN_REQUEST_APPROVED',
+      'JOIN_APPROVALS_UPDATED',
+      'SEND_PERMISSION_UPDATED',
+      'ADD_MEMBER_PERMISSION_UPDATED',
+      'CONVERSATION_META_UPDATED',
+    ]);
+
     const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
         const message: Message = event.data;
@@ -392,7 +408,7 @@ export function useMessages() {
                   if (current.some((item) => item.id === conv.id)) {
                     return current;
                   }
-                  return [conv, ...current];
+                  return sortConversationsByActivity([conv, ...current]);
                 });
               })
               .catch(() => undefined);
@@ -404,17 +420,22 @@ export function useMessages() {
               ? {
                   ...conv,
                   lastMessagePreview: buildConversationPreview(message),
-                  lastMessageAt: message.createdAt,
+                  // Guard against backend sending LocalDateTime as an array instead of ISO string
+                  lastMessageAt: typeof message.createdAt === 'string' && message.createdAt
+                    ? message.createdAt
+                    : new Date().toISOString(),
                 }
               : conv
           );
 
-          return updated.sort((a, b) => {
-            const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-            const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-            return timeB - timeA;
-          });
+            return sortConversationsByActivity(updated);
         });
+
+        // Backend emits group changes as SYSTEM messages via MESSAGE_RECEIVED.
+        // Reload conversations so group name/owner/admin updates are reflected for other members.
+        if (message.messageType === 'SYSTEM' && SYSTEM_GROUP_ACTIONS.has(message.systemAction || '')) {
+          loadConversations().catch(() => undefined);
+        }
       }
     });
 
@@ -546,6 +567,10 @@ export function useMessages() {
       'MEMBER_LEFT',
       'OWNER_TRANSFERRED',
       'ADMINS_UPDATED',
+      'JOIN_REQUEST_UPDATED',
+      'JOIN_APPROVALS_UPDATED',
+      'SEND_PERMISSION_UPDATED',
+      'ADD_MEMBER_PERMISSION_UPDATED',
     ] as const;
     const unsubscribeGroupEvents = GROUP_EVENTS.map(eventType =>
       subscribe(eventType, (event) => {
@@ -613,26 +638,69 @@ export function useMessages() {
       if (event.type !== 'CONVERSATION_META_UPDATED' || !event.data) return;
       const payload = event.data as {
         conversationId?: string;
+        ownerId?: string;
+        adminIds?: string[];
+        participantIds?: string[];
+        participantNames?: string[];
+        participantAvatars?: string[];
+        groupName?: string;
+        groupAvatar?: string;
+        description?: string;
+        approvalsRequired?: boolean;
+        onlyAdminsCanSend?: boolean;
+        onlyAdminsCanAddMembers?: boolean;
+        pendingJoinIds?: string[];
+        hiddenForCurrentUser?: boolean;
+        hiddenRequiresPin?: boolean;
+        clearBeforeAt?: string;
+        updatedAt?: string;
         lastMessagePreview?: string;
         lastMessageAt?: string | null;
       };
       if (!payload.conversationId) return;
 
       setConversations((prev) => {
+        const exists = prev.some((conv) => conv.id === payload.conversationId);
+        if (!exists) {
+          conversationsApi
+            .getConversationById(payload.conversationId!)
+            .then((conv) => {
+              setConversations((current) => {
+                const filtered = current.filter((item) => item.id !== conv.id);
+                return sortConversationsByActivity([conv, ...filtered]);
+              });
+            })
+            .catch(() => undefined);
+          return prev;
+        }
+
         const updated = prev.map((conv) =>
           conv.id === payload.conversationId
             ? {
                 ...conv,
-                lastMessagePreview: payload.lastMessagePreview ?? '',
-                lastMessageAt: payload.lastMessageAt ?? undefined,
+                ownerId: payload.ownerId ?? conv.ownerId,
+                adminIds: payload.adminIds ?? conv.adminIds,
+                participantIds: payload.participantIds ?? conv.participantIds,
+                participantNames: payload.participantNames ?? conv.participantNames,
+                participantAvatars: payload.participantAvatars ?? conv.participantAvatars,
+                groupName: payload.groupName ?? conv.groupName,
+                groupAvatar: payload.groupAvatar ?? conv.groupAvatar,
+                description: payload.description ?? conv.description,
+                approvalsRequired: payload.approvalsRequired ?? conv.approvalsRequired,
+                onlyAdminsCanSend: payload.onlyAdminsCanSend ?? conv.onlyAdminsCanSend,
+                onlyAdminsCanAddMembers: payload.onlyAdminsCanAddMembers ?? conv.onlyAdminsCanAddMembers,
+                pendingJoinIds: payload.pendingJoinIds ?? conv.pendingJoinIds,
+                hiddenForCurrentUser: payload.hiddenForCurrentUser ?? conv.hiddenForCurrentUser,
+                hiddenRequiresPin: payload.hiddenRequiresPin ?? conv.hiddenRequiresPin,
+                clearBeforeAt: payload.clearBeforeAt ?? conv.clearBeforeAt,
+                updatedAt: payload.updatedAt ?? conv.updatedAt,
+                lastMessagePreview: payload.lastMessagePreview ?? conv.lastMessagePreview,
+                lastMessageAt: payload.lastMessageAt ?? conv.lastMessageAt,
               }
             : conv
         );
-        return updated.sort((a, b) => {
-          const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-          const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-          return timeB - timeA;
-        });
+
+        return sortConversationsByActivity(updated);
       });
     });
 
@@ -651,7 +719,7 @@ export function useMessages() {
       unsubscribeConversationRestored();
       unsubscribeConversationMetaUpdated();
     };
-  }, [isConnected, user?.id, subscribe]);
+  }, [isConnected, user?.id, subscribe, loadConversations]);
 
   // Format message for display (convert Message to display format)
 

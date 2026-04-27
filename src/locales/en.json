@@ -478,6 +478,7 @@
     "uploadingFiles": "Uploading file...",
     "confirmDeleteMessage": "Are you sure you want to delete this message?",
     "sendMessageError": "Failed to send message. Please try again!",
+    "onlyAdminsCanSend": "Only the group owner and admins can send messages",
     "captionVideo": "🎥 Video",
     "captionVoice": "🎤 Voice message",
     "time": {
@@ -513,11 +514,15 @@
       "searchUsersPlaceholder": "Search users...",
       "suggestionsTitle": "Suggestions",
       "searching": "Searching...",
+      "friendsLoading": "Loading your friends list...",
+      "friendsLoadFailed": "Couldn't load friends list",
       "emptySearchMembers": "Type to search members (need at least 2 people)",
+      "emptyFriendMembers": "No matching friends available to create a group",
       "emptySearchUsers": "Type to search users",
       "createGroupHint": "💡 Choose at least 2 people to create a group chat (total ≥3 members including you)",
       "groupNameLabel": "Group name (optional, min 3 members)",
       "groupNamePlaceholder": "Enter group name...",
+      "loadMoreFriends": "Load more friends",
       "creating": "Creating...",
       "createGroupButton": "Create group (≥3 people)",
       "startChatButton": "Start chatting"

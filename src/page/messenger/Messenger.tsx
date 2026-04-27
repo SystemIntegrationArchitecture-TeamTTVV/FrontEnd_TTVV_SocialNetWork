@@ -164,6 +164,7 @@ export default function Messenger() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
   const [hideLoading, setHideLoading] = useState(false);
   const [hideError, setHideError] = useState<string | null>(null);
+  const [unreadByConversationId, setUnreadByConversationId] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
@@ -187,6 +188,12 @@ export default function Messenger() {
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(LAST_ACTIVE_CHAT_KEY, chatId);
     }
+    setUnreadByConversationId((prev) => {
+      if (!prev[chatId]) return prev;
+      const next = { ...prev };
+      delete next[chatId];
+      return next;
+    });
     setActiveChat(chatId);
   };
 
@@ -282,28 +289,64 @@ export default function Messenger() {
       const message = event.data as Message;
       if (message.senderId === user.id) return;
       if (!message.conversationId) return;
+      const incomingConversationId = String(message.conversationId);
+
+      if (activeChat && activeChat !== incomingConversationId) {
+        setUnreadByConversationId((prev) => ({
+          ...prev,
+          [incomingConversationId]: (prev[incomingConversationId] || 0) + 1,
+        }));
+      }
 
       setActiveChat((prev) => {
         if (prev) return prev;
-        return String(message.conversationId);
+        setUnreadByConversationId((counts) => {
+          if (!counts[incomingConversationId]) return counts;
+          const next = { ...counts };
+          delete next[incomingConversationId];
+          return next;
+        });
+        return incomingConversationId;
       });
     });
 
     return unsubscribe;
-  }, [isConnected, user?.id, subscribe]);
+  }, [isConnected, user?.id, subscribe, activeChat]);
 
   // Auto-open a conversation passed via navigation state (e.g., after creating new chat)
   useEffect(() => {
     if (openConversationId) {
+      setUnreadByConversationId((prev) => {
+        if (!prev[openConversationId]) return prev;
+        const next = { ...prev };
+        delete next[openConversationId];
+        return next;
+      });
       setActiveChat(openConversationId);
     }
   }, [openConversationId]);
 
   useEffect(() => {
     if (openConversationId && conversations.some((c) => c.id === openConversationId)) {
+      setUnreadByConversationId((prev) => {
+        if (!prev[openConversationId]) return prev;
+        const next = { ...prev };
+        delete next[openConversationId];
+        return next;
+      });
       setActiveChat(openConversationId);
     }
   }, [openConversationId, conversations]);
+
+  useEffect(() => {
+    if (!activeChat) return;
+    setUnreadByConversationId((prev) => {
+      if (!prev[activeChat]) return prev;
+      const next = { ...prev };
+      delete next[activeChat];
+      return next;
+    });
+  }, [activeChat]);
 
   const {
     AI_CONVERSATION_ID,
@@ -494,7 +537,6 @@ export default function Messenger() {
       else return date.toLocaleDateString(getLocaleTag());
     };
 
-    // Add AI Assistant conversation at the top
     const aiConversation = {
       id: AI_CONVERSATION_ID,
       name: t('messenger.aiAssistant.name'),
@@ -539,6 +581,8 @@ export default function Messenger() {
           online = !!(otherParticipantId && presenceByUserId[otherParticipantId]?.online);
         }
 
+        const lastActivity = conv.lastMessageAt ? new Date(conv.lastMessageAt).getTime() : 0;
+
         return {
           id: conv.id,
           name,
@@ -547,14 +591,18 @@ export default function Messenger() {
           online,
           lastMessage: conv.lastMessagePreview || '',
           time: formatTime(conv.lastMessageAt),
-          unread: 0,
+          unread: unreadByConversationId[conv.id] || 0,
           isGroup: conv.isGroup,
+          sortTime: Number.isNaN(lastActivity) ? 0 : lastActivity,
         };
       })
-      .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c));
+      .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean; sortTime: number } => Boolean(c))
+      .sort((a, b) => b.sortTime - a.sortTime);
 
-    return [aiConversation, ...regularConversations];
-  }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId]);
+    return [{ ...aiConversation, sortTime: Infinity }, ...regularConversations]
+      .sort((a, b) => b.sortTime - a.sortTime)
+      .map(({ sortTime: _s, ...item }) => item);
+  }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId, unreadByConversationId]);
 
   const activeConversation = activeChat 
     ? formattedConversations.find((c) => c.id === activeChat) || null
@@ -1580,6 +1628,8 @@ export default function Messenger() {
           onVoiceRecord={handleVoiceRecord}
           onGenerateDailySummary={handleGenerateDailySummaryForAi}
           replyTo={replyTo}
+          canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
+          sendBlockedReason={t('messenger.onlyAdminsCanSend')}
         />
           </>
         )}

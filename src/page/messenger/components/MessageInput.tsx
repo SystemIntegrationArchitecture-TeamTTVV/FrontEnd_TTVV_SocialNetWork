@@ -54,6 +54,9 @@ interface MessageInputProps {
   onGenerateDailySummary?: (prompt: string) => void;
   // Reply
   replyTo: { sender: string; content: string } | null;
+  // Permission
+  canSend?: boolean;
+  sendBlockedReason?: string;
 }
 
 export default function MessageInput({
@@ -92,8 +95,24 @@ export default function MessageInput({
   onVoiceRecord,
   onGenerateDailySummary,
   replyTo,
+  canSend = true,
+  sendBlockedReason,
 }: MessageInputProps) {
   const { t } = useTranslation();
+
+  if (!canSend) {
+    return (
+      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6V7a4 4 0 00-8 0v4" />
+          <rect x="3" y="11" width="18" height="11" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span className="text-sm text-gray-500">
+          {sendBlockedReason || 'Chỉ trưởng nhóm và phó nhóm mới được gửi tin nhắn'}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 md:p-4 lg:p-5 border-t border-gray-100 bg-white">

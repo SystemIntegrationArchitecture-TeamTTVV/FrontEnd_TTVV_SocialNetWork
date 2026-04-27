@@ -478,6 +478,7 @@
     "uploadingFiles": "Đang upload file...",
     "confirmDeleteMessage": "Bạn có chắc muốn xóa tin nhắn này?",
     "sendMessageError": "Lỗi khi gửi tin nhắn. Vui lòng thử lại!",
+    "onlyAdminsCanSend": "Chỉ trưởng nhóm và phó nhóm mới được gửi tin nhắn",
     "captionVideo": "🎥 Video",
     "captionVoice": "🎤 Tin nhắn thoại",
     "time": {
@@ -513,11 +514,15 @@
       "searchUsersPlaceholder": "Tìm kiếm người dùng...",
       "suggestionsTitle": "Gợi ý",
       "searching": "Đang tìm kiếm...",
+      "friendsLoading": "Đang tải danh sách bạn bè...",
+      "friendsLoadFailed": "Không thể tải danh sách bạn bè",
       "emptySearchMembers": "Nhập để tìm thành viên (cần ít nhất 2 người)",
+      "emptyFriendMembers": "Không có bạn bè phù hợp để tạo nhóm",
       "emptySearchUsers": "Nhập để tìm người dùng",
       "createGroupHint": "💡 Chọn ít nhất 2 người để tạo nhóm chat (tổng cộng ≥3 thành viên bao gồm bạn)",
       "groupNameLabel": "Tên nhóm (tùy chọn, tối thiểu 3 thành viên)",
       "groupNamePlaceholder": "Nhập tên nhóm...",
+      "loadMoreFriends": "Tải thêm bạn bè",
       "creating": "Đang tạo...",
       "createGroupButton": "Tạo nhóm (≥3 người)",
       "startChatButton": "Bắt đầu trò chuyện"
