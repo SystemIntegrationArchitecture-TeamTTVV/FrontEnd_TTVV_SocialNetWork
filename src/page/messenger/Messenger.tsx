@@ -116,6 +116,7 @@ export default function Messenger() {
     removeMessage,
     removeMessageForMe,
     forwardMessage,
+    toggleReaction,
     formatMessageForDisplay,
   } = useMessages();
 
@@ -1106,8 +1107,9 @@ export default function Messenger() {
   void handleVoiceRecording;
 
   const handleReaction = async (messageId: string, emoji: string) => {
+    if (!activeChat || activeChat === AI_CONVERSATION_ID) return;
     try {
-      await messagesApi.toggleReaction(messageId, emoji);
+      await toggleReaction(activeChat, messageId, emoji);
     } catch (error) {
       console.error('Failed to toggle reaction:', error);
     }

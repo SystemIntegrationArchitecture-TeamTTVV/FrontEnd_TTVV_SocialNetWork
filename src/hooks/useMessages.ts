@@ -307,6 +307,24 @@ export function useMessages() {
     return forwarded;
   }, [user?.id]);
 
+  const toggleReaction = useCallback(async (
+    conversationId: string,
+    messageId: string,
+    emoji: string
+  ) => {
+    if (!conversationId) return null;
+    const updated = await messagesApi.toggleReaction(messageId, emoji);
+    setMessages((prev) => {
+      const list = prev[conversationId];
+      if (!list) return prev;
+      return {
+        ...prev,
+        [conversationId]: list.map((m) => (m.id === messageId ? { ...m, ...updated } : m)),
+      };
+    });
+    return updated;
+  }, []);
+
   // Get or create a direct conversation between current user and another user
   const getOrCreateDirectConversation = useCallback(async (otherUserId: string): Promise<Conversation | null> => {
     if (!user?.id) return null;
@@ -657,6 +675,11 @@ export function useMessages() {
           minute: '2-digit',
         });
 
+    const reactionCounts = (message.emojis || []).reduce<Record<string, number>>((acc, item) => {
+      acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    }, {});
+
     return {
       id: message.id,
       sender: message.senderName,
@@ -665,7 +688,10 @@ export function useMessages() {
       time,
       isMe,
       status,
-      reactions: message.emojis?.map(emoji => ({ emoji, users: [] })),
+      reactions: Object.entries(reactionCounts).map(([emoji, count]) => ({
+        emoji,
+        users: Array.from({ length: count }, (_, idx) => `${emoji}-${idx}`),
+      })),
       attachments: message.attachments,
       isEdited: message.isEdited,
       createdAt: message.createdAt,
@@ -686,6 +712,7 @@ export function useMessages() {
     removeMessage,
     removeMessageForMe,
     forwardMessage,
+    toggleReaction,
     getOrCreateDirectConversation,
     formatMessageForDisplay,
     subscribeToMessages: subscribe, // Export for ChatBoxContext
