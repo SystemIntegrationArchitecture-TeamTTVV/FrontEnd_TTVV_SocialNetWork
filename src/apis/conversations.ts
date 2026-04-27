@@ -19,6 +19,9 @@ export interface Conversation {
   clearBeforeAt?: string;
   pendingJoinIds?: string[];
   lastMessagePreview?: string;
+  lastMessageType?: string;
+  lastMessageSenderId?: string;
+  lastMessageSenderName?: string;
   lastMessageAt?: string;
   createdAt?: string;
   updatedAt?: string;

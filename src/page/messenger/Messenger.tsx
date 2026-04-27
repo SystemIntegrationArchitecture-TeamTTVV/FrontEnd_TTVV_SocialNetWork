@@ -624,7 +624,12 @@ export default function Messenger() {
           avatar: initials,
           color: hashColor(conv.id),
           online,
-          lastMessage: conv.lastMessagePreview || '',
+          lastMessage: (() => {
+            if (!conv.lastMessagePreview) return '';
+            if (conv.lastMessageType === 'SYSTEM') return conv.lastMessagePreview;
+            const senderPrefix = conv.lastMessageSenderId === user?.id ? t('messenger.you', 'Bạn') : conv.lastMessageSenderName;
+            return senderPrefix ? `${senderPrefix}: ${conv.lastMessagePreview}` : conv.lastMessagePreview;
+          })(),
           time: formatTime(conv.lastMessageAt),
           unread: unreadByConversationId[conv.id] || 0,
           isGroup: conv.isGroup,

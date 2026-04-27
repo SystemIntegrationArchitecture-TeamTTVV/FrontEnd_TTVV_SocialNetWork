@@ -247,7 +247,14 @@ export function useMessages() {
         const updated = exists
           ? prev.map(conv =>
               conv.id === conversationId
-                ? { ...conv, lastMessagePreview: preview || ' ', lastMessageAt: newMessage.createdAt }
+                ? { 
+                    ...conv, 
+                    lastMessagePreview: preview || ' ', 
+                    lastMessageType: newMessage.messageType,
+                    lastMessageSenderId: newMessage.senderId,
+                    lastMessageSenderName: newMessage.senderName,
+                    lastMessageAt: newMessage.createdAt 
+                  }
                 : conv
             )
           : prev;
@@ -319,11 +326,14 @@ export function useMessages() {
       const updated = exists
         ? prev.map(conv =>
             conv.id === targetConversationId
-              ? {
-                  ...conv,
-                  lastMessagePreview: buildConversationPreview(forwarded),
-                  lastMessageAt: forwarded.createdAt,
-                }
+                  ? {
+                      ...conv,
+                      lastMessagePreview: buildConversationPreview(forwarded),
+                      lastMessageType: forwarded.messageType,
+                      lastMessageSenderId: forwarded.senderId,
+                      lastMessageSenderName: forwarded.senderName,
+                      lastMessageAt: forwarded.createdAt,
+                    }
               : conv
           )
         : prev;
@@ -456,14 +466,17 @@ export function useMessages() {
 
           const updated = prev.map(conv =>
             conv.id === message.conversationId
-              ? {
-                  ...conv,
-                  lastMessagePreview: buildConversationPreview(message),
-                  // Guard against backend sending LocalDateTime as an array instead of ISO string
-                  lastMessageAt: typeof message.createdAt === 'string' && message.createdAt
-                    ? message.createdAt
-                    : new Date().toISOString(),
-                }
+                  ? {
+                      ...conv,
+                      lastMessagePreview: buildConversationPreview(message),
+                      lastMessageType: message.messageType,
+                      lastMessageSenderId: message.senderId,
+                      lastMessageSenderName: message.senderName,
+                      // Guard against backend sending LocalDateTime as an array instead of ISO string
+                      lastMessageAt: typeof message.createdAt === 'string' && message.createdAt
+                        ? message.createdAt
+                        : new Date().toISOString(),
+                    }
               : conv
           );
 
@@ -713,6 +726,9 @@ export function useMessages() {
         clearBeforeAt?: string;
         updatedAt?: string;
         lastMessagePreview?: string;
+        lastMessageType?: string;
+        lastMessageSenderId?: string;
+        lastMessageSenderName?: string;
         lastMessageAt?: string | null;
       };
       if (!payload.conversationId) return;
@@ -753,6 +769,9 @@ export function useMessages() {
                 clearBeforeAt: payload.clearBeforeAt ?? conv.clearBeforeAt,
                 updatedAt: payload.updatedAt ?? conv.updatedAt,
                 lastMessagePreview: payload.lastMessagePreview ?? conv.lastMessagePreview,
+                lastMessageType: payload.lastMessageType ?? conv.lastMessageType,
+                lastMessageSenderId: payload.lastMessageSenderId ?? conv.lastMessageSenderId,
+                lastMessageSenderName: payload.lastMessageSenderName ?? conv.lastMessageSenderName,
                 lastMessageAt: payload.lastMessageAt ?? conv.lastMessageAt,
               }
             : conv
