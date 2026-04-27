@@ -43,6 +43,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const pendingPeersRef = useRef<Set<string>>(new Set());
   const callIdToPeerRef = useRef<Map<string, string>>(new Map());
   const activeCallLogIdRef = useRef<string | null>(null);
+  const callStateRef = useRef<CallState | null>(null);
 
   const [callState, setCallState] = useState<CallState>({
     isActive: false,
@@ -59,6 +60,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     remoteStream: null,
     remoteStreams: [],
   });
+
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   const clearPeerTimer = useCallback((peerId: string) => {
     const timeoutId = peerTimeoutsRef.current.get(peerId);
@@ -119,7 +124,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       console.log('📞 CallProvider: Incoming call from:', callerName, 'callerId:', callerId);
 
       // End any existing call first
-      if (callState.isActive) {
+      if (callStateRef.current?.isActive) {
         console.log('⚠️ CallProvider: Ending existing call before accepting new one');
         webrtcService.endCall();
       }
@@ -188,9 +193,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubMembersAdded = socketService.on('MEMBERS_ADDED', async (event) => {
-      if (!callState.isActive || !callState.isGroup) return;
+      const currentCall = callStateRef.current;
+      if (!currentCall?.isActive || !currentCall.isGroup) return;
       const payload = event.data as { conversationId?: string; participantIds?: string[] };
-      if (!payload?.conversationId || payload.conversationId !== callState.conversationId) return;
+      if (!payload?.conversationId || payload.conversationId !== currentCall.conversationId) return;
 
       const currentUser = authApi.getCurrentUser();
       if (!currentUser?.id) return;
@@ -203,7 +209,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           participantId,
           currentUser.id,
           currentUser.fullName || currentUser.username,
-          callState.conversationId,
+          currentCall.conversationId,
           false
         );
       }
@@ -212,7 +218,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Handle call end/reject
     const unsubEnd = socketService.on('CALL_END', () => {
       const senderId = authApi.getCurrentUser()?.id;
-      if (callState.isGroup && senderId) {
+      if (callStateRef.current?.isGroup && senderId) {
         pendingPeersRef.current.delete(senderId);
         clearPeerTimer(senderId);
       }
@@ -222,7 +228,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const unsubReject = socketService.on('CALL_REJECT', () => {
       const senderId = authApi.getCurrentUser()?.id;
-      if (callState.isGroup && senderId) {
+      if (callStateRef.current?.isGroup && senderId) {
         pendingPeersRef.current.delete(senderId);
         clearPeerTimer(senderId);
       }
@@ -247,7 +253,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       unsubEnd();
       unsubReject();
     };
-  }, [callState.isActive, callState.isGroup, callState.callType, callState.conversationId]);
+  }, [clearPeerTimer]);
 
   const startCall = useCallback(async (
     userId: string,
