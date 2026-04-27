@@ -20,7 +20,7 @@ export function useGroupActions({
   setActiveChat,
 }: UseGroupActionsProps) {
   const { t } = useTranslation();
-  
+
   const [groupMemberInput, setGroupMemberInput] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
   const [groupAvatarDraft, setGroupAvatarDraft] = useState('');
@@ -173,6 +173,28 @@ export function useGroupActions({
     } catch (err: unknown) {
       console.error('Failed to delete group', err);
       const message = err instanceof Error ? err.message : t('messenger.group.deleteGroupError');
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleDisbandGroup = async () => {
+    if (!activeChat || !userId || !isGroupChat) return;
+    if (!window.confirm("Bạn có chắc chắn muốn giải tán nhóm này? Toàn bộ lịch sử chat sẽ bị xoá.")) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      await conversationsApi.disbandGroup(activeChat, userId);
+      setGroupActionMessage("Giải tán nhóm thành công");
+      await loadConversations();
+      setActiveChat(null);
+    } catch (err: unknown) {
+      console.error('Failed to disband group', err);
+      const message = err instanceof Error ? err.message : "Giải tán nhóm thất bại";
       setGroupActionError(message);
     } finally {
       setUpdatingGroup(false);
@@ -343,5 +365,6 @@ export function useGroupActions({
     handleTransferOwnership,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
+    handleDisbandGroup,
   };
 }

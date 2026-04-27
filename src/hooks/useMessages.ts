@@ -730,6 +730,7 @@ export function useMessages() {
         lastMessageSenderId?: string;
         lastMessageSenderName?: string;
         lastMessageAt?: string | null;
+        isDisbanded?: boolean;
       };
       if (!payload.conversationId) return;
 
@@ -773,6 +774,7 @@ export function useMessages() {
                 lastMessageSenderId: payload.lastMessageSenderId ?? conv.lastMessageSenderId,
                 lastMessageSenderName: payload.lastMessageSenderName ?? conv.lastMessageSenderName,
                 lastMessageAt: payload.lastMessageAt ?? conv.lastMessageAt,
+                isDisbanded: payload.isDisbanded ?? conv.isDisbanded,
               }
             : conv
         );

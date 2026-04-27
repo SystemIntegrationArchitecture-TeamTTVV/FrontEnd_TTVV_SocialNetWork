@@ -234,7 +234,7 @@ export default function Messenger() {
   }, [activeChat, conversations]);
 
   const { t, i18n } = useTranslation();
-  
+
 
   // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Presence State ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   const [presenceByUserId, setPresenceByUserId] = useState<Record<string, PresenceStatus>>({});
@@ -425,6 +425,7 @@ export default function Messenger() {
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
     handleTransferOwnership,
+    handleDisbandGroup,
   } = useGroupActions({
     activeChat,
     userId: user?.id,
@@ -644,7 +645,7 @@ export default function Messenger() {
       .map(({ sortTime: _s, ...item }) => item);
   }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId, unreadByConversationId]);
 
-  const activeConversation = activeChat 
+  const activeConversation = activeChat
     ? formattedConversations.find((c) => c.id === activeChat) || null
     : null;
 
@@ -866,7 +867,7 @@ export default function Messenger() {
       }
     };
   }, [activeChat, user?.id]);
-  
+
   // Get call info - supports both direct and group calls
   const getCallInfo = () => {
     if (!activeChat || !user?.id) return null;
@@ -927,7 +928,7 @@ export default function Messenger() {
         isUser: true,
         timestamp: new Date(),
       };
-      
+
       setAiMessages((prev) => [...prev, userMessage]);
       setIsAiLoading(true);
 
@@ -969,7 +970,7 @@ export default function Messenger() {
 
     try {
       let attachments: MessageAttachment[] = [];
-      
+
       // Upload all queued files and group into a single message
       if (uploadedFiles.length > 0) {
         setUploadingFiles(true);
@@ -1026,14 +1027,14 @@ export default function Messenger() {
         }, 100);
         return;
       }
-      
+
       console.log('[Messenger] Sending message:', {
         conversationId: activeChat,
         content: messageContent,
         attachmentsCount: attachments.length,
         attachments: attachments,
       });
-      
+
       if (messageContent || attachments.length > 0) {
         await sendMessageAPI(
           activeChat,
@@ -1042,7 +1043,7 @@ export default function Messenger() {
           replyTo?.id
         );
       }
-      
+
       setMessage('');
       setReplyTo(null);
       setTimeout(() => {
@@ -1094,7 +1095,7 @@ export default function Messenger() {
 
     try {
       setUploadingFiles(true);
-      
+
       // Create preview for images
       if (file.type.startsWith('image/')) {
         const preview = URL.createObjectURL(file);
@@ -1102,14 +1103,14 @@ export default function Messenger() {
       }
 
       console.log('[Messenger] Uploading file:', file.name, file.type, file.size);
-      
+
       // Upload file to server
       const uploadResult = await uploadApi.uploadFile(file);
       console.log('[Messenger] File uploaded successfully:', uploadResult);
 
       // Add to uploaded files list (for preview before send)
       setUploadedFiles([...uploadedFiles, file]);
-      
+
       // Optionally focus message input for caption
       if (file.type.startsWith('image/')) {
         // For images, keep preview for user to add caption
@@ -1126,9 +1127,9 @@ export default function Messenger() {
         const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `File: ${file.name}`;
         await sendMessageAPI(activeChat, messageContent, [attachment], replyTo?.id);
         setReplyTo(null);
-        
+
         console.log('[Messenger] Message sent with attachment');
-        
+
         // Clear preview
         setFilePreview(null);
         setUploadedFiles([]);
@@ -1141,7 +1142,7 @@ export default function Messenger() {
     } catch (error) {
       console.error('[Messenger] Failed to upload file:', error);
       notify.error(t('messenger.errors.uploadFile'));
-      
+
       // Clear preview on error
       setFilePreview(null);
       setUploadedFiles([]);
@@ -1162,7 +1163,7 @@ export default function Messenger() {
 
       // Convert blob to file
       const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
-      
+
       // Upload voice file
       const uploadResult = await uploadApi.uploadFile(voiceFile);
       console.log('[Messenger] Voice message uploaded:', uploadResult);
@@ -1350,7 +1351,7 @@ export default function Messenger() {
   // Close menu when clicking outside
   useEffect(() => {
     if (!selectedMessage) return;
-    
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       // Check if click is outside menu and button
@@ -1359,7 +1360,7 @@ export default function Messenger() {
         setMenuPosition(null);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [selectedMessage]);
@@ -1589,139 +1590,144 @@ export default function Messenger() {
 
         {activeConversation && (
           <>
-        {/* Reply Preview */}
-        {replyTo && (
-          <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-              <div className="w-0.5 h-10 md:h-12 bg-blue-500 rounded-full shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-gray-700">{t('messenger.replyPreview', { sender: replyTo.sender })}</p>
-                <p className="text-xs md:text-sm text-gray-500 line-clamp-1">{replyTo.content}</p>
+            {/* Reply Preview */}
+            {replyTo && (
+              <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                  <div className="w-0.5 h-10 md:h-12 bg-blue-500 rounded-full shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs md:text-sm font-semibold text-gray-700">{t('messenger.replyPreview', { sender: replyTo.sender })}</p>
+                    <p className="text-xs md:text-sm text-gray-500 line-clamp-1">{replyTo.content}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReplyTo(null)}
+                  className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
+                </button>
               </div>
-            </div>
-            <button
-              onClick={() => setReplyTo(null)}
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
-            >
-              <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
-            </button>
-          </div>
-        )}
+            )}
 
-        {editingMessageId && (
-          <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-amber-100 bg-amber-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-              <div className="w-0.5 h-10 md:h-12 bg-amber-500 rounded-full shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-amber-700">Dang chinh sua tin nhan</p>
-                <p className="text-xs md:text-sm text-amber-600 line-clamp-1">Nhan Enter hoac nut gui de cap nhat.</p>
+            {editingMessageId && (
+              <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-amber-100 bg-amber-50 flex items-center justify-between">
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                  <div className="w-0.5 h-10 md:h-12 bg-amber-500 rounded-full shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs md:text-sm font-semibold text-amber-700">Dang chinh sua tin nhan</p>
+                    <p className="text-xs md:text-sm text-amber-600 line-clamp-1">Nhan Enter hoac nut gui de cap nhat.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingMessageId(null);
+                    setMessage('');
+                  }}
+                  className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-700" />
+                </button>
               </div>
-            </div>
-            <button
-              onClick={() => {
-                setEditingMessageId(null);
-                setMessage('');
+            )}
+
+            {/* Typing Indicator */}
+            {(((isTyping && !isAIChat && typingNames.length > 0) || (isAIChat && isAiLoading))) && (
+              <TypingIndicator
+                isAIChat={isAIChat}
+                typingNames={typingNames}
+                conversationName={activeConversation?.name}
+              />
+            )}
+
+            {/* Message Input */}
+            {activeConversationRaw?.isDisbanded ? (
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-center rounded-xl mx-4 mb-4 mt-2">
+                <p className="text-red-500 font-medium text-sm">Nhóm này đã được giải tán bởi nhóm trưởng</p>
+              </div>
+            ) : (
+              <MessageInput
+                message={message}
+                onMessageChange={handleMessageInputChange}
+              onSend={handleSendMessage}
+              editingMessageId={editingMessageId}
+              isAIChat={isAIChat}
+              isAiLoading={isAiLoading}
+              uploadingFiles={uploadingFiles}
+              filePreview={filePreview}
+              onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
+              uploadedFiles={uploadedFiles}
+              onSetUploadedFiles={setUploadedFiles}
+              onOpenPollModal={() => setIsCreatePollOpen(true)}
+              onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+              isGroup={isGroupChat}
+              fileInputRef={fileInputRef}
+              onFileUpload={handleFileUpload}
+              showAttachmentMenu={showAttachmentMenu}
+              onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
+              onShareLocation={() => {
+                const text = `[Location] ${t('messenger.attachments.locationShared')}`;
+                if (activeChat && user?.id) {
+                  sendMessageAPI(activeChat, text, [], undefined).catch(() => { });
+                  setShowAttachmentMenu(false);
+                }
               }}
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0"
-            >
-              <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-700" />
-            </button>
-          </div>
-        )}
+              onShareContact={() => {
+                if (activeChat && user?.id) {
+                  const contactName = user.fullName || user.username || user.id;
+                  sendMessageAPI(
+                    activeChat,
+                    '',
+                    [
+                      {
+                        type: 'contact',
+                        url: `user:${user.id}`,
+                        fileName: contactName,
+                      },
+                    ],
+                    undefined
+                  ).catch(() => { });
+                  setShowAttachmentMenu(false);
+                }
+              }}
+              showStickerPanel={showStickerPanel}
+              onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
+              activeStickerTopic={activeStickerTopic}
+              onStickerTopicChange={setActiveStickerTopic}
+              onSendSticker={handleSendSticker}
+              showEmojiPicker={showEmojiPicker}
+              onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
+              onEmojiSelect={handleEmojiSelect}
+              showVoicePreview={showVoicePreview}
+              voiceTranscript={voiceTranscriptRef.current}
+              onVoiceSendAudio={handleVoiceSendAudio}
+              onVoiceConvertToText={handleVoiceConvertToText}
+              onVoiceCancel={handleVoiceCancel}
+              isRecording={isRecording}
+              recordingDuration={recordingDuration}
+              onVoiceRecord={handleVoiceRecord}
+              onGenerateDailySummary={handleGenerateDailySummaryForAi}
+              replyTo={replyTo}
+              canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
+              sendBlockedReason={t('messenger.onlyAdminsCanSend')}
+              onOpenPollModal={() => setIsCreatePollOpen(true)}
+              isGroup={isGroupChat}
+            />
+            )}
+            {isCreatePollOpen && (
+              <CreatePollModal
+                onClose={() => setIsCreatePollOpen(false)}
+                onSubmit={handleCreatePoll}
+                creating={creatingPoll}
+              />
+            )}
 
-        {/* Typing Indicator */}
-        {(((isTyping && !isAIChat && typingNames.length > 0) || (isAIChat && isAiLoading))) && (
-          <TypingIndicator
-            isAIChat={isAIChat}
-            typingNames={typingNames}
-            conversationName={activeConversation?.name}
-          />
-        )}
-
-        {/* Message Input */}
-        {/* Message Input */}
-        <MessageInput
-          message={message}
-          onMessageChange={handleMessageInputChange}
-          onSend={handleSendMessage}
-          editingMessageId={editingMessageId}
-          isAIChat={isAIChat}
-          isAiLoading={isAiLoading}
-          uploadingFiles={uploadingFiles}
-          filePreview={filePreview}
-          onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
-          uploadedFiles={uploadedFiles}
-          onSetUploadedFiles={setUploadedFiles}
-          onOpenPollModal={() => setIsCreatePollOpen(true)}
-          onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
-          isGroup={isGroupChat}
-          fileInputRef={fileInputRef}
-          onFileUpload={handleFileUpload}
-          showAttachmentMenu={showAttachmentMenu}
-          onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
-          onShareLocation={() => {
-            const text = `[Location] ${t('messenger.attachments.locationShared')}`;
-            if (activeChat && user?.id) {
-              sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
-              setShowAttachmentMenu(false);
-            }
-          }}
-          onShareContact={() => {
-            if (activeChat && user?.id) {
-              const contactName = user.fullName || user.username || user.id;
-              sendMessageAPI(
-                activeChat,
-                '',
-                [
-                  {
-                    type: 'contact',
-                    url: `user:${user.id}`,
-                    fileName: contactName,
-                  },
-                ],
-                undefined
-              ).catch(() => {});
-              setShowAttachmentMenu(false);
-            }
-          }}
-          showStickerPanel={showStickerPanel}
-          onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
-          activeStickerTopic={activeStickerTopic}
-          onStickerTopicChange={setActiveStickerTopic}
-          onSendSticker={handleSendSticker}
-          showEmojiPicker={showEmojiPicker}
-          onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
-          onEmojiSelect={handleEmojiSelect}
-          showVoicePreview={showVoicePreview}
-          voiceTranscript={voiceTranscriptRef.current}
-          onVoiceSendAudio={handleVoiceSendAudio}
-          onVoiceConvertToText={handleVoiceConvertToText}
-          onVoiceCancel={handleVoiceCancel}
-          isRecording={isRecording}
-          recordingDuration={recordingDuration}
-          onVoiceRecord={handleVoiceRecord}
-          onGenerateDailySummary={handleGenerateDailySummaryForAi}
-          replyTo={replyTo}
-          canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
-          sendBlockedReason={t('messenger.onlyAdminsCanSend')}
-          onOpenPollModal={() => setIsCreatePollOpen(true)}
-          isGroup={isGroupChat}
-        />
-        {isCreatePollOpen && (
-          <CreatePollModal
-            onClose={() => setIsCreatePollOpen(false)}
-            onSubmit={handleCreatePoll}
-            creating={creatingPoll}
-          />
-        )}
-
-        {isCreateAppointmentOpen && (
-          <CreateAppointmentModal
-            onClose={() => setIsCreateAppointmentOpen(false)}
-            onSubmit={handleCreateAppointment}
-            creating={creatingAppointment}
-          />
-        )}
+            {isCreateAppointmentOpen && (
+              <CreateAppointmentModal
+                onClose={() => setIsCreateAppointmentOpen(false)}
+                onSubmit={handleCreateAppointment}
+                creating={creatingAppointment}
+              />
+            )}
           </>
         )}
       </div>
@@ -1751,6 +1757,7 @@ export default function Messenger() {
           onToggleRequireApproval={handleToggleRequireApproval}
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
           onTransferOwnership={handleTransferOwnership}
+          onDisbandGroup={handleDisbandGroup}
           friendList={friendList}
           onInviteFriends={handleInviteFriends}
           onShowSearch={() => setShowSearch(true)}
@@ -1774,7 +1781,7 @@ export default function Messenger() {
           onCancel={resetForwardDialog}
         />
       )}
-      
+
 
     </div>
   );

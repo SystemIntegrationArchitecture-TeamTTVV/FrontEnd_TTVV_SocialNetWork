@@ -1,4 +1,4 @@
-﻿import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Palette, Smile, Pencil, Lock, Search as SearchIcon,
@@ -40,6 +40,7 @@ interface ChatInfoSidebarProps {
   onSaveGroupMeta: () => void;
   onRemoveMember: (memberId: string) => void;
   onJoinRequestDecision: (userId: string, accept: boolean) => void;
+  onDisbandGroup: () => void;
 
   onClearConversationForMe: () => void;
   onToggleRequireApproval: (current: boolean) => void;
@@ -70,14 +71,12 @@ function Toggle({
       disabled={disabled}
       aria-checked={checked}
       role="switch"
-      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-        checked ? 'bg-blue-500' : 'bg-gray-300'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${checked ? 'bg-blue-500' : 'bg-gray-300'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
       />
     </button>
   );
@@ -102,7 +101,7 @@ function MemberAvatar({ name, color }: { name: string; color: string }) {
 }
 
 const COLORS = [
-  '#6366f1','#ec4899','#14b8a6','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ef4444',
+  '#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444',
 ];
 function colorFromId(id: string) {
   let h = 0;
@@ -125,10 +124,11 @@ export default function ChatInfoSidebar({
   groupActionMessage,
   groupActionError,
   updatingGroup,
-  pendingJoins,
+  pendingJoins: pendingJoinsRaw,
   onSaveGroupMeta,
   onRemoveMember,
   onJoinRequestDecision,
+  onDisbandGroup,
 
   onClearConversationForMe,
   onToggleRequireApproval,
@@ -147,6 +147,8 @@ export default function ChatInfoSidebar({
   const [inviteSearch, setInviteSearch] = useState('');
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingOpen, setPendingOpen] = useState(false);
+  const pendingJoins = pendingJoinsRaw || [];
+  const isDisbanded = !!conversationRaw?.isDisbanded;
 
   return (
     <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
@@ -208,12 +210,30 @@ export default function ChatInfoSidebar({
           <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.searchInConversation')}</span>
         </button>
         {!isAIChat && (
-          <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
-            <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
-              <Trash2 className="w-5 h-5 text-red-500" />
-            </div>
-            <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
-          </button>
+          isGroupChat ? (
+            isOwner ? (
+              <button onClick={onDisbandGroup} disabled={isDisbanded} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <span className="text-xs text-red-500 font-medium">Giải tán nhóm</span>
+              </button>
+            ) : !isDisbanded ? (
+              <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
+                <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
+              </button>
+            ) : null
+          ) : (
+            <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
+              <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
+            </button>
+          )
         )}
       </div>
 
@@ -237,12 +257,18 @@ export default function ChatInfoSidebar({
         </div>
       )}
 
-      {/* â”€â”€ GROUP MANAGEMENT SECTION â”€â”€ */}
+      {/* ── GROUP MANAGEMENT SECTION ── */}
       {isGroupChat && conversationRaw && (
         <div className="flex-1 px-4 py-4 space-y-4">
+          
+          {isDisbanded && (
+            <div className="p-4 rounded-2xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center">
+              <span className="font-semibold text-sm">Nhóm này đã được giải tán</span>
+            </div>
+          )}
 
-          {/* Group Info (editable) â€” only for admins/owner */}
-          {canManageGroup && (
+          {/* Group Info (editable) — only for admins/owner */}
+          {!isDisbanded && canManageGroup && (
             <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
               <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 {t('messenger.groupPanel.groupInfo')}
@@ -279,11 +305,11 @@ export default function ChatInfoSidebar({
             </section>
           )}
 
-          {/* Group Permissions â€” only for admins/owner */}
-          {canManageGroup && (
+          {/* Group Permissions — only for admins/owner */}
+          {!isDisbanded && canManageGroup && (
             <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
               <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {t('messenger.groupPanel.permissionsTitle', 'Quyá»n nhÃ³m')}
+                {t('messenger.groupPanel.permissionsTitle', 'Quyá» n nhÃ³m')}
               </h5>
 
               {/* Require approval toggle */}
@@ -323,7 +349,7 @@ export default function ChatInfoSidebar({
           )}
 
           {/* Pending Join Requests — badge button for admin/owner, opens popup */}
-          {canManageGroup && pendingJoins.length > 0 && (
+          {!isDisbanded && canManageGroup && pendingJoins.length > 0 && (
             <button
               onClick={() => setPendingOpen(true)}
               className="w-full flex items-center gap-2 p-3 rounded-2xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
@@ -348,13 +374,15 @@ export default function ChatInfoSidebar({
                 {t('messenger.groupPanel.membersTitle')}
               </h5>
               {/* Invite button: visible to all members in the group */}
-              <button
-                onClick={() => { setInviteOpen(true); setInviteSearch(''); setSelectedFriendIds([]); }}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Mời bạn bè
-              </button>
+              {!isDisbanded && (
+                <button
+                  onClick={() => { setInviteOpen(true); setInviteSearch(''); setSelectedFriendIds([]); }}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Mời bạn bè
+                </button>
+              )}
             </div>
 
             <div className="space-y-1 max-h-56 overflow-y-auto -mx-1 px-1">
@@ -383,15 +411,14 @@ export default function ChatInfoSidebar({
                         </div>
                       )}
                     </div>
-                    {canKick && (
+                    {!isDisbanded && canKick && (
                       <button
                         onClick={() => onRemoveMember(pid)}
                         disabled={updatingGroup}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${
-                          isSelf
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${isSelf
                             ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
                             : 'bg-red-50 text-red-600 hover:bg-red-100 opacity-0 group-hover:opacity-100'
-                        }`}
+                          }`}
                       >
                         {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
                       </button>
@@ -464,9 +491,8 @@ export default function ChatInfoSidebar({
                           <button
                             key={f.friendId}
                             onClick={() => toggleFriend(f.friendId)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                              isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
-                            }`}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                              }`}
                           >
                             {f.friendAvatar ? (
                               <img src={f.friendAvatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
@@ -476,9 +502,8 @@ export default function ChatInfoSidebar({
                             <span className="flex-1 text-sm font-medium text-gray-800 text-left truncate">
                               {f.friendName ?? f.friendId}
                             </span>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                              }`}>
                               {isSelected && <Check className="w-3 h-3 text-white" />}
                             </div>
                           </button>
@@ -572,7 +597,7 @@ export default function ChatInfoSidebar({
           )}
 
           {/* Transfer Ownership — owner only */}
-          {isOwner && conversationRaw && (
+          {!isDisbanded && isOwner && conversationRaw && (
             <section className="mt-4 p-3 rounded-2xl border border-amber-100 bg-amber-50/60">
               <div className="flex items-center gap-2 mb-3">
                 <Crown className="w-4 h-4 text-amber-500" />

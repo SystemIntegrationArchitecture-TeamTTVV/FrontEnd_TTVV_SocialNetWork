@@ -113,10 +113,10 @@ export default function GroupChat() {
     votingPollMessageId,
     handleCreatePoll,
     handleVotePoll,
-  } = useGroupPolls({ 
-    conversationId: id || '', 
-    userId: user?.id, 
-    userName: user?.fullName 
+  } = useGroupPolls({
+    conversationId: id || '',
+    userId: user?.id,
+    userName: user?.fullName
   });
 
   const {
@@ -985,7 +985,7 @@ export default function GroupChat() {
         />
       )}
 
-      <div 
+      <div
         className="flex-1 overflow-y-auto p-4 space-y-3 bg-white"
         ref={scrollContainerRef}
         onScroll={handleScroll}
@@ -1238,20 +1238,26 @@ export default function GroupChat() {
       </div>
 
       <div className="border-t border-gray-200 p-3 bg-white">
-        <GroupInput
-          message={message}
-          onMessageInput={handleMessageInput}
-          onSend={handleSendMessage}
-          canSend={canSend}
-          sending={sending}
-          activeTab={activeTab}
-          typingNames={typingNames}
-          onOpenPollModal={() => setIsCreatePollOpen(true)}
-          onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
-          mentionOpen={mentionOpen}
-          mentionCandidates={mentionCandidates}
-          onApplyMention={applyMention}
-        />
+        {conversation?.isDisbanded ? (
+          <div className="p-4 bg-gray-50 flex items-center justify-center rounded-xl">
+            <p className="text-red-500 font-medium text-sm">Nhóm này đã được giải tán bởi nhóm trưởng</p>
+          </div>
+        ) : (
+          <GroupInput
+            message={message}
+            onMessageInput={handleMessageInput}
+            onSend={handleSendMessage}
+            canSend={canSend}
+            sending={sending}
+            activeTab={activeTab}
+            typingNames={typingNames}
+            onOpenPollModal={() => setIsCreatePollOpen(true)}
+            onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+            mentionOpen={mentionOpen}
+            mentionCandidates={mentionCandidates}
+            onApplyMention={applyMention}
+          />
+        )}
 
         {/* Create Poll Modal */}
         {isCreatePollOpen && (
@@ -1283,7 +1289,7 @@ export default function GroupChat() {
         />
       )}
     </div>
-    </div>
+    </div >
   );
 }
 

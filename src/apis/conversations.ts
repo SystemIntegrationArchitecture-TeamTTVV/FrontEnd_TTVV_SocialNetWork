@@ -23,6 +23,7 @@ export interface Conversation {
   lastMessageSenderId?: string;
   lastMessageSenderName?: string;
   lastMessageAt?: string;
+  isDisbanded?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -261,6 +262,11 @@ export const conversationsApi = {
   updateConversationBackground: async (conversationId: string, backgroundUrl: string): Promise<Conversation> => {
     const qs = new URLSearchParams({ backgroundUrl }).toString();
     return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/background?${qs}`);
+  },
+
+  disbandGroup: async (conversationId: string, requesterId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ requesterId }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/disband?${qs}`);
   },
 };
 
