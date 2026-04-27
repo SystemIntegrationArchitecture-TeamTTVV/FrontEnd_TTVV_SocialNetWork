@@ -11,6 +11,8 @@ import {
 import { REACTIONS } from '../../../components/chat/ReactionIcons';
 import type { DisplayMessage } from '../../../hooks/useMessages';
 import { hashColor } from '../shared/messengerUtils';
+import PollMessageCard from './PollMessageCard';
+import type { Message } from '../../../apis/messages';
 
 export interface MessageBubbleProps {
   msg: DisplayMessage;
@@ -23,6 +25,11 @@ export interface MessageBubbleProps {
   onSetMenuPosition: (pos: { top: number; left?: number; right?: number } | null) => void;
   onMessageAction: (action: string, messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
+  onVote: (msg: Message, optionId: string) => void;
+  voting?: string | null;
+  userId: string;
+  participantNames?: string[];
+  participantIds?: string[];
 }
 
 export default function MessageBubble({
@@ -36,6 +43,11 @@ export default function MessageBubble({
   onSetMenuPosition,
   onMessageAction,
   onReaction,
+  onVote,
+  voting,
+  userId,
+  participantNames = [],
+  participantIds = [],
 }: MessageBubbleProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -52,9 +64,11 @@ export default function MessageBubble({
   return (
     <div
       id={`msg-${msg.id}`}
-      className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''} transition-all duration-300`}
+      className={`group flex items-end gap-2 ${
+        msg.messageType === 'POLL' ? 'justify-center w-full' : msg.isMe ? 'flex-row-reverse' : ''
+      } transition-all duration-300`}
     >
-      {!msg.isMe && (
+      {!msg.isMe && msg.messageType !== 'POLL' && (
         <div
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
             msg.senderId === 'ai'
@@ -71,7 +85,7 @@ export default function MessageBubble({
           )}
         </div>
       )}
-      <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
+      <div className={`${msg.messageType === 'POLL' ? 'max-w-[90%] w-full' : 'max-w-[70%]'} relative ${msg.isMe && msg.messageType !== 'POLL' ? 'text-right' : ''}`}>
         {/* Sender name for incoming messages (group + direct) */}
         {!msg.isMe && (
           <p className="text-[11px] font-medium text-gray-400 mb-0.5 ml-1">{msg.sender}</p>
@@ -213,7 +227,18 @@ export default function MessageBubble({
             </div>
           </div>
         )}
-        {msg.content && !legacyContactName && (
+        {msg.messageType === 'POLL' && (
+          <PollMessageCard
+            msg={msg as any as Message}
+            isMe={msg.isMe}
+            userId={userId}
+            onVote={onVote}
+            voting={voting === msg.id}
+            participantNames={participantNames}
+            participantIds={participantIds}
+          />
+        )}
+        {msg.content && !legacyContactName && msg.messageType !== 'POLL' && (
           <div
             className={`relative inline-block px-3.5 py-2 ${
               msg.isMe
@@ -305,7 +330,7 @@ export default function MessageBubble({
 
         {/* Reactions */}
         {msg.reactions && msg.reactions.length > 0 && (
-          <div className={`flex flex-wrap gap-1 mt-2 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+          <div className={`flex flex-wrap gap-1 mt-2 ${msg.messageType === 'POLL' ? 'justify-center' : msg.isMe ? 'justify-end' : 'justify-start'}`}>
             {msg.reactions.map((reaction, idx) => (
               <button
                 key={idx}
@@ -356,7 +381,7 @@ export default function MessageBubble({
         )}
 
         {/* Time and Status */}
-        <div className={`flex items-center gap-1 mt-0.5 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex items-center gap-1 mt-0.5 ${msg.messageType === 'POLL' ? 'justify-center' : msg.isMe ? 'justify-end' : 'justify-start'}`}>
           <p className="text-[11px] text-gray-400">{msg.time}</p>
           {msg.isMe && msg.status && (
             <div className="flex items-center">

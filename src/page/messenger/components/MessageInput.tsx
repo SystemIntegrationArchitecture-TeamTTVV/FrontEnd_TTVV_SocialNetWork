@@ -54,6 +54,9 @@ interface MessageInputProps {
   onGenerateDailySummary?: (prompt: string) => void;
   // Reply
   replyTo: { sender: string; content: string } | null;
+  // Poll
+  onOpenPollModal?: () => void;
+  isGroup?: boolean;
   // Permission
   canSend?: boolean;
   sendBlockedReason?: string;
@@ -95,6 +98,8 @@ export default function MessageInput({
   onVoiceRecord,
   onGenerateDailySummary,
   replyTo,
+  onOpenPollModal,
+  isGroup,
   canSend = true,
   sendBlockedReason,
 }: MessageInputProps) {
@@ -265,13 +270,16 @@ export default function MessageInput({
         >
           <Grid3X3 className="w-5 h-5" />
         </button>
-        <button
-          type="button"
-          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
-          title={t('messenger.groupPanel.customizeChat')}
-        >
-          <BarChart3 className="w-5 h-5" />
-        </button>
+        {isGroup && (
+          <button
+            type="button"
+            onClick={onOpenPollModal}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0"
+            title="Tạo bình chọn"
+          >
+            <BarChart3 className="w-5 h-5" />
+          </button>
+        )}
         <input
           type="text"
           value={message}

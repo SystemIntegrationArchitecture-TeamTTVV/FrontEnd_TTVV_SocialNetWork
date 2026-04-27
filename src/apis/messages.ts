@@ -35,7 +35,11 @@ export interface Message {
   pollQuestion?: string;
   pollMultipleChoice?: boolean;
   pollClosed?: boolean;
+  pollCanAddOptions?: boolean;
+  pollHideResultsBeforeVote?: boolean;
+  pollHideVoters?: boolean;
   pollOptions?: PollOption[];
+  pollDeadline?: string;
   mentionUserIds?: string[];
   seenByUserIds?: string[];
   pinned?: boolean;
@@ -84,6 +88,10 @@ export interface CreatePollRequest {
   question: string;
   options: string[];
   multipleChoice?: boolean;
+  canAddOptions?: boolean;
+  hideResultsBeforeVote?: boolean;
+  hideVoters?: boolean;
+  deadline?: string; // ISO string
 }
 
 export interface VotePollRequest {

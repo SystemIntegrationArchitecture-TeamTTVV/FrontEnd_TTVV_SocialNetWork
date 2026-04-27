@@ -27,6 +27,8 @@ import ChatMessages from './components/ChatMessages';
 import { useVoiceRecording } from './hooks/useVoiceRecording';
 import { useAIChat } from './hooks/useAIChat';
 import { useGroupActions } from './hooks/useGroupActions';
+import { useGroupPolls } from './hooks/useGroupPolls';
+import CreatePollModal from './components/CreatePollModal';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -423,6 +425,19 @@ export default function Messenger() {
     isOwner,
     loadConversations,
     setActiveChat,
+  });
+
+  const {
+    isCreatePollOpen,
+    setIsCreatePollOpen,
+    handleCreatePoll,
+    handleVotePoll,
+    creatingPoll,
+    votingPollMessageId,
+  } = useGroupPolls({
+    conversationId: activeChat || '',
+    userId: user?.id || '',
+    loadMessages,
   });
 
   // Load messages when active chat changes
@@ -1413,7 +1428,7 @@ export default function Messenger() {
       />
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-white min-w-0">
+      <div className="flex-1 flex flex-col bg-white min-w-0 relative">
         {/* Chat Header */}
         {activeConversation && (
           <ChatHeader
@@ -1512,6 +1527,11 @@ export default function Messenger() {
           onReaction={handleReaction}
           messagesEndRef={messagesEndRef}
           scrollContainerRef={scrollContainerRef}
+          onVote={handleVotePoll}
+          voting={votingPollMessageId}
+          userId={user?.id || ''}
+          participantNames={activeConversationRaw?.participantNames}
+          participantIds={activeConversationRaw?.participantIds}
         />
 
         {activeConversation && (
@@ -1628,7 +1648,16 @@ export default function Messenger() {
           replyTo={replyTo}
           canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
           sendBlockedReason={t('messenger.onlyAdminsCanSend')}
+          onOpenPollModal={() => setIsCreatePollOpen(true)}
+          isGroup={isGroupChat}
         />
+        {isCreatePollOpen && (
+          <CreatePollModal
+            onClose={() => setIsCreatePollOpen(false)}
+            onSubmit={handleCreatePoll}
+            creating={creatingPoll}
+          />
+        )}
           </>
         )}
       </div>
@@ -1681,6 +1710,8 @@ export default function Messenger() {
           onCancel={resetForwardDialog}
         />
       )}
+      
+
     </div>
   );
 }

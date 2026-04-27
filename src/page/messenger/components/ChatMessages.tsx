@@ -4,6 +4,7 @@ import { Users } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { canRecallByCreatedAt } from '../../../constants/chatPolicy';
 import type { DisplayMessage } from '../../../hooks/useMessages';
+import type { Message } from '../../../apis/messages';
 
 interface ChatMessagesProps {
   activeConversation: { id: string; name: string } | null;
@@ -17,6 +18,11 @@ interface ChatMessagesProps {
   onReaction: (messageId: string, emoji: string) => void;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
+  onVote: (msg: Message, optionId: string) => void;
+  voting?: string | null;
+  userId: string;
+  participantNames?: string[];
+  participantIds?: string[];
 }
 
 export default function ChatMessages({
@@ -31,6 +37,11 @@ export default function ChatMessages({
   onReaction,
   messagesEndRef,
   scrollContainerRef,
+  onVote,
+  voting,
+  userId,
+  participantNames = [],
+  participantIds = [],
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -57,7 +68,14 @@ export default function ChatMessages({
           return (
             <div key={msg.id} className="flex items-center justify-center py-1">
               <span className="px-3 py-1 rounded-full bg-gray-200/70 text-gray-500 text-[11px] font-medium text-center max-w-[85%] leading-snug">
-                {msg.content}
+                {(() => {
+                  let resolved = msg.content;
+                  participantIds.forEach((id, idx) => {
+                    if (!id) return;
+                    resolved = resolved.replace(new RegExp(`\\b${id}\\b`, 'g'), participantNames[idx] || id);
+                  });
+                  return resolved;
+                })()}
               </span>
             </div>
           );
@@ -78,6 +96,11 @@ export default function ChatMessages({
             onSetMenuPosition={onSetMenuPosition}
             onMessageAction={onMessageAction}
             onReaction={onReaction}
+            onVote={onVote}
+            voting={voting}
+            userId={userId}
+            participantNames={participantNames}
+            participantIds={participantIds}
           />
         );
       })}

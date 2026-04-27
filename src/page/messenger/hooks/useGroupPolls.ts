@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { conversationsApi } from '../../../apis/conversations';
-import { notify } from '../../../utils/toast';
-import type { Message } from '../../../apis/conversations';
+import { messagesApi, type Message } from '../../../apis/messages';
+import { notify } from '../../../services/notify';
+import type { PollFormData } from '../components/CreatePollModal';
 
 interface UseGroupPollsProps {
   conversationId: string;
@@ -10,59 +9,39 @@ interface UseGroupPollsProps {
 }
 
 export function useGroupPolls({ conversationId, userId }: UseGroupPollsProps) {
-  const { t } = useTranslation();
-  const [showPollComposer, setShowPollComposer] = useState(false);
-  const [pollQuestion, setPollQuestion] = useState('');
-  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
-  const [pollMultipleChoice, setPollMultipleChoice] = useState(false);
+  const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
   const [creatingPoll, setCreatingPoll] = useState(false);
   const [votingPollMessageId, setVotingPollMessageId] = useState<string | null>(null);
 
-  const setPollOptionAt = (index: number, value: string) => {
-    setPollOptions((prev) => {
-      const clone = [...prev];
-      clone[index] = value;
-      return clone;
-    });
-  };
-
-  const addPollOptionField = () => {
-    setPollOptions((prev) => [...prev, '']);
-  };
-
-  const removePollOptionField = (index: number) => {
-    if (pollOptions.length <= 2) return;
-    setPollOptions((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleCreatePoll = async () => {
+  const handleCreatePoll = async (form: PollFormData) => {
     if (!userId) return;
-    const question = pollQuestion.trim();
-    const options = pollOptions.map((o) => o.trim()).filter((o) => o.length > 0);
+    const question = form.question.trim();
+    const options = form.options.map((o) => o.trim()).filter((o) => o.length > 0);
     if (!question) {
-      notify.error('Vui long nhap cau hoi.');
+      notify.error('Vui lòng nhập câu hỏi.');
       return;
     }
     if (options.length < 2) {
-      notify.error('Vui long nhap it nhat 2 lua chon.');
+      notify.error('Vui lòng nhập ít nhất 2 lựa chọn.');
       return;
     }
 
     setCreatingPoll(true);
     try {
-      await conversationsApi.createPoll(conversationId, {
-        senderId: userId,
+      await messagesApi.createPoll(conversationId, {
+        userId,
         question,
         options,
-        multipleChoice: pollMultipleChoice,
+        multipleChoice: form.multipleChoice,
+        canAddOptions: form.canAddOptions,
+        hideResultsBeforeVote: form.hideResultsBeforeVote,
+        hideVoters: form.hideVoters,
+        deadline: form.deadline || undefined,
       });
-      setShowPollComposer(false);
-      setPollQuestion('');
-      setPollOptions(['', '']);
-      setPollMultipleChoice(false);
+      setIsCreatePollOpen(false);
     } catch (err) {
       console.error('Failed to create poll', err);
-      notify.error('Khong the tao binh chon.');
+      notify.error('Không thể tạo bình chọn.');
     } finally {
       setCreatingPoll(false);
     }
@@ -72,9 +51,20 @@ export function useGroupPolls({ conversationId, userId }: UseGroupPollsProps) {
     if (!userId) return;
     if (votingPollMessageId) return;
 
+    // Check deadline on client side
+    if (msg.pollDeadline) {
+      const iso = msg.pollDeadline;
+      const sanitized = (!iso.endsWith('Z') && !iso.includes('+')) ? iso + 'Z' : iso;
+      const deadlineTime = new Date(sanitized).getTime();
+      if (Date.now() > deadlineTime) {
+        notify.error('Bình chọn đã hết thời hạn.');
+        return;
+      }
+    }
+
     const currentSelections = (msg.pollOptions || [])
       .filter((o) => (o.voterUserIds || []).includes(userId))
-      .map((o) => o.id);
+      .map((o) => o.optionId);
 
     let newSelections: string[];
     if (msg.pollMultipleChoice) {
@@ -93,31 +83,28 @@ export function useGroupPolls({ conversationId, userId }: UseGroupPollsProps) {
 
     setVotingPollMessageId(msg.id);
     try {
-      await conversationsApi.votePoll(conversationId, msg.id, {
-        voterId: userId,
-        selectedOptionIds: newSelections,
+      await messagesApi.votePoll(msg.id, {
+        userId,
+        optionIds: newSelections,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Vote fail', err);
-      notify.error('Loi khi binh chon');
+      const errMsg = err?.message || '';
+      if (errMsg.includes('deadline') || errMsg.includes('closed')) {
+        notify.error('Bình chọn đã đóng hoặc hết hạn.');
+      } else {
+        notify.error('Lỗi khi bình chọn.');
+      }
     } finally {
       setVotingPollMessageId(null);
     }
   };
 
   return {
-    showPollComposer,
-    setShowPollComposer,
-    pollQuestion,
-    setPollQuestion,
-    pollOptions,
-    setPollMultipleChoice,
-    pollMultipleChoice,
+    isCreatePollOpen,
+    setIsCreatePollOpen,
     creatingPoll,
     votingPollMessageId,
-    setPollOptionAt,
-    addPollOptionField,
-    removePollOptionField,
     handleCreatePoll,
     handleVotePoll,
   };

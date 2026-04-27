@@ -28,6 +28,15 @@ export interface DisplayMessage {
   pinned?: boolean;
   starred?: boolean;
   replyTo?: { id: string; content: string; sender: string };
+  // Poll fields
+  pollQuestion?: string;
+  pollOptions?: Message['pollOptions'];
+  pollMultipleChoice?: boolean;
+  pollClosed?: boolean;
+  pollDeadline?: string;
+  pollCanAddOptions?: boolean;
+  pollHideResultsBeforeVote?: boolean;
+  pollHideVoters?: boolean;
 }
 
 
@@ -775,6 +784,15 @@ export function useMessages() {
       systemAction: message.systemAction,
       pinned: message.pinned,
       starred,
+      // Poll
+      pollQuestion: message.pollQuestion,
+      pollOptions: message.pollOptions,
+      pollMultipleChoice: message.pollMultipleChoice,
+      pollClosed: message.pollClosed,
+      pollDeadline: message.pollDeadline,
+      pollCanAddOptions: message.pollCanAddOptions,
+      pollHideResultsBeforeVote: message.pollHideResultsBeforeVote,
+      pollHideVoters: message.pollHideVoters,
     };
   }, []);
 

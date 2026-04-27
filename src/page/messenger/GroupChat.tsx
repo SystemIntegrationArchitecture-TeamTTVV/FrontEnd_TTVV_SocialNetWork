@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Send,
   Settings,
@@ -37,6 +37,8 @@ import GroupHeader from './group/GroupHeader';
 import GroupForwardModal from './group/GroupForwardModal';
 import GroupSettings from './group/GroupSettings';
 import GroupInput from './group/GroupInput';
+import CreatePollModal from './components/CreatePollModal';
+import PollMessageCard from './components/PollMessageCard';
 import { useGroupPolls } from './hooks/useGroupPolls';
 import { useGroupMessages } from './hooks/useGroupMessages';
 
@@ -88,9 +90,6 @@ export default function GroupChat() {
   const prevConnectedRef = useRef<boolean>(false);
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ New feature state Ã¢â€â‚¬Ã¢â€â‚¬
-  const [editContent, setEditContent] = useState('');
-  const [forwardingMessageId, setForwardingMessageId] = useState<string | null>(null);
-  const [forwardTargetId, setForwardTargetId] = useState('');
   const [forwardConversations, setForwardConversations] = useState<any[]>([]);
   const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -100,18 +99,10 @@ export default function GroupChat() {
   const isOwner = !!(user?.id && conversation?.ownerId === user.id);
 
   const {
-    showPollComposer,
-    setShowPollComposer,
-    pollQuestion,
-    setPollQuestion,
-    pollOptions,
-    setPollMultipleChoice,
-    pollMultipleChoice,
+    isCreatePollOpen,
+    setIsCreatePollOpen,
     creatingPoll,
     votingPollMessageId,
-    setPollOptionAt,
-    addPollOptionField,
-    removePollOptionField,
     handleCreatePoll,
     handleVotePoll,
   } = useGroupPolls({ conversationId: id || '', userId: user?.id });
@@ -759,38 +750,8 @@ export default function GroupChat() {
 
 
 
-  const handleVotePoll = async (msg: Message, optionId: string) => {
-    if (!user?.id || !msg.id || votingPollMessageId === msg.id) return;
 
-    const currentSelections = (msg.pollOptions || [])
-      .filter((option) => (option.voterUserIds || []).includes(user.id))
-      .map((option) => option.optionId);
 
-    let nextSelections: string[] = [];
-    if (msg.pollMultipleChoice) {
-      nextSelections = currentSelections.includes(optionId)
-        ? currentSelections.filter((id) => id !== optionId)
-        : [...currentSelections, optionId];
-      if (nextSelections.length === 0) {
-        nextSelections = [optionId];
-      }
-    } else {
-      nextSelections = [optionId];
-    }
-
-    setVotingPollMessageId(msg.id);
-    try {
-      const updated = await messagesApi.votePoll(msg.id, {
-        userId: user.id,
-        optionIds: nextSelections,
-      });
-      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    } catch (err: any) {
-      setError(err?.message || 'Vote poll that bai');
-    } finally {
-      setVotingPollMessageId(null);
-    }
-  };
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ 1. Edit message Ã¢â€â‚¬Ã¢â€â‚¬
 
@@ -905,7 +866,7 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col relative">
       <GroupHeader
         groupName={conversation?.groupName || 'Group Chat'}
         memberCount={conversation?.participantIds?.length || 0}
@@ -985,60 +946,33 @@ export default function GroupChat() {
                 return (
                   <div key={msg.id} className="flex justify-center">
                     <div className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                      {msg.content}
+                      {(() => {
+                        let resolved = msg.content;
+                        const ids = conversation?.participantIds || [];
+                        const names = conversation?.participantNames || [];
+                        ids.forEach((id, idx) => {
+                          if (!id) return;
+                          resolved = resolved.replace(new RegExp(`\\b${id}\\b`, 'g'), names[idx] || id);
+                        });
+                        return resolved;
+                      })()}
                     </div>
                   </div>
                 );
               }
 
               if (msg.messageType === 'POLL') {
-                const pollOptions = msg.pollOptions || [];
-                const totalVotes = pollOptions.reduce((sum, option) => sum + (option.voterUserIds || []).length, 0);
-                const myVotes = new Set(
-                  pollOptions
-                    .filter((option) => (option.voterUserIds || []).includes(user?.id || ''))
-                    .map((option) => option.optionId)
-                );
-
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[78%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}> 
-                      {!isMe && <div className="text-xs text-gray-500 mb-1">{msg.senderName}</div>}
-                      <div className={`px-4 py-3 rounded-2xl border ${isMe ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-200'}`}>
-                        <div className="text-xs font-semibold text-indigo-600 mb-2 inline-flex items-center gap-1">
-                          <BarChart3 className="w-3.5 h-3.5" />
-                          BINH CHON
-                        </div>
-                        <div className="font-medium text-sm text-gray-900 mb-2">{msg.pollQuestion || msg.content}</div>
-                        <div className="space-y-2">
-                          {pollOptions.map((option) => {
-                            const voteCount = (option.voterUserIds || []).length;
-                            const selected = myVotes.has(option.optionId);
-                            return (
-                              <button
-                                key={`${msg.id}-${option.optionId}`}
-                                onClick={() => handleVotePoll(msg, option.optionId)}
-                                disabled={msg.pollClosed || votingPollMessageId === msg.id}
-                                className={`w-full text-left px-3 py-2 rounded-lg border text-sm flex items-center justify-between ${selected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'} disabled:opacity-60`}
-                              >
-                                <span className="inline-flex items-center gap-2 text-gray-800">
-                                  {selected && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                                  {option.text}
-                                </span>
-                                <span className="text-xs text-gray-500">{voteCount}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-2 text-[11px] text-gray-500">
-                          {totalVotes} vote{totalVotes === 1 ? '' : 's'}{msg.pollMultipleChoice ? ' Ã¢â‚¬Â¢ nhieu lua chon' : ' Ã¢â‚¬Â¢ mot lua chon'}
-                        </div>
-                      </div>
-                      <div className="mt-1 text-[11px] text-gray-400">
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
+                  <PollMessageCard
+                    key={msg.id}
+                    msg={msg}
+                    isMe={isMe}
+                    userId={user?.id || ''}
+                    onVote={handleVotePoll}
+                    voting={votingPollMessageId === msg.id}
+                    participantNames={conversation?.participantNames}
+                    participantIds={conversation?.participantIds}
+                  />
                 );
               }
 
@@ -1234,22 +1168,20 @@ export default function GroupChat() {
         sending={sending}
         activeTab={activeTab}
         typingNames={typingNames}
-        showPollComposer={showPollComposer}
-        onTogglePollComposer={() => setShowPollComposer((prev) => !prev)}
-        pollQuestion={pollQuestion}
-        onPollQuestionChange={setPollQuestion}
-        pollOptions={pollOptions}
-        onSetPollOptionAt={setPollOptionAt}
-        onAddPollOption={addPollOptionField}
-        onRemovePollOption={removePollOptionField}
-        pollMultipleChoice={pollMultipleChoice}
-        onPollMultipleChoiceChange={setPollMultipleChoice}
-        onCreatePoll={() => handleCreatePoll().catch(() => undefined)}
-        creatingPoll={creatingPoll}
+        onOpenPollModal={() => setIsCreatePollOpen(true)}
         mentionOpen={mentionOpen}
         mentionCandidates={mentionCandidates}
         onApplyMention={applyMention}
       />
+
+      {/* Create Poll Modal */}
+      {isCreatePollOpen && (
+        <CreatePollModal
+          onClose={() => setIsCreatePollOpen(false)}
+          onSubmit={handleCreatePoll}
+          creating={creatingPoll}
+        />
+      )}
 
       {/* Forward modal */}
       {forwardingMessageId && (
