@@ -33,10 +33,12 @@ export function useMessages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [loading, setLoading] = useState(false);
+  const [conversationsLoading, setConversationsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
   const messagesRef = useRef<Record<string, Message[]>>({});
   const prevConnectedRef = useRef(false);
+  const latestLoadRequestRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     conversationsRef.current = conversations;
@@ -65,7 +67,7 @@ export function useMessages() {
     if (!user?.id) return;
 
     try {
-      setLoading(true);
+      setConversationsLoading(true);
       setError(null);
       const data = await conversationsApi.getConversationsByUserId(user.id);
       setConversations(Array.isArray(data) ? data : []);
@@ -74,7 +76,7 @@ export function useMessages() {
       console.error('Failed to load conversations:', err);
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      setConversationsLoading(false);
     }
   }, [user?.id]);
 
@@ -108,15 +110,44 @@ export function useMessages() {
 
   // Load messages for a conversation
   const loadMessages = useCallback(async (conversationId: string) => {
-    if (!conversationId) return;
+    if (!conversationId || !user?.id) return;
+
+    const requestId = Date.now() + Math.random();
+    latestLoadRequestRef.current[conversationId] = requestId;
 
     try {
       setLoading(true);
       setError(null);
-      const data = await messagesApi.getMessagesByConversationId(conversationId, user?.id);
+
+      // Ensure conversation exists in local state, but do not block message loading on it.
+      if (!conversationsRef.current.some((conv) => conv.id === conversationId)) {
+        conversationsApi
+          .getConversationById(conversationId)
+          .then((conv) => {
+            setConversations((current) => {
+              if (current.some((item) => item.id === conv.id)) {
+                return current;
+              }
+              return [conv, ...current];
+            });
+          })
+          .catch(() => undefined);
+      }
+
+      // Load latest page first (fast) instead of pulling full conversation history.
+      // This keeps chat opening responsive when users switch in/out quickly.
+      const page = await messagesApi.getMessagesByConversationCursor(
+        conversationId,
+        undefined,
+        50,
+        user.id
+      );
+      if (latestLoadRequestRef.current[conversationId] !== requestId) {
+        return;
+      }
       setMessages(prev => ({
         ...prev,
-        [conversationId]: data,
+        [conversationId]: page.messages || [],
       }));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
@@ -642,6 +673,7 @@ export function useMessages() {
     conversations,
     messages,
     loading,
+    conversationsLoading,
     error,
     loadConversations,
     loadMessages,

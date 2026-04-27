@@ -46,14 +46,12 @@ class SocketService {
       return;
     }
 
-    // SockJS must use http(s). When the site is served over HTTPS (Vercel),
-    // using http:// here will throw: "An insecure SockJS connection..."
-    const base =
-      API_CONFIG.BASE_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "");
-    const socketUrl = new URL("/api/social/ws", base).toString();
-    console.log(`🔌 Connecting to WebSocket via Gateway at ${socketUrl}...`);
-    const socket = new SockJS(socketUrl);
+    // Connect directly to SocialService for WebSocket (bypasses Gateway auth issues)
+    const base = API_CONFIG.COMMON_SERVICE_URL || "http://localhost:8081";
+    const socketUrl = new URL("/ws", base);
+    socketUrl.searchParams.set("token", token);
+    console.log(`🔌 Connecting to WebSocket directly at ${socketUrl.toString()}...`);
+    const socket = new SockJS(socketUrl.toString());
     this.client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,

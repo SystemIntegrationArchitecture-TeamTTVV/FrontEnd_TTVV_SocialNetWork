@@ -1,5 +1,5 @@
 import { useLocation, type Location } from 'react-router-dom';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, X } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessages } from '../../hooks/useMessages';
@@ -86,6 +86,7 @@ const STICKER_TOPIC_WITH_ALL = [
   },
   ...STICKER_TOPICS,
 ];
+const LAST_ACTIVE_CHAT_KEY = 'messenger:lastActiveChat';
 
 /** Deterministic color from string ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â same input always gives same color */
 const hashColor = (str: string): string => {
@@ -108,6 +109,7 @@ export default function Messenger() {
     conversations,
     messages: apiMessages,
     loading,
+    conversationsLoading,
     loadConversations,
     loadMessages,
     sendMessage: sendMessageAPI,
@@ -169,6 +171,40 @@ export default function Messenger() {
   const lastDeliveredSentMessageIdRef = useRef<string | null>(null);
   const seenRefreshTimerRef = useRef<number | null>(null);
   const openConversationId = location.state?.openConversationId;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (activeChat) {
+      window.sessionStorage.setItem(LAST_ACTIVE_CHAT_KEY, activeChat);
+    } else {
+      window.sessionStorage.removeItem(LAST_ACTIVE_CHAT_KEY);
+    }
+  }, [activeChat]);
+
+  const handleSelectChat = (chatId: string) => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(LAST_ACTIVE_CHAT_KEY, chatId);
+    }
+    setActiveChat(chatId);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (conversations.length === 0) return;
+    if (activeChat === AI_CONVERSATION_ID) return;
+    if (activeChat && conversations.some((c) => c.id === activeChat)) return;
+
+    const persisted = window.sessionStorage.getItem(LAST_ACTIVE_CHAT_KEY);
+    if (persisted && conversations.some((c) => c.id === persisted)) {
+      setActiveChat(persisted);
+      return;
+    }
+
+    const firstRealConversation = conversations[0]?.id;
+    if (firstRealConversation) {
+      setActiveChat(firstRealConversation);
+    }
+  }, [activeChat, conversations]);
+
   const { t, i18n } = useTranslation();
   
 
@@ -466,6 +502,7 @@ export default function Messenger() {
       .filter((conv) => !conv.hiddenForCurrentUser)
       .map((conv) => {
         if (!user?.id) return null;
+        if (!conv.participantIds || !Array.isArray(conv.participantIds)) return null;
 
         const otherParticipantIndex = conv.participantIds.findIndex((id) => id !== user.id);
 
@@ -511,7 +548,7 @@ export default function Messenger() {
   }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId]);
 
   const activeConversation = activeChat 
-    ? formattedConversations.find((c) => c.id === activeChat)
+    ? formattedConversations.find((c) => c.id === activeChat) || null
     : null;
 
   const getConversationDisplayName = (conv: (typeof conversations)[number]) => {
@@ -1190,12 +1227,12 @@ export default function Messenger() {
       <ChatSidebar
         formattedConversations={formattedConversations}
         activeChat={activeChat}
-        onSelectChat={setActiveChat}
+        onSelectChat={handleSelectChat}
         collapsed={leftSidebarCollapsed}
         onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
         sidebarSearch={sidebarSearch}
         onSearchChange={setSidebarSearch}
-        loading={loading}
+        loading={conversationsLoading}
         aiConversationId={AI_CONVERSATION_ID}
         contextMenu={contextMenu}
         onContextMenu={(e, convId) => {

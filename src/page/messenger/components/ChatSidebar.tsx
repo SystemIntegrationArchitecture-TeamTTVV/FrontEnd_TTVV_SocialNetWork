@@ -150,8 +150,24 @@ export default function ChatSidebar({
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
-        {loading && formattedConversations.length === 0 && (
-          <div className="p-4 text-center text-gray-500">{t('messenger.loadingConversations')}</div>
+        {/* Show skeleton loaders while conversations are loading */}
+        {loading && formattedConversations.length <= 1 && (
+          <>
+            {[...Array(6)].map((_, i) => (
+              <div key={`skel-${i}`} className="px-3 py-2.5 mx-1 my-0.5 flex items-center gap-3 animate-pulse">
+                <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0" />
+                {!collapsed && (
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded-full" style={{ width: `${60 + i * 12}px` }} />
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-10" />
+                    </div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full" style={{ width: `${100 + i * 15}px` }} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </>
         )}
         {filteredConversations.map((conv) => (
           <div
