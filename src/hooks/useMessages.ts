@@ -20,6 +20,9 @@ export interface DisplayMessage {
   attachments?: Message['attachments'];
   isEdited?: boolean;
   createdAt: string;
+  // System / group-event messages
+  messageType?: string;
+  systemAction?: string;
   // Legacy UI fields (for backward compatibility with Messenger.tsx)
   image?: string;
   pinned?: boolean;
@@ -763,6 +766,8 @@ export function useMessages() {
       attachments: message.attachments,
       isEdited: message.isEdited,
       createdAt: message.createdAt,
+      messageType: message.messageType,
+      systemAction: message.systemAction,
       pinned: message.pinned,
       starred,
     };

@@ -409,6 +409,7 @@ export default function Messenger() {
     handleJoinRequestDecision,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
+    handleTransferOwnership,
   } = useGroupActions({
     activeChat,
     userId: user?.id,
@@ -1653,6 +1654,7 @@ export default function Messenger() {
           onClearConversationForMe={handleClearConversationForMe}
           onToggleRequireApproval={handleToggleRequireApproval}
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
+          onTransferOwnership={handleTransferOwnership}
           onShowSearch={() => setShowSearch(true)}
           onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
           userId={user?.id}

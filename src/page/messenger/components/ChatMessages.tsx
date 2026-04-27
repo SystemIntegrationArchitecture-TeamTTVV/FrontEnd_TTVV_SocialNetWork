@@ -52,6 +52,17 @@ export default function ChatMessages({
       ref={scrollContainerRef}
     >
       {filteredMessages.map((msg) => {
+        // System / group-event messages → centered notification banner
+        if (msg.messageType === 'SYSTEM') {
+          return (
+            <div key={msg.id} className="flex items-center justify-center py-1">
+              <span className="px-3 py-1 rounded-full bg-gray-200/70 text-gray-500 text-[11px] font-medium text-center max-w-[85%] leading-snug">
+                {msg.content}
+              </span>
+            </div>
+          );
+        }
+
         const isSelected = selectedMessage === msg.id;
         const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
         return (

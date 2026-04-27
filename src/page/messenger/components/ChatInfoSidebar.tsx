@@ -47,6 +47,7 @@ interface ChatInfoSidebarProps {
   onClearConversationForMe: () => void;
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
+  onTransferOwnership: (newOwnerId: string) => void;
   // UI
   onShowSearch: () => void;
   onCloseRightSidebar: () => void;
@@ -136,6 +137,7 @@ export default function ChatInfoSidebar({
   onClearConversationForMe,
   onToggleRequireApproval,
   onToggleOnlyAdminsCanSend,
+  onTransferOwnership,
   onShowSearch,
   onCloseRightSidebar,
   userId,
@@ -143,6 +145,7 @@ export default function ChatInfoSidebar({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [addMemberMode, setAddMemberMode] = useState(false);
+  const [transferOwnerId, setTransferOwnerId] = useState('');
 
   return (
     <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
@@ -439,6 +442,39 @@ export default function ChatInfoSidebar({
               })}
             </div>
           </section>
+
+          {/* Transfer Ownership — owner only */}
+          {isOwner && conversationRaw && (
+            <section className="mt-4 p-3 rounded-2xl border border-amber-100 bg-amber-50/60">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="w-4 h-4 text-amber-500" />
+                <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Chuyển quyền trưởng nhóm</h4>
+              </div>
+              <select
+                value={transferOwnerId}
+                onChange={(e) => setTransferOwnerId(e.target.value)}
+                className="w-full text-sm rounded-xl border border-amber-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-300 mb-2"
+              >
+                <option value="">-- Chọn thành viên --</option>
+                {(conversationRaw.participantIds || []).map((pid, idx) => {
+                  if (pid === userId) return null;
+                  const name = conversationRaw.participantNames?.[idx] || pid;
+                  return <option key={pid} value={pid}>{name}</option>;
+                })}
+              </select>
+              <button
+                disabled={!transferOwnerId || updatingGroup}
+                onClick={() => {
+                  if (!transferOwnerId) return;
+                  onTransferOwnership(transferOwnerId);
+                  setTransferOwnerId('');
+                }}
+                className="w-full py-2 rounded-xl text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {updatingGroup ? 'Đang xử lý…' : 'Xác nhận chuyển quyền'}
+              </button>
+            </section>
+          )}
 
         </div>
       )}

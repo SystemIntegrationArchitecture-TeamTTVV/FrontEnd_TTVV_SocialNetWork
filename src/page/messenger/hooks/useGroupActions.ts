@@ -226,6 +226,27 @@ export function useGroupActions({
     }
   };
 
+  const handleTransferOwnership = async (targetUserId: string) => {
+    if (!activeChat || !userId || !targetUserId || targetUserId === userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateGroupRoles(activeChat, {
+        requesterId: userId,
+        newOwnerId: targetUserId,
+      });
+      setGroupActionMessage('Chuyển quyền trưởng nhóm thành công');
+      await loadConversations();
+      // Current user is no longer owner — keep them in the chat but update state
+    } catch (err: unknown) {
+      console.error('Failed to transfer ownership', err);
+      setGroupActionError(err instanceof Error ? err.message : 'Không thể chuyển quyền trưởng nhóm');
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   const handleToggleRequireApproval = async (currentValue: boolean) => {
     if (!activeChat || !userId) return;
     setUpdatingGroup(true);
@@ -292,6 +313,7 @@ export function useGroupActions({
     handleJoinRequestDecision,
     handleAdminToggle,
     handleUpdateRoles,
+    handleTransferOwnership,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
   };
