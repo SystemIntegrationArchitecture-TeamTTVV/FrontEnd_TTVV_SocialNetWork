@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { authApi } from '../apis/auth';
 import { getLocaleTag } from '../i18n';
+import { buildConversationPreview } from '../utils/messagePreview';
 
 // Exported so components (MessageBubble, ChatMessages, etc.) can type their props
 export interface DisplayMessage {
@@ -193,10 +194,7 @@ export function useMessages() {
       }));
 
       // Update conversation last message and keep list sorted by activity
-      const preview =
-        content.trim() ||
-        (attachments?.length ? '📎' : '') ||
-        (newMessage.replyTo ? `↩ ${newMessage.replyTo.contentPreview || ''}` : '');
+      const preview = buildConversationPreview(newMessage);
       setConversations(prev => {
         const exists = prev.some(conv => conv.id === conversationId);
         const updated = exists
@@ -280,7 +278,7 @@ export function useMessages() {
             conv.id === targetConversationId
               ? {
                   ...conv,
-                  lastMessagePreview: forwarded.content,
+                  lastMessagePreview: buildConversationPreview(forwarded),
                   lastMessageAt: forwarded.createdAt,
                 }
               : conv
@@ -387,7 +385,7 @@ export function useMessages() {
             conv.id === message.conversationId
               ? {
                   ...conv,
-                  lastMessagePreview: message.content,
+                  lastMessagePreview: buildConversationPreview(message),
                   lastMessageAt: message.createdAt,
                 }
               : conv

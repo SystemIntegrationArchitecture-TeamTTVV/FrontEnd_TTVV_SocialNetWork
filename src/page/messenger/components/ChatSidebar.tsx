@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Settings, Edit, Search, ChevronLeft, ChevronRight,
-  Users, Bot, EyeOff, X,
+  Users, Bot, EyeOff, X, UserRound, Image, Video, Mic, Paperclip, CornerUpLeft,
 } from 'lucide-react';
 import type { Conversation } from '../../../apis/conversations';
 import type { PresenceStatus } from '../../../apis/users';
+import { parseConversationPreview } from '../../../utils/messagePreview';
 
 export interface FormattedConversation {
   id: string;
@@ -77,6 +78,58 @@ export default function ChatSidebar({
   const filteredConversations = sidebarSearch
     ? formattedConversations.filter(c => c.name.toLowerCase().includes(sidebarSearch.toLowerCase()))
     : formattedConversations;
+
+  const renderPreview = (previewRaw: string) => {
+    const preview = parseConversationPreview(previewRaw);
+    const iconClass = 'w-3.5 h-3.5 shrink-0';
+
+    switch (preview.kind) {
+      case 'contact':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <UserRound className={`${iconClass} text-blue-500`} />
+            <span className="truncate">Contact: {preview.text}</span>
+          </span>
+        );
+      case 'image':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Image className={`${iconClass} text-indigo-500`} />
+            <span className="truncate">{preview.text}</span>
+          </span>
+        );
+      case 'video':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Video className={`${iconClass} text-purple-500`} />
+            <span className="truncate">{preview.text}</span>
+          </span>
+        );
+      case 'audio':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Mic className={`${iconClass} text-emerald-500`} />
+            <span className="truncate">{preview.text}</span>
+          </span>
+        );
+      case 'file':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Paperclip className={`${iconClass} text-gray-500`} />
+            <span className="truncate">{preview.text}</span>
+          </span>
+        );
+      case 'reply':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <CornerUpLeft className={`${iconClass} text-amber-500`} />
+            <span className="truncate">{preview.text}</span>
+          </span>
+        );
+      default:
+        return <span className="truncate">{preview.text}</span>;
+    }
+  };
 
   return (
     <div className={`border-r border-gray-200/50 dark:border-white/5 glass-surface flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
@@ -294,7 +347,9 @@ export default function ChatSidebar({
                     <span className={`text-xs shrink-0 ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>{conv.time}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <p className={`text-xs truncate ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>{conv.lastMessage}</p>
+                    <p className={`text-xs truncate ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
+                      {renderPreview(conv.lastMessage)}
+                    </p>
                     {conv.unread > 0 && (
                       <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                         {conv.unread}

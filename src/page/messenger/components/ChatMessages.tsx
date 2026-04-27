@@ -4,17 +4,16 @@ import { Users } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { canRecallByCreatedAt } from '../../../constants/chatPolicy';
 import type { DisplayMessage } from '../../../hooks/useMessages';
-import type { Conversation } from '../../../apis/conversations';
 
 interface ChatMessagesProps {
-  activeConversation: Conversation | null;
+  activeConversation: { id: string; name: string } | null;
   filteredMessages: DisplayMessage[];
   isGroupChat: boolean;
   selectedMessage: string | null;
-  menuPosition: { x: number; y: number } | null;
+  menuPosition: { top: number; left?: number; right?: number } | null;
   onSelectMessage: (id: string | null) => void;
-  onSetMenuPosition: (pos: { x: number; y: number } | null) => void;
-  onMessageAction: (action: string, msg: DisplayMessage) => void;
+  onSetMenuPosition: (pos: { top: number; left?: number; right?: number } | null) => void;
+  onMessageAction: (action: string, messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;

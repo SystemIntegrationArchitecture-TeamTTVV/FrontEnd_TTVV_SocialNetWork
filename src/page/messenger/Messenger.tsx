@@ -1544,8 +1544,19 @@ export default function Messenger() {
           }}
           onShareContact={() => {
             if (activeChat && user?.id) {
-              const card = `[Contact] ${user.fullName || user.username}`;
-              sendMessageAPI(activeChat, card, [], undefined).catch(() => {});
+              const contactName = user.fullName || user.username || user.id;
+              sendMessageAPI(
+                activeChat,
+                '',
+                [
+                  {
+                    type: 'contact',
+                    url: `user:${user.id}`,
+                    fileName: contactName,
+                  },
+                ],
+                undefined
+              ).catch(() => {});
               setShowAttachmentMenu(false);
             }
           }}

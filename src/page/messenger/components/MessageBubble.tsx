@@ -40,6 +40,14 @@ export default function MessageBubble({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const legacyContactName = msg.content.startsWith('[Contact]')
+    ? msg.content.replace('[Contact]', '').trim()
+    : '';
+  const toContactUserId = (url?: string) => {
+    if (!url || !url.startsWith('user:')) return null;
+    const id = url.slice(5).trim();
+    return id || null;
+  };
 
   return (
     <div
@@ -165,6 +173,28 @@ export default function MessageBubble({
                       </div>
                     </a>
                   )}
+                  {attachment.type === 'contact' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const contactUserId = toContactUserId(attachment.url);
+                        if (contactUserId) {
+                          navigate(`/profile/${contactUserId}`);
+                        }
+                      }}
+                      className="w-full text-left flex items-center gap-2.5 p-2.5 bg-blue-50 border border-blue-100 rounded-2xl max-w-[260px] hover:bg-blue-100 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+                        {(attachment.fileName || 'C').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] text-blue-700 font-medium">Contact</p>
+                        <p className="text-sm font-semibold text-blue-900 truncate">
+                          {attachment.fileName || 'Unknown contact'}
+                        </p>
+                      </div>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -172,7 +202,18 @@ export default function MessageBubble({
         })()}
 
         {/* Text content */}
-        {msg.content && (
+        {legacyContactName && !(msg.attachments || []).some((a) => a.type === 'contact') && (
+          <div className="mb-1 flex items-center gap-2.5 p-2.5 bg-blue-50 border border-blue-100 rounded-2xl max-w-[260px]">
+            <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+              {legacyContactName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-blue-700 font-medium">Contact</p>
+              <p className="text-sm font-semibold text-blue-900 truncate">{legacyContactName}</p>
+            </div>
+          </div>
+        )}
+        {msg.content && !legacyContactName && (
           <div
             className={`relative inline-block px-3.5 py-2 ${
               msg.isMe
