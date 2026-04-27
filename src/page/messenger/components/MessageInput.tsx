@@ -2,7 +2,7 @@
 import { useRef, type RefObject, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Plus, Send, Smile, Mic, Grid3X3, BarChart3,
+  Plus, Send, Smile, Mic, Grid3X3, BarChart3, Calendar,
   X, FileText, Video, Music, Sparkles,
 } from 'lucide-react';
 import EmojiPicker from '../../../components/chat/EmojiPicker';
@@ -56,6 +56,8 @@ interface MessageInputProps {
   replyTo: { sender: string; content: string } | null;
   // Poll
   onOpenPollModal?: () => void;
+  // Appointment
+  onOpenAppointmentModal?: () => void;
   isGroup?: boolean;
   // Permission
   canSend?: boolean;
@@ -99,6 +101,7 @@ export default function MessageInput({
   onGenerateDailySummary,
   replyTo,
   onOpenPollModal,
+  onOpenAppointmentModal,
   isGroup,
   canSend = true,
   sendBlockedReason,
@@ -271,14 +274,24 @@ export default function MessageInput({
           <Grid3X3 className="w-5 h-5" />
         </button>
         {isGroup && (
-          <button
-            type="button"
-            onClick={onOpenPollModal}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0"
-            title="Tạo bình chọn"
-          >
-            <BarChart3 className="w-5 h-5" />
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={onOpenPollModal}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0"
+              title="Tạo bình chọn"
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenAppointmentModal}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
+              title="Lên lịch hẹn"
+            >
+              <Calendar className="w-5 h-5" />
+            </button>
+          </>
         )}
         <input
           type="text"

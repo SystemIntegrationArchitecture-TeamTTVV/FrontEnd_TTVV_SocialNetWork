@@ -1,5 +1,5 @@
 // ─── GroupInput — input area for GroupChat with polls, mentions, typing ──
-import { Send, AtSign, BarChart3 } from 'lucide-react';
+import { Send, AtSign, BarChart3, Calendar } from 'lucide-react';
 
 interface MentionCandidate {
   participantId: string;
@@ -17,6 +17,8 @@ interface GroupInputProps {
   typingNames: string[];
   // Poll
   onOpenPollModal: () => void;
+  // Appointment
+  onOpenAppointmentModal: () => void;
   // Mention
   mentionOpen: boolean;
   mentionCandidates: MentionCandidate[];
@@ -32,6 +34,7 @@ export default function GroupInput({
   activeTab,
   typingNames,
   onOpenPollModal,
+  onOpenAppointmentModal,
   mentionOpen,
   mentionCandidates,
   onApplyMention,
@@ -55,13 +58,22 @@ export default function GroupInput({
         <div className="flex items-center gap-2">
           {/* Poll button */}
           {activeTab === 'chat' && canSend && (
-            <button
-              onClick={onOpenPollModal}
-              className="w-11 h-11 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
-              title="Tạo bình chọn"
-            >
-              <BarChart3 className="w-5 h-5 text-indigo-500" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={onOpenPollModal}
+                className="w-11 h-11 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
+                title="Tạo bình chọn"
+              >
+                <BarChart3 className="w-5 h-5 text-indigo-500" />
+              </button>
+              <button
+                onClick={onOpenAppointmentModal}
+                className="w-11 h-11 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
+                title="Lên lịch hẹn"
+              >
+                <Calendar className="w-5 h-5 text-emerald-500" />
+              </button>
+            </div>
           )}
 
           <input

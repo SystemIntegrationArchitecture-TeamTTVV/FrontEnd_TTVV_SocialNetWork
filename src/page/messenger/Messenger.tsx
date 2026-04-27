@@ -28,7 +28,9 @@ import { useVoiceRecording } from './hooks/useVoiceRecording';
 import { useAIChat } from './hooks/useAIChat';
 import { useGroupActions } from './hooks/useGroupActions';
 import { useGroupPolls } from './hooks/useGroupPolls';
+import { useGroupAppointments } from './hooks/useGroupAppointments';
 import CreatePollModal from './components/CreatePollModal';
+import CreateAppointmentModal from './components/CreateAppointmentModal';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -435,6 +437,19 @@ export default function Messenger() {
     creatingPoll,
     votingPollMessageId,
   } = useGroupPolls({
+    conversationId: activeChat || '',
+    userId: user?.id || '',
+    loadMessages,
+  });
+
+  const {
+    isCreateAppointmentOpen,
+    setIsCreateAppointmentOpen,
+    creatingAppointment,
+    joiningAppointmentId,
+    handleCreateAppointment,
+    handleJoinAppointment,
+  } = useGroupAppointments({
     conversationId: activeChat || '',
     userId: user?.id || '',
     loadMessages,
@@ -1532,6 +1547,8 @@ export default function Messenger() {
           userId={user?.id || ''}
           participantNames={activeConversationRaw?.participantNames}
           participantIds={activeConversationRaw?.participantIds}
+          onJoinAppointment={handleJoinAppointment}
+          joiningAppointment={joiningAppointmentId}
         />
 
         {activeConversation && (
@@ -1599,6 +1616,9 @@ export default function Messenger() {
           onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
           uploadedFiles={uploadedFiles}
           onSetUploadedFiles={setUploadedFiles}
+          onOpenPollModal={() => setIsCreatePollOpen(true)}
+          onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+          isGroup={isGroupChat}
           fileInputRef={fileInputRef}
           onFileUpload={handleFileUpload}
           showAttachmentMenu={showAttachmentMenu}
@@ -1656,6 +1676,14 @@ export default function Messenger() {
             onClose={() => setIsCreatePollOpen(false)}
             onSubmit={handleCreatePoll}
             creating={creatingPoll}
+          />
+        )}
+
+        {isCreateAppointmentOpen && (
+          <CreateAppointmentModal
+            onClose={() => setIsCreateAppointmentOpen(false)}
+            onSubmit={handleCreateAppointment}
+            creating={creatingAppointment}
           />
         )}
           </>

@@ -29,14 +29,12 @@ export interface DisplayMessage {
   starred?: boolean;
   replyTo?: { id: string; content: string; sender: string };
   // Poll fields
-  pollQuestion?: string;
-  pollOptions?: Message['pollOptions'];
-  pollMultipleChoice?: boolean;
-  pollClosed?: boolean;
-  pollDeadline?: string;
-  pollCanAddOptions?: boolean;
-  pollHideResultsBeforeVote?: boolean;
   pollHideVoters?: boolean;
+  // Appointment fields
+  appointmentTitle?: string;
+  appointmentTime?: string;
+  appointmentLocation?: string;
+  appointmentParticipants?: string[];
 }
 
 
@@ -530,17 +528,31 @@ export function useMessages() {
 
     const unsubscribePollUpdated = subscribe('POLL_UPDATED', (event) => {
       if (event.type !== 'POLL_UPDATED' || !event.data) return;
-      const payload = event.data as { conversationId?: string; message?: Message };
-      if (!payload.conversationId || !payload.message) return;
+      const { conversationId, message: updatedMessage } = event.data as { conversationId?: string, message?: Message };
+      if (conversationId && updatedMessage) {
+        setMessages((prev) => {
+          const list = prev[conversationId] || [];
+          const next = list.map((m) => (m.id === updatedMessage.id ? updatedMessage : m));
+          return { ...prev, [conversationId]: next };
+        });
+      }
+    });
 
-      setMessages(prev => {
-        const list = prev[payload.conversationId!];
-        if (!list) return prev;
-        return {
-          ...prev,
-          [payload.conversationId!]: list.map(m => (m.id === payload.message!.id ? payload.message! : m)),
-        };
-      });
+    const unsubscribeAppointmentCreated = subscribe('APPOINTMENT_CREATED', (event) => {
+      if (event.type !== 'APPOINTMENT_CREATED' || !event.data) return;
+      // APPOINTMENT_CREATED is usually a SYSTEM message announcement
+    });
+
+    const unsubscribeAppointmentUpdated = subscribe('APPOINTMENT_UPDATED', (event) => {
+      if (event.type !== 'APPOINTMENT_UPDATED' || !event.data) return;
+      const { conversationId, message: updatedMessage } = event.data as { conversationId?: string, message?: Message };
+      if (conversationId && updatedMessage) {
+        setMessages((prev) => {
+          const list = prev[conversationId] || [];
+          const next = list.map((m) => (m.id === updatedMessage.id ? updatedMessage : m));
+          return { ...prev, [conversationId]: next };
+        });
+      }
     });
 
     // ── MESSAGE_DELIVERED — update delivery status for sent messages ──
@@ -729,6 +741,8 @@ export function useMessages() {
       unsubscribePinned();
       unsubscribeReacted();
       unsubscribePollUpdated();
+      unsubscribeAppointmentCreated();
+      unsubscribeAppointmentUpdated();
       unsubscribeDelivered();
       unsubscribeGroupEvents.forEach(unsub => unsub());
       unsubscribeNotification();
@@ -793,6 +807,11 @@ export function useMessages() {
       pollCanAddOptions: message.pollCanAddOptions,
       pollHideResultsBeforeVote: message.pollHideResultsBeforeVote,
       pollHideVoters: message.pollHideVoters,
+      // Appointment
+      appointmentTitle: message.appointmentTitle,
+      appointmentTime: message.appointmentTime,
+      appointmentLocation: message.appointmentLocation,
+      appointmentParticipants: message.appointmentParticipants,
     };
   }, []);
 

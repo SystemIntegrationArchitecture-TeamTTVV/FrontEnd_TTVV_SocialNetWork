@@ -38,8 +38,11 @@ import GroupForwardModal from './group/GroupForwardModal';
 import GroupSettings from './group/GroupSettings';
 import GroupInput from './group/GroupInput';
 import CreatePollModal from './components/CreatePollModal';
+import CreateAppointmentModal from './components/CreateAppointmentModal';
 import PollMessageCard from './components/PollMessageCard';
+import AppointmentMessageCard from './components/AppointmentMessageCard';
 import { useGroupPolls } from './hooks/useGroupPolls';
+import { useGroupAppointments } from './hooks/useGroupAppointments';
 import { useGroupMessages } from './hooks/useGroupMessages';
 
 export default function GroupChat() {
@@ -89,7 +92,7 @@ export default function GroupChat() {
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const prevConnectedRef = useRef<boolean>(false);
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ New feature state Ã¢â€â‚¬Ã¢â€â‚¬
+  // Ã¢â€ â‚¬Ã¢â€ â‚¬ New feature state Ã¢â€ â‚¬Ã¢â€ â‚¬
   const [forwardConversations, setForwardConversations] = useState<any[]>([]);
   const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -106,6 +109,19 @@ export default function GroupChat() {
     handleCreatePoll,
     handleVotePoll,
   } = useGroupPolls({ conversationId: id || '', userId: user?.id });
+
+  const {
+    isCreateAppointmentOpen,
+    setIsCreateAppointmentOpen,
+    creatingAppointment,
+    joiningAppointmentId,
+    handleCreateAppointment,
+    handleJoinAppointment,
+  } = useGroupAppointments({
+    conversationId: conversationId || '',
+    userId: user?.id,
+    loadMessages: resyncRecentMessages,
+  });
 
   const {
     editingMessageId,
@@ -394,6 +410,17 @@ export default function GroupChat() {
       setMessages((prev) => prev.map((m) => (m.id === payload.message.id ? payload.message : m)));
     });
 
+    const unsubAppointmentUpdated = subscribe('APPOINTMENT_UPDATED', (event) => {
+      const payload = event.data as { conversationId: string; message: Message };
+      if (!payload || payload.conversationId !== conversationId || !payload.message) return;
+      setMessages((prev) => prev.map((m) => (m.id === payload.message.id ? payload.message : m)));
+    });
+
+    const unsubAppointmentCreated = subscribe('APPOINTMENT_CREATED', (event) => {
+      if (event.type !== 'APPOINTMENT_CREATED' || !event.data) return;
+      // SYSTEM message announcement
+    });
+
     const unsubTyping = subscribe('TYPING', (event) => {
       const payload = event.data as { conversationId: string; userId: string; typing: boolean };
       if (!payload || payload.conversationId !== conversationId || payload.userId === user.id) return;
@@ -449,6 +476,8 @@ export default function GroupChat() {
       unsubEdited();
       unsubReacted();
       unsubPollUpdated();
+      unsubAppointmentUpdated();
+      unsubAppointmentCreated();
       unsubTyping();
       unsubSeen();
       unsubPresence();
@@ -594,7 +623,7 @@ export default function GroupChat() {
     });
   };
 
-  const handleSend = async () => {
+  const handleSendMessage = async () => {
     if (!message.trim() || !user?.id || !conversationId || sending) return;
     if (!canSend) {
       setError('Nhom nay chi admin/chu nhom moi duoc gui tin nhan.');
@@ -658,7 +687,7 @@ export default function GroupChat() {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       const msg = err?.message || '';
       if (err?.status === 403 || msg.includes('friends') || msg.includes('FRIENDS_ONLY')) {
-        setError('KhÃƒÂ´ng thÃ¡Â»Æ’ gÃ¡Â»Â­i tin nhÃ¡ÂºÂ¯n: ngÃ†Â°Ã¡Â»Âi nhÃ¡ÂºÂ­n chÃ¡Â»â€° chÃ¡ÂºÂ¥p nhÃ¡ÂºÂ­n tin nhÃ¡ÂºÂ¯n tÃ¡Â»Â« bÃ¡ÂºÂ¡n bÃƒÂ¨.');
+        setError('KhÃƒÂ´ng thÃ¡Â»Æ’ gÃ¡Â»Â­i tin nhÃ¡ÂºÂ¯n: ngÃ†Â°Ã¡Â»Â i nhÃ¡ÂºÂ­n chÃ¡Â»â€° chÃ¡ÂºÂ¥p nhÃ¡ÂºÂ­n tin nhÃ¡ÂºÂ¯n tÃ¡Â»Â« bÃ¡ÂºÂ¡n bÃƒÂ¨.');
       } else {
         setError(msg || 'GÃ¡Â»Â­i tin nhÃ¡ÂºÂ¯n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
       }
@@ -746,16 +775,6 @@ export default function GroupChat() {
     }
   };
 
-
-
-
-
-
-
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 1. Edit message Ã¢â€â‚¬Ã¢â€â‚¬
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 2. Forward message Ã¢â€â‚¬Ã¢â€â‚¬
   const startForward = async (msgId: string) => {
     setForwardingMessageId(msgId);
     setContextMenuMsgId(null);
@@ -778,7 +797,6 @@ export default function GroupChat() {
     }
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 3. Reaction Ã¢â€â‚¬Ã¢â€â‚¬
   const handleReaction = async (msgId: string, emoji: string) => {
     try {
       const updated = await messagesApi.toggleReaction(msgId, emoji);
@@ -789,20 +807,16 @@ export default function GroupChat() {
     setContextMenuMsgId(null);
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 4. Star message Ã¢â€â‚¬Ã¢â€â‚¬
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 7. Toggle block (DM only) Ã¢â€â‚¬Ã¢â€â‚¬
   const handleToggleBlock = async () => {
     if (!conversationId || !user?.id) return;
     try {
       const updated = await conversationsApi.toggleBlockConversation(conversationId, user.id);
       setConversation(updated);
     } catch (err: any) {
-      setError(err?.message || 'ChÃ¡ÂºÂ·n/bÃ¡Â»Â chÃ¡ÂºÂ·n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'ChÃ¡ÂºÂ·n/bÃ¡Â»Â  chÃ¡ÂºÂ·n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
     }
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 8. Toggle ban member (Group) Ã¢â€â‚¬Ã¢â€â‚¬
   const handleToggleBan = async (targetUserId: string) => {
     if (!conversationId || !user?.id) return;
     try {
@@ -812,13 +826,10 @@ export default function GroupChat() {
       });
       setConversation(updated);
     } catch (err: any) {
-      setError(err?.message || 'CÃ¡ÂºÂ¥m/bÃ¡Â»Â cÃ¡ÂºÂ¥m thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'CÃ¡ÂºÂ¥m/bÃ¡Â»Â  cÃ¡ÂºÂ¥m thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
     }
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 9. Update nickname Ã¢â€â‚¬Ã¢â€â‚¬
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 10. Invite link Ã¢â€â‚¬Ã¢â€â‚¬
   const handleGetInviteLink = async () => {
     if (!conversationId || !user?.id) return;
     try {
@@ -826,7 +837,7 @@ export default function GroupChat() {
       setInviteLink(link);
       navigator.clipboard.writeText(link).catch(() => undefined);
     } catch (err: any) {
-      setError(err?.message || 'LÃ¡ÂºÂ¥y link mÃ¡Â»Âi thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'LÃ¡ÂºÂ¥y link mÃ¡Â»Â i thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
     }
   };
   const renderAttachments = (msg: Message) => {
@@ -911,8 +922,6 @@ export default function GroupChat() {
           onHideConversation={hideConversation}
           onClearConversationForMe={clearConversationForMe}
           onLeaveGroup={leaveGroup}
-          isMuted={isMuted}
-          onToggleMute={handleToggleMute}
           onToggleBlock={handleToggleBlock}
           onGetInviteLink={handleGetInviteLink}
           inviteLink={inviteLink}
@@ -970,6 +979,21 @@ export default function GroupChat() {
                     userId={user?.id || ''}
                     onVote={handleVotePoll}
                     voting={votingPollMessageId === msg.id}
+                    participantNames={conversation?.participantNames}
+                    participantIds={conversation?.participantIds}
+                  />
+                );
+              }
+
+              if (msg.messageType === 'APPOINTMENT') {
+                return (
+                  <AppointmentMessageCard
+                    key={msg.id}
+                    msg={msg}
+                    isMe={isMe}
+                    userId={user?.id || ''}
+                    onJoin={handleJoinAppointment}
+                    joining={joiningAppointmentId === msg.id}
                     participantNames={conversation?.participantNames}
                     participantIds={conversation?.participantIds}
                   />
@@ -1067,7 +1091,7 @@ export default function GroupChat() {
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       <button onClick={() => togglePinMessage(msg.id)} className="hover:text-gray-600 inline-flex items-center gap-1">
                         <Pin className={`w-3 h-3 ${msg.pinned ? 'text-blue-500' : ''}`} />
-                        {msg.pinned ? 'BÃ¡Â»Â ghim' : 'Ghim'}
+                        {msg.pinned ? 'BÃ¡Â»Â  ghim' : 'Ghim'}
                       </button>
                       {canRecall && (
                         <button onClick={() => recallMessage(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
@@ -1079,7 +1103,7 @@ export default function GroupChat() {
                       </button>
                     </div>
                     {isMe && seenList.length > 0 && (
-                      <div className="text-[11px] text-emerald-600 mt-0.5">Ã„ÂÃƒÂ£ xem: {seenList.slice(0, 3).join(', ')}</div>
+                      <div className="text-[11px] text-emerald-600 mt-0.5">Đã xem: {seenList.slice(0, 3).join(', ')}</div>
                     )}
                   </div>
                 </div>
@@ -1160,28 +1184,38 @@ export default function GroupChat() {
       </div>
 
       <div className="border-t border-gray-200 p-3 bg-white">
-      <GroupInput
-        message={message}
-        onMessageInput={handleMessageInput}
-        onSend={() => handleSend().catch(() => undefined)}
-        canSend={canSend}
-        sending={sending}
-        activeTab={activeTab}
-        typingNames={typingNames}
-        onOpenPollModal={() => setIsCreatePollOpen(true)}
-        mentionOpen={mentionOpen}
-        mentionCandidates={mentionCandidates}
-        onApplyMention={applyMention}
-      />
-
-      {/* Create Poll Modal */}
-      {isCreatePollOpen && (
-        <CreatePollModal
-          onClose={() => setIsCreatePollOpen(false)}
-          onSubmit={handleCreatePoll}
-          creating={creatingPoll}
+        <GroupInput
+          message={message}
+          onMessageInput={handleMessageInput}
+          onSend={handleSendMessage}
+          canSend={canSend}
+          sending={sending}
+          activeTab={activeTab}
+          typingNames={typingNames}
+          onOpenPollModal={() => setIsCreatePollOpen(true)}
+          onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+          mentionOpen={mentionOpen}
+          mentionCandidates={mentionCandidates}
+          onApplyMention={applyMention}
         />
-      )}
+
+        {/* Create Poll Modal */}
+        {isCreatePollOpen && (
+          <CreatePollModal
+            onClose={() => setIsCreatePollOpen(false)}
+            onSubmit={handleCreatePoll}
+            creating={creatingPoll}
+          />
+        )}
+
+        {isCreateAppointmentOpen && (
+          <CreateAppointmentModal
+            onClose={() => setIsCreateAppointmentOpen(false)}
+            onSubmit={handleCreateAppointment}
+            creating={creatingAppointment}
+          />
+        )}
+      </div>
 
       {/* Forward modal */}
       {forwardingMessageId && (

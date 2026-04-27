@@ -19,7 +19,7 @@ export interface PollOption {
   voterUserIds?: string[];
 }
 
-export type MessageType = 'TEXT' | 'SYSTEM' | 'POLL';
+export type MessageType = 'TEXT' | 'SYSTEM' | 'POLL' | 'APPOINTMENT';
 
 export interface Message {
   id: string;
@@ -40,6 +40,10 @@ export interface Message {
   pollHideVoters?: boolean;
   pollOptions?: PollOption[];
   pollDeadline?: string;
+  appointmentTitle?: string;
+  appointmentTime?: string;
+  appointmentLocation?: string;
+  appointmentParticipants?: string[]; // userIds who accepted
   mentionUserIds?: string[];
   seenByUserIds?: string[];
   pinned?: boolean;
@@ -97,6 +101,18 @@ export interface CreatePollRequest {
 export interface VotePollRequest {
   userId: string;
   optionIds: string[];
+}
+
+export interface CreateAppointmentRequest {
+  userId: string;
+  title: string;
+  time: string; // ISO string
+  location?: string;
+  description?: string;
+}
+
+export interface JoinAppointmentRequest {
+  userId: string;
 }
 
 export const messagesApi = {
@@ -251,6 +267,12 @@ export const messagesApi = {
 
   votePoll: async (messageId: string, payload: VotePollRequest): Promise<Message> => {
     return httpClient.post<Message>(`/api/message/messages/${messageId}/poll-vote`, payload);
+  },
+  createAppointment: async (conversationId: string, payload: CreateAppointmentRequest): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/conversation/${conversationId}/appointment`, payload);
+  },
+  joinAppointment: async (messageId: string, payload: JoinAppointmentRequest): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/${messageId}/appointment-join`, payload);
   },
 };
 

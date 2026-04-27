@@ -20,6 +20,8 @@ interface ChatMessagesProps {
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
   onVote: (msg: Message, optionId: string) => void;
   voting?: string | null;
+  onJoinAppointment?: (messageId: string) => void;
+  joiningAppointment?: string | null;
   userId: string;
   participantNames?: string[];
   participantIds?: string[];
@@ -39,6 +41,8 @@ export default function ChatMessages({
   scrollContainerRef,
   onVote,
   voting,
+  onJoinAppointment,
+  joiningAppointment,
   userId,
   participantNames = [],
   participantIds = [],
@@ -98,6 +102,8 @@ export default function ChatMessages({
             onReaction={onReaction}
             onVote={onVote}
             voting={voting}
+            onJoinAppointment={onJoinAppointment}
+            joiningAppointment={joiningAppointment}
             userId={userId}
             participantNames={participantNames}
             participantIds={participantIds}
