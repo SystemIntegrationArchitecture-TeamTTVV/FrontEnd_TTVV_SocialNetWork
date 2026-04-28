@@ -17,6 +17,8 @@ import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
 import ForwardModal from './components/ForwardModal';
 import PinnedMessagesPanel from './components/PinnedMessagesPanel';
+import PinnedBar from './components/PinnedBar';
+import AppointmentBar from './components/AppointmentBar';
 import ChatHeader from './components/ChatHeader';
 import ChatInfoSidebar from './components/ChatInfoSidebar';
 import TypingIndicator from './shared/TypingIndicator';
@@ -186,6 +188,7 @@ export default function Messenger() {
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const lastDeliveredSentMessageIdRef = useRef<string | null>(null);
   const seenRefreshTimerRef = useRef<number | null>(null);
+  const realtimeReloadTimerRef = useRef<number | null>(null);
   // Load friend list once on mount
   useEffect(() => {
     if (!user?.id) return;
@@ -247,6 +250,7 @@ export default function Messenger() {
     }
   }, [user?.id, loadConversations]);
 
+
   // Close context menu on global click
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -306,10 +310,27 @@ export default function Messenger() {
     const unsubscribe = subscribe('MESSAGE_RECEIVED', (event) => {
       if (event.type !== 'MESSAGE_RECEIVED' || !event.data) return;
 
-      const message = event.data as Message;
-      if (message.senderId === user.id) return;
-      if (!message.conversationId) return;
-      const incomingConversationId = String(message.conversationId);
+      const raw = event.data as any;
+      const message = raw as Message;
+      const incomingConversationId = String(
+        raw?.conversationId
+        || raw?.message?.conversationId
+        || (typeof raw?.id === 'string' && Array.isArray(raw?.participantIds) ? raw.id : '')
+      );
+      if (!incomingConversationId) return;
+      if (message?.senderId && message.senderId === user.id) return;
+
+      // Fallback hard-sync: if currently viewing this conversation, force refresh latest page.
+      // This guarantees realtime rendering even when socket payload shape differs between channels.
+      if (activeChat === incomingConversationId) {
+        if (realtimeReloadTimerRef.current) {
+          window.clearTimeout(realtimeReloadTimerRef.current);
+        }
+        realtimeReloadTimerRef.current = window.setTimeout(() => {
+          loadMessages(incomingConversationId);
+          realtimeReloadTimerRef.current = null;
+        }, 120);
+      }
 
       if (activeChat && activeChat !== incomingConversationId) {
         setUnreadByConversationId((prev) => ({
@@ -330,15 +351,14 @@ export default function Messenger() {
       });
     });
 
-    const unsubscribeMeta = subscribe('CONVERSATION_META_UPDATED', (event) => {
-      loadConversations();
-    });
-
     return () => {
       unsubscribe();
-      unsubscribeMeta();
+      if (realtimeReloadTimerRef.current) {
+        window.clearTimeout(realtimeReloadTimerRef.current);
+        realtimeReloadTimerRef.current = null;
+      }
     };
-  }, [isConnected, user?.id, subscribe, activeChat, loadConversations]);
+  }, [isConnected, user?.id, subscribe, activeChat, loadMessages]);
 
   // Auto-open a conversation passed via navigation state (e.g., after creating new chat)
   useEffect(() => {
@@ -391,6 +411,13 @@ export default function Messenger() {
   });
 
   const activeConversationRaw = activeChat && activeChat !== AI_CONVERSATION_ID ? conversations.find((c) => c.id === activeChat) : undefined;
+  const activeOtherParticipantId = useMemo(
+    () => activeConversationRaw?.participantIds?.find((id) => id !== user?.id),
+    [activeConversationRaw?.participantIds, user?.id]
+  );
+  const blockedByOtherAll = !!(activeOtherParticipantId && activeConversationRaw?.blockedByUserIds?.includes(activeOtherParticipantId));
+  const blockedByOtherMessage = !!(activeOtherParticipantId && activeConversationRaw?.messageBlockedByUserIds?.includes(activeOtherParticipantId));
+  const blockedByOtherCall = !!(activeOtherParticipantId && activeConversationRaw?.callBlockedByUserIds?.includes(activeOtherParticipantId));
   const isGroupChat = activeChat !== AI_CONVERSATION_ID && !!activeConversationRaw?.isGroup;
   const isAIChat = activeChat === AI_CONVERSATION_ID;
   const isOwner = !!(user?.id && activeConversationRaw?.ownerId === user.id);
@@ -1087,14 +1114,19 @@ export default function Messenger() {
   const handleSendSticker = async (stickerFile: string) => {
     if (!activeChat || !user?.id) return;
     try {
+      // Detect GIPHY sticker (full URL prefixed with __giphy__)
+      const isGiphy = stickerFile.startsWith('__giphy__');
+      const stickerUrl = isGiphy ? stickerFile.replace('__giphy__', '') : `/stickers/${stickerFile}`;
+      const fileName = isGiphy ? `giphy-sticker-${Date.now()}.gif` : stickerFile;
+
       await sendMessageAPI(
         activeChat,
         '',
         [
           {
-            type: 'image',
-            url: `/stickers/${stickerFile}`,
-            fileName: stickerFile,
+            type: 'sticker',
+            url: stickerUrl,
+            fileName,
           },
         ],
         replyTo?.id,
@@ -1251,7 +1283,14 @@ export default function Messenger() {
         break;
       case 'pin':
         if (user?.id) {
-          messagesApi.togglePin(messageId, user.id).catch((err: unknown) => {
+          messagesApi.togglePin(messageId, user.id).then(() => {
+            // Reload pinned list after pin/unpin
+            if (activeChat) {
+              messagesApi.getPinnedMessages(activeChat, user.id).then((data) => {
+                setPinnedMessages(data.map(formatMessageForDisplay));
+              }).catch(() => {});
+            }
+          }).catch((err: unknown) => {
             console.error('Failed to toggle pin:', err);
           });
         }
@@ -1324,6 +1363,55 @@ export default function Messenger() {
     }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery, activeChat, user?.id, formatMessageForDisplay]);
+
+  // ── Auto-fetch pinned messages when switching chat ──
+  useEffect(() => {
+    if (!activeChat || !user?.id) {
+      setPinnedMessages([]);
+      return;
+    }
+    // Fetch pinned
+    messagesApi.getPinnedMessages(activeChat, user.id)
+      .then((data) => setPinnedMessages(data.map(formatMessageForDisplay)))
+      .catch(() => setPinnedMessages([]));
+  }, [activeChat, user?.id, formatMessageForDisplay]);
+
+  // ── Socket: realtime pin updates ──
+  useEffect(() => {
+    if (!activeChat || !user?.id) return;
+    const unsub = subscribe('MESSAGE_PINNED', (event: any) => {
+      const data = event?.data;
+      if (data?.conversationId === activeChat) {
+        // Reload full pinned list to stay in sync
+        messagesApi.getPinnedMessages(activeChat, user.id)
+          .then((pins) => setPinnedMessages(pins.map(formatMessageForDisplay)))
+          .catch(() => {});
+      }
+    });
+    return unsub;
+  }, [activeChat, user?.id, subscribe, formatMessageForDisplay]);
+
+  // ── Unpin from PinnedBar handler ──
+  const handleUnpinFromBar = async (messageId: string) => {
+    if (!user?.id || !activeChat) return;
+    try {
+      await messagesApi.togglePin(messageId, user.id);
+      const data = await messagesApi.getPinnedMessages(activeChat, user.id);
+      setPinnedMessages(data.map(formatMessageForDisplay));
+    } catch {
+      notify.error('Không thể bỏ ghim');
+    }
+  };
+
+  // ── Scroll to pinned message ──
+  const handleScrollToPinned = (messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-blue-400');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-blue-400'), 2000);
+    }
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
@@ -1531,6 +1619,10 @@ export default function Messenger() {
             showSearch={showSearch}
             showPinnedPanel={showPinnedPanel}
             rightSidebarCollapsed={rightSidebarCollapsed}
+            callBlocked={(() => {
+              if (isAIChat || isGroupChat) return false;
+              return !!(blockedByOtherAll || blockedByOtherCall);
+            })()}
             onToggleSearch={() => setShowSearch(!showSearch)}
             onTogglePinned={async () => {
               const next = !showPinnedPanel;
@@ -1598,12 +1690,29 @@ export default function Messenger() {
           </div>
         )}
 
-        {/* Pinned Messages Panel */}
+        {/* Pinned Messages Panel (full list — toggle via header button) */}
         {activeConversation && showPinnedPanel && (
           <PinnedMessagesPanel
             messages={pinnedMessages}
             loading={pinnedLoading}
             onClose={() => setShowPinnedPanel(false)}
+          />
+        )}
+
+        {/* Pinned Bar — always visible under header (Zalo-style) */}
+        {activeConversation && !showPinnedPanel && (
+          <PinnedBar
+            messages={pinnedMessages}
+            onUnpin={handleUnpinFromBar}
+            onScrollTo={handleScrollToPinned}
+          />
+        )}
+
+        {/* Appointment Bar — shows upcoming appointments */}
+        {activeConversation && (
+          <AppointmentBar
+            messages={filteredMessages}
+            onScrollTo={handleScrollToPinned}
           />
         )}
 
@@ -1755,20 +1864,29 @@ export default function Messenger() {
                 onCancelReply={() => setReplyTo(null)}
                 canSend={(() => {
                   if (isAIChat) return true;
-                  // Block enforcement for DM: if anyone blocked, both can't send
-                  const blockedList = activeConversationRaw?.blockedByUserIds;
-                  if (!activeConversationRaw?.isGroup && blockedList && blockedList.length > 0) return false;
+                  const conv = activeConversationRaw;
+                  if (!conv) return true;
+                  // One-way block: only blocked side is restricted.
+                  if (!conv.isGroup && blockedByOtherAll) return false;
+                  if (!conv.isGroup && blockedByOtherMessage) return false;
                   // Group: admin-only send check
-                  if (activeConversationRaw?.onlyAdminsCanSend && !canManageGroup) return false;
+                  if (conv.onlyAdminsCanSend && !canManageGroup) return false;
                   return true;
                 })()}
                 sendBlockedReason={(() => {
-                  const blockedList = activeConversationRaw?.blockedByUserIds;
-                  if (!activeConversationRaw?.isGroup && blockedList && blockedList.length > 0) {
-                    return 'Cuộc trò chuyện đã bị chặn. Không thể gửi tin nhắn.';
+                  const conv = activeConversationRaw;
+                  if (!conv?.isGroup) {
+                    if (blockedByOtherAll) {
+                      return 'Bạn đã bị chặn. Không thể gửi tin nhắn.';
+                    }
+                    if (blockedByOtherMessage) {
+                      return 'Bạn đã bị chặn tin nhắn. Không thể gửi tin nhắn.';
+                    }
                   }
                   return t('messenger.onlyAdminsCanSend');
                 })()}
+                onSendGiphySuggestion={(url) => handleSendSticker(`__giphy__${url}`)}
+                onOpenScheduleModal={() => setIsCreateAppointmentOpen(true)}
               />
             )}
             {isCreatePollOpen && (
@@ -1786,6 +1904,7 @@ export default function Messenger() {
                 creating={creatingAppointment}
               />
             )}
+
           </>
         )}
       </div>

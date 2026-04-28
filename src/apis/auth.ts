@@ -27,25 +27,54 @@ export interface AuthResponse {
   userId: string;
   fullName: string;
   avatar: string;
+  accessToken?: string;
 }
 
 /**
  * Store auth tokens and user info to localStorage.
  */
 function persistAuth(response: AuthResponse): void {
-  if (response.token) {
-    localStorage.setItem('token', response.token);
+  const accessToken = response.token || response.accessToken;
+  if (accessToken) {
+    localStorage.setItem('token', accessToken);
   }
   if (response.refreshToken) {
     localStorage.setItem('refreshToken', response.refreshToken);
   }
-  localStorage.setItem('user', JSON.stringify({
-    id: response.userId,
-    username: response.username,
-    fullName: response.fullName,
-    avatar: response.avatar,
-    role: response.role,
-  }));
+  const hasUserPayload = !!(response.userId || response.username || response.fullName || response.role || response.avatar);
+  if (hasUserPayload) {
+    localStorage.setItem('user', JSON.stringify({
+      id: response.userId,
+      username: response.username,
+      fullName: response.fullName,
+      avatar: response.avatar,
+      role: response.role,
+    }));
+  }
+}
+
+function normalizeAuthResponse(payload: any): AuthResponse | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const token = payload.token || payload.accessToken || payload.access_token;
+  const refreshToken = payload.refreshToken || payload.refresh_token;
+
+  if (!token) {
+    return null;
+  }
+
+  return {
+    token,
+    accessToken: payload.accessToken || payload.access_token,
+    refreshToken: refreshToken || '',
+    username: payload.username || '',
+    role: payload.role || '',
+    userId: payload.userId || payload.id || '',
+    fullName: payload.fullName || '',
+    avatar: payload.avatar || '',
+  };
 }
 
 function decodeJwtPayload(token: string): Record<string, any> | null {
@@ -72,7 +101,11 @@ export const authApi = {
    * Login user
    */
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    const response = await authApi.loginDirect(credentials);
+    const raw = await authApi.loginDirect(credentials);
+    const response = normalizeAuthResponse(raw);
+    if (!response) {
+      throw new Error('Phản hồi đăng nhập không hợp lệ');
+    }
     persistAuth(response);
     return response;
   },
@@ -93,7 +126,11 @@ export const authApi = {
    * Register new user
    */
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
-    const response = await authApi.registerDirect(userData);
+    const raw = await authApi.registerDirect(userData);
+    const response = normalizeAuthResponse(raw);
+    if (!response) {
+      throw new Error('Phản hồi đăng ký không hợp lệ');
+    }
     persistAuth(response);
     return response;
   },
@@ -130,9 +167,13 @@ export const authApi = {
       if (!response.ok) {
         return null;
       }
-      const data: AuthResponse = await response.json();
-      persistAuth(data);
-      return data;
+      const raw = await response.json();
+      const normalized = normalizeAuthResponse(raw);
+      if (!normalized) {
+        return null;
+      }
+      persistAuth(normalized);
+      return normalized;
     } catch {
       return null;
     }

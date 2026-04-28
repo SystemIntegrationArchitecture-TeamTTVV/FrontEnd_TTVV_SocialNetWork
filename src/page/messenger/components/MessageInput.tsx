@@ -9,6 +9,7 @@ import EmojiPicker from '../../../components/chat/EmojiPicker';
 import StickerPanel from '../shared/StickerPanel';
 import AttachmentMenu from '../shared/AttachmentMenu';
 import VoiceRecorder from '../shared/VoiceRecorder';
+import StickerSuggestion from '../shared/StickerSuggestion';
 
 interface MessageInputProps {
   // Core
@@ -63,6 +64,10 @@ interface MessageInputProps {
   // Permission
   canSend?: boolean;
   sendBlockedReason?: string;
+  // Sticker suggestion (GIPHY)
+  onSendGiphySuggestion?: (url: string) => void;
+  // Schedule message
+  onOpenScheduleModal?: () => void;
 }
 
 export default function MessageInput({
@@ -107,6 +112,8 @@ export default function MessageInput({
   isGroup,
   canSend = true,
   sendBlockedReason,
+  onSendGiphySuggestion,
+  onOpenScheduleModal,
 }: MessageInputProps) {
   const { t } = useTranslation();
 
@@ -335,6 +342,14 @@ export default function MessageInput({
           }`}
         />
 
+        {/* Sticker Suggestion — appears when user has typed text */}
+        {onSendGiphySuggestion && !isRecording && (
+          <StickerSuggestion
+            inputText={message}
+            onSendSticker={onSendGiphySuggestion}
+          />
+        )}
+
         {/* Recording indicator */}
         {isRecording && (
           <div className="flex items-center gap-1.5 px-2 shrink-0">
@@ -367,6 +382,17 @@ export default function MessageInput({
         >
           <Smile className="w-5 h-5" />
         </button>
+        {/* Appointment button */}
+        {onOpenScheduleModal && (
+          <button
+            onClick={onOpenScheduleModal}
+            className="w-8 h-8 rounded-full text-gray-600 hover:text-violet-600 hover:bg-violet-50 flex items-center justify-center transition-all shrink-0"
+            title="Đặt lịch hẹn"
+            disabled={uploadingFiles}
+          >
+            <Calendar className="w-4 h-4" />
+          </button>
+        )}
         <button
           onClick={onSend}
           disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview && uploadedFiles.length === 0)}

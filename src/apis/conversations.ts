@@ -28,6 +28,8 @@ export interface Conversation {
   nicknames?: Record<string, string>;
   backgroundUrl?: string;
   blockedByUserIds?: string[];
+  messageBlockedByUserIds?: string[];
+  callBlockedByUserIds?: string[];
   mutedByUserIds?: string[];
   aiAssistantEnabled?: boolean;
   createdAt?: string;
@@ -264,6 +266,21 @@ export const conversationsApi = {
   toggleBlockConversation: async (conversationId: string, userId: string): Promise<Conversation> => {
     const qs = new URLSearchParams({ userId }).toString();
     return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/block?${qs}`);
+  },
+
+  toggleBlockMessages: async (conversationId: string, userId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/block-messages?${qs}`);
+  },
+
+  toggleBlockCalls: async (conversationId: string, userId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/block-calls?${qs}`);
+  },
+
+  unblockAll: async (conversationId: string, userId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/unblock-all?${qs}`);
   },
 
   updateConversationBackground: async (conversationId: string, backgroundUrl: string, userId?: string): Promise<Conversation> => {

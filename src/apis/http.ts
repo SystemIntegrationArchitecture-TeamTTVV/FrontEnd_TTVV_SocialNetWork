@@ -64,16 +64,16 @@ class HttpClient {
       // Dynamic import to avoid circular dependency
       const { authApi } = await import('./auth');
       const result = await authApi.refreshAccessToken();
-
-      if (!result || !result.token) {
+      const refreshedToken = result?.token || result?.accessToken;
+      if (!refreshedToken) {
         throw new Error('Refresh failed');
       }
 
       // Resolve all queued requests with the new token
-      this.refreshQueue.forEach(({ resolve }) => resolve(result.token));
+      this.refreshQueue.forEach(({ resolve }) => resolve(refreshedToken));
       this.refreshQueue = [];
 
-      return result.token;
+      return refreshedToken;
     } catch (err) {
       // Reject all queued requests
       this.refreshQueue.forEach(({ reject }) => reject(err as Error));

@@ -97,17 +97,24 @@ export default function MessageBubble({
         )}
         {/* Reply To */}
         {msg.replyTo && (
-          <div className={`mb-1.5 p-2 rounded-lg border-l-4 text-left cursor-pointer hover:bg-opacity-80 transition-all ${
-            msg.isMe 
-              ? 'bg-black/20 border-white/60 text-white' 
-              : 'bg-gray-100/80 dark:bg-gray-700/50 border-blue-400'
-          }`}>
-            <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${msg.isMe ? 'text-blue-200' : 'text-blue-600'}`}>
-              {msg.replyTo.sender}
-            </p>
-            <p className={`text-[13px] line-clamp-2 leading-relaxed ${msg.isMe ? 'text-white/90' : 'text-gray-600 dark:text-gray-300'}`}>
-              {msg.replyTo.content}
-            </p>
+          <div
+            className={`mb-2 px-2.5 py-2 rounded-xl border text-left ${
+              msg.isMe
+                ? 'bg-blue-600/40 border-blue-300/40'
+                : 'bg-gray-50/90 border-gray-200'
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <div className={`w-0.5 self-stretch rounded-full ${msg.isMe ? 'bg-blue-100/80' : 'bg-blue-500/70'}`} />
+              <div className="min-w-0">
+                <p className={`text-[11px] font-semibold mb-0.5 ${msg.isMe ? 'text-blue-100' : 'text-blue-600'}`}>
+                  {msg.replyTo.sender}
+                </p>
+                <p className={`text-[13px] line-clamp-2 leading-snug ${msg.isMe ? 'text-white/90' : 'text-gray-600 dark:text-gray-300'}`}>
+                  {msg.replyTo.content}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -121,10 +128,26 @@ export default function MessageBubble({
 
         {/* Attachments */}
         {msg.attachments && msg.attachments.length > 0 && (() => {
+          const stickers = msg.attachments!.filter(a => a.type === 'sticker');
           const images = msg.attachments!.filter(a => a.type === 'image');
-          const others = msg.attachments!.filter(a => a.type !== 'image');
+          const others = msg.attachments!.filter(a => a.type !== 'image' && a.type !== 'sticker');
           return (
             <div className="mb-1 space-y-1">
+              {/* Sticker display — clean, no bubble */}
+              {stickers.map((sticker, idx) => (
+                <div
+                  key={`sticker-${idx}`}
+                  className="max-w-[160px] cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150"
+                  onClick={() => window.open(sticker.url, '_blank')}
+                >
+                  <img
+                    src={sticker.url}
+                    alt={sticker.fileName || 'Sticker'}
+                    className="w-full h-auto rounded-xl"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
               {/* Image grid */}
               {images.length === 1 && (
                 <div className="max-w-[240px] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">

@@ -1569,6 +1569,65 @@
     "summaryMessages": "Tin nhắn đến",
     "dailySummaryError": "Không thể tạo tóm tắt hôm nay. Vui lòng thử lại."
   },
+  "guideNpc": {
+    "trigger": "Hướng dẫn sử dụng",
+    "menuTitle": "Chọn chức năng cần hướng dẫn",
+    "autoPrompt": "Bạn mới? Bấm mascot để được hướng dẫn nhanh từng chức năng.",
+    "goNow": "Đi tới ngay",
+    "gotIt": "Đã hiểu",
+    "interactions": {
+      "hi": "Hey, mình ở đây nè!",
+      "tip": "Bạn chọn chức năng bên menu để mình dẫn từng bước nha.",
+      "follow": "Cứ bấm vào mục đang được tô sáng, mình sẽ theo bạn.",
+      "pokeSmile": "Hehe, chọt nhẹ là mình cười nè!",
+      "pokeCry": "Ui da, chọc đau quá... mình khóc đó :(",
+      "swipeSmile": "Hehe, vuốt nhẹ là mình cười liền nè!"
+    },
+    "features": {
+      "livestream": "Livestream",
+      "marketplace": "Marketplace",
+      "watch": "Video",
+      "groups": "Nhóm",
+      "friends": "Bạn bè",
+      "music": "Nhạc",
+      "games": "Trò chơi",
+      "saved": "Đã lưu"
+    },
+    "dialog": {
+      "livestream": {
+        "title": "Hướng dẫn Livestream",
+        "message": "Nhấn vào Livestream để tạo phòng phát trực tiếp và quản lý buổi stream của bạn."
+      },
+      "marketplace": {
+        "title": "Hướng dẫn Marketplace",
+        "message": "Vào Marketplace để xem sản phẩm, lọc theo nhu cầu hoặc tạo tin đăng bán mới."
+      },
+      "watch": {
+        "title": "Hướng dẫn Video",
+        "message": "Nhấn Video để xem nội dung mới, tương tác và lưu video muốn xem lại."
+      },
+      "groups": {
+        "title": "Hướng dẫn Nhóm",
+        "message": "Vào Nhóm để tham gia cộng đồng, tạo bài viết thảo luận và mời thêm thành viên."
+      },
+      "friends": {
+        "title": "Hướng dẫn Bạn bè",
+        "message": "Tại mục Bạn bè, bạn có thể quản lý lời mời, xác nhận kết nối và tìm bạn mới."
+      },
+      "music": {
+        "title": "Hướng dẫn Nhạc",
+        "message": "Vào Nhạc để nghe playlist, bật mini player và nghe xuyên suốt khi chuyển trang."
+      },
+      "games": {
+        "title": "Hướng dẫn Trò chơi",
+        "message": "Mở Trò chơi để chơi nhanh các mini game như Flappy hoặc Boom V2."
+      },
+      "saved": {
+        "title": "Hướng dẫn Đã lưu",
+        "message": "Mục Đã lưu giúp bạn xem lại các bài viết, ảnh hoặc liên kết đã lưu trước đó."
+      }
+    }
+  },
   "storyModal": {
     "create": "Tạo tin",
     "textStory": "Tin chữ",

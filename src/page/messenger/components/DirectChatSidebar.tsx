@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   User, Bell, BellOff, Search as SearchIcon, Trash2, X,
-  Palette, Smile, Lock, ShieldOff, Flag, Pencil,
+  Palette, Lock, ShieldOff, Flag, Pencil,
   Mail, Phone, MapPin, Briefcase, GraduationCap, FileText,
-  Circle, Loader2,
+  Circle, Loader2, ImageOff, PhoneOff, MessageSquareOff,
 } from 'lucide-react';
 import { usersApi, type User as UserType } from '../../../apis/users';
 import { conversationsApi } from '../../../apis/conversations';
@@ -14,8 +14,35 @@ import { messagesApi, type Message } from '../../../apis/messages';
 import { uploadApi } from '../../../apis/upload';
 import { useSocket } from '../../../contexts/SocketContext';
 import { notify } from '../../../services/notify';
-import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../../common/icons/IconComponents';
 import type { Conversation } from '../../../apis/conversations';
+
+const BLOCK_OVERRIDE_STORAGE_KEY = 'messenger:block-overrides';
+
+type BlockOverrideState = {
+  blocked: boolean;
+  messageBlocked: boolean;
+  callBlocked: boolean;
+  updatedAt: string;
+};
+
+const readBlockOverrides = (): Record<string, BlockOverrideState> => {
+  try {
+    const raw = localStorage.getItem(BLOCK_OVERRIDE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeBlockOverrides = (next: Record<string, BlockOverrideState>) => {
+  try {
+    localStorage.setItem(BLOCK_OVERRIDE_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore storage errors
+  }
+};
 
 interface DirectChatSidebarProps {
   conversation: {
@@ -46,18 +73,39 @@ export default function DirectChatSidebar({
   const navigate = useNavigate();
   const { subscribe } = useSocket();
 
+  const getServerBlockState = () => ({
+    blocked: !!(userId && conversationRaw?.blockedByUserIds?.includes(userId)),
+    messageBlocked: !!(userId && conversationRaw?.messageBlockedByUserIds?.includes(userId)),
+    callBlocked: !!(userId && conversationRaw?.callBlockedByUserIds?.includes(userId)),
+  });
+
+  const getResolvedBlockState = () => {
+    const server = getServerBlockState();
+    if (!conversationRaw?.id) return server;
+    const override = readBlockOverrides()[conversationRaw.id];
+    if (!override) return server;
+    return {
+      blocked: override.blocked,
+      messageBlocked: override.messageBlocked,
+      callBlocked: override.callBlocked,
+    };
+  };
+
   const [otherUser, setOtherUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(() =>
     !!(userId && conversationRaw?.mutedByUserIds?.includes(userId))
   );
-  const [isBlocked, setIsBlocked] = useState(() =>
-    !!(userId && conversationRaw?.blockedByUserIds?.includes(userId))
-  );
+  const [isBlocked, setIsBlocked] = useState(() => getResolvedBlockState().blocked);
+  const [isMessageBlocked, setIsMessageBlocked] = useState(() => getResolvedBlockState().messageBlocked);
+  const [isCallBlocked, setIsCallBlocked] = useState(() => getResolvedBlockState().callBlocked);
+  const [blockActionLoading, setBlockActionLoading] = useState(false);
+  const blockStateLockUntilRef = useRef<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reporting, setReporting] = useState(false);
   const [onlineStatus, setOnlineStatus] = useState(conversation.online);
+  const [removingBackground, setRemovingBackground] = useState(false);
   
   // New States
   const [showNicknameModal, setShowNicknameModal] = useState(false);
@@ -72,13 +120,35 @@ export default function DirectChatSidebar({
     : undefined;
   const [localNickname, setLocalNickname] = useState(localNicknameFromConv || conversation.name);
 
-  // Sync isMuted/isBlocked when conversationRaw changes (e.g. via socket update)
+  const persistBlockOverride = (next: { blocked: boolean; messageBlocked: boolean; callBlocked: boolean }) => {
+    if (!conversationRaw?.id) return;
+    const all = readBlockOverrides();
+    all[conversationRaw.id] = {
+      blocked: next.blocked,
+      messageBlocked: next.messageBlocked,
+      callBlocked: next.callBlocked,
+      updatedAt: new Date().toISOString(),
+    };
+    writeBlockOverrides(all);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('messenger:block-override-updated', {
+        detail: { conversationId: conversationRaw.id, ...next },
+      }));
+    }
+  };
+
+  // Sync isMuted/isBlocked/isMessageBlocked/isCallBlocked when conversationRaw changes (e.g. via socket update)
   useEffect(() => {
+    if (blockActionLoading) return;
+    if (Date.now() < blockStateLockUntilRef.current) return;
     if (userId && conversationRaw) {
       setIsMuted(!!(conversationRaw.mutedByUserIds?.includes(userId)));
-      setIsBlocked(!!(conversationRaw.blockedByUserIds?.includes(userId)));
+      const resolved = getResolvedBlockState();
+      setIsBlocked(resolved.blocked);
+      setIsMessageBlocked(resolved.messageBlocked);
+      setIsCallBlocked(resolved.callBlocked);
     }
-  }, [conversationRaw?.mutedByUserIds, conversationRaw?.blockedByUserIds, userId]);
+  }, [conversationRaw?.mutedByUserIds, conversationRaw?.blockedByUserIds, conversationRaw?.messageBlockedByUserIds, conversationRaw?.callBlockedByUserIds, userId]);
 
   // Compute other user ID
   const otherUserId = conversationRaw?.participantIds?.find(id => id !== userId) || '';
@@ -131,12 +201,81 @@ export default function DirectChatSidebar({
     const unsub = subscribe('CONVERSATION_META_UPDATED', (event: any) => {
       const data = event?.data;
       if (data?.conversationId === conversationRaw.id) {
+        // Determine if the current user performed this action
+        // If we just called an API, we already showed a toast → skip for self
+        const actorId = data?.userId || data?.actorId;
+        const isSelfAction = actorId === userId;
+
+        // Show notification for background changes (only to the OTHER user)
+        if (!isSelfAction && 'backgroundUrl' in (data || {})) {
+          const oldBg = conversationRaw.backgroundUrl ?? null;
+          const newBg = data.backgroundUrl ?? null;
+          if (oldBg !== newBg) {
+            if (newBg) {
+              notify.success('Ảnh nền đoạn chat đã được cập nhật');
+            } else {
+              notify.success('Ảnh nền đoạn chat đã được gỡ bỏ');
+            }
+          }
+        }
+        // Show notification for block changes (only to the OTHER user)
+        if ('blockedByUserIds' in (data || {})) {
+          blockStateLockUntilRef.current = 0;
+          const wasBlocked = conversationRaw.blockedByUserIds?.length ?? 0;
+          const nowBlocked = data.blockedByUserIds?.length ?? 0;
+          const nextSelfBlocked = !!(userId && data.blockedByUserIds?.includes(userId));
+          setIsBlocked(nextSelfBlocked);
+          persistBlockOverride({
+            blocked: nextSelfBlocked,
+            messageBlocked: isMessageBlocked,
+            callBlocked: isCallBlocked,
+          });
+          if (!isSelfAction && nowBlocked > wasBlocked) {
+            notify.error('Cuộc trò chuyện đã bị chặn');
+          } else if (!isSelfAction && nowBlocked < wasBlocked) {
+            notify.success('Đã được mở chặn');
+          }
+        }
+        if ('messageBlockedByUserIds' in (data || {})) {
+          blockStateLockUntilRef.current = 0;
+          const was = conversationRaw.messageBlockedByUserIds?.length ?? 0;
+          const now = data.messageBlockedByUserIds?.length ?? 0;
+          const nextSelfBlocked = !!(userId && data.messageBlockedByUserIds?.includes(userId));
+          setIsMessageBlocked(nextSelfBlocked);
+          persistBlockOverride({
+            blocked: isBlocked,
+            messageBlocked: nextSelfBlocked,
+            callBlocked: isCallBlocked,
+          });
+          if (!isSelfAction && now > was) {
+            notify.error('Tin nhắn đã bị chặn');
+          } else if (!isSelfAction && now < was) {
+            notify.success('Đã được mở chặn tin nhắn');
+          }
+        }
+        if ('callBlockedByUserIds' in (data || {})) {
+          blockStateLockUntilRef.current = 0;
+          const was = conversationRaw.callBlockedByUserIds?.length ?? 0;
+          const now = data.callBlockedByUserIds?.length ?? 0;
+          const nextSelfBlocked = !!(userId && data.callBlockedByUserIds?.includes(userId));
+          setIsCallBlocked(nextSelfBlocked);
+          persistBlockOverride({
+            blocked: isBlocked,
+            messageBlocked: isMessageBlocked,
+            callBlocked: nextSelfBlocked,
+          });
+          if (!isSelfAction && now > was) {
+            notify.error('Cuộc gọi đã bị chặn');
+          } else if (!isSelfAction && now < was) {
+            notify.success('Đã được mở chặn cuộc gọi');
+          }
+        }
         // Refresh conversations to get latest state
         loadConversations?.();
       }
     });
     return unsub;
-  }, [conversationRaw?.id, subscribe, loadConversations]);
+  }, [conversationRaw?.id, conversationRaw?.blockedByUserIds, conversationRaw?.messageBlockedByUserIds, conversationRaw?.callBlockedByUserIds, conversationRaw?.backgroundUrl, userId, subscribe, loadConversations]);
 
   // ── Mute toggle ──
   const handleToggleMute = async () => {
@@ -151,17 +290,95 @@ export default function DirectChatSidebar({
     }
   };
 
-  // ── Block toggle ──
+  // ── Block ALL toggle (messages + calls) ──
   const handleToggleBlock = async () => {
     if (!conversationRaw?.id || !userId) return;
+    const prev = { isBlocked, isMessageBlocked, isCallBlocked };
+    const nextIsBlocked = !isBlocked;
+    setIsBlocked(nextIsBlocked);
+    setIsMessageBlocked(nextIsBlocked);
+    setIsCallBlocked(nextIsBlocked);
+    persistBlockOverride({
+      blocked: nextIsBlocked,
+      messageBlocked: nextIsBlocked,
+      callBlocked: nextIsBlocked,
+    });
+    blockStateLockUntilRef.current = Date.now() + 1500;
+    setBlockActionLoading(true);
     try {
       await conversationsApi.toggleBlockConversation(conversationRaw.id, userId);
-      setIsBlocked(!isBlocked);
-      notify.success(isBlocked ? 'Đã bỏ chặn' : 'Đã chặn người dùng');
-      // Reload conversations + system message will appear via MESSAGE_RECEIVED socket
+      notify.success(isBlocked ? 'Đã mở chặn tất cả' : 'Đã chặn tất cả');
       loadConversations?.();
     } catch {
+      setIsBlocked(prev.isBlocked);
+      setIsMessageBlocked(prev.isMessageBlocked);
+      setIsCallBlocked(prev.isCallBlocked);
+      persistBlockOverride({
+        blocked: prev.isBlocked,
+        messageBlocked: prev.isMessageBlocked,
+        callBlocked: prev.isCallBlocked,
+      });
       notify.error('Không thể thay đổi trạng thái chặn');
+    } finally {
+      setBlockActionLoading(false);
+    }
+  };
+
+  // ── Block Messages only ──
+  const handleToggleBlockMessages = async () => {
+    if (!conversationRaw?.id || !userId) return;
+    const prev = isMessageBlocked;
+    setIsMessageBlocked(!prev);
+    persistBlockOverride({
+      blocked: isBlocked,
+      messageBlocked: !prev,
+      callBlocked: isCallBlocked,
+    });
+    blockStateLockUntilRef.current = Date.now() + 1500;
+    setBlockActionLoading(true);
+    try {
+      await conversationsApi.toggleBlockMessages(conversationRaw.id, userId);
+      notify.success(isMessageBlocked ? 'Đã mở chặn tin nhắn' : 'Đã chặn tin nhắn');
+      loadConversations?.();
+    } catch {
+      setIsMessageBlocked(prev);
+      persistBlockOverride({
+        blocked: isBlocked,
+        messageBlocked: prev,
+        callBlocked: isCallBlocked,
+      });
+      notify.error('Không thể thay đổi trạng thái chặn tin nhắn');
+    } finally {
+      setBlockActionLoading(false);
+    }
+  };
+
+  // ── Block Calls only ──
+  const handleToggleBlockCalls = async () => {
+    if (!conversationRaw?.id || !userId) return;
+    const prev = isCallBlocked;
+    setIsCallBlocked(!prev);
+    persistBlockOverride({
+      blocked: isBlocked,
+      messageBlocked: isMessageBlocked,
+      callBlocked: !prev,
+    });
+    blockStateLockUntilRef.current = Date.now() + 1500;
+    setBlockActionLoading(true);
+    try {
+      await conversationsApi.toggleBlockCalls(conversationRaw.id, userId);
+      notify.success(isCallBlocked ? 'Đã mở chặn cuộc gọi' : 'Đã chặn cuộc gọi');
+      loadConversations?.();
+    } catch {
+      setIsCallBlocked(prev);
+      persistBlockOverride({
+        blocked: isBlocked,
+        messageBlocked: isMessageBlocked,
+        callBlocked: prev,
+      });
+      notify.error('Không thể thay đổi trạng thái chặn cuộc gọi');
+    } finally {
+      setBlockActionLoading(false);
     }
   };
 
@@ -207,19 +424,34 @@ export default function DirectChatSidebar({
     }
   };
 
+  // ── Remove Background ──
+  const handleRemoveBackground = async () => {
+    if (!conversationRaw?.id) return;
+    setRemovingBackground(true);
+    try {
+      await conversationsApi.updateConversationBackground(conversationRaw.id, '', userId);
+      notify.success('Đã gỡ ảnh nền');
+      loadConversations?.();
+    } catch {
+      notify.error('Lỗi gỡ ảnh nền');
+    } finally {
+      setRemovingBackground(false);
+    }
+  };
+
   // ── Report ──
   const handleReport = async () => {
     if (!reportReason.trim() || !otherUserId || !userId) return;
     setReporting(true);
     try {
       await reportsApi.createReport({
-        reporterId: userId,
+        type: 'user',
         reporterName: '',
-        targetType: 'USER',
+        targetName: conversation.name || 'Người dùng',
+        targetType: 'user',
         targetId: otherUserId,
         reason: reportReason.trim(),
-        description: `Báo cáo người dùng trong cuộc trò chuyện`,
-        priority: 'MEDIUM',
+        priority: 'medium',
       });
       notify.success('Đã gửi báo cáo');
       setShowReportModal(false);
@@ -232,6 +464,10 @@ export default function DirectChatSidebar({
   };
 
   const profileLink = otherUserId ? `/profile/${otherUserId}` : `/profile/${conversation.id}`;
+  const blockedByOtherAll = !!(otherUserId && conversationRaw?.blockedByUserIds?.includes(otherUserId));
+  const blockedByOtherMessage = !!(otherUserId && conversationRaw?.messageBlockedByUserIds?.includes(otherUserId));
+  const blockedByOtherCall = !!(otherUserId && conversationRaw?.callBlockedByUserIds?.includes(otherUserId));
+  const hasAnyBlock = isBlocked || isMessageBlocked || isCallBlocked || blockedByOtherAll || blockedByOtherMessage || blockedByOtherCall;
 
   return (
     <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
@@ -439,6 +675,38 @@ export default function DirectChatSidebar({
               </div>
               <span>Đổi ảnh nền</span>
             </label>
+            {conversationRaw?.backgroundUrl && (
+              <>
+                {/* Current background preview */}
+                <div className="mx-2.5 mb-1 rounded-xl overflow-hidden border border-gray-200 relative group">
+                  <img
+                    src={conversationRaw.backgroundUrl}
+                    alt="Ảnh nền hiện tại"
+                    className="w-full h-20 object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <span className="text-[10px] text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-0.5 rounded-full">
+                      Ảnh nền hiện tại
+                    </span>
+                  </div>
+                </div>
+                {/* Remove background button */}
+                <button
+                  onClick={handleRemoveBackground}
+                  disabled={removingBackground}
+                  className="w-full p-2.5 rounded-xl hover:bg-red-50 transition-colors text-left text-sm text-red-500 font-medium flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                    {removingBackground ? (
+                      <Loader2 className="w-4 h-4 text-red-400 animate-spin" />
+                    ) : (
+                      <ImageOff className="w-4 h-4 text-red-400" />
+                    )}
+                  </div>
+                  <span>{removingBackground ? 'Đang gỡ...' : 'Gỡ ảnh nền'}</span>
+                </button>
+              </>
+            )}
             <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
                 <Lock className="w-4 h-4 text-gray-500" />
@@ -483,19 +751,85 @@ export default function DirectChatSidebar({
           <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Quyền riêng tư
           </h5>
+
+          {/* Block status banner */}
+          {hasAnyBlock && (
+            <div className="mb-2 p-2.5 rounded-xl bg-red-50 border border-red-100">
+              <p className="text-[11px] font-semibold text-red-600 mb-1.5">Trạng thái chặn:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {isBlocked && (
+                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-medium">🚫 Bạn chặn tất cả</span>
+                )}
+                {isMessageBlocked && !isBlocked && (
+                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-medium">💬 Bạn chặn tin nhắn</span>
+                )}
+                {isCallBlocked && !isBlocked && (
+                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 text-[10px] font-medium">📞 Bạn chặn cuộc gọi</span>
+                )}
+                {blockedByOtherAll && (
+                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-medium">⛔ Bạn đã bị chặn tất cả</span>
+                )}
+                {blockedByOtherMessage && !blockedByOtherAll && (
+                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-medium">⛔ Bạn đã bị chặn tin nhắn</span>
+                )}
+                {blockedByOtherCall && !blockedByOtherAll && (
+                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium">⛔ Bạn đã bị chặn cuộc gọi</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Block messages */}
+          <button
+            onClick={handleToggleBlockMessages}
+            disabled={isBlocked || blockActionLoading}
+            className={`w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm font-medium flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed ${
+              isMessageBlocked ? 'text-orange-600' : 'text-gray-700'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              isMessageBlocked ? 'bg-orange-50' : 'bg-gray-100'
+            }`}>
+              <MessageSquareOff className={`w-4 h-4 ${isMessageBlocked ? 'text-orange-500' : 'text-gray-500'}`} />
+            </div>
+            <span>{isMessageBlocked ? 'Mở chặn tin nhắn' : 'Chặn tin nhắn'}</span>
+          </button>
+
+          {/* Block calls */}
+          <button
+            onClick={handleToggleBlockCalls}
+            disabled={isBlocked || blockActionLoading}
+            className={`w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm font-medium flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed ${
+              isCallBlocked ? 'text-purple-600' : 'text-gray-700'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              isCallBlocked ? 'bg-purple-50' : 'bg-gray-100'
+            }`}>
+              <PhoneOff className={`w-4 h-4 ${isCallBlocked ? 'text-purple-500' : 'text-gray-500'}`} />
+            </div>
+            <span>{isCallBlocked ? 'Mở chặn cuộc gọi' : 'Chặn cuộc gọi'}</span>
+          </button>
+
+          {/* Block all */}
           <button
             onClick={handleToggleBlock}
+            disabled={blockActionLoading}
             className={`w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm font-medium flex items-center gap-3 ${
               isBlocked ? 'text-red-600' : 'text-gray-700'
-            }`}
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
               isBlocked ? 'bg-red-50' : 'bg-orange-50'
             }`}>
               <ShieldOff className={`w-4 h-4 ${isBlocked ? 'text-red-500' : 'text-orange-500'}`} />
             </div>
-            <span>{isBlocked ? 'Bỏ chặn người dùng' : 'Chặn người dùng'}</span>
+            <span>{isBlocked ? 'Mở chặn tất cả' : 'Chặn tất cả'}</span>
           </button>
+
+          <div className="h-px bg-gray-100 my-1" />
+
+          {/* Report */}
           <button
             onClick={() => setShowReportModal(true)}
             className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3"

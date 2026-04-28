@@ -1569,6 +1569,65 @@
     "summaryMessages": "Incoming messages",
     "dailySummaryError": "Failed to generate today's summary. Please try again."
   },
+  "guideNpc": {
+    "trigger": "Feature guide",
+    "menuTitle": "Choose a feature to learn",
+    "autoPrompt": "New here? Tap the mascot to get quick guidance for each feature.",
+    "goNow": "Open now",
+    "gotIt": "Got it",
+    "interactions": {
+      "hi": "Hey, I am right here!",
+      "tip": "Pick a feature in the list and I will guide you step by step.",
+      "follow": "Tap the highlighted item and I will walk you through it.",
+      "pokeSmile": "Hehe, a gentle poke makes me smile!",
+      "pokeCry": "Ouch... that poke hurts, I am crying :(",
+      "swipeSmile": "Hehe, a gentle swipe makes me smile!"
+    },
+    "features": {
+      "livestream": "Livestream",
+      "marketplace": "Marketplace",
+      "watch": "Video",
+      "groups": "Groups",
+      "friends": "Friends",
+      "music": "Music",
+      "games": "Games",
+      "saved": "Saved"
+    },
+    "dialog": {
+      "livestream": {
+        "title": "Livestream guide",
+        "message": "Open Livestream to start a stream room and manage your live session."
+      },
+      "marketplace": {
+        "title": "Marketplace guide",
+        "message": "Use Marketplace to browse products, apply filters, or create a new listing."
+      },
+      "watch": {
+        "title": "Video guide",
+        "message": "Open Video to watch fresh content, interact, and save videos for later."
+      },
+      "groups": {
+        "title": "Groups guide",
+        "message": "Go to Groups to join communities, post discussions, and invite members."
+      },
+      "friends": {
+        "title": "Friends guide",
+        "message": "In Friends, you can handle requests, confirm connections, and discover new people."
+      },
+      "music": {
+        "title": "Music guide",
+        "message": "Open Music to play playlists, use the mini player, and keep listening while browsing."
+      },
+      "games": {
+        "title": "Games guide",
+        "message": "Go to Games to quickly play mini games like Flappy or Boom V2."
+      },
+      "saved": {
+        "title": "Saved guide",
+        "message": "Use Saved to revisit posts, images, and links you kept for later."
+      }
+    }
+  },
   "storyModal": {
     "create": "Create story",
     "textStory": "Text story",

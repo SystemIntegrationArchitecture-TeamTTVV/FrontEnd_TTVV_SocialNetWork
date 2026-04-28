@@ -103,7 +103,26 @@ export function useMessages() {
       setConversationsLoading(true);
       setError(null);
       const data = await conversationsApi.getConversationsByUserId(user.id);
-      setConversations(sortConversationsByActivity(Array.isArray(data) ? data : []));
+      const incoming = Array.isArray(data) ? data : [];
+      // Keep direct-chat meta fields from current state when list API returns partial objects.
+      // This prevents block/mute/background status from disappearing after switching chats.
+      setConversations((prev) => {
+        const prevById = new Map(prev.map((conv) => [conv.id, conv]));
+        const merged = incoming.map((conv) => {
+          const old = prevById.get(conv.id);
+          if (!old) return conv;
+          return {
+            ...conv,
+            nicknames: conv.nicknames ?? old.nicknames,
+            backgroundUrl: conv.backgroundUrl ?? old.backgroundUrl,
+            blockedByUserIds: conv.blockedByUserIds ?? old.blockedByUserIds,
+            messageBlockedByUserIds: conv.messageBlockedByUserIds ?? old.messageBlockedByUserIds,
+            callBlockedByUserIds: conv.callBlockedByUserIds ?? old.callBlockedByUserIds,
+            mutedByUserIds: conv.mutedByUserIds ?? old.mutedByUserIds,
+          };
+        });
+        return sortConversationsByActivity(merged);
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations';
       console.error('Failed to load conversations:', err);
@@ -152,20 +171,22 @@ export function useMessages() {
       setLoading(true);
       setError(null);
 
-      // Ensure conversation exists in local state, but do not block message loading on it.
-      if (!conversationsRef.current.some((conv) => conv.id === conversationId)) {
-        conversationsApi
-          .getConversationById(conversationId)
-          .then((conv) => {
-            setConversations((current) => {
-              if (current.some((item) => item.id === conv.id)) {
-                return current;
-              }
-              return sortConversationsByActivity([conv, ...current]);
-            });
-          })
-          .catch(() => undefined);
-      }
+      // Always refresh the active conversation detail from DB.
+      // Conversation list endpoints can be stale/partial for privacy fields
+      // (blocked/messageBlocked/callBlocked), causing "blocked state disappears"
+      // when users switch away and come back.
+      conversationsApi
+        .getConversationById(conversationId)
+        .then((freshConv) => {
+          setConversations((current) => {
+            const exists = current.some((item) => item.id === freshConv.id);
+            const merged = exists
+              ? current.map((item) => (item.id === freshConv.id ? { ...item, ...freshConv } : item))
+              : [freshConv, ...current];
+            return sortConversationsByActivity(merged);
+          });
+        })
+        .catch(() => undefined);
 
       // Load latest page first (fast) instead of pulling full conversation history.
       // This keeps chat opening responsive when users switch in/out quickly.
@@ -179,9 +200,12 @@ export function useMessages() {
       if (latestLoadRequestRef.current[conversationId] !== requestId) return;
 
       const initialMessages = page.messages || [];
+      // Do not hard-replace local realtime state.
+      // API responses can be slightly stale right after socket MESSAGE_RECEIVED,
+      // so merge to avoid dropping freshly received messages from the chat pane.
       setMessages((prev) => ({
         ...prev,
-        [conversationId]: initialMessages,
+        [conversationId]: mergeMessageLists(prev[conversationId] || [], initialMessages),
       }));
 
       setCursors(prev => ({ ...prev, [conversationId]: page.nextCursor || null }));
@@ -436,7 +460,47 @@ export function useMessages() {
 
     const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
       if (event.type === 'MESSAGE_RECEIVED' && event.data) {
-        const message: Message = event.data;
+        const raw = event.data as any;
+        const derivedConversationId: string | undefined =
+          raw?.conversationId
+          || raw?.message?.conversationId
+          || (typeof raw?.id === 'string' && Array.isArray(raw?.participantIds) ? raw.id : undefined);
+        const message: Message | null = (() => {
+          // Shape A: payload is already Message
+          if (raw && typeof raw === 'object' && raw.id && raw.conversationId) {
+            return raw as Message;
+          }
+          // Shape B: wrapper payload { message, conversationId, ... }
+          if (raw?.message && typeof raw.message === 'object') {
+            const inner = raw.message as Partial<Message>;
+            const conversationId = inner.conversationId || raw.conversationId;
+            if (inner.id && conversationId) {
+              return {
+                ...inner,
+                conversationId,
+              } as Message;
+            }
+          }
+          return null;
+        })();
+        if (!message?.id || !message.conversationId) {
+          // Fallback: some backend flows publish MESSAGE_RECEIVED with conversation-like payload
+          // (no message id/content), so force-refresh latest page for that conversation.
+          if (derivedConversationId && user?.id) {
+            messagesApi
+              .getMessagesByConversationCursor(derivedConversationId, undefined, 30, user.id)
+              .then((page) => {
+                const latest = page.messages || [];
+                if (latest.length === 0) return;
+                setMessages((prev) => ({
+                  ...prev,
+                  [derivedConversationId]: mergeMessageLists(prev[derivedConversationId] || [], latest),
+                }));
+              })
+              .catch(() => undefined);
+          }
+          return;
+        }
 
         // Duplicate events (including same-user events from other devices) are deduped by message id below.
         // Do not hard-drop realtime events using local participant cache because stale conversation state
@@ -457,9 +521,10 @@ export function useMessages() {
           if (existing.find(m => m.id === message.id)) {
             return prev;
           }
+          const nextList = mergeMessageLists(existing, [message]);
           return {
             ...prev,
-            [message.conversationId]: [...existing, message],
+            [message.conversationId]: nextList,
           };
         });
 
@@ -725,6 +790,9 @@ export function useMessages() {
       if (event.type !== 'CONVERSATION_META_UPDATED' || !event.data) return;
       const payload = event.data as {
         conversationId?: string;
+        userId?: string;
+        actorId?: string;
+        actorName?: string;
         ownerId?: string;
         adminIds?: string[];
         participantIds?: string[];
@@ -751,6 +819,8 @@ export function useMessages() {
         nicknames?: Record<string, string>;
         backgroundUrl?: string;
         blockedByUserIds?: string[];
+        messageBlockedByUserIds?: string[];
+        callBlockedByUserIds?: string[];
         mutedByUserIds?: string[];
       };
       if (!payload.conversationId) return;
@@ -798,13 +868,67 @@ export function useMessages() {
               isDisbanded: payload.isDisbanded ?? conv.isDisbanded,
               // Direct chat fields
               nicknames: payload.nicknames ?? conv.nicknames,
-              backgroundUrl: payload.backgroundUrl ?? conv.backgroundUrl,
+              backgroundUrl: 'backgroundUrl' in payload ? payload.backgroundUrl : conv.backgroundUrl,
+              blockedByUserIds: 'blockedByUserIds' in payload ? payload.blockedByUserIds : conv.blockedByUserIds,
+              messageBlockedByUserIds: 'messageBlockedByUserIds' in payload ? payload.messageBlockedByUserIds : conv.messageBlockedByUserIds,
+              callBlockedByUserIds: 'callBlockedByUserIds' in payload ? payload.callBlockedByUserIds : conv.callBlockedByUserIds,
+              mutedByUserIds: payload.mutedByUserIds ?? conv.mutedByUserIds,
             }
             : conv
         );
 
         return sortConversationsByActivity(updated);
       });
+
+      // Fallback for backend flows that update conversation preview/meta without
+      // reliable MESSAGE_RECEIVED payload for system events.
+      const hasExplicitBlockMeta =
+        ('blockedByUserIds' in payload)
+        || ('messageBlockedByUserIds' in payload)
+        || ('callBlockedByUserIds' in payload);
+      if (
+        payload.lastMessagePreview
+        && payload.lastMessageAt
+        && (payload.lastMessageType === 'SYSTEM' || hasExplicitBlockMeta)
+      ) {
+        setMessages((prev) => {
+          const conversationId = payload.conversationId!;
+          const list = prev[conversationId] || [];
+
+          const eventTime = payload.lastMessageAt!;
+          const eventTs = new Date(eventTime).getTime();
+          const hasSameSystemLine = list.some((m) => {
+            if (m.messageType !== 'SYSTEM') return false;
+            if ((m.content || '').trim() !== payload.lastMessagePreview!.trim()) return false;
+            const ts = new Date(m.createdAt || '').getTime();
+            if (Number.isNaN(eventTs) || Number.isNaN(ts)) return false;
+            return Math.abs(ts - eventTs) <= 5000;
+          });
+          if (hasSameSystemLine) return prev;
+
+          const fallbackSystemMessage = {
+            id: `meta-system-${conversationId}-${payload.lastMessageAt}-${payload.lastMessageSenderId || 'system'}`,
+            conversationId,
+            senderId: payload.lastMessageSenderId || 'system',
+            senderName: payload.lastMessageSenderName || 'Hệ thống',
+            senderAvatar: '',
+            content: payload.lastMessagePreview,
+            messageType: 'SYSTEM',
+            createdAt: payload.lastMessageAt,
+            isEdited: false,
+            isDeleted: false,
+            seenByUserIds: [],
+            deliveredToUserIds: [],
+            emojis: [],
+            attachments: [],
+          } as Message;
+
+          return {
+            ...prev,
+            [conversationId]: mergeMessageLists(list, [fallbackSystemMessage]),
+          };
+        });
+      }
     });
 
     return () => {

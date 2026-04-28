@@ -276,4 +276,39 @@ export const messagesApi = {
   joinAppointment: async (messageId: string, payload: JoinAppointmentRequest): Promise<Message> => {
     return httpClient.post<Message>(`/api/message/messages/${messageId}/appointment-join`, payload);
   },
+
+  // ── Scheduled Messages ──
+  createScheduledMessage: async (conversationId: string, payload: CreateScheduledMessageRequest): Promise<ScheduledMessage> => {
+    return httpClient.post<ScheduledMessage>(`/api/message/scheduled-messages/conversation/${conversationId}`, payload);
+  },
+  getScheduledMessages: async (conversationId: string, userId: string): Promise<ScheduledMessage[]> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.get<ScheduledMessage[]>(`/api/message/scheduled-messages/conversation/${conversationId}?${qs}`);
+  },
+  cancelScheduledMessage: async (id: string, userId: string): Promise<void> => {
+    const qs = new URLSearchParams({ userId }).toString();
+    return httpClient.delete(`/api/message/scheduled-messages/${id}?${qs}`);
+  },
 };
+
+// ── Scheduled Message Types ──
+export interface ScheduledMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  attachments?: MessageAttachment[];
+  scheduledAt: string;
+  status: 'PENDING' | 'SENT' | 'CANCELLED';
+  createdAt: string;
+}
+
+export interface CreateScheduledMessageRequest {
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  content: string;
+  attachments?: MessageAttachment[];
+  scheduledAt: string;
+}

@@ -314,9 +314,9 @@ export default function Navbar() {
               );
 
               if (needsAuth) {
-                return <button key={to} type="button" onClick={requestLogin} className={cls}>{inner}</button>;
+                return <button key={to} type="button" onClick={requestLogin} className={cls} data-navbar-link={to}>{inner}</button>;
               }
-              return <Link key={to} to={to} className={cls}>{inner}</Link>;
+              return <Link key={to} to={to} className={cls} data-navbar-link={to}>{inner}</Link>;
             })}
           </div>
 
@@ -411,6 +411,7 @@ export default function Navbar() {
               onClick={handleMessengerClick}
               className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
               title={currentUser ? t('navbar.messenger') : t('navbar.messengerLogin')}
+              data-guide-target="messenger-action"
             >
               <MessageCircle className="w-5 h-5 text-gray-700 dark:text-gray-300" strokeWidth={2} />
             </button>
@@ -419,6 +420,7 @@ export default function Navbar() {
               <button
                 onClick={() => { if (!currentUser) { requestLogin(); return; } setIsNotificationOpen(!isNotificationOpen); }}
                 className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#1e2130] hover:bg-[#d8dadf] dark:hover:bg-[#252a3d] flex items-center justify-center transition-colors relative"
+                data-guide-target="notification-action"
               >
                 <Bell className="w-[22px] h-[22px] text-[#050505] dark:text-gray-300" strokeWidth={2} />
                 {(unreadNotificationCount + pendingJoinRequestCount) > 0 && (
@@ -430,7 +432,8 @@ export default function Navbar() {
 
             <div className="relative">
               <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="w-10 h-10 rounded-full overflow-hidden border border-[#e4e6eb] dark:border-[#2b2f45] hover:opacity-95 transition-opacity flex items-center justify-center p-0">
+                className="w-10 h-10 rounded-full overflow-hidden border border-[#e4e6eb] dark:border-[#2b2f45] hover:opacity-95 transition-opacity flex items-center justify-center p-0"
+                data-guide-target="profile-menu">
                 {renderAvatar('md')}
               </button>
               <UserDropdown isOpen={isUserMenuOpen} onClose={() => setIsUserMenuOpen(false)} user={currentUser} />

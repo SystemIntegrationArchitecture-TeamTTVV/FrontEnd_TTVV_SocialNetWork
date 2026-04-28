@@ -20,6 +20,7 @@ interface ChatHeaderProps {
   showSearch: boolean;
   showPinnedPanel: boolean;
   rightSidebarCollapsed: boolean;
+  callBlocked?: boolean;
   onToggleSearch: () => void;
   onTogglePinned: () => void;
   onToggleRightSidebar: () => void;
@@ -34,6 +35,7 @@ export default function ChatHeader({
   showSearch,
   showPinnedPanel,
   rightSidebarCollapsed,
+  callBlocked = false,
   onToggleSearch,
   onTogglePinned,
   onToggleRightSidebar,
@@ -42,6 +44,7 @@ export default function ChatHeader({
 }: ChatHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isCallDisabled = isAIChat || callBlocked;
 
   return (
     <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shadow-sm">
@@ -92,28 +95,32 @@ export default function ChatHeader({
         </button>
         <button
           onClick={onVoiceCall}
-          disabled={isAIChat}
+          disabled={isCallDisabled}
           className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title={
-            isAIChat
-              ? t('messenger.header.voiceCallNotAvailable')
-              : isGroupChat
-                ? t('messenger.header.groupCall')
-                : t('messenger.header.call')
+            callBlocked
+              ? 'Cuộc gọi đã bị chặn'
+              : isAIChat
+                ? t('messenger.header.voiceCallNotAvailable')
+                : isGroupChat
+                  ? t('messenger.header.groupCall')
+                  : t('messenger.header.call')
           }
         >
           <Phone className="w-5 h-5 text-gray-700" />
         </button>
         <button
           onClick={onVideoCall}
-          disabled={isAIChat}
+          disabled={isCallDisabled}
           className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title={
-            isAIChat
-              ? t('messenger.header.videoCallNotAvailable')
-              : isGroupChat
-                ? t('messenger.header.groupVideoCall')
-                : t('messenger.header.videoCall')
+            callBlocked
+              ? 'Cuộc gọi đã bị chặn'
+              : isAIChat
+                ? t('messenger.header.videoCallNotAvailable')
+                : isGroupChat
+                  ? t('messenger.header.groupVideoCall')
+                  : t('messenger.header.videoCall')
           }
         >
           <Video className="w-5 h-5 text-gray-700" />
