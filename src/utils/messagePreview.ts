@@ -16,7 +16,17 @@ export interface ConversationPreviewDisplay {
   text: string;
 }
 
-export const buildConversationPreview = (message: Pick<Message, 'content' | 'attachments' | 'replyTo'>): string => {
+export const buildConversationPreview = (message: Partial<Message>): string => {
+  if (message.messageType === 'POLL') {
+    const question = message.pollQuestion || message.content?.trim();
+    return question ? `📊 ${question}` : '📊 Binh chon';
+  }
+
+  if (message.messageType === 'APPOINTMENT') {
+    const title = message.appointmentTitle || message.content?.trim();
+    return title ? `📅 ${title}` : '📅 Hen gap';
+  }
+
   const content = message.content?.trim();
   if (content) return content;
 

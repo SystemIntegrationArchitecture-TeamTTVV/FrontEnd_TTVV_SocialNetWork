@@ -19,7 +19,7 @@ export interface PollOption {
   voterUserIds?: string[];
 }
 
-export type MessageType = 'TEXT' | 'SYSTEM' | 'POLL';
+export type MessageType = 'TEXT' | 'SYSTEM' | 'POLL' | 'APPOINTMENT';
 
 export interface Message {
   id: string;
@@ -35,10 +35,17 @@ export interface Message {
   pollQuestion?: string;
   pollMultipleChoice?: boolean;
   pollClosed?: boolean;
+  pollCanAddOptions?: boolean;
+  pollHideResultsBeforeVote?: boolean;
+  pollHideVoters?: boolean;
   pollOptions?: PollOption[];
+  pollDeadline?: string;
+  appointmentTitle?: string;
+  appointmentTime?: string;
+  appointmentLocation?: string;
+  appointmentParticipants?: string[]; // userIds who accepted
   mentionUserIds?: string[];
   seenByUserIds?: string[];
-  deliveredToUserIds?: string[];
   pinned?: boolean;
   starredByUserIds?: string[];
   isDeleted: boolean;
@@ -85,11 +92,29 @@ export interface CreatePollRequest {
   question: string;
   options: string[];
   multipleChoice?: boolean;
+  canAddOptions?: boolean;
+  hideResultsBeforeVote?: boolean;
+  hideVoters?: boolean;
+  actorName?: string;
+  deadline?: string; // ISO string
 }
 
 export interface VotePollRequest {
   userId: string;
   optionIds: string[];
+}
+
+export interface CreateAppointmentRequest {
+  userId: string;
+  title: string;
+  time: string; // ISO string
+  location?: string;
+  description?: string;
+  actorName?: string;
+}
+
+export interface JoinAppointmentRequest {
+  userId: string;
 }
 
 export const messagesApi = {
@@ -245,5 +270,10 @@ export const messagesApi = {
   votePoll: async (messageId: string, payload: VotePollRequest): Promise<Message> => {
     return httpClient.post<Message>(`/api/message/messages/${messageId}/poll-vote`, payload);
   },
+  createAppointment: async (conversationId: string, payload: CreateAppointmentRequest): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/conversation/${conversationId}/appointment`, payload);
+  },
+  joinAppointment: async (messageId: string, payload: JoinAppointmentRequest): Promise<Message> => {
+    return httpClient.post<Message>(`/api/message/messages/${messageId}/appointment-join`, payload);
+  },
 };
-

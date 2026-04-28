@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Send,
   Settings,
@@ -37,7 +37,12 @@ import GroupHeader from './group/GroupHeader';
 import GroupForwardModal from './group/GroupForwardModal';
 import GroupSettings from './group/GroupSettings';
 import GroupInput from './group/GroupInput';
+import CreatePollModal from './components/CreatePollModal';
+import CreateAppointmentModal from './components/CreateAppointmentModal';
+import PollMessageCard from './components/PollMessageCard';
+import AppointmentMessageCard from './components/AppointmentMessageCard';
 import { useGroupPolls } from './hooks/useGroupPolls';
+import { useGroupAppointments } from './hooks/useGroupAppointments';
 import { useGroupMessages } from './hooks/useGroupMessages';
 
 export default function GroupChat() {
@@ -86,11 +91,13 @@ export default function GroupChat() {
   const isTypingRef = useRef(false);
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const prevConnectedRef = useRef<boolean>(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ New feature state Ã¢â€â‚¬Ã¢â€â‚¬
-  const [editContent, setEditContent] = useState('');
-  const [forwardingMessageId, setForwardingMessageId] = useState<string | null>(null);
-  const [forwardTargetId, setForwardTargetId] = useState('');
+  // Ã¢â€ â‚¬Ã¢â€ â‚¬ New feature state Ã¢â€ â‚¬Ã¢â€ â‚¬
   const [forwardConversations, setForwardConversations] = useState<any[]>([]);
   const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -100,21 +107,31 @@ export default function GroupChat() {
   const isOwner = !!(user?.id && conversation?.ownerId === user.id);
 
   const {
-    showPollComposer,
-    setShowPollComposer,
-    pollQuestion,
-    setPollQuestion,
-    pollOptions,
-    setPollMultipleChoice,
-    pollMultipleChoice,
+    isCreatePollOpen,
+    setIsCreatePollOpen,
     creatingPoll,
     votingPollMessageId,
-    setPollOptionAt,
-    addPollOptionField,
-    removePollOptionField,
     handleCreatePoll,
     handleVotePoll,
-  } = useGroupPolls({ conversationId: id || '', userId: user?.id });
+  } = useGroupPolls({
+    conversationId: id || '',
+    userId: user?.id,
+    userName: user?.fullName
+  });
+
+  const {
+    isCreateAppointmentOpen,
+    setIsCreateAppointmentOpen,
+    creatingAppointment,
+    joiningAppointmentId,
+    handleCreateAppointment,
+    handleJoinAppointment,
+  } = useGroupAppointments({
+    conversationId: conversationId || '',
+    userId: user?.id,
+    userName: user?.fullName,
+    loadMessages: resyncRecentMessages,
+  });
 
   const {
     editingMessageId,
@@ -203,6 +220,7 @@ export default function GroupChat() {
     setNextCursor(page.nextCursor || null);
     setHasMore(!!page.hasMore);
     syncSeenMapFromMessages(initial);
+    isInitialLoadRef.current = true;
   };
 
   const refreshPresence = async (participantIds?: string[]) => {
@@ -253,6 +271,43 @@ export default function GroupChat() {
     }
   };
 
+  // Smart auto-scroll and scroll-position maintenance
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const prevCount = prevMessageCountRef.current;
+    const currentCount = messages.length;
+    prevMessageCountRef.current = currentCount;
+
+    if (currentCount <= prevCount) return;
+
+    if (isInitialLoadRef.current) {
+      if (container) container.scrollTop = container.scrollHeight;
+      isInitialLoadRef.current = false;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
+    if (prevScrollHeightRef.current > 0 && container) {
+      const newHeight = container.scrollHeight;
+      const diff = newHeight - prevScrollHeightRef.current;
+      container.scrollTop = diff;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
+    const newestMessage = messages[messages.length - 1];
+    const isSentByMe = newestMessage?.senderId === user?.id;
+    const isNearBottom = container
+      ? container.scrollHeight - container.scrollTop - container.clientHeight < 200
+      : true;
+
+    if (isSentByMe || isNearBottom) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
+  }, [messages, user?.id]);
+
   const loadMore = async () => {
     if (!conversationId || !nextCursor || loadingMore) return;
     try {
@@ -273,6 +328,14 @@ export default function GroupChat() {
       });
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.scrollTop === 0 && !loadingMore && hasMore && nextCursor) {
+      prevScrollHeightRef.current = container.scrollHeight;
+      loadMore();
     }
   };
 
@@ -403,6 +466,17 @@ export default function GroupChat() {
       setMessages((prev) => prev.map((m) => (m.id === payload.message.id ? payload.message : m)));
     });
 
+    const unsubAppointmentUpdated = subscribe('APPOINTMENT_UPDATED', (event) => {
+      const payload = event.data as { conversationId: string; message: Message };
+      if (!payload || payload.conversationId !== conversationId || !payload.message) return;
+      setMessages((prev) => prev.map((m) => (m.id === payload.message.id ? payload.message : m)));
+    });
+
+    const unsubAppointmentCreated = subscribe('APPOINTMENT_CREATED', (event) => {
+      if (event.type !== 'APPOINTMENT_CREATED' || !event.data) return;
+      // SYSTEM message announcement
+    });
+
     const unsubTyping = subscribe('TYPING', (event) => {
       const payload = event.data as { conversationId: string; userId: string; typing: boolean };
       if (!payload || payload.conversationId !== conversationId || payload.userId === user.id) return;
@@ -458,6 +532,8 @@ export default function GroupChat() {
       unsubEdited();
       unsubReacted();
       unsubPollUpdated();
+      unsubAppointmentUpdated();
+      unsubAppointmentCreated();
       unsubTyping();
       unsubSeen();
       unsubPresence();
@@ -603,7 +679,7 @@ export default function GroupChat() {
     });
   };
 
-  const handleSend = async () => {
+  const handleSendMessage = async () => {
     if (!message.trim() || !user?.id || !conversationId || sending) return;
     if (!canSend) {
       setError('Nhom nay chi admin/chu nhom moi duoc gui tin nhan.');
@@ -667,7 +743,7 @@ export default function GroupChat() {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       const msg = err?.message || '';
       if (err?.status === 403 || msg.includes('friends') || msg.includes('FRIENDS_ONLY')) {
-        setError('KhÃƒÂ´ng thÃ¡Â»Æ’ gÃ¡Â»Â­i tin nhÃ¡ÂºÂ¯n: ngÃ†Â°Ã¡Â»Âi nhÃ¡ÂºÂ­n chÃ¡Â»â€° chÃ¡ÂºÂ¥p nhÃ¡ÂºÂ­n tin nhÃ¡ÂºÂ¯n tÃ¡Â»Â« bÃ¡ÂºÂ¡n bÃƒÂ¨.');
+        setError('KhÃƒÂ´ng thÃ¡Â»Æ’ gÃ¡Â»Â­i tin nhÃ¡ÂºÂ¯n: ngÃ†Â°Ã¡Â»Â i nhÃ¡ÂºÂ­n chÃ¡Â»â€° chÃ¡ÂºÂ¥p nhÃ¡ÂºÂ­n tin nhÃ¡ÂºÂ¯n tÃ¡Â»Â« bÃ¡ÂºÂ¡n bÃƒÂ¨.');
       } else {
         setError(msg || 'GÃ¡Â»Â­i tin nhÃ¡ÂºÂ¯n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
       }
@@ -755,46 +831,6 @@ export default function GroupChat() {
     }
   };
 
-
-
-
-
-  const handleVotePoll = async (msg: Message, optionId: string) => {
-    if (!user?.id || !msg.id || votingPollMessageId === msg.id) return;
-
-    const currentSelections = (msg.pollOptions || [])
-      .filter((option) => (option.voterUserIds || []).includes(user.id))
-      .map((option) => option.optionId);
-
-    let nextSelections: string[] = [];
-    if (msg.pollMultipleChoice) {
-      nextSelections = currentSelections.includes(optionId)
-        ? currentSelections.filter((id) => id !== optionId)
-        : [...currentSelections, optionId];
-      if (nextSelections.length === 0) {
-        nextSelections = [optionId];
-      }
-    } else {
-      nextSelections = [optionId];
-    }
-
-    setVotingPollMessageId(msg.id);
-    try {
-      const updated = await messagesApi.votePoll(msg.id, {
-        userId: user.id,
-        optionIds: nextSelections,
-      });
-      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    } catch (err: any) {
-      setError(err?.message || 'Vote poll that bai');
-    } finally {
-      setVotingPollMessageId(null);
-    }
-  };
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 1. Edit message Ã¢â€â‚¬Ã¢â€â‚¬
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 2. Forward message Ã¢â€â‚¬Ã¢â€â‚¬
   const startForward = async (msgId: string) => {
     setForwardingMessageId(msgId);
     setContextMenuMsgId(null);
@@ -817,7 +853,6 @@ export default function GroupChat() {
     }
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 3. Reaction Ã¢â€â‚¬Ã¢â€â‚¬
   const handleReaction = async (msgId: string, emoji: string) => {
     try {
       const updated = await messagesApi.toggleReaction(msgId, emoji);
@@ -828,20 +863,16 @@ export default function GroupChat() {
     setContextMenuMsgId(null);
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 4. Star message Ã¢â€â‚¬Ã¢â€â‚¬
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 7. Toggle block (DM only) Ã¢â€â‚¬Ã¢â€â‚¬
   const handleToggleBlock = async () => {
     if (!conversationId || !user?.id) return;
     try {
       const updated = await conversationsApi.toggleBlockConversation(conversationId, user.id);
       setConversation(updated);
     } catch (err: any) {
-      setError(err?.message || 'ChÃ¡ÂºÂ·n/bÃ¡Â»Â chÃ¡ÂºÂ·n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'ChÃ¡ÂºÂ·n/bÃ¡Â»Â  chÃ¡ÂºÂ·n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
     }
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 8. Toggle ban member (Group) Ã¢â€â‚¬Ã¢â€â‚¬
   const handleToggleBan = async (targetUserId: string) => {
     if (!conversationId || !user?.id) return;
     try {
@@ -851,13 +882,10 @@ export default function GroupChat() {
       });
       setConversation(updated);
     } catch (err: any) {
-      setError(err?.message || 'CÃ¡ÂºÂ¥m/bÃ¡Â»Â cÃ¡ÂºÂ¥m thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'CÃ¡ÂºÂ¥m/bÃ¡Â»Â  cÃ¡ÂºÂ¥m thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
     }
   };
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 9. Update nickname Ã¢â€â‚¬Ã¢â€â‚¬
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬ 10. Invite link Ã¢â€â‚¬Ã¢â€â‚¬
   const handleGetInviteLink = async () => {
     if (!conversationId || !user?.id) return;
     try {
@@ -865,7 +893,7 @@ export default function GroupChat() {
       setInviteLink(link);
       navigator.clipboard.writeText(link).catch(() => undefined);
     } catch (err: any) {
-      setError(err?.message || 'LÃ¡ÂºÂ¥y link mÃ¡Â»Âi thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'LÃ¡ÂºÂ¥y link mÃ¡Â»Â i thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
     }
   };
   const renderAttachments = (msg: Message) => {
@@ -905,7 +933,7 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col relative">
       <GroupHeader
         groupName={conversation?.groupName || 'Group Chat'}
         memberCount={conversation?.participantIds?.length || 0}
@@ -950,8 +978,6 @@ export default function GroupChat() {
           onHideConversation={hideConversation}
           onClearConversationForMe={clearConversationForMe}
           onLeaveGroup={leaveGroup}
-          isMuted={isMuted}
-          onToggleMute={handleToggleMute}
           onToggleBlock={handleToggleBlock}
           onGetInviteLink={handleGetInviteLink}
           inviteLink={inviteLink}
@@ -959,18 +985,16 @@ export default function GroupChat() {
         />
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-white"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+      >
         {activeTab === 'chat' && (
           <>
-            {hasMore && (
-              <div className="flex justify-center">
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="h-9 px-4 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm disabled:opacity-60"
-                >
-                  {loadingMore ? 'Dang tai them...' : 'Tai tin nhan cu hon'}
-                </button>
+            {loadingMore && (
+              <div className="flex justify-center py-2">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
 
@@ -985,60 +1009,48 @@ export default function GroupChat() {
                 return (
                   <div key={msg.id} className="flex justify-center">
                     <div className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                      {msg.content}
+                      {(() => {
+                        let resolved = msg.content;
+                        const ids = conversation?.participantIds || [];
+                        const names = conversation?.participantNames || [];
+                        ids.forEach((id, idx) => {
+                          if (!id) return;
+                          resolved = resolved.replace(new RegExp(`\\b${id}\\b`, 'g'), names[idx] || id);
+                        });
+                        return resolved;
+                      })()}
                     </div>
                   </div>
                 );
               }
 
               if (msg.messageType === 'POLL') {
-                const pollOptions = msg.pollOptions || [];
-                const totalVotes = pollOptions.reduce((sum, option) => sum + (option.voterUserIds || []).length, 0);
-                const myVotes = new Set(
-                  pollOptions
-                    .filter((option) => (option.voterUserIds || []).includes(user?.id || ''))
-                    .map((option) => option.optionId)
-                );
-
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[78%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}> 
-                      {!isMe && <div className="text-xs text-gray-500 mb-1">{msg.senderName}</div>}
-                      <div className={`px-4 py-3 rounded-2xl border ${isMe ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-200'}`}>
-                        <div className="text-xs font-semibold text-indigo-600 mb-2 inline-flex items-center gap-1">
-                          <BarChart3 className="w-3.5 h-3.5" />
-                          BINH CHON
-                        </div>
-                        <div className="font-medium text-sm text-gray-900 mb-2">{msg.pollQuestion || msg.content}</div>
-                        <div className="space-y-2">
-                          {pollOptions.map((option) => {
-                            const voteCount = (option.voterUserIds || []).length;
-                            const selected = myVotes.has(option.optionId);
-                            return (
-                              <button
-                                key={`${msg.id}-${option.optionId}`}
-                                onClick={() => handleVotePoll(msg, option.optionId)}
-                                disabled={msg.pollClosed || votingPollMessageId === msg.id}
-                                className={`w-full text-left px-3 py-2 rounded-lg border text-sm flex items-center justify-between ${selected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'} disabled:opacity-60`}
-                              >
-                                <span className="inline-flex items-center gap-2 text-gray-800">
-                                  {selected && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                                  {option.text}
-                                </span>
-                                <span className="text-xs text-gray-500">{voteCount}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-2 text-[11px] text-gray-500">
-                          {totalVotes} vote{totalVotes === 1 ? '' : 's'}{msg.pollMultipleChoice ? ' Ã¢â‚¬Â¢ nhieu lua chon' : ' Ã¢â‚¬Â¢ mot lua chon'}
-                        </div>
-                      </div>
-                      <div className="mt-1 text-[11px] text-gray-400">
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
+                  <PollMessageCard
+                    key={msg.id}
+                    msg={msg}
+                    isMe={isMe}
+                    userId={user?.id || ''}
+                    onVote={handleVotePoll}
+                    voting={votingPollMessageId === msg.id}
+                    participantNames={conversation?.participantNames}
+                    participantIds={conversation?.participantIds}
+                  />
+                );
+              }
+
+              if (msg.messageType === 'APPOINTMENT') {
+                return (
+                  <AppointmentMessageCard
+                    key={msg.id}
+                    msg={msg}
+                    isMe={isMe}
+                    userId={user?.id || ''}
+                    onJoin={handleJoinAppointment}
+                    joining={joiningAppointmentId === msg.id}
+                    participantNames={conversation?.participantNames}
+                    participantIds={conversation?.participantIds}
+                  />
                 );
               }
 
@@ -1133,7 +1145,7 @@ export default function GroupChat() {
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       <button onClick={() => togglePinMessage(msg.id)} className="hover:text-gray-600 inline-flex items-center gap-1">
                         <Pin className={`w-3 h-3 ${msg.pinned ? 'text-blue-500' : ''}`} />
-                        {msg.pinned ? 'BÃ¡Â»Â ghim' : 'Ghim'}
+                        {msg.pinned ? 'BÃ¡Â»Â  ghim' : 'Ghim'}
                       </button>
                       {canRecall && (
                         <button onClick={() => recallMessage(msg.id)} className="hover:text-red-600 inline-flex items-center gap-1">
@@ -1145,7 +1157,7 @@ export default function GroupChat() {
                       </button>
                     </div>
                     {isMe && seenList.length > 0 && (
-                      <div className="text-[11px] text-emerald-600 mt-0.5">Ã„ÂÃƒÂ£ xem: {seenList.slice(0, 3).join(', ')}</div>
+                      <div className="text-[11px] text-emerald-600 mt-0.5">Đã xem: {seenList.slice(0, 3).join(', ')}</div>
                     )}
                   </div>
                 </div>
@@ -1226,30 +1238,45 @@ export default function GroupChat() {
       </div>
 
       <div className="border-t border-gray-200 p-3 bg-white">
-      <GroupInput
-        message={message}
-        onMessageInput={handleMessageInput}
-        onSend={() => handleSend().catch(() => undefined)}
-        canSend={canSend}
-        sending={sending}
-        activeTab={activeTab}
-        typingNames={typingNames}
-        showPollComposer={showPollComposer}
-        onTogglePollComposer={() => setShowPollComposer((prev) => !prev)}
-        pollQuestion={pollQuestion}
-        onPollQuestionChange={setPollQuestion}
-        pollOptions={pollOptions}
-        onSetPollOptionAt={setPollOptionAt}
-        onAddPollOption={addPollOptionField}
-        onRemovePollOption={removePollOptionField}
-        pollMultipleChoice={pollMultipleChoice}
-        onPollMultipleChoiceChange={setPollMultipleChoice}
-        onCreatePoll={() => handleCreatePoll().catch(() => undefined)}
-        creatingPoll={creatingPoll}
-        mentionOpen={mentionOpen}
-        mentionCandidates={mentionCandidates}
-        onApplyMention={applyMention}
-      />
+        {conversation?.isDisbanded ? (
+          <div className="p-4 bg-gray-50 flex items-center justify-center rounded-xl">
+            <p className="text-red-500 font-medium text-sm">Nhóm này đã được giải tán bởi nhóm trưởng</p>
+          </div>
+        ) : (
+          <GroupInput
+            message={message}
+            onMessageInput={handleMessageInput}
+            onSend={handleSendMessage}
+            canSend={canSend}
+            sending={sending}
+            activeTab={activeTab}
+            typingNames={typingNames}
+            onOpenPollModal={() => setIsCreatePollOpen(true)}
+            onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+            mentionOpen={mentionOpen}
+            mentionCandidates={mentionCandidates}
+            onApplyMention={applyMention}
+          />
+        )}
+
+        {/* Create Poll Modal */}
+        {isCreatePollOpen && (
+          <CreatePollModal
+            onClose={() => setIsCreatePollOpen(false)}
+            onSubmit={handleCreatePoll}
+            creating={creatingPoll}
+          />
+        )}
+
+        {isCreateAppointmentOpen && (
+          <CreateAppointmentModal
+            onClose={() => setIsCreateAppointmentOpen(false)}
+            onSubmit={handleCreateAppointment}
+            creating={creatingAppointment}
+          />
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
       {/* Forward modal */}
       {forwardingMessageId && (
@@ -1262,7 +1289,7 @@ export default function GroupChat() {
         />
       )}
     </div>
-    </div>
+    </div >
   );
 }
 

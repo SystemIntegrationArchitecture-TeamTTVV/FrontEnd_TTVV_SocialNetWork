@@ -1,16 +1,19 @@
 // ─── MessageBubble — single message rendering ──────────────────────────
 // Extracted from Messenger.tsx lines 2178–2510
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   MoreVertical, Reply, Forward, Copy, Pin, Star,
-  Pencil, Trash2, Check, CheckCheck, Mic, FileText, Bot,
+  Pencil, Trash2, Check, CheckCheck, Plus, Mic, FileText, Bot,
 } from 'lucide-react';
-import { REACTIONS, ReactionIcon } from '../../../components/chat/ReactionIcons';
+import { REACTIONS } from '../../../components/chat/ReactionIcons';
 import type { DisplayMessage } from '../../../hooks/useMessages';
 import { hashColor } from '../shared/messengerUtils';
+import PollMessageCard from './PollMessageCard';
+import AppointmentMessageCard from './AppointmentMessageCard';
+import type { Message } from '../../../apis/messages';
 
 export interface MessageBubbleProps {
   msg: DisplayMessage;
@@ -23,6 +26,13 @@ export interface MessageBubbleProps {
   onSetMenuPosition: (pos: { top: number; left?: number; right?: number } | null) => void;
   onMessageAction: (action: string, messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
+  onVote: (msg: Message, optionId: string) => void;
+  voting?: string | null;
+  onJoinAppointment?: (messageId: string) => void;
+  joiningAppointment?: string | null;
+  userId: string;
+  participantNames?: string[];
+  participantIds?: string[];
 }
 
 export default function MessageBubble({
@@ -36,12 +46,17 @@ export default function MessageBubble({
   onSetMenuPosition,
   onMessageAction,
   onReaction,
+  onVote,
+  voting,
+  onJoinAppointment,
+  joiningAppointment,
+  userId,
+  participantNames = [],
+  participantIds = [],
 }: MessageBubbleProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const actionHideTimerRef = useRef<number | null>(null);
-  const [showHoverActions, setShowHoverActions] = useState(false);
   const legacyContactName = msg.content.startsWith('[Contact]')
     ? msg.content.replace('[Contact]', '').trim()
     : '';
@@ -51,42 +66,14 @@ export default function MessageBubble({
     return id || null;
   };
 
-  const keepActionsVisible = () => {
-    if (actionHideTimerRef.current) {
-      window.clearTimeout(actionHideTimerRef.current);
-      actionHideTimerRef.current = null;
-    }
-    setShowHoverActions(true);
-  };
-
-  const scheduleHideActions = () => {
-    if (actionHideTimerRef.current) {
-      window.clearTimeout(actionHideTimerRef.current);
-    }
-    actionHideTimerRef.current = window.setTimeout(() => {
-      setShowHoverActions(false);
-      actionHideTimerRef.current = null;
-    }, 180);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (actionHideTimerRef.current) {
-        window.clearTimeout(actionHideTimerRef.current);
-      }
-    };
-  }, []);
-
-  const shouldShowActions = showHoverActions || selectedMessage === msg.id;
-
   return (
     <div
       id={`msg-${msg.id}`}
-      className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''} transition-all duration-300`}
-      onMouseEnter={keepActionsVisible}
-      onMouseLeave={scheduleHideActions}
+      className={`group flex items-end gap-2 ${
+        msg.messageType === 'POLL' || msg.messageType === 'APPOINTMENT' ? 'justify-center w-full' : msg.isMe ? 'flex-row-reverse' : ''
+      } transition-all duration-300`}
     >
-      {!msg.isMe && (
+      {!msg.isMe && msg.messageType !== 'POLL' && msg.messageType !== 'APPOINTMENT' && (
         <div
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
             msg.senderId === 'ai'
@@ -103,16 +90,24 @@ export default function MessageBubble({
           )}
         </div>
       )}
-      <div className={`max-w-[70%] relative ${msg.isMe ? 'text-right' : ''}`}>
+      <div className={`${msg.messageType === 'POLL' || msg.messageType === 'APPOINTMENT' ? 'max-w-[90%] w-full' : 'max-w-[70%]'} relative ${msg.isMe && msg.messageType !== 'POLL' && msg.messageType !== 'APPOINTMENT' ? 'text-right' : ''}`}>
         {/* Sender name for incoming messages (group + direct) */}
         {!msg.isMe && (
           <p className="text-[11px] font-medium text-gray-400 mb-0.5 ml-1">{msg.sender}</p>
         )}
         {/* Reply To */}
         {msg.replyTo && (
-          <div className="mb-1 p-2 rounded-lg bg-gray-100 border-l-3 border-blue-400 text-left">
-            <p className="text-[11px] font-semibold text-gray-500">{msg.replyTo.sender}</p>
-            <p className="text-xs text-gray-600 line-clamp-1">{msg.replyTo.content}</p>
+          <div className={`mb-1.5 p-2 rounded-lg border-l-4 text-left cursor-pointer hover:bg-opacity-80 transition-all ${
+            msg.isMe 
+              ? 'bg-black/20 border-white/60 text-white' 
+              : 'bg-gray-100/80 dark:bg-gray-700/50 border-blue-400'
+          }`}>
+            <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${msg.isMe ? 'text-blue-200' : 'text-blue-600'}`}>
+              {msg.replyTo.sender}
+            </p>
+            <p className={`text-[13px] line-clamp-2 leading-relaxed ${msg.isMe ? 'text-white/90' : 'text-gray-600 dark:text-gray-300'}`}>
+              {msg.replyTo.content}
+            </p>
           </div>
         )}
 
@@ -245,51 +240,61 @@ export default function MessageBubble({
             </div>
           </div>
         )}
-        {msg.content && !legacyContactName && (
+        {msg.messageType === 'POLL' && (
+          <PollMessageCard
+            msg={msg as any as Message}
+            isMe={msg.isMe}
+            userId={userId}
+            onVote={onVote}
+            voting={voting === msg.id}
+            participantNames={participantNames}
+            participantIds={participantIds}
+          />
+        )}
+        {msg.messageType === 'APPOINTMENT' && (
+          <AppointmentMessageCard
+            msg={msg as any as Message}
+            isMe={msg.isMe}
+            userId={userId}
+            onJoin={onJoinAppointment || (() => {})}
+            joining={joiningAppointment === msg.id}
+            participantNames={participantNames}
+            participantIds={participantIds}
+          />
+        )}
+        {msg.content && !legacyContactName && msg.messageType !== 'POLL' && msg.messageType !== 'APPOINTMENT' && (
           <div
             className={`relative inline-block px-3.5 py-2 ${
               msg.isMe
                 ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
                 : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
             }`}
-            onDoubleClick={() => onReaction(msg.id, 'love')}
+            onDoubleClick={() => onReaction(msg.id, '❤️')}
           >
             <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
           </div>
         )}
 
-        {/* Quick Reactions Bar (always available on hover) */}
-        <div
-          className={`absolute ${
-            msg.isMe ? 'left-0' : 'right-0'
-          } bottom-full mb-1 transition-opacity z-30 ${
-            shouldShowActions ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          onMouseEnter={keepActionsVisible}
-          onMouseLeave={scheduleHideActions}
-        >
-          <div className="bg-white rounded-full shadow-xl border border-gray-200 px-2 py-1 flex items-center gap-1">
-            {REACTIONS.map((r) => (
+        {/* Quick Reactions - Top bar on hover */}
+        <div className={`absolute -top-10 ${msg.isMe ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 pointer-events-none group-hover:pointer-events-auto transform translate-y-2 group-hover:translate-y-0`}>
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-full px-2 py-1.5 backdrop-blur-md">
+            {['👍', '❤️', '😂', '😮', '😢', '🔥'].map((emoji) => (
               <button
-                key={r.key}
-                onClick={() => onReaction(msg.id, r.key)}
-                className="w-7 h-7 rounded-full hover:scale-110 transition-transform flex items-center justify-center"
-                title={r.label}
+                key={emoji}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReaction(msg.id, emoji);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-125 transition-all text-lg"
               >
-                <span className="w-5 h-5 inline-block">{r.svg}</span>
+                {emoji}
               </button>
             ))}
           </div>
         </div>
 
         {/* Message Options */}
-        <div
-          className={`absolute ${msg.isMe ? 'left-0 -left-11' : 'right-0 -right-11'} top-full mt-1 transition-opacity z-20 ${
-            shouldShowActions ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          onMouseEnter={keepActionsVisible}
-          onMouseLeave={scheduleHideActions}
-        >
+        <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
           <div className="relative">
             <button
               ref={isSelected ? menuButtonRef : null}
@@ -366,23 +371,59 @@ export default function MessageBubble({
         </div>
 
         {/* Reactions */}
-        {(msg.reactions && msg.reactions.length > 0) && (
-          <div className={`flex flex-wrap gap-1 mt-2 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+        {msg.reactions && msg.reactions.length > 0 && (
+          <div className={`flex flex-wrap gap-1 mt-2 ${msg.messageType === 'POLL' || msg.messageType === 'APPOINTMENT' ? 'justify-center' : msg.isMe ? 'justify-end' : 'justify-start'}`}>
             {msg.reactions.map((reaction, idx) => (
               <button
                 key={idx}
                 onClick={() => onReaction(msg.id, reaction.emoji)}
                 className="px-2 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-1 text-xs"
               >
-                <ReactionIcon reactionKey={reaction.emoji} className="w-4 h-4 inline-block" />
+                <span>{reaction.emoji}</span>
                 <span className="text-gray-600 font-medium">{reaction.users.length}</span>
               </button>
             ))}
+            <button
+              onClick={() => {
+                const picker = document.getElementById(`reaction-picker-${msg.id}`);
+                if (picker) {
+                  picker.classList.toggle('hidden');
+                  picker.classList.toggle('flex');
+                }
+              }}
+              className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
+            >
+              <Plus className="w-3 h-3 text-gray-600" />
+            </button>
+
+            {/* Quick Reactions Picker */}
+            <div
+              id={`reaction-picker-${msg.id}`}
+              className="hidden absolute bottom-full mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 gap-1 z-20"
+            >
+              {REACTIONS.map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => {
+                    onReaction(msg.id, r.key);
+                    const picker = document.getElementById(`reaction-picker-${msg.id}`);
+                    if (picker) {
+                      picker.classList.add('hidden');
+                      picker.classList.remove('flex');
+                    }
+                  }}
+                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                  title={r.label}
+                >
+                  <span className="w-5 h-5 inline-block">{r.svg}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Time and Status */}
-        <div className={`flex items-center gap-1 mt-0.5 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex items-center gap-1 mt-0.5 ${msg.messageType === 'POLL' || msg.messageType === 'APPOINTMENT' ? 'justify-center' : msg.isMe ? 'justify-end' : 'justify-start'}`}>
           <p className="text-[11px] text-gray-400">{msg.time}</p>
           {msg.isMe && msg.status && (
             <div className="flex items-center">

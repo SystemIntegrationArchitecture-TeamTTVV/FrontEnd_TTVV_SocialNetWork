@@ -4,11 +4,14 @@ import { useNavigate, useLocation, type Location } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usersApi, type User } from '../../apis/users';
 import { conversationsApi } from '../../apis/conversations';
+import { getFriends } from '../../apis/friendRequests';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface NewMessageLocationState {
   createGroup?: boolean;
 }
+
+const FRIENDS_PAGE_SIZE = 20;
 
 export default function NewMessage() {
   const navigate = useNavigate();
@@ -20,13 +23,62 @@ export default function NewMessage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [friendSuggestions, setFriendSuggestions] = useState<User[]>([]);
+  const [visibleFriendCount, setVisibleFriendCount] = useState(FRIENDS_PAGE_SIZE);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsLoadError, setFriendsLoadError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch users by search query (debounced)
   useEffect(() => {
+    if (!createGroup || !user?.id) {
+      setFriendSuggestions([]);
+      setVisibleFriendCount(FRIENDS_PAGE_SIZE);
+      setFriendsLoadError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadFriends = async () => {
+      try {
+        setFriendsLoading(true);
+        setFriendsLoadError(null);
+        const friends = await getFriends(user.id);
+        if (cancelled) return;
+
+        const mapped: User[] = friends.map((friend) => ({
+          id: friend.id,
+          fullName: friend.name,
+          avatar: friend.avatar,
+        }));
+        setFriendSuggestions(mapped);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Failed to load friends for group creation', err);
+        setFriendsLoadError(t('messenger.newMessage.friendsLoadFailed'));
+      } finally {
+        if (!cancelled) {
+          setFriendsLoading(false);
+        }
+      }
+    };
+
+    loadFriends();
+    return () => {
+      cancelled = true;
+    };
+  }, [createGroup, user?.id, t]);
+
+  // Fetch users by search query (debounced) for direct chat mode
+  useEffect(() => {
+    if (createGroup) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
     const trimmed = searchQuery.trim();
     if (!trimmed) {
       setSearchResults([]);
@@ -47,7 +99,46 @@ export default function NewMessage() {
     }, 350);
 
     return () => clearTimeout(handle);
-  }, [searchQuery, user?.id]);
+  }, [searchQuery, user?.id, createGroup]);
+
+  useEffect(() => {
+    if (!createGroup) return;
+    setVisibleFriendCount(FRIENDS_PAGE_SIZE);
+  }, [searchQuery, createGroup]);
+
+  const filteredFriends = useMemo(() => {
+    if (!createGroup) return [];
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return friendSuggestions;
+
+    return friendSuggestions.filter((friend) => {
+      const name = (friend.fullName || friend.username || '').toLowerCase();
+      const email = (friend.email || '').toLowerCase();
+      return name.includes(keyword) || email.includes(keyword);
+    });
+  }, [createGroup, friendSuggestions, searchQuery]);
+
+  const visibleContacts = useMemo(() => {
+    if (createGroup) {
+      return filteredFriends.slice(0, visibleFriendCount);
+    }
+    return searchResults;
+  }, [createGroup, filteredFriends, visibleFriendCount, searchResults]);
+
+  const canLoadMoreFriends = createGroup && visibleFriendCount < filteredFriends.length;
+
+  const contactNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const contact of friendSuggestions) {
+      if (!contact.id) continue;
+      map.set(contact.id, contact.fullName || contact.username || contact.id);
+    }
+    for (const contact of searchResults) {
+      if (!contact.id) continue;
+      map.set(contact.id, contact.fullName || contact.username || contact.id);
+    }
+    return map;
+  }, [friendSuggestions, searchResults]);
 
   const toggleContact = (id: string) => {
     setSelectedContacts((prev) =>
@@ -140,8 +231,7 @@ export default function NewMessage() {
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-semibold text-gray-700">{t('messenger.newMessage.toLabel')} </span>
             {selectedContacts.map((id) => {
-              const contact = searchResults.find((c) => c.id === id);
-              const name = contact?.fullName || contact?.username || id;
+              const name = contactNameById.get(id) || id;
               return (
                 <div
                   key={id}
@@ -184,9 +274,17 @@ export default function NewMessage() {
           <div className="space-y-2">
             {searching && <div className="text-sm text-gray-500">{t('messenger.newMessage.searching')}</div>}
 
-            {!searching && searchResults.length === 0 && (
+            {createGroup && friendsLoading && (
+              <div className="text-sm text-gray-500">{t('messenger.newMessage.friendsLoading')}</div>
+            )}
+
+            {createGroup && friendsLoadError && (
+              <div className="text-sm text-red-600">{friendsLoadError}</div>
+            )}
+
+            {!searching && !friendsLoading && visibleContacts.length === 0 && (
               <div className="text-sm text-gray-500">
-                {createGroup ? t('messenger.newMessage.emptySearchMembers') : t('messenger.newMessage.emptySearchUsers')}
+                {createGroup ? t('messenger.newMessage.emptyFriendMembers') : t('messenger.newMessage.emptySearchUsers')}
               </div>
             )}
             
@@ -198,7 +296,7 @@ export default function NewMessage() {
               </div>
             )}
 
-            {searchResults.map((contact) => {
+            {visibleContacts.map((contact) => {
               if (!contact.id) return null;
               const isSelected = selectedContacts.includes(contact.id);
               const color = '#42B72A';
@@ -236,6 +334,15 @@ export default function NewMessage() {
                 </button>
               );
             })}
+
+            {canLoadMoreFriends && (
+              <button
+                onClick={() => setVisibleFriendCount((prev) => prev + FRIENDS_PAGE_SIZE)}
+                className="w-full h-11 rounded-lg border border-blue-200 text-blue-600 font-semibold hover:bg-blue-50 transition-colors"
+              >
+                {t('messenger.newMessage.loadMoreFriends')}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,12 +1,14 @@
-// ─── ChatInfoSidebar — right sidebar with profile, group management, media ──
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Palette, Smile, Pencil, Lock, Search as SearchIcon,
-  Trash2, Users,
+  Trash2, UserPlus, Crown, Shield,
+  MessageSquareLock, UserCheck, X, Check, Users,
 } from 'lucide-react';
+import { useState } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../../common/icons/IconComponents';
 import type { Conversation } from '../../../apis/conversations';
+import type { FriendDTO } from '../../../apis/friendRequests';
 
 interface ActiveConversation {
   id: string;
@@ -30,28 +32,81 @@ interface ChatInfoSidebarProps {
   onGroupNameChange: (v: string) => void;
   groupAvatarDraft: string;
   onGroupAvatarChange: (v: string) => void;
-  groupMemberInput: string;
-  onGroupMemberInputChange: (v: string) => void;
   groupActionMessage: string | null;
   groupActionError: string | null;
   updatingGroup: boolean;
   pendingJoins: string[];
-  adminDraft: string[];
-  newOwnerId: string;
-  onNewOwnerIdChange: (v: string) => void;
   // Handlers
   onSaveGroupMeta: () => void;
-  onAddMembers: () => void;
   onRemoveMember: (memberId: string) => void;
   onJoinRequestDecision: (userId: string, accept: boolean) => void;
-  onAdminToggle: (pid: string) => void;
-  onUpdateRoles: () => void;
-  onDeleteGroup: () => void;
+  onDisbandGroup: () => void;
+
   onClearConversationForMe: () => void;
+  onToggleRequireApproval: (current: boolean) => void;
+  onToggleOnlyAdminsCanSend: (current: boolean) => void;
+  onTransferOwnership: (newOwnerId: string) => void;
+  friendList: FriendDTO[];
+  onInviteFriends: (ids: string[]) => void;
   // UI
   onShowSearch: () => void;
   onCloseRightSidebar: () => void;
   userId?: string;
+}
+
+/** Small toggle switch component */
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      disabled={disabled}
+      aria-checked={checked}
+      role="switch"
+      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${checked ? 'bg-blue-500' : 'bg-gray-300'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+      />
+    </button>
+  );
+}
+
+/** Colored initials avatar */
+function MemberAvatar({ name, color }: { name: string; color: string }) {
+  const initials = name
+    .split(' ')
+    .map((n) => n[0] || '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || '?';
+  return (
+    <div
+      className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+      style={{ backgroundColor: color }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+const COLORS = [
+  '#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444',
+];
+function colorFromId(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return COLORS[h % COLORS.length];
 }
 
 export default function ChatInfoSidebar({
@@ -66,394 +121,578 @@ export default function ChatInfoSidebar({
   onGroupNameChange,
   groupAvatarDraft,
   onGroupAvatarChange,
-  groupMemberInput,
-  onGroupMemberInputChange,
   groupActionMessage,
   groupActionError,
   updatingGroup,
-  pendingJoins,
-  adminDraft,
-  newOwnerId,
-  onNewOwnerIdChange,
+  pendingJoins: pendingJoinsRaw,
   onSaveGroupMeta,
-  onAddMembers,
   onRemoveMember,
   onJoinRequestDecision,
-  onAdminToggle,
-  onUpdateRoles,
-  onDeleteGroup,
+  onDisbandGroup,
+
   onClearConversationForMe,
+  onToggleRequireApproval,
+  onToggleOnlyAdminsCanSend,
+  onTransferOwnership,
+  friendList,
+  onInviteFriends,
   onShowSearch,
   onCloseRightSidebar,
   userId,
 }: ChatInfoSidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [transferOwnerId, setTransferOwnerId] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState('');
+  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const pendingJoins = pendingJoinsRaw || [];
+  const isDisbanded = !!conversationRaw?.isDisbanded;
 
   return (
-    <div className="border-l border-gray-200/50 dark:border-white/5 glass-surface overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-[360px] p-4 md:p-6 shadow-sm">
+    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
+
+      {/* Header close button */}
+      <div className="flex items-center justify-end px-4 pt-3 pb-1">
+        <button
+          onClick={onCloseRightSidebar}
+          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Profile Section */}
-      <div className="text-center mb-6">
+      <div className="text-center px-4 pb-5">
         <div
-          className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+          className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
           style={{ backgroundColor: conversation.color }}
           onClick={() => navigate(`/profile/${conversation.id}`)}
         >
           {conversation.avatar}
         </div>
-        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">{conversation.name}</h3>
-        {conversation.online && (
-          <p className="text-sm md:text-base text-green-500 font-medium">{t('messenger.activeNow')}</p>
+        <h3 className="text-base font-bold text-gray-900 mb-0.5">{conversation.name}</h3>
+        {isGroupChat && conversationRaw && (
+          <p className="text-xs text-gray-500">
+            {t('messenger.groupPanel.memberCount', { count: conversationRaw.participantIds.length })}
+          </p>
+        )}
+        {!isGroupChat && conversation.online && (
+          <p className="text-xs text-green-500 font-medium">{t('messenger.activeNow')}</p>
         )}
       </div>
 
-      {isGroupChat && conversationRaw && (
-        <div className="mb-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.title')}</h4>
-            <span className="text-xs text-gray-500">
-              {t('messenger.groupPanel.memberCount', { count: conversationRaw.participantIds.length })}
-            </span>
+      {/* Quick Action Buttons */}
+      <div className="flex justify-center gap-3 px-4 pb-5">
+        <button
+          onClick={() => navigate(`/profile/${conversation.id}`)}
+          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity"
+        >
+          <div className="w-12 h-12 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
+            <User className="w-5 h-5 text-blue-600" />
           </div>
+          <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.sidebarProfile')}</span>
+        </button>
+        <button className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+            <Bell className="w-5 h-5 text-gray-600" />
+          </div>
+          <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.sidebarMute')}</span>
+        </button>
+        <button
+          onClick={() => { onShowSearch(); onCloseRightSidebar(); }}
+          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity"
+        >
+          <div className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+            <SearchIcon className="w-5 h-5 text-gray-600" />
+          </div>
+          <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.searchInConversation')}</span>
+        </button>
+        {!isAIChat && (
+          isGroupChat ? (
+            isOwner ? (
+              <button onClick={onDisbandGroup} disabled={isDisbanded} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <span className="text-xs text-red-500 font-medium">Giải tán nhóm</span>
+              </button>
+            ) : !isDisbanded ? (
+              <button onClick={() => userId && onRemoveMember(userId)} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
+                <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
+              </button>
+            ) : null
+          ) : (
+            <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
+              <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
+            </button>
+          )
+        )}
+      </div>
 
+      <div className="h-px bg-gray-100 mx-4" />
+
+      {/* Feedback banners */}
+      {(groupActionMessage || groupActionError) && (
+        <div className="px-4 pt-3">
           {groupActionMessage && (
-            <div className="p-3 rounded-lg bg-green-50 text-green-700 text-sm border border-green-100">
+            <div className="p-3 rounded-xl bg-green-50 text-green-700 text-xs border border-green-100 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
               {groupActionMessage}
             </div>
           )}
           {groupActionError && (
-            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">
+            <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs border border-red-100 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
               {groupActionError}
             </div>
           )}
+        </div>
+      )}
 
-          {canManageGroup && (
-            <div className="space-y-2">
-              <h5 className="text-sm font-semibold text-gray-800">{t('messenger.groupPanel.groupInfo')}</h5>
-              <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.groupName')}</label>
-              <input
-                type="text"
-                value={groupNameDraft}
-                onChange={(e) => onGroupNameChange(e.target.value)}
-                className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder={t('messenger.groupPanel.groupNamePlaceholder')}
-                disabled={updatingGroup}
-              />
-              <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.groupAvatarUrl')}</label>
-              <input
-                type="text"
-                value={groupAvatarDraft}
-                onChange={(e) => onGroupAvatarChange(e.target.value)}
-                className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder={t('messenger.groupPanel.groupAvatarPlaceholder')}
-                disabled={updatingGroup}
-              />
+      {/* ── GROUP MANAGEMENT SECTION ── */}
+      {isGroupChat && conversationRaw && (
+        <div className="flex-1 px-4 py-4 space-y-4">
+          
+          {isDisbanded && (
+            <div className="p-4 rounded-2xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center">
+              <span className="font-semibold text-sm">Nhóm này đã được giải tán</span>
+            </div>
+          )}
+
+          {/* Group Info (editable) — only for admins/owner */}
+          {!isDisbanded && canManageGroup && (
+            <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                {t('messenger.groupPanel.groupInfo')}
+              </h5>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-600">{t('messenger.groupPanel.groupName')}</label>
+                <input
+                  type="text"
+                  value={groupNameDraft}
+                  onChange={(e) => onGroupNameChange(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
+                  placeholder={t('messenger.groupPanel.groupNamePlaceholder')}
+                  disabled={updatingGroup}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-600">{t('messenger.groupPanel.groupAvatarUrl')}</label>
+                <input
+                  type="text"
+                  value={groupAvatarDraft}
+                  onChange={(e) => onGroupAvatarChange(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
+                  placeholder={t('messenger.groupPanel.groupAvatarPlaceholder')}
+                  disabled={updatingGroup}
+                />
+              </div>
               <button
                 onClick={onSaveGroupMeta}
                 disabled={updatingGroup}
-                className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                className="w-full h-10 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-60 shadow-sm"
               >
                 {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveInfo')}
               </button>
-            </div>
+            </section>
           )}
 
-          {canManageGroup && (
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  {t('messenger.groupPanel.requireApproval')}
-                </span>
-                <button
-                  onClick={() => {/* handled by parent */}}
-                  disabled={updatingGroup}
-                  className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors ${
-                    conversationRaw.approvalsRequired ? 'bg-blue-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                      conversationRaw.approvalsRequired ? 'translate-x-5' : ''
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {canManageGroup && conversationRaw.approvalsRequired && pendingJoins.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <h5 className="text-sm font-semibold text-gray-800">
-                {t('messenger.groupPanel.joinRequestsTitle', { count: pendingJoins.length })}
+          {/* Group Permissions — only for admins/owner */}
+          {!isDisbanded && canManageGroup && (
+            <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                {t('messenger.groupPanel.permissionsTitle', 'Quyá» n nhÃ³m')}
               </h5>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {pendingJoins.map((pid) => (
-                  <div
-                    key={pid}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-100"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{pid}</p>
-                      <p className="text-xs text-gray-600">{t('messenger.groupPanel.pendingApproval')}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => onJoinRequestDecision(pid, true)}
-                        disabled={updatingGroup}
-                        className="px-2 py-1 rounded-md text-xs bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60"
-                      >
-                        {t('messenger.groupPanel.accept')}
-                      </button>
-                      <button
-                        onClick={() => onJoinRequestDecision(pid, false)}
-                        disabled={updatingGroup}
-                        className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60"
-                      >
-                        {t('messenger.groupPanel.reject')}
-                      </button>
-                    </div>
+
+              {/* Require approval toggle */}
+              <div className="flex items-center justify-between gap-3 py-1">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                    <UserCheck className="w-4 h-4 text-amber-500" />
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {canManageGroup && (
-            <div className="space-y-2 pt-2 border-t border-gray-200">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={groupMemberInput}
-                  onChange={(e) => onGroupMemberInputChange(e.target.value)}
-                  placeholder={t('messenger.groupPanel.addMembersPrompt')}
+                  <span className="text-sm text-gray-700 leading-snug">
+                    {t('messenger.groupPanel.requireApproval')}
+                  </span>
+                </div>
+                <Toggle
+                  checked={!!conversationRaw.approvalsRequired}
+                  onChange={() => onToggleRequireApproval(!!conversationRaw.approvalsRequired)}
                   disabled={updatingGroup}
-                  className="flex-1 h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-60"
                 />
-                <button
-                  onClick={onAddMembers}
-                  disabled={updatingGroup}
-                  className="h-11 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>{updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.addMembers')}</span>
-                </button>
               </div>
-            </div>
+
+              {/* Only admins can send toggle */}
+              <div className="flex items-center justify-between gap-3 py-1">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                    <MessageSquareLock className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <span className="text-sm text-gray-700 leading-snug">
+                    {t('messenger.groupPanel.onlyAdminsCanSend', 'Chá»‰ trÆ°á»Ÿng/phÃ³ nhÃ³m Ä‘Æ°á»£c gá»­i tin')}
+                  </span>
+                </div>
+                <Toggle
+                  checked={!!conversationRaw.onlyAdminsCanSend}
+                  onChange={() => onToggleOnlyAdminsCanSend(!!conversationRaw.onlyAdminsCanSend)}
+                  disabled={updatingGroup}
+                />
+              </div>
+            </section>
           )}
 
-          <div className="space-y-2">
-            <h5 className="text-sm font-semibold text-gray-800">{t('messenger.groupPanel.membersTitle')}</h5>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+          {/* Pending Join Requests — badge button for admin/owner, opens popup */}
+          {!isDisbanded && canManageGroup && pendingJoins.length > 0 && (
+            <button
+              onClick={() => setPendingOpen(true)}
+              className="w-full flex items-center gap-2 p-3 rounded-2xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                <UserCheck className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-amber-800">Phê duyệt tham gia</p>
+                <p className="text-xs text-amber-600">{pendingJoins.length} người đang chờ duyệt</p>
+              </div>
+              <span className="min-w-5.5 h-5.5 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center px-1.5">
+                {pendingJoins.length}
+              </span>
+            </button>
+          )}
+
+          {/* Members List */}
+          <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                {t('messenger.groupPanel.membersTitle')}
+              </h5>
+              {/* Invite button: visible to all members in the group */}
+              {!isDisbanded && (
+                <button
+                  onClick={() => { setInviteOpen(true); setInviteSearch(''); setSelectedFriendIds([]); }}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Mời bạn bè
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-1 max-h-56 overflow-y-auto -mx-1 px-1">
               {conversationRaw.participantIds.map((pid, idx) => {
                 const name = conversationRaw.participantNames?.[idx] || pid;
                 const isMemberOwner = pid === conversationRaw.ownerId;
                 const isMemberAdmin = conversationRaw.adminIds?.includes(pid);
                 const isSelf = pid === userId;
-                const canKick = isSelf || (
-                  isOwner && !isMemberOwner
-                ) || (
-                  isAdmin && !isOwner && !isMemberOwner && !isMemberAdmin
-                );
+                const canKick = isSelf || (isOwner && !isMemberOwner) || (isAdmin && !isOwner && !isMemberOwner && !isMemberAdmin);
 
                 return (
-                  <div key={pid} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{name}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  <div key={pid} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white transition-colors group">
+                    <MemberAvatar name={name} color={colorFromId(pid)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
                       {isMemberOwner && (
-                        <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700 font-medium">
-                          {t('messenger.groupPanel.ownerBadge')}
-                        </span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Crown className="w-3 h-3 text-amber-500" />
+                          <span className="text-xs text-amber-600 font-medium">{t('messenger.groupPanel.ownerBadge')}</span>
+                        </div>
                       )}
                       {isMemberAdmin && !isMemberOwner && (
-                        <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">
-                          {t('messenger.groupPanel.adminBadge')}
-                        </span>
-                      )}
-                      {canKick && (
-                        <button
-                          onClick={() => onRemoveMember(pid)}
-                          disabled={updatingGroup}
-                          className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60 font-medium"
-                        >
-                          {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
-                        </button>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Shield className="w-3 h-3 text-blue-500" />
+                          <span className="text-xs text-blue-600 font-medium">{t('messenger.groupPanel.adminBadge')}</span>
+                        </div>
                       )}
                     </div>
+                    {!isDisbanded && canKick && (
+                      <button
+                        onClick={() => onRemoveMember(pid)}
+                        disabled={updatingGroup}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${isSelf
+                            ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                            : 'bg-red-50 text-red-600 hover:bg-red-100 opacity-0 group-hover:opacity-100'
+                          }`}
+                      >
+                        {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
 
-          {/* Role Management & Delete Group - Owner Only */}
-          {isOwner && (
-            <>
-              <div className="space-y-3 pt-3 border-t border-gray-200">
-                <h5 className="text-sm font-semibold text-gray-800 mb-2">{t('messenger.groupPanel.roleManagement')}</h5>
+          {/* ── Invite Friends Modal ── */}
+          {inviteOpen && (() => {
+            const memberSet = new Set(conversationRaw.participantIds);
+            const invitable = friendList.filter(
+              (f) => !memberSet.has(f.friendId)
+            );
+            const filtered = invitable.filter((f) =>
+              (f.friendName ?? f.friendId).toLowerCase().includes(inviteSearch.toLowerCase())
+            );
+            const toggleFriend = (id: string) =>
+              setSelectedFriendIds((prev) =>
+                prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+              );
+            return (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setInviteOpen(false)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-blue-500" />
+                      <h3 className="text-base font-semibold text-gray-900">Mời bạn bè vào nhóm</h3>
+                    </div>
+                    <button onClick={() => setInviteOpen(false)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                {/* Transfer Ownership */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.transferOwnership')}</label>
-                  <select
-                    value={newOwnerId}
-                    onChange={(e) => onNewOwnerIdChange(e.target.value)}
-                    className="w-full h-11 px-3 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    disabled={updatingGroup}
-                  >
-                    {conversationRaw.participantIds.map((pid, idx) => {
-                      const name = conversationRaw.participantNames?.[idx] || pid;
-                      return (
-                        <option key={pid} value={pid}>
-                          {name} {pid === conversationRaw.ownerId ? t('messenger.groupPanel.currentOwnerSuffix') : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                  {/* Search */}
+                  <div className="px-4 py-3">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 border border-gray-200">
+                      <SearchIcon className="w-4 h-4 text-gray-400 shrink-0" />
+                      <input
+                        autoFocus
+                        value={inviteSearch}
+                        onChange={(e) => setInviteSearch(e.target.value)}
+                        placeholder="Tìm bạn bè..."
+                        className="flex-1 bg-transparent text-sm focus:outline-none text-gray-700"
+                      />
+                    </div>
+                  </div>
 
-                {/* Manage Admins */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">{t('messenger.groupPanel.assignAdmin')}</label>
-                  <p className="text-xs text-gray-500 mb-2">{t('messenger.groupPanel.assignAdminHint')}</p>
-                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
-                    {conversationRaw.participantIds
-                      .filter(pid => pid !== conversationRaw.ownerId)
-                      .map((pid) => {
-                        const name = conversationRaw.participantNames?.[conversationRaw.participantIds.indexOf(pid)] || pid;
-                        const isMemberAdmin = conversationRaw.adminIds?.includes(pid);
+                  {/* Approval notice: shown to regular members (their invites always go to pending) */}
+                  {!canManageGroup && (
+                    <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-700 flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                      Người được mời sẽ vào danh sách chờ duyệt của admin
+                    </div>
+                  )}
+
+                  {/* Friend list */}
+                  <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-1">
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-sm text-gray-400 py-8">
+                        {inviteSearch ? 'Không tìm thấy bạn bè' : 'Tất cả bạn bè đã trong nhóm'}
+                      </p>
+                    ) : (
+                      filtered.map((f) => {
+                        const isSelected = selectedFriendIds.includes(f.friendId);
                         return (
-                          <label key={pid} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={adminDraft.includes(pid)}
-                              onChange={() => onAdminToggle(pid)}
-                              className="rounded border-gray-300"
-                              disabled={updatingGroup}
-                            />
-                            <span className="text-sm text-gray-700 flex-1">{name}</span>
-                            {isMemberAdmin && !adminDraft.includes(pid) && (
-                              <span className="text-xs text-gray-400">{t('messenger.groupPanel.currentlyAdmin')}</span>
+                          <button
+                            key={f.friendId}
+                            onClick={() => toggleFriend(f.friendId)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                              }`}
+                          >
+                            {f.friendAvatar ? (
+                              <img src={f.friendAvatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                            ) : (
+                              <MemberAvatar name={f.friendName ?? f.friendId} color={colorFromId(f.friendId)} />
                             )}
-                          </label>
+                            <span className="flex-1 text-sm font-medium text-gray-800 text-left truncate">
+                              {f.friendName ?? f.friendId}
+                            </span>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                              }`}>
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                          </button>
                         );
-                      })}
+                      })
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 pb-4 pt-2 border-t border-gray-100 flex gap-2">
+                    <button
+                      onClick={() => setInviteOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+                    >
+                      Huỷ
+                    </button>
+                    <button
+                      disabled={selectedFriendIds.length === 0 || updatingGroup}
+                      onClick={() => {
+                        onInviteFriends(selectedFriendIds);
+                        setInviteOpen(false);
+                      }}
+                      className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {updatingGroup ? 'Đang mời…' : `Mời${selectedFriendIds.length > 0 ? ` (${selectedFriendIds.length})` : ''}`}
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  onClick={onUpdateRoles}
-                  disabled={updatingGroup}
-                  className="w-full h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-                >
-                  {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveRoles')}
-                </button>
               </div>
+            );
+          })()}
 
-              <div className="pt-3 border-t border-gray-200">
-                <button
-                  onClick={onDeleteGroup}
-                  disabled={updatingGroup}
-                  className="w-full h-11 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
-                >
-                  {updatingGroup ? t('messenger.groupPanel.processing') : t('messenger.groupPanel.disbandGroup')}
-                </button>
+          {/* ── Pending Approvals Modal ── */}
+          {pendingOpen && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setPendingOpen(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-amber-500" />
+                    <h3 className="text-base font-semibold text-gray-900">Phê duyệt tham gia nhóm</h3>
+                  </div>
+                  <button onClick={() => setPendingOpen(false)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                  {pendingJoins.length === 0 ? (
+                    <p className="text-center text-sm text-gray-400 py-8">Không có yêu cầu nào</p>
+                  ) : (
+                    pendingJoins.map((pid) => (
+                      <div key={pid} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <MemberAvatar name={pid} color={colorFromId(pid)} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{pid}</p>
+                            <p className="text-xs text-amber-600">Chờ phê duyệt</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => { onJoinRequestDecision(pid, true); if (pendingJoins.length <= 1) setPendingOpen(false); }}
+                            disabled={updatingGroup}
+                            className="p-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-60 transition-colors"
+                            title="Chấp nhận"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => { onJoinRequestDecision(pid, false); if (pendingJoins.length <= 1) setPendingOpen(false); }}
+                            disabled={updatingGroup}
+                            className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 disabled:opacity-60 transition-colors"
+                            title="Từ chối"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setPendingOpen(false)}
+                    className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+                  >
+                    Đóng
+                  </button>
+                </div>
               </div>
-            </>
+            </div>
           )}
+
+          {/* Transfer Ownership — owner only */}
+          {!isDisbanded && isOwner && conversationRaw && (
+            <section className="mt-4 p-3 rounded-2xl border border-amber-100 bg-amber-50/60">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="w-4 h-4 text-amber-500" />
+                <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Chuyển quyền trưởng nhóm</h4>
+              </div>
+              <select
+                value={transferOwnerId}
+                onChange={(e) => setTransferOwnerId(e.target.value)}
+                className="w-full text-sm rounded-xl border border-amber-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-300 mb-2"
+              >
+                <option value="">-- Chọn thành viên --</option>
+                {(conversationRaw.participantIds || []).map((pid, idx) => {
+                  if (pid === userId) return null;
+                  const name = conversationRaw.participantNames?.[idx] || pid;
+                  return <option key={pid} value={pid}>{name}</option>;
+                })}
+              </select>
+              <button
+                disabled={!transferOwnerId || updatingGroup}
+                onClick={() => {
+                  if (!transferOwnerId) return;
+                  onTransferOwnership(transferOwnerId);
+                  setTransferOwnerId('');
+                }}
+                className="w-full py-2 rounded-xl text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {updatingGroup ? 'Đang xử lý…' : 'Xác nhận chuyển quyền'}
+              </button>
+            </section>
+          )}
+
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-center gap-3 md:gap-4 mb-6">
-        <button className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-            <User className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
-          </div>
-          <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarProfile')}</span>
-        </button>
-        <button className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-            <Bell className="w-6 h-6 md:w-7 md:h-7 text-gray-600" />
-          </div>
-          <span className="text-xs md:text-sm text-gray-600 font-medium">{t('messenger.groupPanel.sidebarMute')}</span>
-        </button>
-        {!isAIChat && (
-          <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
-              <Trash2 className="w-6 h-6 md:w-7 md:h-7 text-red-500" />
-            </div>
-            <span className="text-xs md:text-sm text-red-600 font-medium">Xoa doan chat</span>
-          </button>
-        )}
-      </div>
+      {/* â”€â”€ NON-GROUP SECTIONS â”€â”€ */}
+      {!isGroupChat && (
+        <div className="flex-1" />
+      )}
 
-      <div className="border-t border-gray-100 my-6"></div>
+      <div className="h-px bg-gray-100 mx-4" />
 
       {/* Customize Chat */}
-      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-3">
-        <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.customizeChat')}</h4>
-        <div className="space-y-1.5">
-          <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-            <Palette className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-            <span>{t('messenger.groupPanel.changeTheme')}</span>
-          </button>
-          <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-            <Smile className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-            <span>{t('messenger.groupPanel.changeEmoji')}</span>
-          </button>
-          <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-            <Pencil className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-            <span>{t('messenger.groupPanel.changeName')}</span>
-          </button>
+      <div className="px-4 py-4">
+        <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('messenger.groupPanel.customizeChat')}</h4>
+          <div className="space-y-1">
+            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                <Palette className="w-4 h-4 text-purple-500" />
+              </div>
+              <span>{t('messenger.groupPanel.changeTheme')}</span>
+            </button>
+            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center shrink-0">
+                <Smile className="w-4 h-4 text-yellow-500" />
+              </div>
+              <span>{t('messenger.groupPanel.changeEmoji')}</span>
+            </button>
+            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                <Pencil className="w-4 h-4 text-green-500" />
+              </div>
+              <span>{t('messenger.groupPanel.changeName')}</span>
+            </button>
+            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <Lock className="w-4 h-4 text-gray-500" />
+              </div>
+              <span>{t('messenger.groupPanel.disappearingMessages')}</span>
+            </button>
+          </div>
         </div>
       </div>
-
-      <div className="border-t border-gray-100 my-4 md:my-6"></div>
 
       {/* Media */}
-      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-3">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-base md:text-lg font-bold text-gray-900">{t('messenger.groupPanel.photosVideos')}</h4>
-          <button className="text-xs md:text-sm text-blue-600 hover:underline font-medium">{t('messenger.groupPanel.seeAll')}</button>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5 md:gap-2">
-          <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-            <LargeBeachPlaceholder className="w-full h-full" />
+      <div className="px-4 pb-4">
+        <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('messenger.groupPanel.photosVideos')}</h4>
+            <button className="text-xs text-blue-600 hover:underline font-medium">{t('messenger.groupPanel.seeAll')}</button>
           </div>
-          <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-            <LargeSunPlaceholder className="w-full h-full" />
-          </div>
-          <div className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-            <LargePartyPlaceholder className="w-full h-full" />
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+              <LargeBeachPlaceholder className="w-full h-full" />
+            </div>
+            <div className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+              <LargeSunPlaceholder className="w-full h-full" />
+            </div>
+            <div className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+              <LargePartyPlaceholder className="w-full h-full" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-100 my-4 md:my-6"></div>
-
-      {/* Privacy & Support */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-3">
-        <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">{t('messenger.groupPanel.privacySupport')}</h4>
-        <div className="space-y-1.5">
-          <button className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3">
-            <Lock className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-            <span>{t('messenger.groupPanel.disappearingMessages')}</span>
-          </button>
-          <button
-            onClick={() => {
-              onShowSearch();
-              onCloseRightSidebar();
-            }}
-            className="w-full p-2.5 md:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-left text-xs md:text-sm text-gray-700 font-medium flex items-center gap-2 md:gap-3"
-          >
-            <SearchIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
-            <span>{t('messenger.groupPanel.searchInConversation')}</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -1,9 +1,11 @@
 // ─── ChatSidebar — left sidebar with conversation list, search, context menu ──
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Settings, Edit, Search, ChevronLeft, ChevronRight,
   Users, Bot, EyeOff, X, UserRound, Image, Video, Mic, Paperclip, CornerUpLeft,
+  MoreVertical, Pin, PinOff,
 } from 'lucide-react';
 import type { Conversation } from '../../../apis/conversations';
 import type { PresenceStatus } from '../../../apis/users';
@@ -19,6 +21,7 @@ export interface FormattedConversation {
   avatar: string;
   color: string;
   isGroup?: boolean;
+  pinned?: boolean;
 }
 
 interface ChatSidebarProps {
@@ -47,6 +50,9 @@ interface ChatSidebarProps {
   // Hidden panel trigger
   onShowHidden: () => void;
   onStartHide: (convId: string) => void;
+  // Pin conversation
+  onTogglePinConversation?: (convId: string) => void;
+  pinLoading?: boolean;
 }
 
 export default function ChatSidebar({
@@ -71,9 +77,26 @@ export default function ChatSidebar({
   onCancelHide,
   onShowHidden,
   onStartHide,
+  onTogglePinConversation,
+  pinLoading,
 }: ChatSidebarProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   const filteredConversations = sidebarSearch
     ? formattedConversations.filter(c => c.name.toLowerCase().includes(sidebarSearch.toLowerCase()))
@@ -233,7 +256,7 @@ export default function ChatSidebar({
               e.preventDefault();
               onContextMenu(e, conv.id);
             }}
-            className={`cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
+            className={`group/conv cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
               activeChat === conv.id 
                 ? 'bg-blue-50 dark:bg-blue-500/15' 
                 : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
@@ -343,8 +366,69 @@ export default function ChatSidebar({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{conv.name}</p>
-                    <span className={`text-xs shrink-0 ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>{conv.time}</span>
+                    <p className={`text-sm truncate flex items-center gap-1 ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>
+                      {conv.name}
+                      {conv.pinned && <Pin className="w-3 h-3 text-blue-400 rotate-45 shrink-0" />}
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className={`text-xs ${conv.unread > 0 ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>{conv.time}</span>
+                      {/* 3-dot menu button — only show for non-AI conversations */}
+                      {conv.id !== aiConversationId && onTogglePinConversation && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === conv.id ? null : conv.id);
+                            }}
+                            className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors opacity-0 group-hover/conv:opacity-100"
+                            title="Tùy chọn"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          {/* Dropdown menu */}
+                          {openMenuId === conv.id && (
+                            <div
+                              ref={menuRef}
+                              className="absolute right-0 top-7 z-50 w-44 bg-white dark:bg-[#22263a] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 py-1 animate-in fade-in zoom-in-95 duration-150"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onTogglePinConversation(conv.id);
+                                  setOpenMenuId(null);
+                                }}
+                                disabled={pinLoading}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2.5 transition-colors disabled:opacity-50"
+                              >
+                                {conv.pinned ? (
+                                  <>
+                                    <PinOff className="w-4 h-4 text-gray-500" />
+                                    Bỏ ghim hội thoại
+                                  </>
+                                ) : (
+                                  <>
+                                    <Pin className="w-4 h-4 text-blue-500 rotate-45" />
+                                    Ghim hội thoại
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onStartHide(conv.id);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2.5 transition-colors"
+                              >
+                                <EyeOff className="w-4 h-4 text-amber-500" />
+                                Ẩn hội thoại
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
                     <p className={`text-xs truncate ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>

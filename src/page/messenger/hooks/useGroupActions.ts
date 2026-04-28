@@ -20,7 +20,7 @@ export function useGroupActions({
   setActiveChat,
 }: UseGroupActionsProps) {
   const { t } = useTranslation();
-  
+
   const [groupMemberInput, setGroupMemberInput] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
   const [groupAvatarDraft, setGroupAvatarDraft] = useState('');
@@ -61,6 +61,32 @@ export function useGroupActions({
       console.error('Failed to add members', err);
       const message = err instanceof Error ? err.message : t('messenger.group.addMembersError');
       setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleInviteFriends = async (selectedIds: string[]) => {
+    if (!activeChat || !userId || selectedIds.length === 0) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      const updatedConversation = await conversationsApi.addGroupMembers(activeChat, {
+        requesterId: userId,
+        participantIds: selectedIds,
+      });
+      // If some/all invitees were routed to pending, update local pending list
+      if (updatedConversation.pendingJoinIds && updatedConversation.pendingJoinIds.length > 0) {
+        setPendingJoins(updatedConversation.pendingJoinIds);
+        setGroupActionMessage('Lời mời đã được gửi, chờ admin phê duyệt');
+      } else {
+        setGroupActionMessage('Đã mời thành công');
+      }
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to invite friends', err);
+      setGroupActionError(err instanceof Error ? err.message : 'Không thể mời bạn bè');
     } finally {
       setUpdatingGroup(false);
     }
@@ -153,13 +179,35 @@ export function useGroupActions({
     }
   };
 
+  const handleDisbandGroup = async () => {
+    if (!activeChat || !userId || !isGroupChat) return;
+    if (!window.confirm("Bạn có chắc chắn muốn giải tán nhóm này? Toàn bộ lịch sử chat sẽ bị xoá.")) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+
+    try {
+      await conversationsApi.disbandGroup(activeChat, userId);
+      setGroupActionMessage("Giải tán nhóm thành công");
+      await loadConversations();
+      setActiveChat(null);
+    } catch (err: unknown) {
+      console.error('Failed to disband group', err);
+      const message = err instanceof Error ? err.message : "Giải tán nhóm thất bại";
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   const handleClearConversationForMe = async () => {
     if (!activeChat || !userId) return;
     if (!window.confirm(t('messenger.group.confirmClearChatForMe'))) return;
 
     setUpdatingGroup(true);
     try {
-      await conversationsApi.clearConversationForUser(activeChat, userId);
+      await conversationsApi.clearConversationForUser(activeChat, { requesterId: userId });
       await loadConversations();
       setActiveChat(null);
     } catch (err: unknown) {
@@ -178,9 +226,9 @@ export function useGroupActions({
     setGroupActionMessage(null);
     try {
       await conversationsApi.handleJoinRequest(activeChat, {
-        adminId: userId,
+        approverId: userId,
         requesterId,
-        action: approved ? 'approve' : 'reject',
+        approved,
       });
       setGroupActionMessage(approved ? t('messenger.group.approveJoinSuccess') : t('messenger.group.rejectJoinSuccess'));
       setPendingJoins((prev) => prev.filter((id) => id !== requesterId));
@@ -226,6 +274,65 @@ export function useGroupActions({
     }
   };
 
+  const handleTransferOwnership = async (targetUserId: string) => {
+    if (!activeChat || !userId || !targetUserId || targetUserId === userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateGroupRoles(activeChat, {
+        requesterId: userId,
+        newOwnerId: targetUserId,
+      });
+      setGroupActionMessage('Chuyển quyền trưởng nhóm thành công');
+      await loadConversations();
+      // Current user is no longer owner — keep them in the chat but update state
+    } catch (err: unknown) {
+      console.error('Failed to transfer ownership', err);
+      setGroupActionError(err instanceof Error ? err.message : 'Không thể chuyển quyền trưởng nhóm');
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleToggleRequireApproval = async (currentValue: boolean) => {
+    if (!activeChat || !userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateConversationMeta(activeChat, {
+        requesterId: userId,
+        approvalsRequired: !currentValue,
+      });
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to toggle require approval', err);
+      setGroupActionError(err instanceof Error ? err.message : t('messenger.group.updateMetaError'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
+  const handleToggleOnlyAdminsCanSend = async (currentValue: boolean) => {
+    if (!activeChat || !userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateConversationMeta(activeChat, {
+        requesterId: userId,
+        onlyAdminsCanSend: !currentValue,
+      });
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to toggle onlyAdminsCanSend', err);
+      setGroupActionError(err instanceof Error ? err.message : t('messenger.group.updateMetaError'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   return {
     groupMemberInput,
     setGroupMemberInput,
@@ -247,6 +354,7 @@ export function useGroupActions({
     setUpdatingGroup,
     parseIdsInput,
     handleAddMembers,
+    handleInviteFriends,
     handleRemoveMember,
     handleSaveGroupMeta,
     handleDeleteGroup,
@@ -254,5 +362,9 @@ export function useGroupActions({
     handleJoinRequestDecision,
     handleAdminToggle,
     handleUpdateRoles,
+    handleTransferOwnership,
+    handleToggleRequireApproval,
+    handleToggleOnlyAdminsCanSend,
+    handleDisbandGroup,
   };
 }
