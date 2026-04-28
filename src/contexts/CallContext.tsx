@@ -4,6 +4,7 @@ import { socketService } from '../services/socket';
 import { authApi } from '../apis/auth';
 import { conversationsApi } from '../apis/conversations';
 import { callsApi } from '../apis/calls';
+import { callSounds } from '../services/callSounds';
 import CallWindow from '../components/CallWindow';
 import i18n from '../i18n';
 import { useRef } from 'react';
@@ -13,7 +14,7 @@ interface CallState {
   isActive: boolean;
   isCalling: boolean;
   isIncoming: boolean;
-  offerProcessed: boolean; // Track if handleOffer completed successfully
+  offerProcessed: boolean;
   callType: CallType | null;
   remoteName: string;
   remoteId: string;
@@ -23,6 +24,12 @@ interface CallState {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   remoteStreams: Array<{ peerId: string; stream: MediaStream }>;
+  // ── Smart call fields ──
+  serverCallId: string | null;
+  callCategory: 'DIRECT' | 'GROUP';
+  hostId: string | null;
+  activeParticipantIds: string[];
+  callToasts: Array<{ id: string; text: string; type: 'join' | 'leave' | 'host' }>;
 }
 
 interface CallContextType {
@@ -31,11 +38,37 @@ interface CallContextType {
   acceptCall: () => Promise<void>;
   rejectCall: () => void;
   endCall: () => void;
+  leaveCall: (transferToUserId?: string) => void;
+  endCallForAll: () => void;
+  transferHost: (newHostId: string) => void;
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
 const PEER_RING_TIMEOUT_MS = 30000;
 const PEER_MAX_RETRY = 1;
+const DISCONNECT_TIMEOUT_MS = 10000;
+const RING_TIMEOUT_MS = 15000; // Auto-reject/end after 15s of ringing
+
+const initialCallState: CallState = {
+  isActive: false,
+  isCalling: false,
+  isIncoming: false,
+  offerProcessed: false,
+  callType: null,
+  remoteName: '',
+  remoteId: '',
+  conversationId: undefined,
+  isGroup: false,
+  participantIds: [],
+  localStream: null,
+  remoteStream: null,
+  remoteStreams: [],
+  serverCallId: null,
+  callCategory: 'DIRECT',
+  hostId: null,
+  activeParticipantIds: [],
+  callToasts: [],
+};
 
 export function CallProvider({ children }: { children: ReactNode }) {
   const peerTimeoutsRef = useRef<Map<string, number>>(new Map());
@@ -44,26 +77,29 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const callIdToPeerRef = useRef<Map<string, string>>(new Map());
   const activeCallLogIdRef = useRef<string | null>(null);
   const callStateRef = useRef<CallState | null>(null);
+  const disconnectTimersRef = useRef<Map<string, number>>(new Map());
+  const ringTimeoutRef = useRef<number | null>(null);
 
-  const [callState, setCallState] = useState<CallState>({
-    isActive: false,
-    isCalling: false,
-    isIncoming: false,
-    offerProcessed: false,
-    callType: null,
-    remoteName: '',
-    remoteId: '',
-    conversationId: undefined,
-    isGroup: false,
-    participantIds: [],
-    localStream: null,
-    remoteStream: null,
-    remoteStreams: [],
-  });
+  const [callState, setCallState] = useState<CallState>(initialCallState);
 
   useEffect(() => {
     callStateRef.current = callState;
   }, [callState]);
+
+  // ── Toast helper ──
+  const addToast = useCallback((text: string, type: 'join' | 'leave' | 'host') => {
+    const id = `toast_${Date.now()}`;
+    setCallState(prev => ({
+      ...prev,
+      callToasts: [...prev.callToasts.slice(-4), { id, text, type }],
+    }));
+    setTimeout(() => {
+      setCallState(prev => ({
+        ...prev,
+        callToasts: prev.callToasts.filter(t => t.id !== id),
+      }));
+    }, 3500);
+  }, []);
 
   const clearPeerTimer = useCallback((peerId: string) => {
     const timeoutId = peerTimeoutsRef.current.get(peerId);
@@ -79,6 +115,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     peerRetryRef.current.clear();
     pendingPeersRef.current.clear();
     callIdToPeerRef.current.clear();
+    disconnectTimersRef.current.forEach(t => window.clearTimeout(t));
+    disconnectTimersRef.current.clear();
     activeCallLogIdRef.current = null;
   }, []);
 
@@ -97,9 +135,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           await sendOffer();
           schedulePeerTimeout(peerId, sendOffer, onPeerFailed);
           return;
-        } catch {
-          // Fall through to failure handling below.
-        }
+        } catch { /* fall through */ }
       }
       pendingPeersRef.current.delete(peerId);
       clearPeerTimer(peerId);
@@ -108,122 +144,199 @@ export function CallProvider({ children }: { children: ReactNode }) {
     peerTimeoutsRef.current.set(peerId, timeoutId);
   }, [clearPeerTimer]);
 
-  // Subscribe to incoming WebRTC events
+  // ── Ring timeout helpers ──
+  const clearRingTimeout = useCallback(() => {
+    if (ringTimeoutRef.current) {
+      window.clearTimeout(ringTimeoutRef.current);
+      ringTimeoutRef.current = null;
+    }
+  }, []);
+
+  // ── Core cleanup ──
+  const cleanupCall = useCallback(() => {
+    callSounds.stopAll();
+    clearRingTimeout();
+    webrtcService.endCall();
+    webrtcService.onPeerStateChange(null);
+    setCallState(initialCallState);
+    resetPeerTracking();
+  }, [resetPeerTracking, clearRingTimeout]);
+
+  // ═══════════ Socket event handlers ═══════════
+
   useEffect(() => {
     const currentUser = authApi.getCurrentUser();
     if (!currentUser) return;
 
-    console.log('📞 CallProvider: Setting up WebRTC event listeners for user:', currentUser.username || currentUser.id);
-
     // Handle incoming call offer
     const unsubOffer = socketService.on('CALL_OFFER', async (event) => {
-      console.log('📞🎯 CallProvider: CALL_OFFER EVENT RECEIVED!', event);
       const { callerId, callerName, callType } = event.data;
       const conversationId = event.data?.conversationId as string | undefined;
       const isGroup = !!event.data?.isGroup;
-      console.log('📞 CallProvider: Incoming call from:', callerName, 'callerId:', callerId);
 
-      // End any existing call first
       if (callStateRef.current?.isActive) {
-        console.log('⚠️ CallProvider: Ending existing call before accepting new one');
         webrtcService.endCall();
       }
 
-      // Initialize local stream first
       try {
         const localStream = await webrtcService.initCall(callType);
-        
         setCallState({
+          ...initialCallState,
           isActive: true,
           isCalling: false,
           isIncoming: true,
-          offerProcessed: false, // Not processed yet
           callType,
           remoteName: callerName,
           remoteId: callerId,
           conversationId,
           isGroup,
-          participantIds: isGroup ? [callerId] : [callerId],
+          callCategory: isGroup ? 'GROUP' : 'DIRECT',
+          participantIds: [callerId],
+          activeParticipantIds: [callerId],
           localStream,
-          remoteStream: null,
-          remoteStreams: [],
         });
 
-        // Handle the offer
+        // Play incoming ringtone (different from outgoing tone)
+        callSounds.playIncomingRingtone();
+
+        // Auto-reject after 15s if not answered
+        clearRingTimeout();
+        ringTimeoutRef.current = window.setTimeout(() => {
+          const cs = callStateRef.current;
+          if (cs?.isIncoming && cs?.isActive) {
+            console.log('⏰ Ring timeout: auto-rejecting incoming call');
+            callSounds.stopAll();
+            // For group: only close UI for this user, NOT end call for others
+            // For direct: reject = end for both
+            const recipients = cs.isGroup ? cs.participantIds : [cs.remoteId];
+            recipients.filter(Boolean).forEach(recipientId => {
+              socketService.send('/app/webrtc/reject', {
+                type: 'CALL_REJECT', userId: recipientId,
+                data: { senderId: currentUser.id },
+                timestamp: new Date().toISOString(),
+              });
+            });
+            webrtcService.endCall();
+            webrtcService.onPeerStateChange(null);
+            setCallState(initialCallState);
+            resetPeerTracking();
+          }
+        }, RING_TIMEOUT_MS);
+
         webrtcService.setRemotePeer(callerId);
         await webrtcService.handleOffer(event.data);
-        
-        // Mark offer as processed
         setCallState(prev => ({ ...prev, offerProcessed: true }));
-        
-        console.log('✅ CallProvider: Ready to accept/reject incoming call');
       } catch (error: any) {
-        console.error('❌ CallProvider: Failed to handle incoming call:', error);
+        console.error('❌ Failed to handle incoming call:', error);
+        callSounds.stopAll();
         notify.error(error.message || i18n.t('calls.cannotReceive'));
       }
     });
 
     // Handle call answer
     const unsubAnswer = socketService.on('CALL_ANSWER', async (event) => {
-      console.log('✅ CallProvider: Call answered by remote peer');
       const senderId = event.data?.senderId as string | undefined;
       const callId = event.data?.callId as string | undefined;
       const answerPeerId = senderId || (callId ? callIdToPeerRef.current.get(callId) : undefined);
-      if (!answerPeerId) {
-        console.warn('⚠️ CALL_ANSWER missing senderId');
-        return;
-      }
+      if (!answerPeerId) return;
+
       await webrtcService.handleAnswer(event.data);
       pendingPeersRef.current.delete(answerPeerId);
       clearPeerTimer(answerPeerId);
-      
+
+      // Someone answered → stop outgoing tone
+      callSounds.stopOutgoingTone();
+      clearRingTimeout();
+
       setCallState(prev => ({
         ...prev,
         isCalling: false,
         participantIds: prev.participantIds.includes(answerPeerId)
           ? prev.participantIds
           : [...prev.participantIds, answerPeerId],
+        activeParticipantIds: prev.activeParticipantIds.includes(answerPeerId)
+          ? prev.activeParticipantIds
+          : [...prev.activeParticipantIds, answerPeerId],
       }));
     });
 
     // Handle ICE candidate
     const unsubIce = socketService.on('ICE_CANDIDATE', async (event) => {
-      console.log('🧊 CallProvider: Received ICE candidate');
       await webrtcService.addIceCandidate(event.data);
     });
 
+    // Handle group member added
     const unsubMembersAdded = socketService.on('MEMBERS_ADDED', async (event) => {
       const currentCall = callStateRef.current;
       if (!currentCall?.isActive || !currentCall.isGroup) return;
       const payload = event.data as { conversationId?: string; participantIds?: string[] };
       if (!payload?.conversationId || payload.conversationId !== currentCall.conversationId) return;
 
-      const currentUser = authApi.getCurrentUser();
-      if (!currentUser?.id) return;
-      const newParticipantIds = (payload.participantIds || []).filter(id => id && id !== currentUser.id);
-      if (newParticipantIds.length === 0) return;
+      const cUser = authApi.getCurrentUser();
+      if (!cUser?.id) return;
+      const newIds = (payload.participantIds || []).filter(id => id && id !== cUser.id);
 
-      for (const participantId of newParticipantIds) {
+      for (const participantId of newIds) {
         await webrtcService.createOffer(
-          callState.callType || 'voice',
-          participantId,
-          currentUser.id,
-          currentUser.fullName || currentUser.username,
-          currentCall.conversationId,
-          false
+          currentCall.callType || 'voice', participantId,
+          cUser.id, cUser.fullName || cUser.username,
+          currentCall.conversationId, false
         );
       }
     });
 
-    // Handle call end/reject
-    const unsubEnd = socketService.on('CALL_END', () => {
-      const senderId = authApi.getCurrentUser()?.id;
-      if (callStateRef.current?.isGroup && senderId) {
-        pendingPeersRef.current.delete(senderId);
-        clearPeerTimer(senderId);
+    // ── Smart call events ──
+
+    const unsubUserJoined = socketService.on('CALL_USER_JOINED', (event) => {
+      const { userId, activeParticipantIds } = event.data as {
+        userId: string; activeParticipantIds: string[];
+      };
+      if (userId === currentUser.id) return;
+      setCallState(prev => ({
+        ...prev,
+        activeParticipantIds: activeParticipantIds || prev.activeParticipantIds,
+        participantIds: prev.participantIds.includes(userId)
+          ? prev.participantIds : [...prev.participantIds, userId],
+      }));
+      addToast(`${userId.slice(0, 8)} đã tham gia`, 'join');
+    });
+
+    const unsubUserLeft = socketService.on('CALL_USER_LEFT', (event) => {
+      const { userId, activeParticipantIds } = event.data as {
+        userId: string; activeParticipantIds: string[];
+      };
+      if (userId === currentUser.id) return;
+
+      // Close WebRTC peer for leaving user
+      webrtcService.closePeerForUser(userId);
+
+      setCallState(prev => {
+        // DIRECT call: if other user leaves → end call
+        if (prev.callCategory === 'DIRECT') {
+          setTimeout(() => cleanupCall(), 100);
+          return { ...prev, isActive: false };
+        }
+        // GROUP call: just remove user
+        return {
+          ...prev,
+          activeParticipantIds: activeParticipantIds || prev.activeParticipantIds.filter(id => id !== userId),
+          participantIds: prev.participantIds.filter(id => id !== userId),
+        };
+      });
+      addToast(`${userId.slice(0, 8)} đã rời`, 'leave');
+    });
+
+    const unsubHostTransferred = socketService.on('CALL_HOST_TRANSFERRED', (event) => {
+      const { newHostId } = event.data as { newHostId: string; previousHostId: string };
+      setCallState(prev => ({ ...prev, hostId: newHostId }));
+      if (newHostId === currentUser.id) {
+        addToast('Bạn đã được chỉ định làm Host', 'host');
       }
-      console.log('📴 CallProvider: Call ended by remote peer');
-      endCall();
+    });
+
+    // Handle call end
+    const unsubEnd = socketService.on('CALL_END', () => {
+      cleanupCall();
     });
 
     const unsubReject = socketService.on('CALL_REJECT', () => {
@@ -232,65 +345,70 @@ export function CallProvider({ children }: { children: ReactNode }) {
         pendingPeersRef.current.delete(senderId);
         clearPeerTimer(senderId);
       }
-      console.log('❌ CallProvider: Call rejected by remote peer');
       notify.error(i18n.t('calls.rejected'));
       const activeCallId = activeCallLogIdRef.current;
       if (activeCallId && senderId) {
-        callsApi.missed(activeCallId, { userId: senderId }).catch((error) => {
-          console.warn('CallProvider: failed to record rejected call as missed', error);
-        });
+        callsApi.missed(activeCallId, { userId: senderId }).catch(() => {});
         activeCallLogIdRef.current = null;
       }
-      endCall();
+      cleanupCall();
     });
 
     return () => {
-      console.log('📞 CallProvider: Cleaning up event listeners');
-      unsubOffer();
-      unsubAnswer();
-      unsubIce();
-      unsubMembersAdded();
-      unsubEnd();
-      unsubReject();
+      unsubOffer(); unsubAnswer(); unsubIce(); unsubMembersAdded();
+      unsubUserJoined(); unsubUserLeft(); unsubHostTransferred();
+      unsubEnd(); unsubReject();
     };
-  }, [clearPeerTimer]);
+  }, [clearPeerTimer, cleanupCall, addToast]);
+
+  // ── Disconnect detection via WebRTC ──
+  useEffect(() => {
+    webrtcService.onPeerStateChange((peerId, state) => {
+      if (state === 'disconnected') {
+        const timer = window.setTimeout(() => {
+          const cs = callStateRef.current;
+          if (!cs?.isActive) return;
+          webrtcService.closePeerForUser(peerId);
+          if (cs.callCategory === 'DIRECT') {
+            cleanupCall();
+          } else {
+            setCallState(prev => ({
+              ...prev,
+              activeParticipantIds: prev.activeParticipantIds.filter(id => id !== peerId),
+              participantIds: prev.participantIds.filter(id => id !== peerId),
+            }));
+            addToast(`${peerId.slice(0, 8)} mất kết nối`, 'leave');
+          }
+        }, DISCONNECT_TIMEOUT_MS);
+        disconnectTimersRef.current.set(peerId, timer);
+      } else if (state === 'connected') {
+        const timer = disconnectTimersRef.current.get(peerId);
+        if (timer) {
+          window.clearTimeout(timer);
+          disconnectTimersRef.current.delete(peerId);
+        }
+      }
+    });
+
+    return () => { webrtcService.onPeerStateChange(null); };
+  }, [cleanupCall, addToast]);
+
+  // ═══════════ Actions ═══════════
 
   const startCall = useCallback(async (
-    userId: string,
-    userName: string,
-    callType: CallType,
-    conversationId?: string,
-    isGroup?: boolean
+    userId: string, userName: string, callType: CallType,
+    conversationId?: string, isGroup?: boolean
   ) => {
     try {
-      console.log('📞 CallProvider: Starting call to:', userName, 'userId:', userId, isGroup ? '(GROUP CALL)' : '(DIRECT CALL)');
-      
-      // End any existing call first
-      if (callState.isActive) {
-        console.log('⚠️ CallProvider: Ending existing call before starting new one');
-        webrtcService.endCall();
-      }
-      
+      if (callState.isActive) webrtcService.endCall();
+
       const currentUser = authApi.getCurrentUser();
-      if (!currentUser) {
-        throw new Error(i18n.t('calls.needLogin'));
-      }
-      
-      console.log('👤 Current user info:', {
-        id: currentUser.id,
-        username: currentUser.username,
-        fullName: currentUser.fullName
-      });
-      console.log('🎯 Recipient info:', {
-        userId: userId,
-        userName: userName,
-        conversationId: conversationId,
-        isGroup: isGroup
-      });
+      if (!currentUser) throw new Error(i18n.t('calls.needLogin'));
 
       const localStream = await webrtcService.initCall(callType);
       let participantIds: string[] = [];
       const targetIds: string[] = [];
+
       if (isGroup && conversationId) {
         const conversation = await conversationsApi.getConversationById(conversationId);
         participantIds = (conversation.participantIds || []).filter(id => id !== currentUser.id);
@@ -299,281 +417,283 @@ export function CallProvider({ children }: { children: ReactNode }) {
         targetIds.push(userId);
         participantIds = [userId];
       }
-      
+
       setCallState({
+        ...initialCallState,
         isActive: true,
         isCalling: true,
-        isIncoming: false,
-        offerProcessed: false,
         callType,
         remoteName: userName,
         remoteId: userId,
         conversationId,
         isGroup: !!isGroup,
+        callCategory: isGroup ? 'GROUP' : 'DIRECT',
+        hostId: currentUser.id,
         participantIds,
+        activeParticipantIds: [currentUser.id],
         localStream,
-        remoteStream: null,
-        remoteStreams: [],
       });
+
+      // Play outgoing tone (caller side, different from incoming ringtone)
+      callSounds.playOutgoingTone();
+
+      // Auto-end if no one answers within 15s (direct call only)
+      clearRingTimeout();
+      if (!isGroup) {
+        ringTimeoutRef.current = window.setTimeout(() => {
+          const cs = callStateRef.current;
+          if (cs?.isCalling && cs?.isActive) {
+            console.log('⏰ Ring timeout: no answer for direct call');
+            callSounds.stopAll();
+            const activeCallId = activeCallLogIdRef.current;
+            const uid = authApi.getCurrentUser()?.id;
+            if (activeCallId && uid) {
+              callsApi.missed(activeCallId, { userId: uid }).catch(() => {});
+              activeCallLogIdRef.current = null;
+            }
+            // End call via existing endCall path
+            const recipients = [cs.remoteId].filter(Boolean);
+            recipients.forEach(recipientId => {
+              socketService.send('/app/webrtc/end', {
+                type: 'CALL_END', userId: recipientId,
+                data: { senderId: uid },
+                timestamp: new Date().toISOString(),
+              });
+            });
+            webrtcService.endCall();
+            webrtcService.onPeerStateChange(null);
+            setCallState(initialCallState);
+            resetPeerTracking();
+          }
+        }, RING_TIMEOUT_MS);
+      }
 
       for (const targetId of targetIds) {
         const sendOffer = async () => {
           const offer = await webrtcService.createOffer(
-            callType,
-            targetId,
-            currentUser.id,
+            callType, targetId, currentUser.id,
             currentUser.fullName || currentUser.username,
-            conversationId,
-            false
+            conversationId, false
           );
-          if (offer.callId) {
-            callIdToPeerRef.current.set(offer.callId, targetId);
-          }
+          if (offer.callId) callIdToPeerRef.current.set(offer.callId, targetId);
           pendingPeersRef.current.add(targetId);
         };
         await sendOffer();
-        schedulePeerTimeout(
-          targetId,
-          sendOffer,
-          () => {
-            setCallState(prev => {
-              const remaining = prev.participantIds.filter(id => id !== targetId);
-              if (!prev.isGroup) {
-                return prev;
-              }
-              return { ...prev, participantIds: remaining };
-            });
-            if (!isGroup) {
-              const activeCallId = activeCallLogIdRef.current;
-              const currentUserId = authApi.getCurrentUser()?.id;
-              if (activeCallId && currentUserId) {
-                callsApi.missed(activeCallId, { userId: currentUserId }).catch((error) => {
-                  console.warn('CallProvider: failed to record missed call after timeout', error);
-                });
-                activeCallLogIdRef.current = null;
-              }
-              endCall();
+        schedulePeerTimeout(targetId, sendOffer, () => {
+          setCallState(prev => {
+            if (!prev.isGroup) return prev;
+            return { ...prev, participantIds: prev.participantIds.filter(id => id !== targetId) };
+          });
+          if (!isGroup) {
+            const activeCallId = activeCallLogIdRef.current;
+            const currentUserId = authApi.getCurrentUser()?.id;
+            if (activeCallId && currentUserId) {
+              callsApi.missed(activeCallId, { userId: currentUserId }).catch(() => {});
+              activeCallLogIdRef.current = null;
             }
+            cleanupCall();
           }
-        );
+        });
       }
+
+      // Record call on server
       if (conversationId && targetIds.length > 0) {
         try {
           const callRecord = await callsApi.initiate({
-            conversationId,
-            callerId: currentUser.id,
+            conversationId, callerId: currentUser.id,
             calleeIds: targetIds,
             type: callType === 'video' ? 'VIDEO' : 'VOICE',
           });
           activeCallLogIdRef.current = callRecord.id;
+          setCallState(prev => ({
+            ...prev,
+            serverCallId: callRecord.id,
+            hostId: callRecord.hostId || currentUser.id,
+            callCategory: callRecord.callType || (isGroup ? 'GROUP' : 'DIRECT'),
+          }));
         } catch (error) {
-          console.warn('⚠️ CallProvider: failed to record call initiation', error);
+          console.warn('⚠️ Failed to record call initiation', error);
         }
       }
-      console.log('✅ CallProvider: Call offer sent', isGroup ? '(GROUP CALL - will broadcast to all participants)' : '(DIRECT CALL)');
     } catch (error: any) {
-      console.error('❌ CallProvider: Failed to start call:', error);
+      console.error('❌ Failed to start call:', error);
       notify.error(error.message || i18n.t('calls.cannotStart'));
-      endCall();
+      cleanupCall();
     }
-  }, [callState.isActive]);
+  }, [callState.isActive, cleanupCall, schedulePeerTimeout]);
 
   const acceptCall = useCallback(async () => {
     try {
-      console.log('✅ CallProvider: Accepting call...');
-      console.log('📊 CallProvider: offerProcessed status:', callState.offerProcessed);
-      
-      // Wait for offer to be fully processed with retry logic
       if (!callState.offerProcessed) {
-        console.warn('⚠️ CallProvider: Offer not yet processed, waiting up to 5 seconds...');
-        
-        // Wait up to 5 seconds for offer to be processed
         let retries = 0;
-        const maxRetries = 50; // 50 * 100ms = 5 seconds
-        
-        while (!callState.offerProcessed && retries < maxRetries) {
+        while (!callState.offerProcessed && retries < 50) {
           await new Promise(resolve => setTimeout(resolve, 100));
           retries++;
-          
-          // Re-check by looking at current state via webrtcService
-          if (webrtcService.getPeerConnection()) {
-            console.log('✅ CallProvider: Peer connection exists, proceeding...');
-            break;
-          }
+          if (webrtcService.getPeerConnection()) break;
         }
-        
-        if (retries >= maxRetries) {
-          throw new Error('Timeout waiting for offer to be processed');
-        }
+        if (retries >= 50) throw new Error('Timeout waiting for offer');
       }
-      
-      setCallState(prev => ({
-        ...prev,
-        isIncoming: false,
-        isActive: true,
-      }));
 
-      // Create and send answer
+      // Stop ringtone on accept
+      callSounds.stopAll();
+      clearRingTimeout();
+
+      setCallState(prev => ({ ...prev, isIncoming: false, isActive: true }));
       await webrtcService.createAnswer(callState.remoteId);
       pendingPeersRef.current.delete(callState.remoteId);
       clearPeerTimer(callState.remoteId);
+
       const currentUser = authApi.getCurrentUser();
       const activeCallId = activeCallLogIdRef.current;
       if (activeCallId && currentUser?.id) {
-        try {
-          await callsApi.join(activeCallId, { userId: currentUser.id });
-        } catch (error) {
-          console.warn('⚠️ CallProvider: failed to record call join', error);
-        }
+        try { await callsApi.join(activeCallId, { userId: currentUser.id }); } catch {}
       }
-      if (callState.isGroup && callState.conversationId) {
-        if (currentUser?.id) {
-          const conversation = await conversationsApi.getConversationById(callState.conversationId);
-          const peers = (conversation.participantIds || []).filter(id => id !== currentUser.id && id !== callState.remoteId);
-          for (const peerId of peers) {
-            const sendOffer = async () => {
-              const offer = await webrtcService.createOffer(
-                callState.callType || 'voice',
-                peerId,
-                currentUser.id,
-                currentUser.fullName || currentUser.username,
-                callState.conversationId,
-                false
-              );
-              if (offer.callId) {
-                callIdToPeerRef.current.set(offer.callId, peerId);
-              }
-              pendingPeersRef.current.add(peerId);
-            };
-            await sendOffer();
-            schedulePeerTimeout(
-              peerId,
-              sendOffer,
-              () => {
-                setCallState(prev => ({
-                  ...prev,
-                  participantIds: prev.participantIds.filter(id => id !== peerId),
-                }));
-              }
+
+      if (callState.isGroup && callState.conversationId && currentUser?.id) {
+        const conversation = await conversationsApi.getConversationById(callState.conversationId);
+        const peers = (conversation.participantIds || []).filter(
+          id => id !== currentUser.id && id !== callState.remoteId
+        );
+        for (const peerId of peers) {
+          const sendOffer = async () => {
+            const offer = await webrtcService.createOffer(
+              callState.callType || 'voice', peerId,
+              currentUser.id, currentUser.fullName || currentUser.username,
+              callState.conversationId, false
             );
-          }
+            if (offer.callId) callIdToPeerRef.current.set(offer.callId, peerId);
+            pendingPeersRef.current.add(peerId);
+          };
+          await sendOffer();
+          schedulePeerTimeout(peerId, sendOffer, () => {
+            setCallState(prev => ({
+              ...prev,
+              participantIds: prev.participantIds.filter(id => id !== peerId),
+            }));
+          });
         }
       }
-      console.log('✅ CallProvider: Call answer sent');
     } catch (error: any) {
-      console.error('❌ CallProvider: Failed to accept call:', error);
+      console.error('❌ Failed to accept call:', error);
       notify.error(error.message || i18n.t('calls.cannotAccept'));
-      endCall();
+      cleanupCall();
     }
-  }, [callState.remoteId, callState.offerProcessed, callState.isGroup, callState.conversationId, callState.callType]);
+  }, [callState.remoteId, callState.offerProcessed, callState.isGroup,
+    callState.conversationId, callState.callType, cleanupCall, clearPeerTimer, schedulePeerTimeout]);
 
   const endCall = useCallback(() => {
-    console.log('📴 CallProvider: Ending call');
-    console.log('📴 CallProvider: Call state before ending:', {
-      isActive: callState.isActive,
-      isIncoming: callState.isIncoming,
-      isCalling: callState.isCalling,
-      remoteId: callState.remoteId
-    });
-    console.trace('📴 CallProvider: endCall called from:');
-    
     const recipients = callState.isGroup ? callState.participantIds : [callState.remoteId];
-    recipients.filter(Boolean).forEach((recipientId) => {
+    recipients.filter(Boolean).forEach(recipientId => {
       socketService.send('/app/webrtc/end', {
-        type: 'CALL_END',
-        userId: recipientId,
+        type: 'CALL_END', userId: recipientId,
         data: { senderId: authApi.getCurrentUser()?.id },
         timestamp: new Date().toISOString(),
       });
     });
 
-    webrtcService.endCall();
     const activeCallId = activeCallLogIdRef.current;
     const currentUserId = authApi.getCurrentUser()?.id;
     if (activeCallId && currentUserId) {
-      callsApi.end(activeCallId, { userId: currentUserId }).catch((error) => {
-        console.warn('⚠️ CallProvider: failed to record call end', error);
-      });
+      callsApi.end(activeCallId, { userId: currentUserId }).catch(() => {});
     }
-    setCallState({
-      isActive: false,
-      isCalling: false,
-      isIncoming: false,
-      offerProcessed: false,
-      callType: null,
-      remoteName: '',
-      remoteId: '',
-      conversationId: undefined,
-      isGroup: false,
-      participantIds: [],
-      localStream: null,
-      remoteStream: null,
-      remoteStreams: [],
-    });
-    resetPeerTracking();
-  }, [callState.remoteId, callState.isGroup, callState.participantIds, resetPeerTracking]);
+    cleanupCall();
+  }, [callState.remoteId, callState.isGroup, callState.participantIds, cleanupCall]);
 
-  const rejectCall = useCallback(() => {
-    console.log('❌ CallProvider: Rejecting call');
-    
-    const recipients = callState.isGroup ? callState.participantIds : [callState.remoteId];
-    recipients.filter(Boolean).forEach((recipientId) => {
-      socketService.send('/app/webrtc/reject', {
-        type: 'CALL_REJECT',
-        userId: recipientId,
-        data: { senderId: authApi.getCurrentUser()?.id },
+  const leaveCall = useCallback((transferToUserId?: string) => {
+    const currentUserId = authApi.getCurrentUser()?.id;
+    const activeCallId = activeCallLogIdRef.current;
+
+    // Direct call: leave = end for both
+    if (callState.callCategory === 'DIRECT') {
+      endCall();
+      return;
+    }
+
+    // Group call: just leave
+    const recipients = callState.participantIds;
+    recipients.filter(Boolean).forEach(recipientId => {
+      socketService.send('/app/webrtc/end', {
+        type: 'CALL_USER_LEFT', userId: recipientId,
+        data: { senderId: currentUserId, callId: activeCallId },
         timestamp: new Date().toISOString(),
       });
     });
-    const activeCallId = activeCallLogIdRef.current;
-    const currentUserId = authApi.getCurrentUser()?.id;
+
     if (activeCallId && currentUserId) {
-      callsApi.missed(activeCallId, { userId: currentUserId }).catch((error) => {
-        console.warn('CallProvider: failed to record local rejected call', error);
-      });
-      activeCallLogIdRef.current = null;
+      callsApi.leave(activeCallId, {
+        userId: currentUserId,
+        transferToUserId,
+      }).catch(() => {});
+    }
+    cleanupCall();
+  }, [callState.callCategory, callState.participantIds, endCall, cleanupCall]);
+
+  const endCallForAll = useCallback(() => {
+    const currentUserId = authApi.getCurrentUser()?.id;
+    const activeCallId = activeCallLogIdRef.current;
+
+    if (activeCallId && currentUserId) {
+      callsApi.endAll(activeCallId, { userId: currentUserId }).catch(() => {});
     }
     endCall();
-  }, [callState.remoteId, callState.isGroup, callState.participantIds, endCall]);
+  }, [endCall]);
 
-  // Update remote stream when available
+  const transferHost = useCallback((newHostId: string) => {
+    const currentUserId = authApi.getCurrentUser()?.id;
+    const activeCallId = activeCallLogIdRef.current;
+
+    if (activeCallId && currentUserId) {
+      callsApi.transferHost(activeCallId, {
+        userId: currentUserId,
+        transferToUserId: newHostId,
+      }).catch(() => {});
+    }
+    setCallState(prev => ({ ...prev, hostId: newHostId }));
+  }, []);
+
+  const rejectCall = useCallback(() => {
+    const recipients = callState.isGroup ? callState.participantIds : [callState.remoteId];
+    recipients.filter(Boolean).forEach(recipientId => {
+      socketService.send('/app/webrtc/reject', {
+        type: 'CALL_REJECT', userId: recipientId,
+        data: { senderId: authApi.getCurrentUser()?.id },
+        timestamp: new Date().toISOString(),
+      });
+    });
+    const activeCallId = activeCallLogIdRef.current;
+    const currentUserId = authApi.getCurrentUser()?.id;
+    if (activeCallId && currentUserId) {
+      callsApi.missed(activeCallId, { userId: currentUserId }).catch(() => {});
+      activeCallLogIdRef.current = null;
+    }
+    cleanupCall();
+  }, [callState.remoteId, callState.isGroup, callState.participantIds, cleanupCall]);
+
+  // ── Remote stream polling ──
   useEffect(() => {
     if (!callState.isActive) return;
-
     const interval = setInterval(() => {
       const remoteStream = webrtcService.getRemoteStream();
-      const remoteStreams = Array.from(webrtcService.getRemoteStreams().entries()).map(([peerId, stream]) => ({
-        peerId,
-        stream,
-      }));
+      const remoteStreams = Array.from(webrtcService.getRemoteStreams().entries()).map(
+        ([peerId, stream]) => ({ peerId, stream })
+      );
       if (remoteStream && remoteStream !== callState.remoteStream) {
-        console.log('🎬 CallProvider: Updating remote stream:', {
-          streamId: remoteStream.id,
-          audioTracks: remoteStream.getAudioTracks().length,
-          videoTracks: remoteStream.getVideoTracks().length,
-          active: remoteStream.active
-        });
-        setCallState(prev => ({
-          ...prev,
-          remoteStream,
-          remoteStreams,
-        }));
+        setCallState(prev => ({ ...prev, remoteStream, remoteStreams }));
       } else if (remoteStreams.length !== callState.remoteStreams.length) {
-        setCallState(prev => ({
-          ...prev,
-          remoteStreams,
-        }));
+        setCallState(prev => ({ ...prev, remoteStreams }));
       }
     }, 500);
-
     return () => clearInterval(interval);
   }, [callState.isActive, callState.remoteStream, callState.remoteStreams.length]);
 
+  const currentUser = authApi.getCurrentUser();
+
   return (
-    <CallContext.Provider value={{ callState, startCall, acceptCall, rejectCall, endCall }}>
+    <CallContext.Provider value={{
+      callState, startCall, acceptCall, rejectCall,
+      endCall, leaveCall, endCallForAll, transferHost,
+    }}>
       {children}
-      
-      {/* Global Call Window */}
       {callState.isActive && (
         <CallWindow
           isIncoming={callState.isIncoming}
@@ -583,9 +703,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
           remoteStream={callState.remoteStream}
           remoteStreams={callState.remoteStreams}
           isGroup={callState.isGroup}
+          callCategory={callState.callCategory}
+          hostId={callState.hostId}
+          currentUserId={currentUser?.id || ''}
+          activeParticipantIds={callState.activeParticipantIds}
+          callToasts={callState.callToasts}
           onAccept={acceptCall}
           onReject={rejectCall}
           onEnd={endCall}
+          onLeave={leaveCall}
+          onEndAll={endCallForAll}
+          onTransferHost={transferHost}
         />
       )}
     </CallContext.Provider>

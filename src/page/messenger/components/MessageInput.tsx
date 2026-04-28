@@ -369,7 +369,7 @@ export default function MessageInput({
         </button>
         <button
           onClick={onSend}
-          disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview)}
+          disabled={uploadingFiles || isAiLoading || (isAIChat && !message.trim()) || (!message.trim() && !filePreview && uploadedFiles.length === 0)}
           className="w-8 h-8 rounded-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
           title={editingMessageId ? 'Cap nhat tin nhan' : t('messenger.send')}
         >

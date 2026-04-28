@@ -62,6 +62,9 @@ export const SocketEventTypes = {
   CALL_ICE_CANDIDATE: "CALL_ICE_CANDIDATE",
   CALL_REJECT: "CALL_REJECT",
   CALL_END: "CALL_END",
+  CALL_USER_JOINED: "CALL_USER_JOINED",
+  CALL_USER_LEFT: "CALL_USER_LEFT",
+  CALL_HOST_TRANSFERRED: "CALL_HOST_TRANSFERRED",
 } as const;
 
 /** Union type of all valid socket event type strings */

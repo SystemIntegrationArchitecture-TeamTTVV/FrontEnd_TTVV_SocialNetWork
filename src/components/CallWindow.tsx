@@ -1,6 +1,8 @@
-import { Phone, Video, PhoneOff, Mic, MicOff, VideoOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import {
+  Phone, PhoneOff, Mic, MicOff, Video, VideoOff,
+  LogOut, Crown, Users, X, Check, ArrowRight,
+} from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface CallWindowProps {
   isIncoming?: boolean;
@@ -10,9 +12,17 @@ interface CallWindowProps {
   remoteStream: MediaStream | null;
   remoteStreams?: Array<{ peerId: string; stream: MediaStream }>;
   isGroup?: boolean;
+  callCategory: 'DIRECT' | 'GROUP';
+  hostId: string | null;
+  currentUserId: string;
+  activeParticipantIds: string[];
+  callToasts: Array<{ id: string; text: string; type: 'join' | 'leave' | 'host' }>;
   onAccept?: () => void;
   onReject: () => void;
   onEnd: () => void;
+  onLeave: (transferToUserId?: string) => void;
+  onEndAll: () => void;
+  onTransferHost: (newHostId: string) => void;
 }
 
 export default function CallWindow({
@@ -23,351 +33,522 @@ export default function CallWindow({
   remoteStream,
   remoteStreams = [],
   isGroup = false,
+  callCategory,
+  hostId,
+  currentUserId,
+  activeParticipantIds,
+  callToasts,
   onAccept,
   onReject,
   onEnd,
+  onLeave,
+  onEndAll,
+  onTransferHost,
 }: CallWindowProps) {
-  const { t } = useTranslation();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement>(null); // Add audio ref for voice calls
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const remoteVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  // Used only to reflect remote peer track state (e.g., when peer disables mic/camera).
-  const [remoteVideoOff, setRemoteVideoOff] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [showHostModal, setShowHostModal] = useState(false);
+  const [selectedNewHost, setSelectedNewHost] = useState<string | null>(null);
+  const [callSeconds, setCallSeconds] = useState(0);
+  const [isConnected, setIsConnected] = useState(false);
+  const controlsTimerRef = useRef<number>(0);
 
-  // Setup local video
+  const isHost = currentUserId === hostId;
+  const isGroupCall = callCategory === 'GROUP' || isGroup;
+
+  // ── Call timer ──
+  useEffect(() => {
+    if (!isIncoming && (remoteStream || remoteStreams.length > 0)) {
+      setIsConnected(true);
+    }
+  }, [isIncoming, remoteStream, remoteStreams.length]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    const interval = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isConnected]);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // ── Auto-hide controls for video calls ──
+  const resetControlsTimer = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
+    if (callType === 'video' && !isIncoming) {
+      controlsTimerRef.current = window.setTimeout(() => setShowControls(false), 4000);
+    }
+  }, [callType, isIncoming]);
+
+  useEffect(() => {
+    resetControlsTimer();
+    return () => { if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current); };
+  }, [resetControlsTimer]);
+
+  // ── Local video ──
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       if (localVideoRef.current.srcObject !== localStream) {
         localVideoRef.current.srcObject = localStream;
-        localVideoRef.current.play().catch(err => {
-          console.error('❌ Failed to play local video:', err);
-        });
+        localVideoRef.current.play().catch(() => {});
       }
     }
   }, [localStream]);
 
-  // Setup remote video
+  // ── Remote video ──
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream && callType === 'video') {
-      console.log('🎬 Setting remote stream to video element:', remoteStream);
-      console.log('📺 Remote stream tracks:', {
-        audio: remoteStream.getAudioTracks().map(t => ({ id: t.id, enabled: t.enabled, muted: t.muted, readyState: t.readyState })),
-        video: remoteStream.getVideoTracks().map(t => ({ id: t.id, enabled: t.enabled, muted: t.muted, readyState: t.readyState }))
-      });
-      
       if (remoteVideoRef.current.srcObject !== remoteStream) {
         remoteVideoRef.current.srcObject = remoteStream;
-        
-        // Force play the video
-        remoteVideoRef.current.play().catch(err => {
-          console.error('❌ Failed to play remote video:', err);
-        });
+        remoteVideoRef.current.play().catch(() => {});
       }
-    } else if (callType === 'video') {
-      console.log('⚠️ Cannot set remote video stream:', {
-        hasRef: !!remoteVideoRef.current,
-        hasStream: !!remoteStream
-      });
     }
-  }, [remoteStream, isIncoming, callType]);
+  }, [remoteStream, callType]);
 
-  // Setup remote audio for voice calls
+  // ── Remote audio (voice calls) ──
   useEffect(() => {
     if (remoteAudioRef.current && remoteStream && callType === 'voice') {
-      console.log('🎧 Setting remote stream to audio element:', remoteStream);
-      console.log('📺 Remote audio tracks:', {
-        audio: remoteStream.getAudioTracks().map(t => ({ id: t.id, enabled: t.enabled, muted: t.muted, readyState: t.readyState }))
-      });
-      
       if (remoteAudioRef.current.srcObject !== remoteStream) {
         remoteAudioRef.current.srcObject = remoteStream;
-        
-        // Force play the audio
-        remoteAudioRef.current.play().catch(err => {
-          console.error('❌ Failed to play remote audio:', err);
-        });
+        remoteAudioRef.current.play().catch(() => {});
       }
     }
-  }, [remoteStream, isIncoming, callType]);
+  }, [remoteStream, callType]);
+
+  // ── Group video streams ──
+  useEffect(() => {
+    if (!isGroupCall || callType !== 'video') return;
+    for (const item of remoteStreams) {
+      const el = remoteVideoRefs.current.get(item.peerId);
+      if (!el) continue;
+      if (el.srcObject !== item.stream) el.srcObject = item.stream;
+      el.play().catch(() => {});
+    }
+  }, [isGroupCall, callType, remoteStreams]);
 
   const toggleMute = () => {
     if (localStream) {
-      localStream.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
+      localStream.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
       setIsMuted(!isMuted);
     }
   };
 
   const toggleVideo = () => {
     if (localStream && callType === 'video') {
-      localStream.getVideoTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
+      localStream.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
       setIsVideoOff(!isVideoOff);
     }
   };
 
-  // Keep remote playback in sync with remote track state.
-  // WebRTC track.enabled flips on the sender; on some browsers the "audio still plays"
-  // until the media element is muted/updated, so we mirror it on the receiver element.
-  useEffect(() => {
-    if (!remoteStream) return;
-
-    const syncRemotePlayback = () => {
-      const audioTracks = remoteStream.getAudioTracks();
-      const videoTracks = remoteStream.getVideoTracks();
-
-      const remoteAudioMuted = audioTracks.length > 0 && audioTracks.some(t => !t.enabled);
-      const remoteVideoDisabled = videoTracks.length > 0 && videoTracks.some(t => !t.enabled);
-
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.muted = remoteAudioMuted;
+  const handleLeaveOrEnd = () => {
+    if (isGroupCall && isHost) {
+      const others = activeParticipantIds.filter(id => id !== currentUserId);
+      if (others.length > 0) {
+        setSelectedNewHost(others[0]);
+        setShowHostModal(true);
+        return;
       }
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.muted = remoteAudioMuted;
-        // Some browsers require re-assigning srcObject / calling play
-        // after tracks are added to the same MediaStream reference.
-        if (remoteVideoRef.current.srcObject !== remoteStream) {
-          remoteVideoRef.current.srcObject = remoteStream;
-        }
-
-        if (!remoteVideoDisabled) {
-          remoteVideoRef.current.play().catch(() => {
-            // Ignore autoplay/play errors; UI will update when browser allows playback.
-          });
-        }
-      }
-      setRemoteVideoOff(remoteVideoDisabled);
-    };
-
-    syncRemotePlayback();
-    const interval = window.setInterval(syncRemotePlayback, 300);
-    return () => window.clearInterval(interval);
-  }, [remoteStream]);
-
-  useEffect(() => {
-    if (!isGroup || callType !== 'video') return;
-    for (const item of remoteStreams) {
-      const element = remoteVideoRefs.current.get(item.peerId);
-      if (!element) continue;
-      if (element.srcObject !== item.stream) {
-        element.srcObject = item.stream;
-      }
-      element.play().catch(() => {
-        // Ignore autoplay restrictions in some browsers.
-      });
     }
-  }, [isGroup, callType, remoteStreams]);
+    if (isGroupCall) {
+      onLeave();
+    } else {
+      onEnd();
+    }
+  };
 
-  const groupGridCols =
-    remoteStreams.length <= 1
-      ? 'grid-cols-1'
-      : remoteStreams.length <= 4
-        ? 'grid-cols-2'
-        : 'grid-cols-3';
+  const handleHostTransferAndLeave = () => {
+    if (selectedNewHost) {
+      onTransferHost(selectedNewHost);
+      setTimeout(() => onLeave(selectedNewHost), 200);
+    }
+    setShowHostModal(false);
+  };
+
+  const handleEndAll = () => {
+    setShowHostModal(false);
+    onEndAll();
+  };
+
+  // Avatar initials
+  const getInitials = (name: string) =>
+    name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  // Grid layout
+  const getGridClass = (count: number) => {
+    if (count <= 1) return 'grid-cols-1';
+    if (count <= 4) return 'grid-cols-2';
+    return 'grid-cols-3';
+  };
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col overflow-hidden">
-      {/* Header - Only show for active calls, not incoming */}
-      {!isIncoming && (
-        <div className="p-4 text-white text-center bg-black/30 backdrop-blur-sm">
-          <h2 className="text-xl font-semibold">{callerName}</h2>
-          <p className="text-gray-400 text-sm mt-1">
-            {callType === 'video' ? t('calls.headerVideo') : t('calls.headerVoice')}
-          </p>
+    <div
+      className="fixed inset-0 bg-[#1a1a2e] z-50 flex flex-col overflow-hidden select-none"
+      onMouseMove={resetControlsTimer}
+      onClick={resetControlsTimer}
+    >
+      {/* ═══ INCOMING CALL ═══ */}
+      {isIncoming && (
+        <div className="flex-1 flex flex-col items-center justify-center relative">
+          {/* Subtle radial glow */}
+          <div className="absolute inset-0 bg-gradient-radial from-blue-900/20 via-transparent to-transparent" />
+
+          {/* Animated ring */}
+          <div className="relative mb-10">
+            <div className="absolute inset-[-24px] rounded-full border-2 border-blue-400/30 animate-ping" />
+            <div className="absolute inset-[-12px] rounded-full border-2 border-blue-400/20 animate-pulse" />
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-4xl font-semibold shadow-2xl shadow-blue-500/30">
+              {getInitials(callerName)}
+            </div>
+          </div>
+
+          {/* Call info */}
+          <div className="flex items-center gap-2 mb-2 text-blue-300/80">
+            {callType === 'video' ? <Video className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
+            <span className="text-sm font-medium">
+              {callType === 'video' ? 'Cuộc gọi video đến' : 'Cuộc gọi thoại đến'}
+            </span>
+          </div>
+          <h2 className="text-white text-2xl font-bold mb-1">{callerName}</h2>
+          {isGroupCall && (
+            <div className="flex items-center gap-1.5 text-white/50 text-sm">
+              <Users className="w-4 h-4" />
+              <span>Cuộc gọi nhóm</span>
+            </div>
+          )}
+
+          {/* Accept / Reject */}
+          <div className="flex items-center gap-12 mt-12">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={onReject}
+                className="w-16 h-16 rounded-full bg-red-500/90 hover:bg-red-500 flex items-center justify-center text-white transition-all hover:scale-110 shadow-lg shadow-red-500/20"
+              >
+                <PhoneOff className="w-7 h-7" />
+              </button>
+              <span className="text-white/60 text-xs">Từ chối</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={onAccept}
+                className="w-16 h-16 rounded-full bg-emerald-500/90 hover:bg-emerald-500 flex items-center justify-center text-white transition-all hover:scale-110 shadow-lg shadow-emerald-500/20 animate-pulse"
+              >
+                {callType === 'video' ? <Video className="w-7 h-7" /> : <Phone className="w-7 h-7" />}
+              </button>
+              <span className="text-white/60 text-xs">Trả lời</span>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Video Area */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Incoming Call Screen */}
-        {isIncoming && (
-          <div className="w-full h-full flex flex-col items-center justify-center">
-            {/* Caller Avatar with Animation */}
-            <div className="relative mb-8">
-              {/* Ripple Animation */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-48 h-48 rounded-full bg-blue-500 opacity-20 animate-ping"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-40 h-40 rounded-full bg-blue-500 opacity-30 animate-pulse"></div>
-              </div>
-              {/* Avatar */}
-              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl">
-                {callerName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-              </div>
-            </div>
-
-            {/* Call Type Icon */}
-            <div className="mb-4">
-              {callType === 'video' ? (
-                <Video className="w-12 h-12 text-blue-400" />
-              ) : (
-                <Phone className="w-12 h-12 text-green-400" />
+      {/* ═══ ACTIVE CALL ═══ */}
+      {!isIncoming && (
+        <>
+          {/* Header */}
+          <div className={`flex items-center justify-between px-5 py-3 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex items-center gap-3">
+              <h2 className="text-white font-semibold text-base">{callerName}</h2>
+              {isGroupCall && (
+                <span className="flex items-center gap-1 text-white/40 text-xs bg-white/5 px-2 py-0.5 rounded-full">
+                  <Users className="w-3 h-3" />
+                  {activeParticipantIds.length}
+                </span>
+              )}
+              {isHost && isGroupCall && (
+                <span className="flex items-center gap-1 text-amber-400/70 text-xs">
+                  <Crown className="w-3 h-3" />
+                  Host
+                </span>
               )}
             </div>
-
-            {/* Caller Name */}
-            <h3 className="text-white text-3xl font-bold mb-2">{callerName}</h3>
-            <p className="text-gray-400 text-lg mb-8">
-              {t('calls.incomingLine', {
-                type:
-                  callType === 'video'
-                    ? t('calls.incomingVideo')
-                    : t('calls.incomingVoice'),
-              })}
-            </p>
+            <div className="text-white/50 text-sm font-mono tabular-nums">
+              {isConnected ? formatTime(callSeconds) : 'Đang kết nối...'}
+            </div>
           </div>
-        )}
 
-        {/* Active Call - Remote Video (Full Screen) */}
-        {!isIncoming && callType === 'video' && (
-          <>
-            {isGroup && remoteStreams.length > 0 ? (
-              <div className={`grid ${groupGridCols} gap-2 p-2 w-full h-full`}>
-                {remoteStreams.map((item) => (
-                  <div key={item.peerId} className="relative bg-gray-800 rounded-lg overflow-hidden min-h-0">
-                    <video
-                      ref={(el) => {
-                        if (el) {
-                          remoteVideoRefs.current.set(item.peerId, el);
-                        } else {
-                          remoteVideoRefs.current.delete(item.peerId);
-                        }
-                      }}
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute bottom-2 left-2 text-xs text-white bg-black/50 rounded px-2 py-1">
-                      {item.peerId.slice(0, 8)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : remoteStream ? (
-              <div className="w-full h-full relative">
+          {/* ── VIDEO CALL AREA ── */}
+          {callType === 'video' && (
+            <div className="flex-1 relative overflow-hidden">
+              {/* Group video grid */}
+              {isGroupCall && remoteStreams.length > 0 ? (
+                <div className={`grid ${getGridClass(remoteStreams.length)} gap-1.5 p-2 w-full h-full`}>
+                  {remoteStreams.map(item => (
+                    <div key={item.peerId} className="relative bg-[#16213e] rounded-xl overflow-hidden">
+                      <video
+                        ref={el => {
+                          if (el) remoteVideoRefs.current.set(item.peerId, el);
+                          else remoteVideoRefs.current.delete(item.peerId);
+                        }}
+                        autoPlay playsInline
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm rounded-md px-2 py-0.5 text-white text-xs">
+                        {item.peerId.slice(0, 8)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : remoteStream ? (
+                /* 1-1 remote fullscreen */
                 <video
                   ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
+                  autoPlay playsInline
                   className="w-full h-full object-cover"
                 />
-                {remoteVideoOff && (
-                  <div className="absolute inset-0 bg-gray-900/60 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center">
-                      <VideoOff className="w-8 h-8 text-white" />
+              ) : (
+                /* Connecting placeholder */
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-semibold mb-4">
+                      {getInitials(callerName)}
                     </div>
+                    <div className="flex items-center gap-2 text-white/40 text-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      Đang kết nối
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Local PiP */}
+              <div className="absolute top-4 right-4 w-[180px] h-[135px] bg-[#16213e] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+                <video
+                  ref={localVideoRef}
+                  autoPlay playsInline muted
+                  className="w-full h-full object-cover"
+                  style={{ transform: 'scaleX(-1)' }}
+                />
+                {isVideoOff && (
+                  <div className="absolute inset-0 bg-[#16213e] flex items-center justify-center">
+                    <VideoOff className="w-6 h-6 text-white/30" />
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                <div className="text-center">
-                  <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-bold mb-4">
-                    {callerName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+            </div>
+          )}
+
+          {/* ── VOICE CALL AREA ── */}
+          {callType === 'voice' && (
+            <div className="flex-1 flex items-center justify-center">
+              {isGroupCall ? (
+                /* Group voice: avatar grid */
+                <div className="flex flex-wrap justify-center gap-6 max-w-md">
+                  {activeParticipantIds
+                    .filter(id => id !== currentUserId)
+                    .map(id => (
+                      <div key={id} className="flex flex-col items-center gap-2">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-semibold ring-2 ring-transparent transition-all">
+                          {id.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-white/50 text-xs">{id.slice(0, 8)}</span>
+                      </div>
+                    ))}
+                  {/* Self avatar */}
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl font-semibold ring-2 ring-emerald-400/30">
+                      Bạn
+                    </div>
+                    <span className="text-white/50 text-xs">Bạn</span>
                   </div>
-                  <p className="text-gray-400">{t('calls.connecting')}</p>
                 </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Active Call - Voice Call Placeholder */}
-        {!isIncoming && callType === 'voice' && (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-bold mb-4">
-                {callerName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-              </div>
-              <p className="text-white text-xl">
-                {remoteStream ? t('calls.calling') : t('calls.connecting')}
-              </p>
+              ) : (
+                /* 1-1 voice: single large avatar */
+                <div className="text-center">
+                  <div className="w-36 h-36 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-5xl font-semibold shadow-2xl shadow-blue-500/20 mb-6">
+                    {getInitials(callerName)}
+                  </div>
+                  <h3 className="text-white text-xl font-semibold mb-1">{callerName}</h3>
+                  <p className="text-white/40 text-sm">
+                    {isConnected ? 'Đang gọi' : 'Đang kết nối...'}
+                  </p>
+                </div>
+              )}
+              <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
             </div>
-            {/* Hidden audio element for voice calls */}
-            <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
-          </div>
-        )}
+          )}
 
-        {/* Local Video (Picture-in-Picture) - Only for active video calls */}
-        {!isIncoming && callType === 'video' && (
-          <div className="absolute top-4 right-4 w-40 h-30 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-              style={{ transform: 'scaleX(-1)' }}
-            />
+          {/* ── CONTROL BAR ── */}
+          <div className={`flex justify-center pb-8 pt-4 transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className="flex items-center gap-3 bg-white/[0.08] backdrop-blur-xl rounded-full px-5 py-3 shadow-2xl ring-1 ring-white/[0.06]">
+              {/* Mic */}
+              <button
+                onClick={toggleMute}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  isMuted ? 'bg-red-500/90 text-white' : 'bg-white/10 text-white/80 hover:bg-white/15'
+                }`}
+                title={isMuted ? 'Bật mic' : 'Tắt mic'}
+              >
+                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+
+              {/* Camera (video only) */}
+              {callType === 'video' && (
+                <button
+                  onClick={toggleVideo}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                    isVideoOff ? 'bg-red-500/90 text-white' : 'bg-white/10 text-white/80 hover:bg-white/15'
+                  }`}
+                  title={isVideoOff ? 'Bật camera' : 'Tắt camera'}
+                >
+                  {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                </button>
+              )}
+
+              {/* Separator */}
+              <div className="w-px h-8 bg-white/10 mx-1" />
+
+              {/* Leave / End */}
+              {isGroupCall ? (
+                <>
+                  <button
+                    onClick={handleLeaveOrEnd}
+                    className="h-12 px-5 rounded-full bg-amber-500/90 hover:bg-amber-500 text-white text-sm font-medium flex items-center gap-2 transition-all"
+                    title="Rời cuộc gọi"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Rời
+                  </button>
+                  {isHost && (
+                    <button
+                      onClick={onEndAll}
+                      className="h-12 px-5 rounded-full bg-red-500/90 hover:bg-red-500 text-white text-sm font-medium flex items-center gap-2 transition-all"
+                      title="Kết thúc cho tất cả"
+                    >
+                      <PhoneOff className="w-4 h-4" />
+                      Kết thúc
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={onEnd}
+                  className="w-14 h-12 rounded-full bg-red-500/90 hover:bg-red-500 flex items-center justify-center text-white transition-all hover:scale-105"
+                  title="Kết thúc cuộc gọi"
+                >
+                  <PhoneOff className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
-        )}
+        </>
+      )}
+
+      {/* ═══ TOAST NOTIFICATIONS ═══ */}
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 pointer-events-none">
+        {callToasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`px-4 py-2 rounded-full text-sm font-medium backdrop-blur-xl shadow-lg animate-[slideDown_0.3s_ease-out] ${
+              toast.type === 'join'
+                ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/20'
+                : toast.type === 'host'
+                  ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/20'
+                  : 'bg-white/10 text-white/70 ring-1 ring-white/10'
+            }`}
+          >
+            {toast.type === 'join' && <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5" />{toast.text}</span>}
+            {toast.type === 'leave' && <span className="inline-flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5" />{toast.text}</span>}
+            {toast.type === 'host' && <span className="inline-flex items-center gap-1.5"><Crown className="w-3.5 h-3.5" />{toast.text}</span>}
+          </div>
+        ))}
       </div>
 
-      {/* Controls - Fixed at bottom with backdrop */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-8 pb-6 px-6 z-10">
-        {/* Incoming Call Controls */}
-        {isIncoming && onAccept && (
-          <div className="flex justify-center items-center gap-8">
-            <div className="flex flex-col items-center gap-3">
+      {/* ═══ HOST TRANSFER MODAL ═══ */}
+      {showHostModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1e293b] rounded-2xl w-[380px] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div className="flex items-center gap-2 text-white font-semibold">
+                <Crown className="w-5 h-5 text-amber-400" />
+                Chuyển quyền Host
+              </div>
               <button
-                onClick={onReject}
-                className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl"
-                aria-label={t('calls.rejectAria')}
+                onClick={() => setShowHostModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
               >
-                <PhoneOff className="w-10 h-10" />
+                <X className="w-4 h-4" />
               </button>
-              <span className="text-white text-sm font-medium">{t('calls.rejectAria')}</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
+
+            {/* Participant list */}
+            <div className="px-5 py-3 max-h-48 overflow-y-auto">
+              <p className="text-white/40 text-xs mb-3">Chọn người nhận quyền Host:</p>
+              {activeParticipantIds
+                .filter(id => id !== currentUserId)
+                .map(id => (
+                  <label
+                    key={id}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors mb-1 ${
+                      selectedNewHost === id ? 'bg-blue-500/10 ring-1 ring-blue-500/20' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="newHost"
+                      value={id}
+                      checked={selectedNewHost === id}
+                      onChange={() => setSelectedNewHost(id)}
+                      className="sr-only"
+                    />
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+                      {id.slice(0, 2).toUpperCase()}
+                    </div>
+                    <span className="text-white text-sm flex-1">{id.slice(0, 12)}</span>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      selectedNewHost === id ? 'border-blue-500 bg-blue-500' : 'border-white/20'
+                    }`}>
+                      {selectedNewHost === id && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                  </label>
+                ))}
+            </div>
+
+            {/* Actions */}
+            <div className="px-5 py-4 border-t border-white/5 space-y-2">
               <button
-                onClick={onAccept}
-                className="w-20 h-20 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl animate-pulse"
-                aria-label={t('calls.acceptAria')}
+                onClick={handleHostTransferAndLeave}
+                disabled={!selectedNewHost}
+                className="w-full h-11 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium flex items-center justify-center gap-2 transition-all"
               >
-                {callType === 'video' ? <Video className="w-10 h-10" /> : <Phone className="w-10 h-10" />}
+                <ArrowRight className="w-4 h-4" />
+                Chuyển & Rời
               </button>
-              <span className="text-white text-sm font-medium">{t('calls.acceptAria')}</span>
+              <button
+                onClick={handleEndAll}
+                className="w-full h-11 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium flex items-center justify-center gap-2 transition-all"
+              >
+                <PhoneOff className="w-4 h-4" />
+                Kết thúc cuộc gọi cho tất cả
+              </button>
+              <button
+                onClick={() => setShowHostModal(false)}
+                className="w-full h-10 rounded-xl text-white/40 hover:text-white/60 text-sm transition-colors"
+              >
+                Huỷ
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Active Call Controls */}
-        {!isIncoming && (
-          <div className="flex justify-center items-center gap-6 max-w-2xl mx-auto">
-            <button
-              onClick={toggleMute}
-              className={`w-14 h-14 rounded-full ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} flex items-center justify-center text-white transition-all shadow-lg`}
-              aria-label={isMuted ? t('calls.unmute') : t('calls.mute')}
-            >
-              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-            </button>
-
-            {callType === 'video' && (
-              <button
-                onClick={toggleVideo}
-                className={`w-14 h-14 rounded-full ${isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} flex items-center justify-center text-white transition-all shadow-lg`}
-                aria-label={isVideoOff ? t('calls.turnOnVideo') : t('calls.turnOffVideo')}
-              >
-                {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
-              </button>
-            )}
-
-            <button
-              onClick={onEnd}
-              className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all shadow-lg transform hover:scale-105"
-              aria-label={t('calls.endCall')}
-            >
-              <PhoneOff className="w-8 h-8" />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Slide-down keyframe */}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

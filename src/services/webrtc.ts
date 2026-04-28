@@ -375,6 +375,11 @@ class WebRTCService {
     peerConnection.onconnectionstatechange = () => {
       console.log('🔗 Connection state:', peerId, peerConnection.connectionState);
       
+      // Notify CallContext of state changes for disconnect detection
+      if (this.peerStateCallback) {
+        this.peerStateCallback(peerId, peerConnection.connectionState);
+      }
+
       if (peerConnection.connectionState === 'failed') {
         this.closePeer(peerId);
       }
@@ -446,6 +451,24 @@ class WebRTCService {
   getCurrentCallId(): string | null {
     const first = this.currentCallIdByPeer.values().next().value as string | undefined;
     return first || null;
+  }
+
+  /** Close connection for a specific user (when they leave a group call) */
+  closePeerForUser(peerId: string) {
+    console.log('📴 Closing peer connection for user:', peerId);
+    this.closePeer(peerId);
+  }
+
+  /** Get list of currently connected peer IDs */
+  getActivePeerIds(): string[] {
+    return Array.from(this.peerConnections.keys());
+  }
+
+  /** Register callback for peer connection state changes (for disconnect detection) */
+  private peerStateCallback: ((peerId: string, state: RTCPeerConnectionState) => void) | null = null;
+
+  onPeerStateChange(callback: ((peerId: string, state: RTCPeerConnectionState) => void) | null) {
+    this.peerStateCallback = callback;
   }
 }
 

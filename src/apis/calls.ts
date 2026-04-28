@@ -2,6 +2,8 @@ import { httpClient } from './http';
 
 export type CallType = 'VOICE' | 'VIDEO';
 export type CallStatus = 'RINGING' | 'ONGOING' | 'COMPLETED' | 'MISSED' | 'DECLINED';
+export type CallState = 'RINGING' | 'CONNECTED' | 'ENDED';
+export type CallCategory = 'DIRECT' | 'GROUP';
 
 export interface CallRecord {
   id: string;
@@ -10,6 +12,10 @@ export interface CallRecord {
   calleeIds: string[];
   type: CallType;
   status: CallStatus;
+  callType: CallCategory;
+  hostId: string;
+  activeParticipantIds: string[];
+  state: CallState;
   durationSeconds: number;
   startedAt: string;
   endedAt?: string;
@@ -22,16 +28,9 @@ export interface InitiateCallRequest {
   type: CallType;
 }
 
-export interface JoinCallRequest {
+export interface CallActionPayload {
   userId: string;
-}
-
-export interface EndCallRequest {
-  userId: string;
-}
-
-export interface MissedCallRequest {
-  userId: string;
+  transferToUserId?: string;
 }
 
 export const callsApi = {
@@ -43,15 +42,35 @@ export const callsApi = {
     return httpClient.post<CallRecord>(`/api/message/calls/initiate`, payload);
   },
 
-  join: async (callId: string, payload: JoinCallRequest): Promise<CallRecord> => {
+  join: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
     return httpClient.post<CallRecord>(`/api/message/calls/${callId}/join`, payload);
   },
 
-  end: async (callId: string, payload: EndCallRequest): Promise<CallRecord> => {
+  leave: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
+    return httpClient.post<CallRecord>(`/api/message/calls/${callId}/leave`, payload);
+  },
+
+  end: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
     return httpClient.post<CallRecord>(`/api/message/calls/${callId}/end`, payload);
   },
 
-  missed: async (callId: string, payload: MissedCallRequest): Promise<CallRecord> => {
+  endAll: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
+    return httpClient.post<CallRecord>(`/api/message/calls/${callId}/end-all`, payload);
+  },
+
+  rejoin: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
+    return httpClient.post<CallRecord>(`/api/message/calls/${callId}/rejoin`, payload);
+  },
+
+  transferHost: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
+    return httpClient.post<CallRecord>(`/api/message/calls/${callId}/transfer-host`, payload);
+  },
+
+  missed: async (callId: string, payload: CallActionPayload): Promise<CallRecord> => {
     return httpClient.post<CallRecord>(`/api/message/calls/${callId}/missed`, payload);
+  },
+
+  getParticipants: async (callId: string): Promise<string[]> => {
+    return httpClient.get<string[]>(`/api/message/calls/${callId}/participants`);
   },
 };

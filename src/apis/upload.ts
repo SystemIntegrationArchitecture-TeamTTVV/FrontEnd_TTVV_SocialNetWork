@@ -16,7 +16,7 @@ export const uploadApi = {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/social/api/upload`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/social/upload`, {
         method: 'POST',
         body: formData,
         headers: {

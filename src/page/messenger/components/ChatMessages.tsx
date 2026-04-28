@@ -27,6 +27,8 @@ interface ChatMessagesProps {
   participantIds?: string[];
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   loadingMore?: boolean;
+  messagesLoading?: boolean;
+  backgroundUrl?: string;
 }
 
 export default function ChatMessages({
@@ -50,6 +52,8 @@ export default function ChatMessages({
   participantIds = [],
   onScroll,
   loadingMore = false,
+  messagesLoading = false,
+  backgroundUrl,
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -67,13 +71,21 @@ export default function ChatMessages({
 
   return (
     <div
-      className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50"
+      className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 relative ${backgroundUrl ? '' : 'bg-gray-50'}`}
+      style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
       ref={scrollContainerRef}
       onScroll={onScroll}
     >
+      {/* Loading spinner when switching conversations */}
+      {messagesLoading && filteredMessages.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10">
+          <div className="w-10 h-10 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <p className="mt-3 text-sm text-gray-400 font-medium animate-pulse">Đang tải tin nhắn...</p>
+        </div>
+      )}
       {loadingMore && (
         <div className="flex justify-center py-2">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
       {filteredMessages.map((msg) => {

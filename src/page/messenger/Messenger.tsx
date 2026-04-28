@@ -113,6 +113,7 @@ export default function Messenger() {
   const {
     conversations,
     messages: apiMessages,
+    loading: messagesLoading,
     conversationsLoading,
     loadConversations,
     loadMessages,
@@ -329,8 +330,15 @@ export default function Messenger() {
       });
     });
 
-    return unsubscribe;
-  }, [isConnected, user?.id, subscribe, activeChat]);
+    const unsubscribeMeta = subscribe('CONVERSATION_META_UPDATED', (event) => {
+      loadConversations();
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeMeta();
+    };
+  }, [isConnected, user?.id, subscribe, activeChat, loadConversations]);
 
   // Auto-open a conversation passed via navigation state (e.g., after creating new chat)
   useEffect(() => {
@@ -1617,6 +1625,8 @@ export default function Messenger() {
           joiningAppointment={joiningAppointmentId}
           onScroll={handleScroll}
           loadingMore={loadingMore}
+          messagesLoading={messagesLoading}
+          backgroundUrl={activeConversationRaw?.backgroundUrl}
         />
 
         {activeConversation && (
@@ -1741,8 +1751,6 @@ export default function Messenger() {
                 onCancelReply={() => setReplyTo(null)}
                 canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
                 sendBlockedReason={t('messenger.onlyAdminsCanSend')}
-                onOpenPollModal={() => setIsCreatePollOpen(true)}
-                isGroup={isGroupChat}
               />
             )}
             {isCreatePollOpen && (
