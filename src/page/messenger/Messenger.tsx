@@ -11,6 +11,7 @@ import { uploadApi } from '../../apis/upload';
 import { messagesApi, type Message, type MessageAttachment } from '../../apis/messages';
 import { aiApi, type AIChatRequest } from '../../apis/ai';
 import { usersApi, type PresenceStatus } from '../../apis/users';
+import { friendsApi, type FriendDTO } from '../../apis/friendRequests';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
@@ -26,6 +27,10 @@ import ChatMessages from './components/ChatMessages';
 import { useVoiceRecording } from './hooks/useVoiceRecording';
 import { useAIChat } from './hooks/useAIChat';
 import { useGroupActions } from './hooks/useGroupActions';
+import { useGroupPolls } from './hooks/useGroupPolls';
+import { useGroupAppointments } from './hooks/useGroupAppointments';
+import CreatePollModal from './components/CreatePollModal';
+import CreateAppointmentModal from './components/CreateAppointmentModal';
 
 interface MessengerLocationState {
   openConversationId?: string;
@@ -108,7 +113,6 @@ export default function Messenger() {
   const {
     conversations,
     messages: apiMessages,
-    loading,
     conversationsLoading,
     loadConversations,
     loadMessages,
@@ -118,6 +122,9 @@ export default function Messenger() {
     forwardMessage,
     toggleReaction,
     formatMessageForDisplay,
+    loadMoreMessages,
+    loadingMore,
+    hasMoreMap,
   } = useMessages();
 
   const [message, setMessage] = useState('');
@@ -159,20 +166,33 @@ export default function Messenger() {
   const [unlockPin, setUnlockPin] = useState('');
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [friendList, setFriendList] = useState<FriendDTO[]>([]);
   const [showHideInput, setShowHideInput] = useState<string | null>(null); // conversationId being hidden
   const [hidePin, setHidePin] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
   const [hideLoading, setHideLoading] = useState(false);
   const [hideError, setHideError] = useState<string | null>(null);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [unreadByConversationId, setUnreadByConversationId] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingStopTimerRef = useRef<number | null>(null);
   const isTypingRef = useRef(false);
   const lastSeenSentMessageIdRef = useRef<string | null>(null);
   const lastDeliveredSentMessageIdRef = useRef<string | null>(null);
   const seenRefreshTimerRef = useRef<number | null>(null);
+  // Load friend list once on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    friendsApi.getFriendsByUserId(user.id)
+      .then(setFriendList)
+      .catch(() => undefined);
+  }, [user?.id]);
+
   const openConversationId = location.state?.openConversationId;
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -187,6 +207,12 @@ export default function Messenger() {
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(LAST_ACTIVE_CHAT_KEY, chatId);
     }
+    setUnreadByConversationId((prev) => {
+      if (!prev[chatId]) return prev;
+      const next = { ...prev };
+      delete next[chatId];
+      return next;
+    });
     setActiveChat(chatId);
   };
 
@@ -209,7 +235,7 @@ export default function Messenger() {
   }, [activeChat, conversations]);
 
   const { t, i18n } = useTranslation();
-  
+
 
   // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Presence State ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
   const [presenceByUserId, setPresenceByUserId] = useState<Record<string, PresenceStatus>>({});
@@ -282,28 +308,64 @@ export default function Messenger() {
       const message = event.data as Message;
       if (message.senderId === user.id) return;
       if (!message.conversationId) return;
+      const incomingConversationId = String(message.conversationId);
+
+      if (activeChat && activeChat !== incomingConversationId) {
+        setUnreadByConversationId((prev) => ({
+          ...prev,
+          [incomingConversationId]: (prev[incomingConversationId] || 0) + 1,
+        }));
+      }
 
       setActiveChat((prev) => {
         if (prev) return prev;
-        return String(message.conversationId);
+        setUnreadByConversationId((counts) => {
+          if (!counts[incomingConversationId]) return counts;
+          const next = { ...counts };
+          delete next[incomingConversationId];
+          return next;
+        });
+        return incomingConversationId;
       });
     });
 
     return unsubscribe;
-  }, [isConnected, user?.id, subscribe]);
+  }, [isConnected, user?.id, subscribe, activeChat]);
 
   // Auto-open a conversation passed via navigation state (e.g., after creating new chat)
   useEffect(() => {
     if (openConversationId) {
+      setUnreadByConversationId((prev) => {
+        if (!prev[openConversationId]) return prev;
+        const next = { ...prev };
+        delete next[openConversationId];
+        return next;
+      });
       setActiveChat(openConversationId);
     }
   }, [openConversationId]);
 
   useEffect(() => {
     if (openConversationId && conversations.some((c) => c.id === openConversationId)) {
+      setUnreadByConversationId((prev) => {
+        if (!prev[openConversationId]) return prev;
+        const next = { ...prev };
+        delete next[openConversationId];
+        return next;
+      });
       setActiveChat(openConversationId);
     }
   }, [openConversationId, conversations]);
+
+  useEffect(() => {
+    if (!activeChat) return;
+    setUnreadByConversationId((prev) => {
+      if (!prev[activeChat]) return prev;
+      const next = { ...prev };
+      delete next[activeChat];
+      return next;
+    });
+  }, [activeChat]);
 
   const {
     AI_CONVERSATION_ID,
@@ -314,7 +376,6 @@ export default function Messenger() {
     isAiLoading,
     setIsAiLoading,
     isDailySummaryPrompt,
-    appendAiMessage,
     handleGenerateDailySummaryForAi,
   } = useAIChat({
     userId: user?.id,
@@ -346,16 +407,10 @@ export default function Messenger() {
 
 
   const {
-    groupMemberInput,
-    setGroupMemberInput,
     groupNameDraft,
     setGroupNameDraft,
     groupAvatarDraft,
     setGroupAvatarDraft,
-    adminDraft,
-    setAdminDraft,
-    newOwnerId,
-    setNewOwnerId,
     pendingJoins,
     setPendingJoins,
     groupActionError,
@@ -363,14 +418,15 @@ export default function Messenger() {
     groupActionMessage,
     setGroupActionMessage,
     updatingGroup,
-    handleAddMembers,
+    handleInviteFriends,
     handleRemoveMember,
     handleSaveGroupMeta,
-    handleDeleteGroup,
     handleClearConversationForMe,
     handleJoinRequestDecision,
-    handleAdminToggle,
-    handleUpdateRoles,
+    handleToggleRequireApproval,
+    handleToggleOnlyAdminsCanSend,
+    handleTransferOwnership,
+    handleDisbandGroup,
   } = useGroupActions({
     activeChat,
     userId: user?.id,
@@ -380,10 +436,38 @@ export default function Messenger() {
     setActiveChat,
   });
 
+  const {
+    isCreatePollOpen,
+    setIsCreatePollOpen,
+    handleCreatePoll,
+    handleVotePoll,
+    creatingPoll,
+    votingPollMessageId,
+  } = useGroupPolls({
+    conversationId: activeChat || '',
+    userId: user?.id || '',
+    userName: user?.fullName || '',
+  });
+
+  const {
+    isCreateAppointmentOpen,
+    setIsCreateAppointmentOpen,
+    creatingAppointment,
+    joiningAppointmentId,
+    handleCreateAppointment,
+    handleJoinAppointment,
+  } = useGroupAppointments({
+    conversationId: activeChat || '',
+    userId: user?.id || '',
+    userName: user?.fullName || '',
+    loadMessages,
+  });
+
   // Load messages when active chat changes
   useEffect(() => {
     if (activeChat && activeChat !== AI_CONVERSATION_ID) {
       loadMessages(activeChat);
+      isInitialLoadRef.current = true;
       setEditingMessageId(null);
       setReplyTo(null);
       setTypingUserIds([]);
@@ -410,8 +494,6 @@ export default function Messenger() {
     if (activeConversationRaw) {
       setGroupNameDraft(activeConversationRaw.groupName || '');
       setGroupAvatarDraft(activeConversationRaw.groupAvatar || '');
-      setAdminDraft((activeConversationRaw.adminIds || []).filter(id => id !== activeConversationRaw.ownerId));
-      setNewOwnerId(activeConversationRaw.ownerId || '');
       setGroupActionError(null);
       setGroupActionMessage(null);
       if (user?.id && (isOwner || isAdmin) && activeConversationRaw.approvalsRequired) {
@@ -428,8 +510,6 @@ export default function Messenger() {
     } else {
       setGroupNameDraft('');
       setGroupAvatarDraft('');
-      setAdminDraft([]);
-      setNewOwnerId('');
       setPendingJoins([]);
     }
   }, [activeConversationRaw, user?.id, isOwner, isAdmin, loadConversations]);
@@ -494,7 +574,6 @@ export default function Messenger() {
       else return date.toLocaleDateString(getLocaleTag());
     };
 
-    // Add AI Assistant conversation at the top
     const aiConversation = {
       id: AI_CONVERSATION_ID,
       name: t('messenger.aiAssistant.name'),
@@ -539,24 +618,51 @@ export default function Messenger() {
           online = !!(otherParticipantId && presenceByUserId[otherParticipantId]?.online);
         }
 
+        const lastActivity = conv.lastMessageAt ? new Date(conv.lastMessageAt).getTime() : 0;
+
         return {
           id: conv.id,
           name,
           avatar: initials,
           color: hashColor(conv.id),
           online,
-          lastMessage: conv.lastMessagePreview || '',
+          lastMessage: (() => {
+            if (!conv.lastMessagePreview) return '';
+            if (conv.lastMessageType === 'SYSTEM') return conv.lastMessagePreview;
+            const senderPrefix = conv.lastMessageSenderId === user?.id ? t('messenger.you', 'Bạn') : conv.lastMessageSenderName;
+            return senderPrefix ? `${senderPrefix}: ${conv.lastMessagePreview}` : conv.lastMessagePreview;
+          })(),
           time: formatTime(conv.lastMessageAt),
-          unread: 0,
+          unread: unreadByConversationId[conv.id] || 0,
           isGroup: conv.isGroup,
+          sortTime: Number.isNaN(lastActivity) ? 0 : lastActivity,
+          pinned: conv.pinnedByUserIds?.includes(user.id) || false,
         };
       })
-      .filter((c): c is { id: string; name: string; avatar: string; color: string; online: boolean; lastMessage: string; time: string; unread: number; isGroup: boolean } => Boolean(c));
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .sort((a, b) => {
+        // Pinned conversations first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // Then by time
+        return b.sortTime - a.sortTime;
+      });
 
-    return [aiConversation, ...regularConversations];
-  }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId]);
+    return [{ ...aiConversation, sortTime: Infinity, pinned: false }, ...regularConversations]
+      .sort((a, b) => {
+        // AI conversation always first (sortTime Infinity handles this)
+        if (a.sortTime === Infinity && b.sortTime !== Infinity) return -1;
+        if (a.sortTime !== Infinity && b.sortTime === Infinity) return 1;
+        // Pinned conversations next
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // Then by time
+        return b.sortTime - a.sortTime;
+      })
+      .map(({ sortTime: _s, ...item }) => item);
+  }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId, unreadByConversationId]);
 
-  const activeConversation = activeChat 
+  const activeConversation = activeChat
     ? formattedConversations.find((c) => c.id === activeChat) || null
     : null;
 
@@ -778,7 +884,7 @@ export default function Messenger() {
       }
     };
   }, [activeChat, user?.id]);
-  
+
   // Get call info - supports both direct and group calls
   const getCallInfo = () => {
     if (!activeChat || !user?.id) return null;
@@ -839,7 +945,7 @@ export default function Messenger() {
         isUser: true,
         timestamp: new Date(),
       };
-      
+
       setAiMessages((prev) => [...prev, userMessage]);
       setIsAiLoading(true);
 
@@ -881,7 +987,7 @@ export default function Messenger() {
 
     try {
       let attachments: MessageAttachment[] = [];
-      
+
       // Upload all queued files and group into a single message
       if (uploadedFiles.length > 0) {
         setUploadingFiles(true);
@@ -938,14 +1044,14 @@ export default function Messenger() {
         }, 100);
         return;
       }
-      
+
       console.log('[Messenger] Sending message:', {
         conversationId: activeChat,
         content: messageContent,
         attachmentsCount: attachments.length,
         attachments: attachments,
       });
-      
+
       if (messageContent || attachments.length > 0) {
         await sendMessageAPI(
           activeChat,
@@ -954,7 +1060,7 @@ export default function Messenger() {
           replyTo?.id
         );
       }
-      
+
       setMessage('');
       setReplyTo(null);
       setTimeout(() => {
@@ -1006,7 +1112,7 @@ export default function Messenger() {
 
     try {
       setUploadingFiles(true);
-      
+
       // Create preview for images
       if (file.type.startsWith('image/')) {
         const preview = URL.createObjectURL(file);
@@ -1014,14 +1120,14 @@ export default function Messenger() {
       }
 
       console.log('[Messenger] Uploading file:', file.name, file.type, file.size);
-      
+
       // Upload file to server
       const uploadResult = await uploadApi.uploadFile(file);
       console.log('[Messenger] File uploaded successfully:', uploadResult);
 
       // Add to uploaded files list (for preview before send)
       setUploadedFiles([...uploadedFiles, file]);
-      
+
       // Optionally focus message input for caption
       if (file.type.startsWith('image/')) {
         // For images, keep preview for user to add caption
@@ -1038,9 +1144,9 @@ export default function Messenger() {
         const messageContent = file.type.startsWith('video/') ? t('messenger.captionVideo') : `File: ${file.name}`;
         await sendMessageAPI(activeChat, messageContent, [attachment], replyTo?.id);
         setReplyTo(null);
-        
+
         console.log('[Messenger] Message sent with attachment');
-        
+
         // Clear preview
         setFilePreview(null);
         setUploadedFiles([]);
@@ -1053,7 +1159,7 @@ export default function Messenger() {
     } catch (error) {
       console.error('[Messenger] Failed to upload file:', error);
       notify.error(t('messenger.errors.uploadFile'));
-      
+
       // Clear preview on error
       setFilePreview(null);
       setUploadedFiles([]);
@@ -1074,7 +1180,7 @@ export default function Messenger() {
 
       // Convert blob to file
       const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
-      
+
       // Upload voice file
       const uploadResult = await uploadApi.uploadFile(voiceFile);
       console.log('[Messenger] Voice message uploaded:', uploadResult);
@@ -1207,6 +1313,14 @@ export default function Messenger() {
     return () => clearTimeout(timer);
   }, [searchQuery, activeChat, user?.id, formatMessageForDisplay]);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.scrollTop === 0 && !loadingMore && activeChat && hasMoreMap[activeChat]) {
+      prevScrollHeightRef.current = container.scrollHeight;
+      loadMoreMessages(activeChat);
+    }
+  };
+
   const filteredMessages = searchResults !== null ? searchResults : messages;
 
   // Smart auto-scroll: only scroll when user is near the bottom or sent a message.
@@ -1220,6 +1334,21 @@ export default function Messenger() {
     // No new messages, skip
     if (currentCount <= prevCount) return;
 
+    if (isInitialLoadRef.current) {
+      if (container) container.scrollTop = container.scrollHeight;
+      isInitialLoadRef.current = false;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
+    if (prevScrollHeightRef.current > 0 && container) {
+      const newHeight = container.scrollHeight;
+      const diff = newHeight - prevScrollHeightRef.current;
+      container.scrollTop = diff;
+      prevScrollHeightRef.current = 0;
+      return;
+    }
+
     // Check if the newest message is from the current user (they just sent it)
     const newestMessage = messages[messages.length - 1];
     const isSentByMe = newestMessage?.isMe;
@@ -1230,7 +1359,6 @@ export default function Messenger() {
       : true;
 
     if (isSentByMe || isNearBottom) {
-      // Small delay to let DOM render the new message first
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 50);
@@ -1240,7 +1368,7 @@ export default function Messenger() {
   // Close menu when clicking outside
   useEffect(() => {
     if (!selectedMessage) return;
-    
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       // Check if click is outside menu and button
@@ -1249,7 +1377,7 @@ export default function Messenger() {
         setMenuPosition(null);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [selectedMessage]);
@@ -1313,6 +1441,20 @@ export default function Messenger() {
           if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
           setContextMenu(null);
         }}
+        onTogglePinConversation={async (convId) => {
+          if (!user?.id || pinLoading) return;
+          setPinLoading(true);
+          try {
+            await conversationsApi.togglePinConversation(convId, { userId: user.id });
+            await loadConversations();
+          } catch (err: any) {
+            const msg = err?.message || 'Không thể ghim hội thoại';
+            notify.error(msg);
+          } finally {
+            setPinLoading(false);
+          }
+        }}
+        pinLoading={pinLoading}
       />
 
       {/* Hidden Chats Panel + Context Menu + Unlock Modal */}
@@ -1367,7 +1509,7 @@ export default function Messenger() {
       />
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-white min-w-0">
+      <div className="flex-1 flex flex-col bg-white min-w-0 relative">
         {/* Chat Header */}
         {activeConversation && (
           <ChatHeader
@@ -1466,121 +1608,158 @@ export default function Messenger() {
           onReaction={handleReaction}
           messagesEndRef={messagesEndRef}
           scrollContainerRef={scrollContainerRef}
+          onVote={handleVotePoll}
+          voting={votingPollMessageId}
+          userId={user?.id || ''}
+          participantNames={activeConversationRaw?.participantNames}
+          participantIds={activeConversationRaw?.participantIds}
+          onJoinAppointment={handleJoinAppointment}
+          joiningAppointment={joiningAppointmentId}
+          onScroll={handleScroll}
+          loadingMore={loadingMore}
         />
 
         {activeConversation && (
           <>
-        {/* Reply Preview */}
-        {replyTo && (
-          <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-              <div className="w-0.5 h-10 md:h-12 bg-blue-500 rounded-full shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-gray-700">{t('messenger.replyPreview', { sender: replyTo.sender })}</p>
-                <p className="text-xs md:text-sm text-gray-500 line-clamp-1">{replyTo.content}</p>
+            {/* Reply Preview */}
+            {replyTo && (
+              <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                  <div className="w-0.5 h-10 md:h-12 bg-blue-500 rounded-full shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs md:text-sm font-semibold text-gray-700">{t('messenger.replyPreview', { sender: replyTo.sender })}</p>
+                    <p className="text-xs md:text-sm text-gray-500 line-clamp-1">{replyTo.content}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReplyTo(null)}
+                  className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
+                </button>
               </div>
-            </div>
-            <button
-              onClick={() => setReplyTo(null)}
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
-            >
-              <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
-            </button>
-          </div>
-        )}
+            )}
 
-        {editingMessageId && (
-          <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-amber-100 bg-amber-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-              <div className="w-0.5 h-10 md:h-12 bg-amber-500 rounded-full shrink-0"></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-amber-700">Dang chinh sua tin nhan</p>
-                <p className="text-xs md:text-sm text-amber-600 line-clamp-1">Nhan Enter hoac nut gui de cap nhat.</p>
+            {editingMessageId && (
+              <div className="px-4 md:px-6 py-2.5 md:py-3 border-t border-amber-100 bg-amber-50 flex items-center justify-between">
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                  <div className="w-0.5 h-10 md:h-12 bg-amber-500 rounded-full shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs md:text-sm font-semibold text-amber-700">Dang chinh sua tin nhan</p>
+                    <p className="text-xs md:text-sm text-amber-600 line-clamp-1">Nhan Enter hoac nut gui de cap nhat.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingMessageId(null);
+                    setMessage('');
+                  }}
+                  className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-700" />
+                </button>
               </div>
-            </div>
-            <button
-              onClick={() => {
-                setEditingMessageId(null);
-                setMessage('');
-              }}
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0"
-            >
-              <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-700" />
-            </button>
-          </div>
-        )}
+            )}
 
-        {/* Typing Indicator */}
-        {(((isTyping && !isAIChat && typingNames.length > 0) || (isAIChat && isAiLoading))) && (
-          <TypingIndicator
-            isAIChat={isAIChat}
-            typingNames={typingNames}
-            conversationName={activeConversation?.name}
-          />
-        )}
+            {/* Typing Indicator */}
+            {(((isTyping && !isAIChat && typingNames.length > 0) || (isAIChat && isAiLoading))) && (
+              <TypingIndicator
+                isAIChat={isAIChat}
+                typingNames={typingNames}
+                conversationName={activeConversation?.name}
+              />
+            )}
 
-        {/* Message Input */}
-        {/* Message Input */}
-        <MessageInput
-          message={message}
-          onMessageChange={handleMessageInputChange}
-          onSend={handleSendMessage}
-          editingMessageId={editingMessageId}
-          isAIChat={isAIChat}
-          isAiLoading={isAiLoading}
-          uploadingFiles={uploadingFiles}
-          filePreview={filePreview}
-          onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
-          uploadedFiles={uploadedFiles}
-          onSetUploadedFiles={setUploadedFiles}
-          fileInputRef={fileInputRef}
-          onFileUpload={handleFileUpload}
-          showAttachmentMenu={showAttachmentMenu}
-          onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
-          onShareLocation={() => {
-            const text = `[Location] ${t('messenger.attachments.locationShared')}`;
-            if (activeChat && user?.id) {
-              sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
-              setShowAttachmentMenu(false);
-            }
-          }}
-          onShareContact={() => {
-            if (activeChat && user?.id) {
-              const contactName = user.fullName || user.username || user.id;
-              sendMessageAPI(
-                activeChat,
-                '',
-                [
-                  {
-                    type: 'contact',
-                    url: `user:${user.id}`,
-                    fileName: contactName,
-                  },
-                ],
-                undefined
-              ).catch(() => {});
-              setShowAttachmentMenu(false);
-            }
-          }}
-          showStickerPanel={showStickerPanel}
-          onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
-          activeStickerTopic={activeStickerTopic}
-          onStickerTopicChange={setActiveStickerTopic}
-          onSendSticker={handleSendSticker}
-          showEmojiPicker={showEmojiPicker}
-          onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
-          onEmojiSelect={handleEmojiSelect}
-          showVoicePreview={showVoicePreview}
-          voiceTranscript={voiceTranscriptRef.current}
-          onVoiceSendAudio={handleVoiceSendAudio}
-          onVoiceConvertToText={handleVoiceConvertToText}
-          onVoiceCancel={handleVoiceCancel}
-          isRecording={isRecording}
-          recordingDuration={recordingDuration}
-          onVoiceRecord={handleVoiceRecord}
-          onGenerateDailySummary={handleGenerateDailySummaryForAi}
-          replyTo={replyTo}
-        />
+            {/* Message Input */}
+            {activeConversationRaw?.isDisbanded ? (
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-center rounded-xl mx-4 mb-4 mt-2">
+                <p className="text-red-500 font-medium text-sm">Nhóm này đã được giải tán bởi nhóm trưởng</p>
+              </div>
+            ) : (
+              <MessageInput
+                message={message}
+                onMessageChange={handleMessageInputChange}
+                onSend={handleSendMessage}
+                editingMessageId={editingMessageId}
+                isAIChat={isAIChat}
+                isAiLoading={isAiLoading}
+                uploadingFiles={uploadingFiles}
+                filePreview={filePreview}
+                onClearFilePreview={() => { if (filePreview) URL.revokeObjectURL(filePreview.preview); setFilePreview(null); }}
+                uploadedFiles={uploadedFiles}
+                onSetUploadedFiles={setUploadedFiles}
+                onOpenPollModal={() => setIsCreatePollOpen(true)}
+                onOpenAppointmentModal={() => setIsCreateAppointmentOpen(true)}
+                isGroup={isGroupChat}
+                fileInputRef={fileInputRef}
+                onFileUpload={handleFileUpload}
+                showAttachmentMenu={showAttachmentMenu}
+                onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
+                onShareLocation={() => {
+                  const text = `[Location] ${t('messenger.attachments.locationShared')}`;
+                  if (activeChat && user?.id) {
+                    sendMessageAPI(activeChat, text, [], undefined).catch(() => { });
+                    setShowAttachmentMenu(false);
+                  }
+                }}
+                onShareContact={() => {
+                  if (activeChat && user?.id) {
+                    const contactName = user.fullName || user.username || user.id;
+                    sendMessageAPI(
+                      activeChat,
+                      '',
+                      [
+                        {
+                          type: 'contact',
+                          url: `user:${user.id}`,
+                          fileName: contactName,
+                        },
+                      ],
+                      undefined
+                    ).catch(() => { });
+                    setShowAttachmentMenu(false);
+                  }
+                }}
+                showStickerPanel={showStickerPanel}
+                onToggleStickerPanel={() => { setShowStickerPanel((prev) => !prev); setShowAttachmentMenu(false); setShowEmojiPicker(false); }}
+                activeStickerTopic={activeStickerTopic}
+                onStickerTopicChange={setActiveStickerTopic}
+                onSendSticker={handleSendSticker}
+                showEmojiPicker={showEmojiPicker}
+                onToggleEmojiPicker={() => setShowEmojiPicker(!showEmojiPicker)}
+                onEmojiSelect={handleEmojiSelect}
+                showVoicePreview={showVoicePreview}
+                voiceTranscript={voiceTranscriptRef.current}
+                onVoiceSendAudio={handleVoiceSendAudio}
+                onVoiceConvertToText={handleVoiceConvertToText}
+                onVoiceCancel={handleVoiceCancel}
+                isRecording={isRecording}
+                recordingDuration={recordingDuration}
+                onVoiceRecord={handleVoiceRecord}
+                onGenerateDailySummary={handleGenerateDailySummaryForAi}
+                replyTo={replyTo}
+                onCancelReply={() => setReplyTo(null)}
+                canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
+                sendBlockedReason={t('messenger.onlyAdminsCanSend')}
+                onOpenPollModal={() => setIsCreatePollOpen(true)}
+                isGroup={isGroupChat}
+              />
+            )}
+            {isCreatePollOpen && (
+              <CreatePollModal
+                onClose={() => setIsCreatePollOpen(false)}
+                onSubmit={handleCreatePoll}
+                creating={creatingPoll}
+              />
+            )}
+
+            {isCreateAppointmentOpen && (
+              <CreateAppointmentModal
+                onClose={() => setIsCreateAppointmentOpen(false)}
+                onSubmit={handleCreateAppointment}
+                creating={creatingAppointment}
+              />
+            )}
           </>
         )}
       </div>
@@ -1599,23 +1778,20 @@ export default function Messenger() {
           onGroupNameChange={setGroupNameDraft}
           groupAvatarDraft={groupAvatarDraft}
           onGroupAvatarChange={setGroupAvatarDraft}
-          groupMemberInput={groupMemberInput}
-          onGroupMemberInputChange={setGroupMemberInput}
           groupActionMessage={groupActionMessage}
           groupActionError={groupActionError}
           updatingGroup={updatingGroup}
           pendingJoins={pendingJoins}
-          adminDraft={adminDraft}
-          newOwnerId={newOwnerId}
-          onNewOwnerIdChange={setNewOwnerId}
           onSaveGroupMeta={handleSaveGroupMeta}
-          onAddMembers={handleAddMembers}
           onRemoveMember={handleRemoveMember}
           onJoinRequestDecision={handleJoinRequestDecision}
-          onAdminToggle={handleAdminToggle}
-          onUpdateRoles={handleUpdateRoles}
-          onDeleteGroup={handleDeleteGroup}
           onClearConversationForMe={handleClearConversationForMe}
+          onToggleRequireApproval={handleToggleRequireApproval}
+          onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
+          onTransferOwnership={handleTransferOwnership}
+          onDisbandGroup={handleDisbandGroup}
+          friendList={friendList}
+          onInviteFriends={handleInviteFriends}
           onShowSearch={() => setShowSearch(true)}
           onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
           userId={user?.id}
@@ -1637,6 +1813,8 @@ export default function Messenger() {
           onCancel={resetForwardDialog}
         />
       )}
+
+
     </div>
   );
 }

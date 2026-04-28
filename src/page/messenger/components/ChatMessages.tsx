@@ -4,6 +4,7 @@ import { Users } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { canRecallByCreatedAt } from '../../../constants/chatPolicy';
 import type { DisplayMessage } from '../../../hooks/useMessages';
+import type { Message } from '../../../apis/messages';
 
 interface ChatMessagesProps {
   activeConversation: { id: string; name: string } | null;
@@ -17,6 +18,15 @@ interface ChatMessagesProps {
   onReaction: (messageId: string, emoji: string) => void;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
+  onVote: (msg: Message, optionId: string) => void;
+  voting?: string | null;
+  onJoinAppointment?: (messageId: string) => void;
+  joiningAppointment?: string | null;
+  userId: string;
+  participantNames?: string[];
+  participantIds?: string[];
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  loadingMore?: boolean;
 }
 
 export default function ChatMessages({
@@ -31,6 +41,15 @@ export default function ChatMessages({
   onReaction,
   messagesEndRef,
   scrollContainerRef,
+  onVote,
+  voting,
+  onJoinAppointment,
+  joiningAppointment,
+  userId,
+  participantNames = [],
+  participantIds = [],
+  onScroll,
+  loadingMore = false,
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -50,8 +69,32 @@ export default function ChatMessages({
     <div
       className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 bg-gray-50"
       ref={scrollContainerRef}
+      onScroll={onScroll}
     >
+      {loadingMore && (
+        <div className="flex justify-center py-2">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
       {filteredMessages.map((msg) => {
+        // System / group-event messages → centered notification banner
+        if (msg.messageType === 'SYSTEM') {
+          return (
+            <div key={msg.id} className="flex items-center justify-center py-1">
+              <span className="px-3 py-1 rounded-full bg-gray-200/70 text-gray-500 text-[11px] font-medium text-center max-w-[85%] leading-snug">
+                {(() => {
+                  let resolved = msg.content;
+                  participantIds.forEach((id, idx) => {
+                    if (!id) return;
+                    resolved = resolved.replace(new RegExp(`\\b${id}\\b`, 'g'), participantNames[idx] || id);
+                  });
+                  return resolved;
+                })()}
+              </span>
+            </div>
+          );
+        }
+
         const isSelected = selectedMessage === msg.id;
         const canRecall = msg.isMe && canRecallByCreatedAt(msg.createdAt);
         return (
@@ -67,6 +110,13 @@ export default function ChatMessages({
             onSetMenuPosition={onSetMenuPosition}
             onMessageAction={onMessageAction}
             onReaction={onReaction}
+            onVote={onVote}
+            voting={voting}
+            onJoinAppointment={onJoinAppointment}
+            joiningAppointment={joiningAppointment}
+            userId={userId}
+            participantNames={participantNames}
+            participantIds={participantIds}
           />
         );
       })}

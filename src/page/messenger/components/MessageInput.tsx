@@ -2,8 +2,8 @@
 import { useRef, type RefObject, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Plus, Send, Smile, Mic, Grid3X3, BarChart3,
-  X, FileText, Video, Music, Sparkles,
+  Plus, Send, Smile, Mic, Grid3X3, BarChart3, Calendar,
+  X, FileText, Video, Music, Sparkles, Reply,
 } from 'lucide-react';
 import EmojiPicker from '../../../components/chat/EmojiPicker';
 import StickerPanel from '../shared/StickerPanel';
@@ -54,6 +54,15 @@ interface MessageInputProps {
   onGenerateDailySummary?: (prompt: string) => void;
   // Reply
   replyTo: { sender: string; content: string } | null;
+  onCancelReply?: () => void;
+  // Poll
+  onOpenPollModal?: () => void;
+  // Appointment
+  onOpenAppointmentModal?: () => void;
+  isGroup?: boolean;
+  // Permission
+  canSend?: boolean;
+  sendBlockedReason?: string;
 }
 
 export default function MessageInput({
@@ -92,8 +101,30 @@ export default function MessageInput({
   onVoiceRecord,
   onGenerateDailySummary,
   replyTo,
+  onCancelReply,
+  onOpenPollModal,
+  onOpenAppointmentModal,
+  isGroup,
+  canSend = true,
+  sendBlockedReason,
 }: MessageInputProps) {
   const { t } = useTranslation();
+
+  if (!canSend) {
+    return (
+      <div className="border-t border-gray-100 bg-gradient-to-b from-gray-50 to-white px-4 py-4 flex flex-col items-center gap-2">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <rect x="3" y="11" width="18" height="11" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+        </div>
+        <p className="text-sm font-medium text-gray-500 text-center leading-snug">
+          {sendBlockedReason || 'Chỉ trưởng nhóm và phó nhóm mới được gửi tin nhắn'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 md:p-4 lg:p-5 border-t border-gray-100 bg-white">
@@ -224,6 +255,30 @@ export default function MessageInput({
         />
       )}
 
+      {/* Reply Preview */}
+      {replyTo && (
+        <div className="mb-3 p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border-l-4 border-blue-500 flex items-center gap-3 relative animate-in slide-in-from-bottom-2 duration-300">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Reply className="w-3 h-3 text-blue-600" />
+              <p className="text-[11px] font-bold text-blue-600 uppercase tracking-tight">
+                {t('messenger.replyingTo', { sender: replyTo.sender })}
+              </p>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 truncate leading-relaxed">
+              {replyTo.content}
+            </p>
+          </div>
+          <button
+            onClick={onCancelReply}
+            className="w-7 h-7 rounded-full hover:bg-white dark:hover:bg-gray-800 shadow-sm flex items-center justify-center transition-all group"
+            title={t('common.cancel')}
+          >
+            <X className="w-4 h-4 text-gray-400 group-hover:text-red-500" />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 md:gap-2.5">
         <button 
           onClick={onToggleAttachmentMenu}
@@ -244,13 +299,26 @@ export default function MessageInput({
         >
           <Grid3X3 className="w-5 h-5" />
         </button>
-        <button
-          type="button"
-          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
-          title={t('messenger.groupPanel.customizeChat')}
-        >
-          <BarChart3 className="w-5 h-5" />
-        </button>
+        {isGroup && (
+          <>
+            <button
+              type="button"
+              onClick={onOpenPollModal}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0"
+              title="Tạo bình chọn"
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenAppointmentModal}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors shrink-0"
+              title="Lên lịch hẹn"
+            >
+              <Calendar className="w-5 h-5" />
+            </button>
+          </>
+        )}
         <input
           type="text"
           value={message}
