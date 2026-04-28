@@ -6,6 +6,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { authApi } from '../apis/auth';
 import { getLocaleTag } from '../i18n';
 import { buildConversationPreview } from '../utils/messagePreview';
+import { IncomingMessageEventTypes } from '../services/socketEvents';
 
 // Exported so components (MessageBubble, ChatMessages, etc.) can type their props
 export interface DisplayMessage {
@@ -353,70 +354,75 @@ export function useMessages() {
   useEffect(() => {
     if (!isConnected || !user?.id) return;
 
-    const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
-      if (event.type === 'MESSAGE_RECEIVED' && event.data) {
-        const message: Message = event.data;
-        
-        // Duplicate events (including same-user events from other devices) are deduped by message id below.
-        // Do not hard-drop realtime events using local participant cache because stale conversation state
-        // can incorrectly filter valid messages and break realtime delivery.
-        const conversation = conversationsRef.current.find(conv => conv.id === message.conversationId);
-        if (conversation?.participantIds?.length && !conversation.participantIds.includes(user.id)) {
-          console.warn(
-            '[useMessages] Conversation participant cache mismatch, accepting socket event anyway',
-            {
-              conversationId: message.conversationId,
-              currentUserId: user.id,
-            }
-          );
+    const handleIncomingMessage = (eventType: string, payload: unknown) => {
+      if (!payload) return;
+      const message = payload as Message;
+      if (!message.id || !message.conversationId) return;
+
+      // Duplicate events (including same-user events from other devices) are deduped by message id below.
+      // Do not hard-drop realtime events using local participant cache because stale conversation state
+      // can incorrectly filter valid messages and break realtime delivery.
+      const conversation = conversationsRef.current.find(conv => conv.id === message.conversationId);
+      if (conversation?.participantIds?.length && !conversation.participantIds.includes(user.id)) {
+        console.warn(
+          '[useMessages] Conversation participant cache mismatch, accepting socket event anyway',
+          {
+            conversationId: message.conversationId,
+            currentUserId: user.id,
+            eventType,
+          }
+        );
+      }
+
+      setMessages(prev => {
+        const existing = prev[message.conversationId] || [];
+        if (existing.find(m => m.id === message.id)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [message.conversationId]: [...existing, message],
+        };
+      });
+
+      setConversations(prev => {
+        const exists = prev.some((conv) => conv.id === message.conversationId);
+        if (!exists) {
+          conversationsApi
+            .getConversationById(message.conversationId)
+            .then((conv) => {
+              setConversations((current) => {
+                if (current.some((item) => item.id === conv.id)) {
+                  return current;
+                }
+                return [conv, ...current];
+              });
+            })
+            .catch(() => undefined);
+          return prev;
         }
 
-        setMessages(prev => {
-          const existing = prev[message.conversationId] || [];
-          if (existing.find(m => m.id === message.id)) {
-            return prev;
-          }
-          return {
-            ...prev,
-            [message.conversationId]: [...existing, message],
-          };
+        const updated = prev.map(conv =>
+          conv.id === message.conversationId
+            ? {
+                ...conv,
+                lastMessagePreview: buildConversationPreview(message),
+                lastMessageAt: message.createdAt,
+              }
+            : conv
+        );
+
+        return updated.sort((a, b) => {
+          const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+          const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+          return timeB - timeA;
         });
+      });
+    };
 
-        setConversations(prev => {
-          const exists = prev.some((conv) => conv.id === message.conversationId);
-          if (!exists) {
-            conversationsApi
-              .getConversationById(message.conversationId)
-              .then((conv) => {
-                setConversations((current) => {
-                  if (current.some((item) => item.id === conv.id)) {
-                    return current;
-                  }
-                  return [conv, ...current];
-                });
-              })
-              .catch(() => undefined);
-            return prev;
-          }
-
-          const updated = prev.map(conv =>
-            conv.id === message.conversationId
-              ? {
-                  ...conv,
-                  lastMessagePreview: buildConversationPreview(message),
-                  lastMessageAt: message.createdAt,
-                }
-              : conv
-          );
-
-          return updated.sort((a, b) => {
-            const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-            const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-            return timeB - timeA;
-          });
-        });
-      }
-    });
+    const unsubscribeIncomingMessages = IncomingMessageEventTypes.map((type) =>
+      subscribe(type, (event) => handleIncomingMessage(event.type, event.data))
+    );
 
     const unsubscribeDeleted = subscribe('MESSAGE_DELETED', (event) => {
       if (event.type !== 'MESSAGE_DELETED' || !event.data) return;
@@ -528,11 +534,12 @@ export function useMessages() {
         return {
           ...prev,
           [payload.conversationId!]: list.map(m => {
-            if (!m.deliveredToUserIds) {
+            const deliveredToUserIds = (m as Message & { deliveredToUserIds?: string[] }).deliveredToUserIds;
+            if (!deliveredToUserIds) {
               return { ...m, deliveredToUserIds: [payload.userId!] };
             }
-            if (m.deliveredToUserIds.includes(payload.userId!)) return m;
-            return { ...m, deliveredToUserIds: [...m.deliveredToUserIds, payload.userId!] };
+            if (deliveredToUserIds.includes(payload.userId!)) return m;
+            return { ...m, deliveredToUserIds: [...deliveredToUserIds, payload.userId!] };
           }),
         };
       });
@@ -637,7 +644,7 @@ export function useMessages() {
     });
 
     return () => {
-      unsubscribeMessage();
+      unsubscribeIncomingMessages.forEach((unsub) => unsub());
       unsubscribeDeleted();
       unsubscribeDeletedForMe();
       unsubscribeEdited();

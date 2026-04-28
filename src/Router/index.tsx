@@ -65,6 +65,7 @@ const MusicEDM = lazy(() => import("../page/music/MusicEDM"));
 const GamesPage = lazy(() => import("../page/games/GamesPage"));
 const FlappyBird = lazy(() => import("../games/flappy-bord"));
 const Bomberman = lazy(() => import("../games/bomberman"));
+const BombermanMultiplayer = lazy(() => import("../games/bomberman/multiplayer"));
 
 // Social Pages
 const FriendRequests = lazy(() => import("../page/social/FriendRequests"));
@@ -182,6 +183,7 @@ export const router = createBrowserRouter([
       { path: "games", element: <S><GamesPage /></S> },
       { path: "games/flappy", element: <S><FlappyBird /></S> },
       { path: "games/bomberman", element: <S><Bomberman /></S> },
+      { path: "games/bomberman/friends", element: <S><BombermanMultiplayer /></S> },
 
       // Social
       { path: "find-people", element: <S><FindPeople /></S> },

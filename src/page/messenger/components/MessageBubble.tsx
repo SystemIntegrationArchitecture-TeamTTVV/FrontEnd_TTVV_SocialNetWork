@@ -1,14 +1,14 @@
 // ─── MessageBubble — single message rendering ──────────────────────────
 // Extracted from Messenger.tsx lines 2178–2510
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   MoreVertical, Reply, Forward, Copy, Pin, Star,
-  Pencil, Trash2, Check, CheckCheck, Plus, Mic, FileText, Bot,
+  Pencil, Trash2, Check, CheckCheck, Mic, FileText, Bot,
 } from 'lucide-react';
-import { REACTIONS } from '../../../components/chat/ReactionIcons';
+import { REACTIONS, ReactionIcon } from '../../../components/chat/ReactionIcons';
 import type { DisplayMessage } from '../../../hooks/useMessages';
 import { hashColor } from '../shared/messengerUtils';
 
@@ -40,6 +40,8 @@ export default function MessageBubble({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const actionHideTimerRef = useRef<number | null>(null);
+  const [showHoverActions, setShowHoverActions] = useState(false);
   const legacyContactName = msg.content.startsWith('[Contact]')
     ? msg.content.replace('[Contact]', '').trim()
     : '';
@@ -49,10 +51,40 @@ export default function MessageBubble({
     return id || null;
   };
 
+  const keepActionsVisible = () => {
+    if (actionHideTimerRef.current) {
+      window.clearTimeout(actionHideTimerRef.current);
+      actionHideTimerRef.current = null;
+    }
+    setShowHoverActions(true);
+  };
+
+  const scheduleHideActions = () => {
+    if (actionHideTimerRef.current) {
+      window.clearTimeout(actionHideTimerRef.current);
+    }
+    actionHideTimerRef.current = window.setTimeout(() => {
+      setShowHoverActions(false);
+      actionHideTimerRef.current = null;
+    }, 180);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (actionHideTimerRef.current) {
+        window.clearTimeout(actionHideTimerRef.current);
+      }
+    };
+  }, []);
+
+  const shouldShowActions = showHoverActions || selectedMessage === msg.id;
+
   return (
     <div
       id={`msg-${msg.id}`}
       className={`group flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''} transition-all duration-300`}
+      onMouseEnter={keepActionsVisible}
+      onMouseLeave={scheduleHideActions}
     >
       {!msg.isMe && (
         <div
@@ -220,14 +252,44 @@ export default function MessageBubble({
                 ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
                 : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
             }`}
-            onDoubleClick={() => onReaction(msg.id, 'LOVE')}
+            onDoubleClick={() => onReaction(msg.id, 'love')}
           >
             <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
           </div>
         )}
 
+        {/* Quick Reactions Bar (always available on hover) */}
+        <div
+          className={`absolute ${
+            msg.isMe ? 'left-0' : 'right-0'
+          } bottom-full mb-1 transition-opacity z-30 ${
+            shouldShowActions ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          onMouseEnter={keepActionsVisible}
+          onMouseLeave={scheduleHideActions}
+        >
+          <div className="bg-white rounded-full shadow-xl border border-gray-200 px-2 py-1 flex items-center gap-1">
+            {REACTIONS.map((r) => (
+              <button
+                key={r.key}
+                onClick={() => onReaction(msg.id, r.key)}
+                className="w-7 h-7 rounded-full hover:scale-110 transition-transform flex items-center justify-center"
+                title={r.label}
+              >
+                <span className="w-5 h-5 inline-block">{r.svg}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Message Options */}
-        <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-0 ${msg.isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-opacity z-20`}>
+        <div
+          className={`absolute ${msg.isMe ? 'left-0 -left-11' : 'right-0 -right-11'} top-full mt-1 transition-opacity z-20 ${
+            shouldShowActions ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          onMouseEnter={keepActionsVisible}
+          onMouseLeave={scheduleHideActions}
+        >
           <div className="relative">
             <button
               ref={isSelected ? menuButtonRef : null}
@@ -304,7 +366,7 @@ export default function MessageBubble({
         </div>
 
         {/* Reactions */}
-        {msg.reactions && msg.reactions.length > 0 && (
+        {(msg.reactions && msg.reactions.length > 0) && (
           <div className={`flex flex-wrap gap-1 mt-2 ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
             {msg.reactions.map((reaction, idx) => (
               <button
@@ -312,46 +374,10 @@ export default function MessageBubble({
                 onClick={() => onReaction(msg.id, reaction.emoji)}
                 className="px-2 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-1 text-xs"
               >
-                <span>{reaction.emoji}</span>
+                <ReactionIcon reactionKey={reaction.emoji} className="w-4 h-4 inline-block" />
                 <span className="text-gray-600 font-medium">{reaction.users.length}</span>
               </button>
             ))}
-            <button
-              onClick={() => {
-                const picker = document.getElementById(`reaction-picker-${msg.id}`);
-                if (picker) {
-                  picker.classList.toggle('hidden');
-                  picker.classList.toggle('flex');
-                }
-              }}
-              className="w-6 h-6 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
-            >
-              <Plus className="w-3 h-3 text-gray-600" />
-            </button>
-
-            {/* Quick Reactions Picker */}
-            <div
-              id={`reaction-picker-${msg.id}`}
-              className="hidden absolute bottom-full mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-2 gap-1 z-20"
-            >
-              {REACTIONS.map((r) => (
-                <button
-                  key={r.key}
-                  onClick={() => {
-                    onReaction(msg.id, r.key);
-                    const picker = document.getElementById(`reaction-picker-${msg.id}`);
-                    if (picker) {
-                      picker.classList.add('hidden');
-                      picker.classList.remove('flex');
-                    }
-                  }}
-                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-                  title={r.label}
-                >
-                  <span className="w-5 h-5 inline-block">{r.svg}</span>
-                </button>
-              ))}
-            </div>
           </div>
         )}
 

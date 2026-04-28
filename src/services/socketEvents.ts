@@ -69,6 +69,19 @@ export type SocketEventType =
   (typeof SocketEventTypes)[keyof typeof SocketEventTypes];
 
 /**
+ * Incoming message events we accept from backend.
+ * Keep this as the single source of truth so all consumers
+ * (Messenger, ChatBox, hooks) stay consistent.
+ */
+export const IncomingMessageEventTypes = [
+  SocketEventTypes.MESSAGE_RECEIVED,
+  SocketEventTypes.MESSAGE_SENT,
+  // Legacy aliases (backward compatibility with older backend nodes)
+  "MESSAGE_CREATED",
+  "NEW_MESSAGE",
+] as const;
+
+/**
  * STOMP Destinations — phải đồng bộ với backend SocketDestinations.java
  */
 export const SocketDestinations = {

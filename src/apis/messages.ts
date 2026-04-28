@@ -38,6 +38,7 @@ export interface Message {
   pollOptions?: PollOption[];
   mentionUserIds?: string[];
   seenByUserIds?: string[];
+  deliveredToUserIds?: string[];
   pinned?: boolean;
   starredByUserIds?: string[];
   isDeleted: boolean;

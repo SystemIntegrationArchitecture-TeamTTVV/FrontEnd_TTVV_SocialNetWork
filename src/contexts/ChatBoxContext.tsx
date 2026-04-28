@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
 import { conversationsApi } from '../apis/conversations';
 import { showAuthRequiredPrompt } from '../utils/authPrompt';
+import { IncomingMessageEventTypes } from '../services/socketEvents';
 
 // Re-export types for convenience
 export type { ChatContact, ChatMessage };
@@ -277,12 +278,13 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isConnected || !user?.id) return;
 
-    console.log('🔔 ChatBox: Subscribing to MESSAGE_RECEIVED for auto-open');
+    console.log('🔔 ChatBox: Subscribing incoming message events for auto-open');
 
-    const unsubscribe = subscribe('MESSAGE_RECEIVED', async (event) => {
-      console.log('📬 ChatBox received MESSAGE_RECEIVED event:', event);
-      
-      if (event.type === 'MESSAGE_RECEIVED' && event.data) {
+    const unsubscribers = IncomingMessageEventTypes.map((eventType) =>
+      subscribe(eventType, async (event) => {
+        console.log(`📬 ChatBox received ${event.type} event:`, event);
+        
+        if (event.data) {
         const message = event.data as any;
         
         console.log('📋 Message details:', {
@@ -356,10 +358,13 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         } else {
           console.log('⏭️ Skipping auto-open (message from current user or no conversationId)');
         }
-      }
-    });
+        }
+      })
+    );
 
-    return unsubscribe;
+    return () => {
+      unsubscribers.forEach((unsub) => unsub());
+    };
   }, [isConnected, user?.id, subscribe, openChatBox]);
 
   return (
