@@ -44,6 +44,7 @@ export interface ChatInfoSidebarProps {
   onShowSearch: () => void;
   onCloseRightSidebar: () => void;
   userId?: string;
+  loadConversations?: () => void;
 }
 
 /**
@@ -63,6 +64,7 @@ export default function ChatInfoSidebar(props: ChatInfoSidebarProps) {
       onShowSearch={props.onShowSearch}
       onCloseRightSidebar={props.onCloseRightSidebar}
       userId={props.userId}
+      loadConversations={props.loadConversations}
     />
   );
 }

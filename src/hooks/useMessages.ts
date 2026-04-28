@@ -427,6 +427,11 @@ export function useMessages() {
       'SEND_PERMISSION_UPDATED',
       'ADD_MEMBER_PERMISSION_UPDATED',
       'CONVERSATION_META_UPDATED',
+      // Direct chat actions that also need conversation reload
+      'NICKNAME_CHANGED',
+      'BACKGROUND_CHANGED',
+      'USER_BLOCKED',
+      'USER_UNBLOCKED',
     ]);
 
     const unsubscribeMessage = subscribe('MESSAGE_RECEIVED', (event) => {
@@ -742,6 +747,11 @@ export function useMessages() {
         lastMessageSenderName?: string;
         lastMessageAt?: string | null;
         isDisbanded?: boolean;
+        // Direct chat fields
+        nicknames?: Record<string, string>;
+        backgroundUrl?: string;
+        blockedByUserIds?: string[];
+        mutedByUserIds?: string[];
       };
       if (!payload.conversationId) return;
 
@@ -786,6 +796,9 @@ export function useMessages() {
               lastMessageSenderName: payload.lastMessageSenderName ?? conv.lastMessageSenderName,
               lastMessageAt: payload.lastMessageAt ?? conv.lastMessageAt,
               isDisbanded: payload.isDisbanded ?? conv.isDisbanded,
+              // Direct chat fields
+              nicknames: payload.nicknames ?? conv.nicknames,
+              backgroundUrl: payload.backgroundUrl ?? conv.backgroundUrl,
             }
             : conv
         );

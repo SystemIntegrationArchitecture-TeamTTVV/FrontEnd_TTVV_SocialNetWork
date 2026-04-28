@@ -601,10 +601,14 @@ export default function Messenger() {
         if (!conv.participantIds || !Array.isArray(conv.participantIds)) return null;
 
         const otherParticipantIndex = conv.participantIds.findIndex((id) => id !== user.id);
+        const otherParticipantId = conv.participantIds[otherParticipantIndex];
 
+        // For direct chats: prefer nickname from nicknames map, then fallback to participantNames
         const name = conv.isGroup
           ? conv.groupName || 'Group Chat'
-          : conv.participantNames?.[otherParticipantIndex] || 'Unknown User';
+          : (otherParticipantId && conv.nicknames?.[otherParticipantId])
+            || conv.participantNames?.[otherParticipantIndex]
+            || 'Unknown User';
 
         const initials = name
           .split(' ')
@@ -1749,8 +1753,22 @@ export default function Messenger() {
                 onGenerateDailySummary={handleGenerateDailySummaryForAi}
                 replyTo={replyTo}
                 onCancelReply={() => setReplyTo(null)}
-                canSend={isAIChat || !activeConversationRaw?.onlyAdminsCanSend || canManageGroup}
-                sendBlockedReason={t('messenger.onlyAdminsCanSend')}
+                canSend={(() => {
+                  if (isAIChat) return true;
+                  // Block enforcement for DM: if anyone blocked, both can't send
+                  const blockedList = activeConversationRaw?.blockedByUserIds;
+                  if (!activeConversationRaw?.isGroup && blockedList && blockedList.length > 0) return false;
+                  // Group: admin-only send check
+                  if (activeConversationRaw?.onlyAdminsCanSend && !canManageGroup) return false;
+                  return true;
+                })()}
+                sendBlockedReason={(() => {
+                  const blockedList = activeConversationRaw?.blockedByUserIds;
+                  if (!activeConversationRaw?.isGroup && blockedList && blockedList.length > 0) {
+                    return 'Cuộc trò chuyện đã bị chặn. Không thể gửi tin nhắn.';
+                  }
+                  return t('messenger.onlyAdminsCanSend');
+                })()}
               />
             )}
             {isCreatePollOpen && (
@@ -1803,6 +1821,7 @@ export default function Messenger() {
           onShowSearch={() => setShowSearch(true)}
           onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
           userId={user?.id}
+          loadConversations={loadConversations}
         />
       )}
 

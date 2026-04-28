@@ -30,6 +30,7 @@ interface DirectChatSidebarProps {
   onShowSearch: () => void;
   onCloseRightSidebar: () => void;
   userId?: string;
+  loadConversations?: () => void;
 }
 
 export default function DirectChatSidebar({
@@ -39,6 +40,7 @@ export default function DirectChatSidebar({
   onShowSearch,
   onCloseRightSidebar,
   userId,
+  loadConversations,
 }: DirectChatSidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -46,8 +48,12 @@ export default function DirectChatSidebar({
 
   const [otherUser, setOtherUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [isMuted, setIsMuted] = useState(() =>
+    !!(userId && conversationRaw?.mutedByUserIds?.includes(userId))
+  );
+  const [isBlocked, setIsBlocked] = useState(() =>
+    !!(userId && conversationRaw?.blockedByUserIds?.includes(userId))
+  );
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reporting, setReporting] = useState(false);
@@ -61,7 +67,18 @@ export default function DirectChatSidebar({
   
   // To update UI instantly if needed (though we rely on parent/socket mostly, 
   // local state gives immediate feedback)
-  const [localNickname, setLocalNickname] = useState(conversation.name);
+  const localNicknameFromConv = userId
+    ? conversationRaw?.nicknames?.[conversationRaw?.participantIds?.find(id => id !== userId) || '']
+    : undefined;
+  const [localNickname, setLocalNickname] = useState(localNicknameFromConv || conversation.name);
+
+  // Sync isMuted/isBlocked when conversationRaw changes (e.g. via socket update)
+  useEffect(() => {
+    if (userId && conversationRaw) {
+      setIsMuted(!!(conversationRaw.mutedByUserIds?.includes(userId)));
+      setIsBlocked(!!(conversationRaw.blockedByUserIds?.includes(userId)));
+    }
+  }, [conversationRaw?.mutedByUserIds, conversationRaw?.blockedByUserIds, userId]);
 
   // Compute other user ID
   const otherUserId = conversationRaw?.participantIds?.find(id => id !== userId) || '';
@@ -108,17 +125,18 @@ export default function DirectChatSidebar({
     return unsub;
   }, [otherUserId, subscribe]);
 
-  // ── Realtime: listen for block status changes ──
+  // ── Realtime: listen for meta changes (block, mute, nickname, background) ──
   useEffect(() => {
     if (!conversationRaw?.id) return;
     const unsub = subscribe('CONVERSATION_META_UPDATED', (event: any) => {
       const data = event?.data;
       if (data?.conversationId === conversationRaw.id) {
-        // Refresh conversation data
+        // Refresh conversations to get latest state
+        loadConversations?.();
       }
     });
     return unsub;
-  }, [conversationRaw?.id, subscribe]);
+  }, [conversationRaw?.id, subscribe, loadConversations]);
 
   // ── Mute toggle ──
   const handleToggleMute = async () => {
@@ -127,6 +145,7 @@ export default function DirectChatSidebar({
       await conversationsApi.toggleMute(conversationRaw.id, { userId });
       setIsMuted(!isMuted);
       notify.success(isMuted ? 'Đã bật thông báo' : 'Đã tắt thông báo');
+      loadConversations?.();
     } catch {
       notify.error('Không thể thay đổi trạng thái thông báo');
     }
@@ -139,23 +158,30 @@ export default function DirectChatSidebar({
       await conversationsApi.toggleBlockConversation(conversationRaw.id, userId);
       setIsBlocked(!isBlocked);
       notify.success(isBlocked ? 'Đã bỏ chặn' : 'Đã chặn người dùng');
+      // Reload conversations + system message will appear via MESSAGE_RECEIVED socket
+      loadConversations?.();
     } catch {
       notify.error('Không thể thay đổi trạng thái chặn');
     }
   };
 
-  // ── Update Nickname ──
+  // ── Update Nickname (Messenger-style: set nickname FOR the other person) ──
   const handleUpdateNickname = async () => {
-    if (!conversationRaw?.id || !userId) return;
+    if (!conversationRaw?.id || !userId || !otherUserId) return;
     setUpdatingNickname(true);
     try {
-      await conversationsApi.updateNickname(conversationRaw.id, {
-        userId,
-        payload: nicknameDraft.trim()
-      });
+      // userId in body = otherUserId (who we're nicknaming)
+      // requesterId query param = current user (who is making the change)
+      await conversationsApi.updateNickname(
+        conversationRaw.id,
+        { userId: otherUserId, payload: nicknameDraft.trim() },
+        userId
+      );
       setLocalNickname(nicknameDraft.trim() || conversation.name);
       notify.success('Đã cập nhật biệt danh');
       setShowNicknameModal(false);
+      // Reload conversations so header and sidebar reflect new nickname
+      loadConversations?.();
     } catch {
       notify.error('Không thể cập nhật biệt danh');
     } finally {
@@ -170,9 +196,10 @@ export default function DirectChatSidebar({
     try {
       notify.success('Đang tải ảnh lên...');
       const uploadResult = await uploadApi.uploadFile(file);
-      await conversationsApi.updateConversationBackground(conversationRaw.id, uploadResult.url);
+      await conversationsApi.updateConversationBackground(conversationRaw.id, uploadResult.url, userId);
       notify.success('Đã cập nhật ảnh nền');
-      // Triggers CONVERSATION_META_UPDATED in background
+      // Triggers CONVERSATION_META_UPDATED via socket to refresh for both participants
+      loadConversations?.();
     } catch {
       notify.error('Lỗi cập nhật ảnh nền');
     } finally {

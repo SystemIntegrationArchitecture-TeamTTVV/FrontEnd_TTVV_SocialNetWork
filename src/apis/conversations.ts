@@ -25,6 +25,10 @@ export interface Conversation {
   lastMessageAt?: string;
   isDisbanded?: boolean;
   pinnedByUserIds?: string[];
+  nicknames?: Record<string, string>;
+  backgroundUrl?: string;
+  blockedByUserIds?: string[];
+  mutedByUserIds?: string[];
   aiAssistantEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -237,8 +241,9 @@ export const conversationsApi = {
     return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/ban`, data);
   },
 
-  updateNickname: async (conversationId: string, data: ConversationActionRequest): Promise<Conversation> => {
-    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/nickname`, data);
+  updateNickname: async (conversationId: string, data: ConversationActionRequest, requesterId?: string): Promise<Conversation> => {
+    const qs = requesterId ? `?requesterId=${encodeURIComponent(requesterId)}` : '';
+    return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/nickname${qs}`, data);
   },
 
   getInviteLink: async (conversationId: string, requesterId: string): Promise<string> => {
@@ -261,8 +266,10 @@ export const conversationsApi = {
     return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/block?${qs}`);
   },
 
-  updateConversationBackground: async (conversationId: string, backgroundUrl: string): Promise<Conversation> => {
-    const qs = new URLSearchParams({ backgroundUrl }).toString();
+  updateConversationBackground: async (conversationId: string, backgroundUrl: string, userId?: string): Promise<Conversation> => {
+    const params: Record<string, string> = { backgroundUrl };
+    if (userId) params.userId = userId;
+    const qs = new URLSearchParams(params).toString();
     return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/background?${qs}`);
   },
 
