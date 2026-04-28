@@ -7,6 +7,7 @@ import RightSidebar from '../sidebar/RightSidebar';
 import ChatBoxManager from '../chatbox/ChatBoxManager';
 import MiniMusicPlayer from '../music/MiniMusicPlayer';
 import AIChatWidget from '../ai/AIChatWidget';
+import FeatureGuideBot from '../guide/FeatureGuideBot';
 import AuthRequiredModal from '../common/AuthRequiredModal';
 import { AUTH_REQUIRED_EVENT } from '../../utils/authPrompt';
 
@@ -103,6 +104,7 @@ export default function MainLayout() {
       {!isFlappyFullscreen && <ChatBoxManager />}
       {!isFlappyFullscreen && <MiniMusicPlayer />}
       {!isFlappyFullscreen && !isMessengerPage && <AIChatWidget />}
+      {!isFlappyFullscreen && !isMessengerPage && <FeatureGuideBot />}
       <AuthRequiredModal
         open={showAuthModal}
         fromPath={fromPath}

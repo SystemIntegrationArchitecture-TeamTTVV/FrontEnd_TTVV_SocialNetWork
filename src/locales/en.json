@@ -158,6 +158,7 @@
     "marketplace": "Marketplace",
     "groups": "Groups",
     "music": "Music",
+    "live": "Live",
     "games": "Games",
     "messages": "Messages"
   },
@@ -168,6 +169,7 @@
     "video": "Video",
     "music": "Music",
     "games": "Games",
+    "live": "Live Stream",
     "saved": "Saved",
     "seeMore": "See more",
     "loginRequired": "Please log in"

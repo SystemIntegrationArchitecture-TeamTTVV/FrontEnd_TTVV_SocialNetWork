@@ -158,6 +158,7 @@
     "marketplace": "Chợ",
     "groups": "Nhóm",
     "music": "Nhạc",
+    "live": "Live",
     "games": "Trò chơi",
     "messages": "Tin nhắn"
   },
@@ -168,6 +169,7 @@
     "video": "Video",
     "music": "Nhạc",
     "games": "Trò chơi",
+    "live": "Phát trực tiếp",
     "saved": "Đã lưu",
     "seeMore": "Xem thêm",
     "loginRequired": "Vui lòng đăng nhập"

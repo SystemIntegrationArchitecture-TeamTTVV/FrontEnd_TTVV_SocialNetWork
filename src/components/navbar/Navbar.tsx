@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, LayoutGrid, Music2, Gamepad2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check } from 'lucide-react';
+import { Home, Video, Store, LayoutGrid, Music2, Gamepad2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check, Radio } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';
@@ -204,7 +204,7 @@ export default function Navbar() {
     if (currentUser?.fullName)
       return (
         <div className={`${dim} rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold ${text}`}>
-          {currentUser.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+          {(currentUser.fullName.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2)) || 'U'}
         </div>
       );
     return (
@@ -260,7 +260,7 @@ export default function Navbar() {
                     {suggestions.map((user) => {
                       const safeUsername = user.username ?? 'U';
                       const userInitials = user.fullName
-                        ? user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+                        ? user.fullName.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'U'
                         : safeUsername.charAt(0).toUpperCase();
                       return (
                         <button key={user.id} onClick={() => handleSuggestionClick(user)}
@@ -290,6 +290,7 @@ export default function Navbar() {
               { to: '/marketplace', icon: Store, requireAuth: true },
               { to: '/groups', icon: LayoutGrid, requireAuth: true },
               { to: '/games', icon: Gamepad2, requireAuth: false },
+              { to: '/livestream', icon: Radio, requireAuth: true },
             ].map(({ to, icon: Icon, requireAuth }) => {
               const needsAuth = requireAuth && !currentUser;
               const active =
@@ -574,7 +575,7 @@ export default function Navbar() {
                 {suggestions.map((user) => {
                   const safeUsername = user.username ?? 'U';
                   const initials = user.fullName
-                    ? user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    ? user.fullName.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'
                     : safeUsername.charAt(0).toUpperCase();
                   return (
                     <button key={user.id}
@@ -607,6 +608,7 @@ export default function Navbar() {
           { to: '/marketplace', icon: Store,         labelKey: 'mobileNav.marketplace' as const, requireAuth: true },
           { to: '/groups',      icon: LayoutGrid,   labelKey: 'mobileNav.groups' as const, requireAuth: true },
           { to: '/music',       icon: Music2,        labelKey: 'mobileNav.music' as const, requireAuth: false },
+          { to: '/livestream',  icon: Radio,         labelKey: 'mobileNav.live' as const, requireAuth: true },
           { to: '/games',       icon: Gamepad2,      labelKey: 'mobileNav.games' as const, requireAuth: false },
           { to: '/messenger',   icon: MessageCircle, labelKey: 'mobileNav.messages' as const, requireAuth: true },
         ].map(({ to, icon: Icon, labelKey, requireAuth }) => {

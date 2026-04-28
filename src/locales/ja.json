@@ -158,6 +158,7 @@
     "marketplace": "マーケット",
     "groups": "グループ",
     "music": "音楽",
+    "live": "ライブ",
     "games": "ゲーム",
     "messages": "メッセージ"
   },
@@ -168,6 +169,7 @@
     "video": "動画",
     "music": "音楽",
     "games": "ゲーム",
+    "live": "ライブ配信",
     "saved": "保存済み",
     "seeMore": "さらに表示",
     "loginRequired": "ログインしてください"

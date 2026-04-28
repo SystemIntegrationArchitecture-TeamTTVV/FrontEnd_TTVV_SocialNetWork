@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, Radio, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
-type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'games' | 'saved';
+type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'games' | 'live' | 'saved';
 
 type MenuItem =
   | {
@@ -36,10 +36,11 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
   const userInitials = currentUser?.fullName
     ? currentUser.fullName
         .split(' ')
+        .filter(Boolean)
         .map(n => n[0])
         .join('')
         .toUpperCase()
-        .slice(0, 2)
+        .slice(0, 2) || 'U'
     : 'U';
 
   const menuItems: MenuItem[] = [
@@ -49,6 +50,7 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
     { icon: Video, labelKey: 'video', path: '/watch', requireAuth: true },
     { icon: Music2, labelKey: 'music', path: '/music' },
     { icon: Gamepad2, labelKey: 'games', path: '/games' },
+    { icon: Radio, labelKey: 'live', path: '/livestream', requireAuth: true },
     { icon: Bookmark, labelKey: 'saved', path: '/saved', requireAuth: true },
   ];
 
@@ -113,7 +115,7 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
               {!collapsed && <span className="text-[15px] font-medium opacity-60">{rowLabel}</span>}
             </button>
           ) : (
-            <Link key={index} to={item.path} className={`${rowBase} ${isActive ? rowActive : rowInactive}`} title={collapsed ? rowLabel : undefined}>
+            <Link key={index} to={item.path} data-sidebar-link={item.path} className={`${rowBase} ${isActive ? rowActive : rowInactive}`} title={collapsed ? rowLabel : undefined}>
               {item.isUser ? (
                 <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-[#1877F2]/30 dark:ring-blue-500 ring-offset-1 ring-offset-[#f0f2f5] dark:ring-offset-[#13151f]">
                   {userAvatar ? (

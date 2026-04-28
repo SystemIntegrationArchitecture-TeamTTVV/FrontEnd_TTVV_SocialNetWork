@@ -67,6 +67,11 @@ const FlappyBird = lazy(() => import("../games/flappy-bord"));
 const Bomberman = lazy(() => import("../games/bomberman"));
 const BombermanMultiplayer = lazy(() => import("../games/bomberman/multiplayer"));
 
+// LiveStream Pages
+const LiveStreamPage = lazy(() => import("../page/livestream/LiveStreamPage"));
+const StreamerDashboard = lazy(() => import("../page/livestream/StreamerDashboard"));
+const LiveViewer = lazy(() => import("../page/livestream/LiveViewer"));
+
 // Social Pages
 const FriendRequests = lazy(() => import("../page/social/FriendRequests"));
 const FindPeople = lazy(() => import("../page/social/FindPeople"));
@@ -201,6 +206,11 @@ export const router = createBrowserRouter([
       { path: "marketplace/my-products", element: <ProtectedRoute requireAuth={true}><S><MyProducts /></S></ProtectedRoute> },
       { path: "marketplace/product/:id", element: <S><ProductDetail /></S> },
       { path: "saved", element: <ProtectedRoute requireAuth={true}><S><SavedItems /></S></ProtectedRoute> },
+
+      // LiveStream
+      { path: "livestream", element: <ProtectedRoute requireAuth={true}><S><LiveStreamPage /></S></ProtectedRoute> },
+      { path: "livestream/dashboard", element: <ProtectedRoute requireAuth={true}><S><StreamerDashboard /></S></ProtectedRoute> },
+      { path: "livestream/:id", element: <ProtectedRoute requireAuth={true}><S><LiveViewer /></S></ProtectedRoute> },
 
       // Settings
       { path: "settings", element: <ProtectedRoute requireAuth={true}><S><Settings /></S></ProtectedRoute> },

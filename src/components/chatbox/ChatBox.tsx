@@ -14,6 +14,9 @@ interface ChatBoxProps {
   index: number;
 }
 
+/* ── ChatBox positioning ── */
+const CHATBOX_GAP = 16;
+
 export default function ChatBox({ contact, index }: ChatBoxProps) {
   const { t } = useTranslation();
   const { closeChatBox, toggleMinimize, minimizedBoxes, messages, sendMessage } = useChatBox();
@@ -118,185 +121,182 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     }
   };
 
-  if (isMinimized) {
-    const minimizedWidth = 260;
-    const minimizedGap = 16;
-    const rightPosition = index * (minimizedWidth + minimizedGap);
+  /* ── Calculate position ── */
+  const boxWidth = isMinimized ? 260 : 340;
+  const rightPos = index * (boxWidth + CHATBOX_GAP);
 
+  if (isMinimized) {
     return (
       <div
-        className="fixed bottom-0 bg-white rounded-t-xl shadow-xl border border-gray-200 cursor-pointer transition-all duration-300 z-50"
-        style={{
-          right: `${rightPosition}px`,
-          width: `${minimizedWidth}px`,
-        }}
+        className="fixed bottom-0 bg-white dark:bg-[#1a1d28] rounded-t-xl shadow-lg border border-[#e4e6eb] dark:border-[#2b2f45] cursor-pointer transition-all duration-200 z-50 hover:shadow-xl"
+        style={{ right: `${rightPos}px`, width: `${boxWidth}px` }}
         onClick={() => toggleMinimize(contact.id)}
       >
-        <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100 hover:bg-gray-50">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] rounded-t-xl transition-colors">
           <div className="relative">
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
               style={{ backgroundColor: contact.color }}
             >
               {contact.avatar}
             </div>
             {contact.online && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#1a1d28]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm truncate">{contact.name}</p>
+            <p className="font-semibold text-[#050505] dark:text-[#edf0fa] text-sm truncate">{contact.name}</p>
             {contactMessages.length > 0 && (
-              <p className="text-xs text-gray-500 truncate">
+              <p className="text-xs text-[#65676b] dark:text-[#7e89a6] truncate">
                 {contactMessages[contactMessages.length - 1].content}
               </p>
             )}
           </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); closeChatBox(contact.id); }}
+            className="w-6 h-6 rounded-full hover:bg-gray-200 dark:hover:bg-[#2b2f45] flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <X className="w-3 h-3 text-[#65676b] dark:text-[#7e89a6]" />
+          </button>
         </div>
       </div>
     );
   }
 
-  const boxWidth = 340;
-  const boxGap = 16;
-  const rightPosition = index * (boxWidth + boxGap);
-
   return (
     <div
-      className="fixed bottom-0 bg-white rounded-t-xl shadow-xl border border-gray-200 flex flex-col transition-all duration-300 z-50"
+      className="fixed bottom-0 bg-white dark:bg-[#1a1d28] rounded-t-xl shadow-xl border border-[#e4e6eb] dark:border-[#2b2f45] flex flex-col transition-all duration-200 z-50"
       style={{
-        right: `${rightPosition}px`,
+        right: `${rightPos}px`,
         width: `${boxWidth}px`,
-        height: '520px',
-        maxHeight: '80vh',
+        height: '460px',
+        maxHeight: '75vh',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-xl">
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] rounded-t-xl shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative">
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-sm"
               style={{ backgroundColor: contact.color }}
             >
               {contact.avatar}
             </div>
             {contact.online && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-[#1a1d28]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm truncate">{contact.name}</p>
-            <p className="text-xs text-gray-500">{contact.online ? t('chatBox.activeNow') : t('chatBox.offline')}</p>
+            <p className="font-semibold text-[#050505] dark:text-[#edf0fa] text-[13px] truncate leading-tight">{contact.name}</p>
+            <p className="text-[11px] text-[#65676b] dark:text-[#7e89a6] leading-tight">{contact.online ? t('chatBox.activeNow') : t('chatBox.offline')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={() => contact.userId && startCall(contact.userId, contact.name, 'voice')}
             disabled={!contact.userId}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
             title={t('chatBox.voiceCall')}
           >
-            <Phone className="w-3.5 h-3.5 text-gray-600" />
+            <Phone className="w-3.5 h-3.5 text-[#1877F2]" />
           </button>
           <button
             onClick={() => contact.userId && startCall(contact.userId, contact.name, 'video')}
             disabled={!contact.userId}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
             title={t('chatBox.videoCall')}
           >
-            <Video className="w-3.5 h-3.5 text-gray-600" />
+            <Video className="w-3.5 h-3.5 text-[#1877F2]" />
           </button>
           <button
             onClick={() => toggleMinimize(contact.id)}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors"
             title={t('chatBox.minimize')}
           >
-            <Minimize2 className="w-3.5 h-3.5 text-gray-600" />
+            <Minimize2 className="w-3.5 h-3.5 text-[#65676b] dark:text-[#7e89a6]" />
           </button>
           <button
             onClick={() => closeChatBox(contact.id)}
-            className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors"
             title={t('common.close')}
           >
-            <X className="w-3.5 h-3.5 text-gray-600" />
+            <X className="w-3.5 h-3.5 text-[#65676b] dark:text-[#7e89a6]" />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#f0f2f5] dark:bg-[#0c0e14]">
+        {contactMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg mb-3"
+              style={{ backgroundColor: contact.color }}
+            >
+              {contact.avatar}
+            </div>
+            <p className="text-sm font-semibold text-[#050505] dark:text-[#edf0fa]">{contact.name}</p>
+            <p className="text-xs text-[#65676b] dark:text-[#7e89a6] mt-1">Bắt đầu cuộc trò chuyện</p>
+          </div>
+        )}
         {contactMessages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex items-start gap-2.5 ${msg.isMe ? 'flex-row-reverse' : ''}`}
+            className={`flex items-end gap-1.5 ${msg.isMe ? 'flex-row-reverse' : ''}`}
           >
             {!msg.isMe && (
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0 shadow-sm"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white font-semibold text-[10px] shrink-0 shadow-sm"
                 style={{ backgroundColor: contact.color }}
               >
                 {contact.avatar}
               </div>
             )}
-            <div className={`max-w-[75%] ${msg.isMe ? 'text-right' : ''}`}>
-              {/* Luôn hiển thị tên người gửi trên mỗi tin nhắn trong chatbox ngoài
-                 (cả group lẫn chat riêng) để dễ nhìn như Messenger */}
-              {msg.sender && (
-                <p className="text-[11px] font-semibold text-gray-600 mb-0.5">
-                  {msg.sender}
-                </p>
-              )}
+            <div className={`max-w-[78%] ${msg.isMe ? 'text-right' : ''}`}>
               {/* Attachments */}
               {msg.attachments && msg.attachments.length > 0 && (
-                <div className="mb-2 space-y-2">
-                  {msg.attachments.map((attachment, idx) => {
-                    console.log(`🎨 Rendering attachment ${idx}:`, attachment);
-                    return (
-                      <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-xs">
-                        {attachment.type === 'image' && (
-                          <img
-                            src={attachment.url}
-                            alt={attachment.fileName}
-                            className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                            onError={(e) => console.log('❌ Image failed to load:', attachment.url, e)}
-                            onLoad={() => console.log('✅ Image loaded:', attachment.url)}
-                          />
-                        )}
-                        {attachment.type === 'video' && (
-                          <video
-                            src={attachment.url}
-                            controls
-                            className="w-full h-auto rounded-xl cursor-pointer"
-                            onError={(e) => console.log('❌ Video failed to load:', attachment.url, e)}
-                            onLoadedMetadata={() => console.log('✅ Video loaded:', attachment.url)}
-                          />
-                        )}
-                        {attachment.type === 'file' && (
-                          <a
-                            href={attachment.url}
-                            download
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                          >
-                            <span>📎 {attachment.fileName}</span>
-                          </a>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="mb-1.5 space-y-1.5">
+                  {msg.attachments.map((attachment, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-[220px]">
+                      {attachment.type === 'image' && (
+                        <img
+                          src={attachment.url}
+                          alt={attachment.fileName}
+                          className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                        />
+                      )}
+                      {attachment.type === 'video' && (
+                        <video
+                          src={attachment.url}
+                          controls
+                          className="w-full h-auto rounded-xl cursor-pointer"
+                        />
+                      )}
+                      {attachment.type === 'file' && (
+                        <a
+                          href={attachment.url}
+                          download
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1a1d28] border border-[#e4e6eb] dark:border-[#2b2f45] rounded-xl hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] transition-colors text-sm"
+                        >
+                          <span>📎 {attachment.fileName}</span>
+                        </a>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
               {/* Message Content */}
               <div
-                className={`rounded-xl px-3 py-2 mb-1 shadow-sm ${msg.isMe
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-900 border border-gray-100'
+                className={`rounded-2xl px-3 py-2 shadow-sm inline-block text-left ${msg.isMe
+                    ? 'bg-[#1877F2] text-white'
+                    : 'bg-white dark:bg-[#22263a] text-[#050505] dark:text-[#edf0fa] border border-[#e4e6eb] dark:border-[#2b2f45]'
                   }`}
               >
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed break-words">{msg.content}</p>
               </div>
-              <p className="text-xs text-gray-500 px-1.5">{msg.time}</p>
+              <p className="text-[10px] text-[#65676b] dark:text-[#7e89a6] mt-0.5 px-1">{msg.time}</p>
             </div>
           </div>
         ))}
@@ -304,40 +304,36 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       </div>
 
       {/* Input Area */}
-      <div className="p-3 border-t border-gray-200 bg-white rounded-b-xl">
-        <div className="flex items-end gap-2">
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1">
-            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
-            <ImageUpload onFileSelect={handleFileSelect} />
-            <VideoUpload onFileSelect={handleFileSelect} />
-            <VoiceRecorder onRecordingComplete={handleVoiceRecording} />
-          </div>
-
-          {/* Message Input */}
+      <div className="px-3 py-2 border-t border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] rounded-b-xl shrink-0">
+        {/* Action row */}
+        <div className="flex items-center gap-0.5 mb-1.5">
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+          <ImageUpload onFileSelect={handleFileSelect} />
+          <VideoUpload onFileSelect={handleFileSelect} />
+          <VoiceRecorder onRecordingComplete={handleVoiceRecording} />
+        </div>
+        {/* Input + Send */}
+        <div className="flex items-center gap-2">
           <div className="flex-1">
             <textarea
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder={t('chatBox.messagePlaceholder')}
-              className="w-full px-3 py-2 bg-gray-100 rounded-full resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-24 text-sm"
+              className="w-full px-3 py-2 bg-[#f0f2f5] dark:bg-[#22263a] border border-[#e4e6eb] dark:border-[#2b2f45] rounded-full resize-none focus:outline-none focus:border-[#1877F2] max-h-20 text-[13px] text-[#050505] dark:text-[#edf0fa] placeholder-[#65676b] dark:placeholder-[#7e89a6]"
               rows={1}
               disabled={sending}
             />
           </div>
-
-          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={!messageInput.trim() || sending}
-            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 bg-[#1877F2] text-white rounded-full hover:bg-[#1664d9] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
     </div>
   );
 }
-

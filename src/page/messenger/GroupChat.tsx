@@ -1289,7 +1289,6 @@ export default function GroupChat() {
         />
       )}
     </div>
-    </div >
   );
 }
 

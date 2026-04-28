@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, Globe, UserCheck, Lock } from 'lucide-react';
+import { Image, Smile, Activity, MessageCircle, Share2, Heart, MoreHorizontal, Send, Edit, Trash2, Bookmark, EyeOff, Flag, Loader2, Globe, UserCheck, Lock, Radio, Eye } from 'lucide-react';
+import { livestreamApi, type LiveStreamData } from '../../apis/livestream';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { LocationIcon } from '../../common/icons/IconComponents';
 import { useAuth } from '../../contexts/AuthContext';
@@ -86,6 +87,26 @@ export default function Newsfeed() {
   const nav = useNavigate();
   const { showToast } = useToast();
   const requestLogin = () => showAuthRequiredPrompt(window.location.pathname);
+
+  // ── Live Stream Banner State ──
+  const [activeStreams, setActiveStreams] = useState<LiveStreamData[]>([]);
+
+  useEffect(() => {
+    livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
+  }, []);
+
+  // Realtime: reload when someone goes live / ends
+  useEffect(() => {
+    const unsubs = [
+      subscribe('LIVE_STARTED', () => {
+        livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
+      }),
+      subscribe('LIVE_ENDED', () => {
+        livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
+      }),
+    ];
+    return () => unsubs.forEach(u => u());
+  }, [subscribe]);
 
   // ── Stale-while-revalidate: show cached posts instantly, refresh in background ──
   useEffect(() => {
@@ -659,10 +680,11 @@ export default function Newsfeed() {
     if (!name) return 'U';
     return name
       .split(' ')
+      .filter(Boolean)
       .map(n => n[0])
       .join('')
       .toUpperCase()
-      .slice(0, 2);
+      .slice(0, 2) || 'U';
   };
 
   const normalizeVisibility = (visibility?: string): 'PUBLIC' | 'FRIENDS' | 'PRIVATE' => {
@@ -797,6 +819,49 @@ export default function Newsfeed() {
         </div>
       </div>
 
+      {/* 🔴 Live Stream Banner */}
+      {activeStreams.length > 0 && (
+        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 dark:from-red-500/15 dark:to-pink-500/15 border border-red-200 dark:border-red-500/20 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-600 dark:text-red-400 font-bold text-sm">
+                {activeStreams.length} đang phát trực tiếp
+              </span>
+            </div>
+            <button
+              onClick={() => nav('/livestream')}
+              className="text-xs text-red-500 hover:text-red-600 font-medium hover:underline"
+            >
+              Xem tất cả →
+            </button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+            {activeStreams.slice(0, 4).map((stream) => (
+              <button
+                key={stream.id}
+                onClick={() => nav(`/livestream/${stream.id}`)}
+                className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-[#1a1d28] rounded-xl border border-gray-100 dark:border-[#2b2f45] hover:shadow-md hover:border-red-200 dark:hover:border-red-500/30 transition-all min-w-[220px] shrink-0"
+              >
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                    <Radio className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-[#1a1d28] animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{stream.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{stream.streamerName}</p>
+                </div>
+                <div className="flex items-center gap-1 text-gray-400 text-xs shrink-0">
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>{stream.viewerCount}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Create Post */}
       <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-4 sm:p-5 border border-[#e4e6eb] dark:border-[#2b2f45] shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none">
@@ -822,7 +887,7 @@ export default function Newsfeed() {
               to="/post/create"
               className="flex-1 h-10 px-4 rounded-full bg-[#f0f2f5] dark:bg-[#22263a] hover:bg-[#e4e6eb] dark:hover:bg-[#2b2f45] border-0 text-left flex items-center text-[#65676b] dark:text-[#7e89a6] hover:text-[#050505] dark:hover:text-[#c8ccde] cursor-pointer text-[15px] transition-colors"
             >
-              {t('newsfeed.createPostPlaceholder', { name: currentUser.fullName.split(' ')[0] ?? '' })}
+              {t('newsfeed.createPostPlaceholder', { name: (currentUser.fullName || '').split(' ').filter(Boolean)[0] ?? '' })}
             </Link>
           ) : (
             <button
