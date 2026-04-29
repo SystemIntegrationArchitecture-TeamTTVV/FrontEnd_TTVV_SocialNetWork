@@ -263,6 +263,11 @@ export const conversationsApi = {
     return httpClient.post<Conversation>(`/api/message/conversations/join-by-url?${qs}`);
   },
 
+  previewJoinByInviteLink: async (token: string, requesterId: string): Promise<Conversation> => {
+    const qs = new URLSearchParams({ token, requesterId }).toString();
+    return httpClient.get<Conversation>(`/api/message/conversations/join-by-url/preview?${qs}`);
+  },
+
   toggleBlockConversation: async (conversationId: string, userId: string): Promise<Conversation> => {
     const qs = new URLSearchParams({ userId }).toString();
     return httpClient.post<Conversation>(`/api/message/conversations/${conversationId}/block?${qs}`);
