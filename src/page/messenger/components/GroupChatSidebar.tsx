@@ -43,6 +43,7 @@ interface ChatInfoSidebarProps {
   onDisbandGroup: () => void;
 
   onClearConversationForMe: () => void;
+  onClearGroupHistory: () => void;
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
@@ -131,6 +132,7 @@ export default function GroupChatSidebar({
   onDisbandGroup,
 
   onClearConversationForMe,
+  onClearGroupHistory,
   onToggleRequireApproval,
   onToggleOnlyAdminsCanSend,
   onTransferOwnership,
@@ -345,6 +347,34 @@ export default function GroupChatSidebar({
                   disabled={updatingGroup}
                 />
               </div>
+
+              {isOwner && (
+                <div className="pt-2 border-t border-red-100 mt-1">
+                  <div className="flex items-center justify-between gap-3 py-1">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-gray-700 leading-snug">
+                          {t('messenger.groupPanel.clearGroupHistory')}
+                        </p>
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5">
+                          {t('messenger.groupPanel.clearGroupHistoryHint')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onClearGroupHistory}
+                      disabled={updatingGroup}
+                      className="h-8 px-3 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {t('messenger.groupPanel.clearGroupHistory')}
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

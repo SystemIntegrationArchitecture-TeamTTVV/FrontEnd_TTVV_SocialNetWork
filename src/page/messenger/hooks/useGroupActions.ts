@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { conversationsApi } from '../../../apis/conversations';
+import { messagesApi } from '../../../apis/messages';
 
 interface UseGroupActionsProps {
   activeChat: string | null;
@@ -219,6 +220,30 @@ export function useGroupActions({
     }
   };
 
+  const handleClearGroupHistory = async () => {
+    if (!activeChat || !userId || !isGroupChat) return;
+    if (!isOwner) {
+      setGroupActionError(t('messenger.group.onlyOwnerCanClearHistory'));
+      return;
+    }
+    if (!window.confirm(t('messenger.group.confirmClearGroupHistory'))) return;
+
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await messagesApi.clearGroupConversationHistory(activeChat, userId);
+      setGroupActionMessage(t('messenger.group.clearGroupHistorySuccess'));
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to clear group history', err);
+      const message = err instanceof Error ? err.message : t('messenger.group.clearGroupHistoryError');
+      setGroupActionError(message);
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   const handleJoinRequestDecision = async (requesterId: string, approved: boolean) => {
     if (!activeChat || !userId) return;
     setUpdatingGroup(true);
@@ -359,6 +384,7 @@ export function useGroupActions({
     handleSaveGroupMeta,
     handleDeleteGroup,
     handleClearConversationForMe,
+    handleClearGroupHistory,
     handleJoinRequestDecision,
     handleAdminToggle,
     handleUpdateRoles,

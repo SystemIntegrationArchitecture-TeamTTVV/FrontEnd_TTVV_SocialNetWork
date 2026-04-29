@@ -457,6 +457,7 @@ export default function Messenger() {
     handleRemoveMember,
     handleSaveGroupMeta,
     handleClearConversationForMe,
+    handleClearGroupHistory,
     handleJoinRequestDecision,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
@@ -1931,6 +1932,7 @@ export default function Messenger() {
           onRemoveMember={handleRemoveMember}
           onJoinRequestDecision={handleJoinRequestDecision}
           onClearConversationForMe={handleClearConversationForMe}
+          onClearGroupHistory={handleClearGroupHistory}
           onToggleRequireApproval={handleToggleRequireApproval}
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
           onTransferOwnership={handleTransferOwnership}

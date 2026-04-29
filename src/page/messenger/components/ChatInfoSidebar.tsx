@@ -35,6 +35,7 @@ export interface ChatInfoSidebarProps {
   onJoinRequestDecision: (userId: string, accept: boolean) => void;
   onDisbandGroup: () => void;
   onClearConversationForMe: () => void;
+  onClearGroupHistory: () => void;
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
