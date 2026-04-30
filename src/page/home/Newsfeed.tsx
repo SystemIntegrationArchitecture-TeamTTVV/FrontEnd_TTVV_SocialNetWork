@@ -46,6 +46,9 @@ export default function Newsfeed() {
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
+  const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
+  // Tracks which postIds were successfully fetched (prevents re-fetch on collapse/expand)
+  const fetchedCommentPosts = useRef<Set<string>>(new Set());
   const { subscribe } = useSocket();
   const { user: currentUser, isLoading: authLoading, refreshSessionUser } = useAuth();
   const [composerAvatarFailed, setComposerAvatarFailed] = useState(false);
@@ -335,13 +338,19 @@ export default function Newsfeed() {
       return newSet;
     });
 
-    // Load comments when expanding
-    if (isExpanding && !postComments[postId]) {
+    // Only load if expanding and not yet successfully fetched
+    if (isExpanding && !fetchedCommentPosts.current.has(postId)) {
+      setIsLoadingComments(prev => ({ ...prev, [postId]: true }));
       try {
         const comments = await commentsApi.getCommentsByPostId(postId);
         setPostComments(prev => ({ ...prev, [postId]: comments }));
+        fetchedCommentPosts.current.add(postId); // mark as fetched only on success
       } catch (error) {
         console.error('Failed to load comments:', error);
+        showToast(t('newsfeed.commentSendFailed'), 'error');
+        // Don't set postComments on error — keep undefined so user can retry next expand
+      } finally {
+        setIsLoadingComments(prev => ({ ...prev, [postId]: false }));
       }
     }
   };
@@ -361,7 +370,8 @@ export default function Newsfeed() {
         content: comment.trim(),
       });
 
-      // Add comment to state
+      // Add comment to state and mark as fetched
+      fetchedCommentPosts.current.add(postId);
       setPostComments(prev => ({
         ...prev,
         [postId]: [...(prev[postId] || []), newComment]
@@ -1304,8 +1314,17 @@ export default function Newsfeed() {
 
                     {/* Comment Input */}
                     <div className="flex items-center gap-4 pt-2">
-                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                        {currentUser?.fullName?.charAt(0) || 'U'}
+                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 overflow-hidden">
+                        {composerAvatarSrc && !composerAvatarFailed ? (
+                          <img
+                            src={composerAvatarSrc}
+                            alt={currentUser?.fullName || 'User'}
+                            className="w-full h-full object-cover"
+                            onError={() => setComposerAvatarFailed(true)}
+                          />
+                        ) : (
+                          <span>{currentUser?.fullName?.charAt(0) || 'U'}</span>
+                        )}
                       </div>
                       <div className="flex-1 relative">
                         <input
@@ -1335,15 +1354,39 @@ export default function Newsfeed() {
                       </div>
                     </div>
 
+                    {/* Comments Loading */}
+                    {isLoadingComments[post.id!] && (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                        <span className="ml-2 text-sm text-gray-400">Đang tải bình luận...</span>
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!isLoadingComments[post.id!] && Array.isArray(postComments[post.id!]) && postComments[post.id!].length === 0 && (
+                      <div className="text-center py-3">
+                        <p className="text-sm text-gray-400">{t('newsfeed.statsComments', { count: 0 }).replace('0 ', '') || 'Chưa có bình luận nào'}</p>
+                      </div>
+                    )}
+
                     {/* Comments List */}
-                    {postComments[post.id!] && postComments[post.id!].length > 0 && (
+                    {!isLoadingComments[post.id!] && postComments[post.id!] && postComments[post.id!].length > 0 && (
                       <div className="space-y-3 mt-4">
                         {postComments[post.id!].map((comment) => (
                           <div key={comment.id} className="flex flex-col gap-2">
                             {/* Main Comment */}
                             <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
-                                {comment.userName?.charAt(0) || 'U'}
+                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 overflow-hidden">
+                                {comment.userAvatar ? (
+                                  <img
+                                    src={resolveMediaUrl(comment.userAvatar)}
+                                    alt={comment.userName || 'User'}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; (e.currentTarget.parentElement as HTMLElement).innerHTML = comment.userName?.charAt(0) || 'U'; }}
+                                  />
+                                ) : (
+                                  <span>{comment.userName?.charAt(0) || 'U'}</span>
+                                )}
                               </div>
                               <div className="flex-1">
                                 <div className="bg-gray-100 rounded-2xl px-4 py-2.5">
@@ -1353,40 +1396,54 @@ export default function Newsfeed() {
                                 <div className="flex items-center gap-4 mt-1.5 px-3">
                                   <button
                                     onClick={() => handleLikeComment(comment.id!, post.id!)}
-                                    className={`text-xs font-semibold transition-colors ${likedComments.has(comment.id!)
-                                        ? 'text-red-600'
-                                        : 'text-gray-600 hover:text-blue-600'
-                                      }`}
+                                    className={`text-xs font-bold transition-colors ${
+                                      likedComments.has(comment.id!)
+                                        ? 'text-red-500'
+                                        : 'text-gray-500 hover:text-red-500'
+                                    }`}
                                   >
-                                    {likedComments.has(comment.id!) ? t('groupComments.liked') : t('groupComments.like')}
-                                    {comment.likeCount && comment.likeCount > 0 && ` (${comment.likeCount})`}
-                                  </button>                                <button
+                                    {likedComments.has(comment.id!) ? `❤️ ${t('groupComments.liked')}` : t('groupComments.like')}
+                                    {comment.likeCount && comment.likeCount > 0 && ` · ${comment.likeCount}`}
+                                  </button>
+                                  <span className="text-gray-300 text-xs">·</span>
+                                  <button
                                     onClick={() => handleReplyToComment(comment.id!)}
-                                    className="text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
+                                    className="text-xs font-bold text-gray-500 hover:text-blue-500 transition-colors"
                                   >
                                     {t('groupComments.reply')}
                                   </button>
                                   {comment.replyCount && comment.replyCount > 0 && (
-                                    <button
-                                      onClick={() => toggleReplies(comment.id!)}
-                                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                                    >
-                                      {expandedReplies.has(comment.id!) ? t('groupComments.hide') : t('groupComments.show')}{' '}
-                                      {comment.replyCount} {t('newsfeed.repliesNoun')}
-                                    </button>
+                                    <>
+                                      <span className="text-gray-300 text-xs">·</span>
+                                      <button
+                                        onClick={() => toggleReplies(comment.id!)}
+                                        className="text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                                      >
+                                        {expandedReplies.has(comment.id!)
+                                          ? t('groupComments.hide')
+                                          : `${comment.replyCount} ${t('newsfeed.repliesNoun')}`}
+                                      </button>
+                                    </>
                                   )}
-                                  <span className="text-xs text-gray-500">
-                                    {comment.createdAt
-                                      ? new Date(comment.createdAt).toLocaleString(getLocaleTag())
-                                      : t('watch.justNow')}
+                                  <span className="text-gray-400 text-[11px] ml-auto">
+                                    {comment.createdAt ? getTimeAgo(comment.createdAt) : t('watch.justNow')}
                                   </span>
                                 </div>
 
                                 {/* Reply Input */}
                                 {replyingTo === comment.id && (
-                                  <div className="flex items-center gap-2 mt-3 ml-0">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
-                                      {currentUser?.fullName?.charAt(0) || 'U'}
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-[11px] flex-shrink-0 overflow-hidden">
+                                      {composerAvatarSrc && !composerAvatarFailed ? (
+                                        <img
+                                          src={composerAvatarSrc}
+                                          alt={currentUser?.fullName || 'User'}
+                                          className="w-full h-full object-cover"
+                                          onError={() => setComposerAvatarFailed(true)}
+                                        />
+                                      ) : (
+                                        <span>{currentUser?.fullName?.charAt(0) || 'U'}</span>
+                                      )}
                                     </div>
                                     <div className="flex-1 relative">
                                       <input
@@ -1401,21 +1458,22 @@ export default function Newsfeed() {
                                         }}
                                         placeholder={t('groupComments.replyTo', { name: comment.userName ?? '' })}
                                         disabled={isSubmittingComment[`reply-${comment.id}`]}
-                                        className="w-full h-9 px-3 pr-10 rounded-full bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                        className="w-full h-8 px-3 pr-9 rounded-full bg-gray-100 dark:bg-[#22263a] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs dark:text-gray-200 placeholder:text-gray-400"
                                         autoFocus
                                       />
                                       <button
                                         onClick={() => handleSendReply(comment.id!, post.id!)}
                                         disabled={!commentInputs[`reply-${comment.id}`]?.trim() || isSubmittingComment[`reply-${comment.id}`]}
-                                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ${commentInputs[`reply-${comment.id}`]?.trim()
+                                        className={`absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                          commentInputs[`reply-${comment.id}`]?.trim()
                                             ? 'bg-blue-500 text-white hover:bg-blue-600'
-                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                          }`}
+                                            : 'text-gray-300 cursor-not-allowed'
+                                        }`}
                                       >
                                         {isSubmittingComment[`reply-${comment.id}`] ? (
-                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          <Loader2 className="w-3 h-3 animate-spin" />
                                         ) : (
-                                          <Send className="w-3.5 h-3.5" />
+                                          <Send className="w-3 h-3" />
                                         )}
                                       </button>
                                     </div>
@@ -1424,7 +1482,7 @@ export default function Newsfeed() {
                                         setReplyingTo(null);
                                         setCommentInputs(prev => ({ ...prev, [`reply-${comment.id}`]: '' }));
                                       }}
-                                      className="text-xs text-gray-500 hover:text-gray-700"
+                                      className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap"
                                     >
                                       {t('groupComments.cancel')}
                                     </button>
@@ -1433,32 +1491,44 @@ export default function Newsfeed() {
 
                                 {/* Replies List */}
                                 {expandedReplies.has(comment.id!) && commentReplies[comment.id!] && commentReplies[comment.id!].length > 0 && (
-                                  <div className="ml-6 mt-3 space-y-3 border-l-2 border-gray-200 pl-4">
+                                  <div className="ml-2 mt-2 space-y-2 border-l-2 border-gray-200 dark:border-white/10 pl-3">
                                     {commentReplies[comment.id!].map((reply) => (
                                       <div key={reply.id} className="flex items-start gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
-                                          {reply.userName?.charAt(0) || 'U'}
+                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-semibold text-[11px] flex-shrink-0 overflow-hidden">
+                                          {reply.userAvatar ? (
+                                            <img
+                                              src={resolveMediaUrl(reply.userAvatar)}
+                                              alt={reply.userName || 'User'}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                const parent = e.currentTarget.parentElement as HTMLElement;
+                                                if (parent) parent.innerHTML = `<span class="text-[11px]">${reply.userName?.charAt(0) || 'U'}</span>`;
+                                              }}
+                                            />
+                                          ) : (
+                                            <span className="text-[11px]">{reply.userName?.charAt(0) || 'U'}</span>
+                                          )}
                                         </div>
-                                        <div className="flex-1">
-                                          <div className="bg-gray-50 rounded-2xl px-3 py-2">
-                                            <p className="font-semibold text-sm text-gray-900">{reply.userName || 'Unknown'}</p>
-                                            <p className="text-gray-700 text-sm mt-0.5">{reply.content}</p>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="inline-block max-w-full bg-gray-50 dark:bg-[#1e2133] rounded-2xl rounded-tl-sm px-3 py-2">
+                                            <p className="font-semibold text-[12px] text-gray-900 dark:text-gray-100 leading-none mb-0.5">{reply.userName || 'Unknown'}</p>
+                                            <p className="text-gray-700 dark:text-gray-300 text-xs leading-snug">{reply.content}</p>
                                           </div>
-                                          <div className="flex items-center gap-3 mt-1 px-2">
+                                          <div className="flex items-center gap-2 mt-0.5 px-1">
                                             <button
                                               onClick={() => handleLikeComment(reply.id!, post.id!)}
-                                              className={`text-xs font-semibold transition-colors ${likedComments.has(reply.id!)
-                                                  ? 'text-red-600'
-                                                  : 'text-gray-600 hover:text-blue-600'
-                                                }`}
+                                              className={`text-[11px] font-bold transition-colors ${
+                                                likedComments.has(reply.id!)
+                                                  ? 'text-red-500'
+                                                  : 'text-gray-400 hover:text-red-500'
+                                              }`}
                                             >
-                                              {likedComments.has(reply.id!) ? t('groupComments.liked') : t('groupComments.like')}
-                                              {reply.likeCount && reply.likeCount > 0 && ` (${reply.likeCount})`}
+                                              {likedComments.has(reply.id!) ? `❤️ ${t('groupComments.liked')}` : t('groupComments.like')}
+                                              {reply.likeCount && reply.likeCount > 0 && ` · ${reply.likeCount}`}
                                             </button>
-                                            <span className="text-xs text-gray-500">
-                                              {reply.createdAt
-                                                ? new Date(reply.createdAt).toLocaleString(getLocaleTag())
-                                                : t('watch.justNow')}
+                                            <span className="text-gray-400 text-[11px] ml-auto">
+                                              {reply.createdAt ? getTimeAgo(reply.createdAt) : t('watch.justNow')}
                                             </span>
                                           </div>
                                         </div>

@@ -175,8 +175,24 @@ export default function CreatePost() {
             </button>
           </div>
           <div className="p-4 border-b border-gray-200 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-              <span className="text-white font-semibold text-sm">{currentUser?.fullName?.charAt(0) || 'U'}</span>
+            <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0 overflow-hidden">
+              {currentUser?.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.fullName || 'Avatar'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<span class="text-white font-semibold text-sm">${currentUser?.fullName?.charAt(0) || 'U'}</span>`;
+                    }
+                  }}
+                />
+              ) : (
+                <span className="text-white font-semibold text-sm">{currentUser?.fullName?.charAt(0) || 'U'}</span>
+              )}
             </div>
             <div className="flex-1">
               <p className="font-semibold text-sm text-gray-900">{currentUser?.fullName || 'User'}</p>

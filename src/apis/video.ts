@@ -58,7 +58,7 @@ export interface UpdateVideoRequest {
 }
 
 class VideosApi {
-  private baseUrl = "/api/social/api/videos";
+  private baseUrl = "/api/social/videos";
 
   async getAllVideos(): Promise<VideoData[]> {
     try {
