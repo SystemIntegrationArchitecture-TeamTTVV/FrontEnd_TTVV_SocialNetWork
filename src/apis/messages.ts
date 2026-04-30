@@ -219,6 +219,14 @@ export const messagesApi = {
   },
 
   /**
+   * Clear all messages in a group conversation (owner only).
+   */
+  clearGroupConversationHistory: async (conversationId: string, requesterId: string): Promise<void> => {
+    const qs = encodeURIComponent(requesterId);
+    return httpClient.delete(`/api/message/messages/conversation/${conversationId}/history?requesterId=${qs}`);
+  },
+
+  /**
    * Forward a message to a target conversation
    */
   forwardMessage: async (

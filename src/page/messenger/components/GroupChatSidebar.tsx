@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Palette, Smile, Pencil, Lock, Search as SearchIcon,
   Trash2, UserPlus, Crown, Shield,
-  MessageSquareLock, UserCheck, X, Check, Users,
+  MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../../common/icons/IconComponents';
 import type { Conversation } from '../../../apis/conversations';
 import type { FriendDTO } from '../../../apis/friendRequests';
+import { conversationsApi } from '../../../apis/conversations';
+import { notify } from '../../../services/notify';
 
 interface ActiveConversation {
   id: string;
@@ -43,6 +45,7 @@ interface ChatInfoSidebarProps {
   onDisbandGroup: () => void;
 
   onClearConversationForMe: () => void;
+  onClearGroupHistory: () => void;
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
@@ -131,6 +134,7 @@ export default function GroupChatSidebar({
   onDisbandGroup,
 
   onClearConversationForMe,
+  onClearGroupHistory,
   onToggleRequireApproval,
   onToggleOnlyAdminsCanSend,
   onTransferOwnership,
@@ -147,8 +151,40 @@ export default function GroupChatSidebar({
   const [inviteSearch, setInviteSearch] = useState('');
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingOpen, setPendingOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string>('');
+  const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
   const pendingJoins = pendingJoinsRaw || [];
   const isDisbanded = !!conversationRaw?.isDisbanded;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadInviteLink = async () => {
+      if (!isGroupChat || !conversationRaw?.id || !userId || isDisbanded) {
+        setInviteLink('');
+        return;
+      }
+
+      setInviteLinkLoading(true);
+      try {
+        const token = await conversationsApi.getInviteLink(conversationRaw.id, userId);
+        if (cancelled) return;
+        setInviteLink(`${window.location.origin}/messenger?inviteToken=${encodeURIComponent(token)}`);
+      } catch (error) {
+        if (cancelled) return;
+        setInviteLink('');
+        console.error('Failed to load invite link', error);
+      } finally {
+        if (!cancelled) setInviteLinkLoading(false);
+      }
+    };
+
+    void loadInviteLink();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isGroupChat, conversationRaw?.id, userId, isDisbanded]);
 
   return (
     <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
@@ -344,6 +380,72 @@ export default function GroupChatSidebar({
                   onChange={() => onToggleOnlyAdminsCanSend(!!conversationRaw.onlyAdminsCanSend)}
                   disabled={updatingGroup}
                 />
+              </div>
+
+              {isOwner && (
+                <div className="pt-2 border-t border-red-100 mt-1">
+                  <div className="flex items-center justify-between gap-3 py-1">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-gray-700 leading-snug">
+                          {t('messenger.groupPanel.clearGroupHistory')}
+                        </p>
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5">
+                          {t('messenger.groupPanel.clearGroupHistoryHint')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onClearGroupHistory}
+                      disabled={updatingGroup}
+                      className="h-8 px-3 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {t('messenger.groupPanel.clearGroupHistory')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {!isDisbanded && (
+            <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Link tham gia nhom
+              </h5>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Tat ca thanh vien deu thay link nay. Nguoi chua vao nhom bam link se tu dong tham gia hoac vao danh sach cho phe duyet.
+              </p>
+
+              <div className="flex items-center gap-2">
+                <div className="h-10 flex-1 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-700 flex items-center overflow-hidden">
+                  <Link2 className="w-3.5 h-3.5 text-blue-500 shrink-0 mr-2" />
+                  <span className="truncate">
+                    {inviteLinkLoading ? 'Dang tao link...' : (inviteLink || 'Chua tao duoc link')}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!inviteLink) return;
+                    try {
+                      await navigator.clipboard.writeText(inviteLink);
+                      notify.success('Da sao chep link tham gia nhom');
+                    } catch {
+                      notify.error('Khong the sao chep link');
+                    }
+                  }}
+                  disabled={!inviteLink || inviteLinkLoading}
+                  className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center"
+                  title="Sao chep link"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
             </section>
           )}

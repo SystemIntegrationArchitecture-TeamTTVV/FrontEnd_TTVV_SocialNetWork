@@ -1,4 +1,4 @@
-import { useLocation, type Location } from 'react-router-dom';
+import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,11 @@ import CreateAppointmentModal from './components/CreateAppointmentModal';
 
 interface MessengerLocationState {
   openConversationId?: string;
+}
+
+interface InvitePreviewState {
+  token: string;
+  conversation: Conversation;
 }
 
 const STICKER_TOPICS = [
@@ -109,6 +114,7 @@ const hashColor = (str: string): string => {
 
 export default function Messenger() {
   const location = useLocation() as Location & { state?: MessengerLocationState };
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { startCall } = useCall();
   const { isConnected, subscribe, subscribeConversationRoom } = useSocket();
@@ -177,6 +183,9 @@ export default function Messenger() {
   const [hideError, setHideError] = useState<string | null>(null);
   const [pinLoading, setPinLoading] = useState(false);
   const [unreadByConversationId, setUnreadByConversationId] = useState<Record<string, number>>({});
+  const [invitePreview, setInvitePreview] = useState<InvitePreviewState | null>(null);
+  const [invitePreviewLoading, setInvitePreviewLoading] = useState(false);
+  const [inviteJoinLoading, setInviteJoinLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
@@ -189,6 +198,7 @@ export default function Messenger() {
   const lastDeliveredSentMessageIdRef = useRef<string | null>(null);
   const seenRefreshTimerRef = useRef<number | null>(null);
   const realtimeReloadTimerRef = useRef<number | null>(null);
+  const processedInviteTokenRef = useRef<string | null>(null);
   // Load friend list once on mount
   useEffect(() => {
     if (!user?.id) return;
@@ -198,6 +208,111 @@ export default function Messenger() {
   }, [user?.id]);
 
   const openConversationId = location.state?.openConversationId;
+
+  const clearInviteTokenParam = () => {
+    const cleaned = new URLSearchParams(location.search);
+    cleaned.delete('inviteToken');
+    const nextSearch = cleaned.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true }
+    );
+  };
+
+  const handleJoinFromInvitePreview = async () => {
+    if (!invitePreview || !user?.id) return;
+
+    setInviteJoinLoading(true);
+    try {
+      const joinedConversation = await conversationsApi.joinByInviteLink(invitePreview.token, user.id);
+      const isMember = Array.isArray(joinedConversation.participantIds) && joinedConversation.participantIds.includes(user.id);
+      const isPending = Array.isArray(joinedConversation.pendingJoinIds) && joinedConversation.pendingJoinIds.includes(user.id);
+
+      await loadConversations();
+
+      if (isMember) {
+        handleSelectChat(joinedConversation.id);
+        notify.success('Tham gia nhom thanh cong');
+      } else if (isPending) {
+        notify.info('Yeu cau tham gia da duoc gui. Vui long cho phe duyet');
+      } else {
+        notify.info('Da xu ly link tham gia nhom');
+      }
+
+      setInvitePreview(null);
+      clearInviteTokenParam();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Khong the tham gia nhom bang link';
+      notify.error(message);
+    } finally {
+      setInviteJoinLoading(false);
+    }
+  };
+
+  const handleDeclineInvitePreview = () => {
+    setInvitePreview(null);
+    clearInviteTokenParam();
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const params = new URLSearchParams(location.search);
+    const inviteToken = params.get('inviteToken');
+    const queryConversationId = params.get('conversation');
+
+    if (queryConversationId) {
+      handleSelectChat(queryConversationId);
+    }
+
+    if (!inviteToken) {
+      setInvitePreview(null);
+      return;
+    }
+
+    if (processedInviteTokenRef.current === inviteToken && invitePreview?.token === inviteToken) return;
+    processedInviteTokenRef.current = inviteToken;
+
+    let cancelled = false;
+
+    const handlePreviewByInvite = async () => {
+      setInvitePreviewLoading(true);
+      try {
+        const conversation = await conversationsApi.previewJoinByInviteLink(inviteToken, user.id);
+        if (cancelled) return;
+
+        const isMember = Array.isArray(conversation.participantIds) && conversation.participantIds.includes(user.id);
+
+        if (isMember) {
+          handleSelectChat(conversation.id);
+          setInvitePreview(null);
+          clearInviteTokenParam();
+        } else {
+          setInvitePreview({ token: inviteToken, conversation });
+        }
+      } catch (error: unknown) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : 'Khong the tham gia nhom bang link';
+        notify.error(message);
+        setInvitePreview(null);
+        clearInviteTokenParam();
+      } finally {
+        if (!cancelled) {
+          setInvitePreviewLoading(false);
+        }
+      }
+    };
+
+    void handlePreviewByInvite();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.search, location.pathname, navigate, user?.id, invitePreview?.token]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (activeChat) {
@@ -457,6 +572,7 @@ export default function Messenger() {
     handleRemoveMember,
     handleSaveGroupMeta,
     handleClearConversationForMe,
+    handleClearGroupHistory,
     handleJoinRequestDecision,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
@@ -1610,6 +1726,48 @@ export default function Messenger() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-white min-w-0 relative">
+        {invitePreviewLoading && (
+          <div className="mx-4 mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            Dang tai thong tin nhom tu link moi...
+          </div>
+        )}
+
+        {invitePreview && !invitePreviewLoading && (
+          <div className="mx-4 mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm px-5 py-4">
+            <h3 className="text-base font-semibold text-gray-900">Loi moi tham gia nhom</h3>
+            <p className="mt-2 text-sm text-gray-700">
+              <span className="font-medium">Ten nhom:</span> {invitePreview.conversation.groupName || 'Group Chat'}
+            </p>
+            <p className="mt-1 text-sm text-gray-700">
+              <span className="font-medium">So luong thanh vien:</span> {invitePreview.conversation.participantIds?.length || 0}
+            </p>
+            {invitePreview.conversation.approvalsRequired && (
+              <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 inline-block">
+                Nhom dang bat phe duyet. Sau khi tham gia, yeu cau cua ban se cho truong nhom/admin duyet.
+              </p>
+            )}
+
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleJoinFromInvitePreview}
+                disabled={inviteJoinLoading}
+                className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {inviteJoinLoading ? 'Dang xu ly...' : 'Tham gia'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeclineInvitePreview}
+                disabled={inviteJoinLoading}
+                className="h-9 px-4 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
+              >
+                Tu choi
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Chat Header */}
         {activeConversation && (
           <ChatHeader
@@ -1931,6 +2089,7 @@ export default function Messenger() {
           onRemoveMember={handleRemoveMember}
           onJoinRequestDecision={handleJoinRequestDecision}
           onClearConversationForMe={handleClearConversationForMe}
+          onClearGroupHistory={handleClearGroupHistory}
           onToggleRequireApproval={handleToggleRequireApproval}
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
           onTransferOwnership={handleTransferOwnership}
@@ -1940,7 +2099,6 @@ export default function Messenger() {
           onShowSearch={() => setShowSearch(true)}
           onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
           userId={user?.id}
-          loadConversations={loadConversations}
         />
       )}
 

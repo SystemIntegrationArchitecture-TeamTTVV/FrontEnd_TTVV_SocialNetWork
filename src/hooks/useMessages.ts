@@ -931,6 +931,34 @@ export function useMessages() {
       }
     });
 
+    const unsubscribeHistoryCleared = subscribe('MESSAGE_HISTORY_CLEARED', (event) => {
+      if (event.type !== 'MESSAGE_HISTORY_CLEARED' || !event.data) return;
+      const payload = event.data as { conversationId?: string };
+      const conversationId = payload.conversationId;
+      if (!conversationId) return;
+
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: [],
+      }));
+
+      setConversations((prev) => {
+        const updated = prev.map((conv) =>
+          conv.id === conversationId
+            ? {
+              ...conv,
+              lastMessagePreview: '',
+              lastMessageType: undefined,
+              lastMessageSenderId: undefined,
+              lastMessageSenderName: undefined,
+              lastMessageAt: undefined,
+            }
+            : conv
+        );
+        return sortConversationsByActivity(updated);
+      });
+    });
+
     return () => {
       unsubscribeMessage();
       unsubscribeDeleted();
@@ -947,6 +975,7 @@ export function useMessages() {
       unsubscribeConversationCleared();
       unsubscribeConversationRestored();
       unsubscribeConversationMetaUpdated();
+      unsubscribeHistoryCleared();
     };
   }, [isConnected, user?.id, subscribe, loadConversations]);
 

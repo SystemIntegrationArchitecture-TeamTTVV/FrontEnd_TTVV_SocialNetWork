@@ -524,6 +524,17 @@ export default function GroupChat() {
       loadConversation().catch(() => undefined);
     });
 
+    const unsubHistoryCleared = subscribe('MESSAGE_HISTORY_CLEARED', (event) => {
+      const payload = event.data as { conversationId: string };
+      if (!payload || payload.conversationId !== conversationId) return;
+      setMessages([]);
+      setPinnedMessages([]);
+      setMediaMessages([]);
+      setNextCursor(null);
+      setHasMore(false);
+      setSeenByMessageId({});
+    });
+
     return () => {
       unsubMessage();
       unsubDeleted();
@@ -538,6 +549,7 @@ export default function GroupChat() {
       unsubSeen();
       unsubPresence();
       unsubJoin();
+      unsubHistoryCleared();
       unsubscribeRoom();
     };
   }, [conversationId, isConnected, subscribe, subscribeConversationRoom, user?.id, activeTab, conversation?.participantIds]);
