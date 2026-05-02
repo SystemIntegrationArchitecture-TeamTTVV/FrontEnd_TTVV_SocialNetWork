@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,7 +49,15 @@ function getAvatarColor(name: string) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function RightSidebar() {
+type RightSidebarProps = {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+};
+
+export default function RightSidebar({
+  collapsed = false,
+  onToggleCollapse,
+}: RightSidebarProps) {
   const { t } = useTranslation();
   const formatMessageTime = useCallback(
     (time?: string) => {
@@ -152,14 +161,66 @@ export default function RightSidebar() {
     );
   }, [allContacts, searchQuery]);
 
+  const collapseBtn = (
+    <button
+      type="button"
+      onClick={onToggleCollapse}
+      className="h-8 w-8 shrink-0 rounded-full bg-[#e4e6eb] text-[#7a7d82] hover:bg-[#d8dadf] dark:bg-[#22263a] dark:text-[#9aa3bc] dark:hover:bg-[#2b2f45] transition-colors flex items-center justify-center shadow-sm"
+      aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      title={collapsed ? t('rightSidebar.expandPanel') : t('rightSidebar.collapsePanel')}
+    >
+      {collapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+    </button>
+  );
+
+  if (collapsed) {
+    return (
+      <div className="flex flex-col h-full w-full bg-transparent relative z-40">
+        <div className="flex flex-col items-center pt-3 pb-2 border-b border-[#e4e6eb] dark:border-[#22263a]">
+          {onToggleCollapse ? collapseBtn : null}
+        </div>
+        <div className="flex-1 overflow-y-auto scrollbar-hide py-2 flex flex-col items-center gap-2 px-1">
+          {filteredContacts.length === 0 ? (
+            <p className="text-[11px] text-center text-[#65676b] dark:text-[#5a6278] px-1 leading-snug">
+              {searchQuery ? t('rightSidebar.noResults') : t('rightSidebar.noConversations')}
+            </p>
+          ) : (
+            filteredContacts.map((contact) => (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => openChatBox(contact)}
+                title={contact.name}
+                className="relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#13151f]"
+              >
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-xs select-none shadow-sm"
+                  style={{ backgroundColor: contact.color }}
+                >
+                  {getInitials(contact.name)}
+                </div>
+                {contact.online && (
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#13151f]" />
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <aside className="hidden xl:flex xl:flex-col w-80 bg-transparent relative z-40">
+    <div className="flex flex-col h-full w-full bg-transparent relative z-40">
 
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#e4e6eb] dark:border-[#22263a]">
-        <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#edf0fa] mb-3">
-          {t('rightSidebar.contacts')}
-        </h2>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#edf0fa] truncate min-w-0">
+            {t('rightSidebar.contacts')}
+          </h2>
+          {onToggleCollapse ? collapseBtn : null}
+        </div>
 
         {/* Search Bar */}
         <div className="relative">
@@ -314,6 +375,6 @@ export default function RightSidebar() {
           }
         }
       `}</style>
-    </aside>
+    </div>
   );
 }

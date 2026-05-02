@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router-dom';
-import { X, Key, Eye, EyeOff } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { X, Key, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { passwordResetApi } from '../../apis/passwordReset';
 
 interface ResetPasswordForm {
   newPassword: string;
@@ -12,21 +13,36 @@ interface ResetPasswordForm {
 export default function ResetPasswordNew() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') ?? '';
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordForm>();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const newPassword = watch('newPassword');
   const hasMinLength = newPassword?.length >= 3;
   const hasUpperLower = newPassword && /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword);
   const hasNumberOrSpecial = newPassword && (/[0-9]/.test(newPassword) || /[^a-zA-Z0-9]/.test(newPassword));
 
-  const onSubmit = (data: ResetPasswordForm) => {
-    if (data.newPassword !== data.confirmPassword) {
+  const onSubmit = async (data: ResetPasswordForm) => {
+    if (data.newPassword !== data.confirmPassword) return;
+    if (!token) {
+      setApiError('Liên kết đặt lại mật khẩu không hợp lệ. Vui lòng thực hiện lại.');
       return;
     }
-    console.log('Reset Password:', data);
-    navigate('/auth/reset-success');
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      await passwordResetApi.resetPassword(token, data.newPassword);
+      navigate('/auth/reset-success');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.';
+      setApiError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -134,6 +150,12 @@ export default function ResetPasswordNew() {
             </div>
           </div>
 
+          {apiError && (
+            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl">
+              <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
+            </div>
+          )}
+
           <div className="flex gap-4">
             <button
               type="button"
@@ -144,9 +166,11 @@ export default function ResetPasswordNew() {
             </button>
             <button
               type="submit"
-              className="flex-1 h-12 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+              disabled={isLoading}
+              className="flex-1 h-12 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {t('auth.resetCreate.submit')}
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoading ? 'Đang xử lý...' : t('auth.resetCreate.submit')}
             </button>
           </div>
         </form>

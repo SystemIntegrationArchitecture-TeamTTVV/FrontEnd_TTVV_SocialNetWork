@@ -54,9 +54,9 @@ export default function ForgotPassword() {
 
     try {
       const response = await passwordResetApi.forgotPassword(email);
-      console.log('✅ Password reset email sent:', response.message);
-      setSuccess(true);
-      showToast(response.message || t('auth.forgot.successTitle'), 'success');
+      console.log('✅ OTP sent:', response.message);
+      localStorage.setItem('resetEmail', email);
+      navigate('/auth/reset-verification');
     } catch (err: unknown) {
       console.error('❌ Failed to send reset email:', err);
       const msg = err instanceof Error ? err.message : t('auth.forgot.errorSend');

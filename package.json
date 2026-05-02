@@ -14,12 +14,14 @@
     "ci": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.20",
+    "@livekit/components-styles": "^1.2.0",
     "@stomp/stompjs": "^7.2.1",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.2",
     "framer-motion": "^12.38.0",
-    "hls.js": "^1.6.16",
     "i18next": "^23.16.5",
+    "livekit-client": "^2.18.8",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -1205,7 +1205,9 @@
     "noConversations": "Chưa có cuộc trò chuyện",
     "noConversationsHint": "Hãy bắt đầu nhắn tin để hiện danh sách liên hệ ở đây.",
     "footerContacts": "{{count}} liên hệ",
-    "footerResults": "{{count}} kết quả"
+    "footerResults": "{{count}} kết quả",
+    "expandPanel": "Mở rộng bảng liên hệ",
+    "collapsePanel": "Thu gọn bảng liên hệ"
   },
   "userDropdown": {
     "account": "Tài khoản",

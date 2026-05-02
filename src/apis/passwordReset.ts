@@ -13,9 +13,19 @@ export interface MessageResponse {
   message: string;
 }
 
+export interface VerifyOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyOtpResponse {
+  resetToken: string;
+  message: string;
+}
+
 export const passwordResetApi = {
   /**
-   * Request password reset - sends email with reset link
+   * Request password reset - sends OTP to email via Brevo
    */
   forgotPassword: async (email: string): Promise<MessageResponse> => {
     return httpClient.post<MessageResponse>(
@@ -27,7 +37,19 @@ export const passwordResetApi = {
   },
 
   /**
-   * Reset password with token from email
+   * Verify 6-digit OTP — returns resetToken on success
+   */
+  verifyOtp: async (email: string, otp: string): Promise<VerifyOtpResponse> => {
+    return httpClient.post<VerifyOtpResponse>(
+      '/api/auth/verify-otp',
+      { email, otp },
+      false,
+      true
+    );
+  },
+
+  /**
+   * Reset password with token obtained after OTP verification
    */
   resetPassword: async (token: string, newPassword: string): Promise<MessageResponse> => {
     return httpClient.post<MessageResponse>(

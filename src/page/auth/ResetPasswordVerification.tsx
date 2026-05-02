@@ -1,14 +1,18 @@
 import { useNavigate } from 'react-router-dom';
-import { X, Mail } from 'lucide-react';
+import { X, Mail, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { passwordResetApi } from '../../apis/passwordReset';
 
 export default function ResetPasswordVerification() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(165); // 2:45 in seconds
+  const [timer, setTimer] = useState(165); // 2:45
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const email = localStorage.getItem('resetEmail') ?? '';
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -57,9 +61,20 @@ export default function ResetPasswordVerification() {
     setCode(newCode);
   };
 
-  const handleContinue = () => {
-    if (code.every((digit) => digit !== '')) {
-      navigate('/auth/reset-new-password');
+  const handleContinue = async () => {
+    if (!code.every((digit) => digit !== '')) return;
+    const otp = code.join('');
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await passwordResetApi.verifyOtp(email, otp);
+      localStorage.removeItem('resetEmail');
+      navigate(`/auth/reset-new-password?token=${res.resetToken}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Mã xác minh không hợp lệ';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,13 +104,19 @@ export default function ResetPasswordVerification() {
           {t('auth.resetOtp.sentPrefix')}
         </p>
         <p className="text-center font-semibold text-gray-900 dark:text-[#edf0fa] mb-4">
-          s***h@example.com
+          {email}
         </p>
         <p className="text-center text-gray-600 dark:text-[#7e89a6] mb-6">
           {t('auth.resetOtp.enterCodeHint')}
         </p>
 
         <div className="border-t border-gray-200 dark:border-[#2b2f45] mb-6"></div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl">
+            <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <label className="block text-sm font-semibold text-gray-900 dark:text-[#c0c8de]">{t('auth.resetOtp.codeLabel')}</label>
@@ -149,14 +170,15 @@ export default function ResetPasswordVerification() {
           <button
             type="button"
             onClick={handleContinue}
-            disabled={!isCodeComplete}
-            className={`flex-1 h-12 font-semibold rounded-xl transition-colors ${
-              isCodeComplete
+            disabled={!isCodeComplete || isLoading}
+            className={`flex-1 h-12 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+              isCodeComplete && !isLoading
                 ? 'bg-blue-600 text-white hover:bg-blue-700'
                 : 'bg-gray-300 dark:bg-[#353a54] text-white dark:text-[#5a6278] cursor-not-allowed'
             }`}
           >
-            {t('auth.resetOtp.continue')}
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isLoading ? 'Đang xác minh...' : t('auth.resetOtp.continue')}
           </button>
         </div>
       </div>

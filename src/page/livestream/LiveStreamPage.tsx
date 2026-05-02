@@ -1,15 +1,13 @@
 // ── LiveStreamPage — List active live streams (design-system aligned) ──
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { livestreamApi, type LiveStreamData } from '../../apis/livestream';
 import { Radio, Eye, Plus, Users, Tv } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 export default function LiveStreamPage() {
-  const { user } = useAuth();
-  const { socket } = useSocket();
+  const { subscribe } = useSocket();
   const navigate = useNavigate();
 
   const [activeStreams, setActiveStreams] = useState<LiveStreamData[]>([]);
@@ -28,14 +26,13 @@ export default function LiveStreamPage() {
 
   useEffect(() => { loadActiveStreams(); }, [loadActiveStreams]);
 
-  // Realtime: reload on LIVE_STARTED / LIVE_ENDED
   useEffect(() => {
-    if (!socket) return;
-    const reload = () => loadActiveStreams();
-    socket.on('LIVE_STARTED', reload);
-    socket.on('LIVE_ENDED', reload);
-    return () => { socket.off('LIVE_STARTED', reload); socket.off('LIVE_ENDED', reload); };
-  }, [socket, loadActiveStreams]);
+    const unsubs = [
+      subscribe('LIVE_STARTED', () => loadActiveStreams()),
+      subscribe('LIVE_ENDED', () => loadActiveStreams()),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [subscribe, loadActiveStreams]);
 
   const getInitials = (name: string) =>
     (name || '').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
@@ -110,7 +107,15 @@ export default function LiveStreamPage() {
             >
               {/* Thumbnail */}
               <div className="relative aspect-video bg-[#f0f2f5] dark:bg-[#22263a] flex items-center justify-center overflow-hidden">
-                <div className="text-4xl opacity-20">📡</div>
+                {stream.thumbnailUrl ? (
+                  <img
+                    src={resolveMediaUrl(stream.thumbnailUrl) || stream.thumbnailUrl}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-4xl opacity-20">📡</div>
+                )}
 
                 {/* LIVE badge */}
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 bg-red-600 rounded-lg shadow-md">

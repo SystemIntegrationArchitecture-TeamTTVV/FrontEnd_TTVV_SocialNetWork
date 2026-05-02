@@ -184,6 +184,26 @@ class HttpClient {
     return doFetch();
   }
 
+  async patch<T>(
+    url: string,
+    data?: any,
+    includeAuth: boolean = true,
+    useGateway: boolean = true
+  ): Promise<T> {
+    const fullUrl = this.buildFullUrl(url, useGateway);
+
+    const doFetch = async (): Promise<T> => {
+      const response = await fetch(fullUrl, {
+        method: 'PATCH',
+        headers: this.getHeaders(includeAuth),
+        body: data ? JSON.stringify(data) : undefined,
+      });
+      return this.handleResponse<T>(response, doFetch);
+    };
+
+    return doFetch();
+  }
+
   async put<T>(
     url: string,
     data?: any,

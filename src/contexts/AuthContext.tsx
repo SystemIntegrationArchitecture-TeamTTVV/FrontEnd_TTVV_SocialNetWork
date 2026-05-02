@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { authApi, type AuthResponse } from '../apis/auth';
 import { usersApi } from '../apis/users';
 
-interface User {
+export interface User {
   id: string;
   username: string;
   fullName: string;

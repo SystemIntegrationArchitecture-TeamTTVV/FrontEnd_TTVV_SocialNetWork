@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { conversationsApi, messagesApi } from '../../../apis/conversations';
+import { conversationsApi } from '../../../apis/conversations';
+import { messagesApi } from '../../../apis/messages';
 import { notify } from '../../../utils/toast';
 import type { Message } from '../../../apis/conversations';
 

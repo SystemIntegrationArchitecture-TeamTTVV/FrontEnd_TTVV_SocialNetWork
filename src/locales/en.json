@@ -1205,7 +1205,9 @@
     "noConversations": "No conversations yet",
     "noConversationsHint": "Start chatting to see contacts here.",
     "footerContacts": "{{count}} contacts",
-    "footerResults": "{{count}} results"
+    "footerResults": "{{count}} results",
+    "expandPanel": "Expand contacts panel",
+    "collapsePanel": "Collapse contacts panel"
   },
   "userDropdown": {
     "account": "Account",

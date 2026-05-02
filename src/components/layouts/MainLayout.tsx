@@ -19,6 +19,10 @@ export default function MainLayout() {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('left-sidebar-collapsed') === '1';
   });
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('right-sidebar-collapsed') === '1';
+  });
   
   // Chỉ ẩn sidebars khi đang ở trang messenger full page
   const isMessengerPage = location.pathname.startsWith('/messenger');
@@ -42,6 +46,10 @@ export default function MainLayout() {
   useEffect(() => {
     window.localStorage.setItem('left-sidebar-collapsed', isLeftSidebarCollapsed ? '1' : '0');
   }, [isLeftSidebarCollapsed]);
+
+  useEffect(() => {
+    window.localStorage.setItem('right-sidebar-collapsed', isRightSidebarCollapsed ? '1' : '0');
+  }, [isRightSidebarCollapsed]);
 
   return (
     <div className="h-screen bg-[#f0f2f5] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
@@ -94,8 +102,15 @@ export default function MainLayout() {
         
         {/* RIGHT SIDEBAR */}
         {!isMessengerPage && !isFlappyFullscreen && (
-          <aside className="hidden xl:block w-80 h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a]">
-            <RightSidebar />
+          <aside
+            className={`hidden xl:block h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a] transition-all duration-200 ${
+              isRightSidebarCollapsed ? 'w-24' : 'w-80'
+            }`}
+          >
+            <RightSidebar
+              collapsed={isRightSidebarCollapsed}
+              onToggleCollapse={() => setIsRightSidebarCollapsed((prev) => !prev)}
+            />
           </aside>
         )}
 

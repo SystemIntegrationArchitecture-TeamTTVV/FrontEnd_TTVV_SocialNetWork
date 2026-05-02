@@ -1,5 +1,6 @@
-// src/apis/livestream.ts — API client for live streaming
+// src/apis/livestream.ts — API client for LiveKit WebRTC live streaming
 import { httpClient } from './http';
+import { API_CONFIG } from './config';
 
 export interface LiveStreamData {
   id: string;
@@ -8,19 +9,27 @@ export interface LiveStreamData {
   streamerAvatar?: string;
   title: string;
   description?: string;
-  /** Only returned to the stream owner */
-  streamKey?: string;
-  /** RTMP URL for OBS — only returned to the stream owner */
-  rtmpUrl?: string;
+
+  roomName: string;
+  livekitToken?: string;
+  livekitUrl?: string;
+  requiresApproval: boolean;
+
   status: 'PENDING' | 'LIVE' | 'ENDED';
-  hlsUrl: string;
   thumbnailUrl?: string;
   viewerCount: number;
   viewerIds?: string[];
+  approvedViewerIds?: string[];
   chatConversationId?: string;
   startedAt?: string;
   endedAt?: string;
   createdAt?: string;
+
+  /** Chỉ có khi gọi getToken / create */
+  isHost?: boolean;
+  canSubscribe?: boolean;
+  /** APPROVED | WAITING | ENDED — từ getStreamById / getToken */
+  joinStatus?: string;
 }
 
 export interface CreateStreamParams {
@@ -29,64 +38,126 @@ export interface CreateStreamParams {
   streamerAvatar?: string;
   title: string;
   description?: string;
+  requiresApproval?: boolean;
+  thumbnailUrl?: string;
+}
+
+async function uploadThumbnailRaw(streamId: string, userId: string, file: File): Promise<LiveStreamData> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const url = `${API_CONFIG.BASE_URL}/api/message/livestream/${encodeURIComponent(streamId)}/thumbnail?userId=${encodeURIComponent(userId)}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || `Upload failed (${response.status})`);
+  }
+  return data as LiveStreamData;
 }
 
 export const livestreamApi = {
-  /** Create a new live stream session */
   createStream: async (params: CreateStreamParams): Promise<LiveStreamData> => {
-    const qs = new URLSearchParams({
+    return httpClient.post<LiveStreamData>('/api/message/livestream/create', {
       userId: params.userId,
       title: params.title,
-      ...(params.streamerName && { streamerName: params.streamerName }),
-      ...(params.streamerAvatar && { streamerAvatar: params.streamerAvatar }),
-      ...(params.description && { description: params.description }),
-    }).toString();
-    return httpClient.post<LiveStreamData>(`/api/message/livestream/create?${qs}`);
+      streamerName: params.streamerName,
+      streamerAvatar: params.streamerAvatar,
+      description: params.description,
+      requiresApproval: params.requiresApproval,
+      thumbnailUrl: params.thumbnailUrl,
+    });
   },
 
-  /** Get all currently LIVE streams */
+  getToken: async (roomName: string, userId: string, userName: string = 'User'): Promise<LiveStreamData> => {
+    const qs = new URLSearchParams({ roomName, userId, userName }).toString();
+    return httpClient.get<LiveStreamData>(`/api/message/livestream/token?${qs}`);
+  },
+
   getActiveStreams: async (): Promise<LiveStreamData[]> => {
     return httpClient.get<LiveStreamData[]>('/api/message/livestream/active');
   },
 
-  /** Get a specific stream by ID */
   getStreamById: async (streamId: string, userId?: string): Promise<LiveStreamData> => {
     const qs = userId ? `?userId=${encodeURIComponent(userId)}` : '';
     return httpClient.get<LiveStreamData>(`/api/message/livestream/${streamId}${qs}`);
   },
 
-  /** Get current user's active/pending stream */
   getMyActiveStream: async (userId: string): Promise<LiveStreamData | null> => {
     try {
       return await httpClient.get<LiveStreamData>(`/api/message/livestream/my/${userId}`);
     } catch {
-      return null; // 204 No Content = no active stream
+      return null;
     }
   },
 
-  /** Get stream history for a user */
   getMyStreams: async (userId: string): Promise<LiveStreamData[]> => {
     return httpClient.get<LiveStreamData[]>(`/api/message/livestream/my/${userId}/history`);
   },
 
-  /** End a live stream */
   endStream: async (streamId: string, userId: string): Promise<LiveStreamData> => {
     return httpClient.post<LiveStreamData>(
       `/api/message/livestream/${streamId}/end?userId=${encodeURIComponent(userId)}`
     );
   },
 
-  /** Join a stream as a viewer */
   joinStream: async (streamId: string, userId: string): Promise<LiveStreamData> => {
     return httpClient.post<LiveStreamData>(
       `/api/message/livestream/${streamId}/join?userId=${encodeURIComponent(userId)}`
     );
   },
 
-  /** Leave a stream */
   leaveStream: async (streamId: string, userId: string): Promise<void> => {
     await httpClient.post(
       `/api/message/livestream/${streamId}/leave?userId=${encodeURIComponent(userId)}`
     );
+  },
+
+  updateSettings: async (
+    streamId: string,
+    hostUserId: string,
+    requiresApproval: boolean
+  ): Promise<LiveStreamData> => {
+    return httpClient.patch<LiveStreamData>(`/api/message/livestream/${streamId}/settings`, {
+      hostUserId,
+      requiresApproval,
+    });
+  },
+
+  approveViewer: async (
+    streamId: string,
+    hostUserId: string,
+    viewerUserId: string
+  ): Promise<LiveStreamData> => {
+    return httpClient.post<LiveStreamData>(`/api/message/livestream/${streamId}/approve-viewer`, {
+      hostUserId,
+      viewerUserId,
+    });
+  },
+
+  kickViewer: async (
+    streamId: string,
+    hostUserId: string,
+    participantUserId: string
+  ): Promise<LiveStreamData> => {
+    return httpClient.post<LiveStreamData>(`/api/message/livestream/${streamId}/kick`, {
+      hostUserId,
+      participantUserId,
+    });
+  },
+
+  uploadThumbnail: async (streamId: string, hostUserId: string, file: File): Promise<LiveStreamData> => {
+    return uploadThumbnailRaw(streamId, hostUserId, file);
+  },
+
+  sendChat: async (
+    streamId: string,
+    body: { userId: string; userName: string; content: string }
+  ): Promise<void> => {
+    await httpClient.post(`/api/message/livestream/${streamId}/chat`, body);
   },
 };

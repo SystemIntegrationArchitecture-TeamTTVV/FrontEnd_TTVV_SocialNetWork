@@ -1199,7 +1199,9 @@
     "noConversations": "まだ会話がありません",
     "noConversationsHint": "チャットを始めるとここに連絡先が表示されます。",
     "footerContacts": "連絡先 {{count}} 件",
-    "footerResults": "{{count}} 件の結果"
+    "footerResults": "{{count}} 件の結果",
+    "expandPanel": "連絡先パネルを展開",
+    "collapsePanel": "連絡先パネルを折りたたむ"
   },
   "userDropdown": {
     "account": "アカウント",
