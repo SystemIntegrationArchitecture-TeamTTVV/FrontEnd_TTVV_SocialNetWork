@@ -193,22 +193,28 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
           </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            onClick={() => contact.userId && startCall(contact.userId, contact.name, 'voice')}
-            disabled={!contact.userId}
-            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
-            title={t('chatBox.voiceCall')}
-          >
-            <Phone className="w-3.5 h-3.5 text-[#1877F2]" />
-          </button>
-          <button
-            onClick={() => contact.userId && startCall(contact.userId, contact.name, 'video')}
-            disabled={!contact.userId}
-            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
-            title={t('chatBox.videoCall')}
-          >
-            <Video className="w-3.5 h-3.5 text-[#1877F2]" />
-          </button>
+          {!contact.isGroup && (
+            <>
+              <button
+                type="button"
+                onClick={() => contact.userId && startCall(contact.userId, contact.name, 'voice')}
+                disabled={!contact.userId}
+                className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
+                title={t('chatBox.voiceCall')}
+              >
+                <Phone className="w-3.5 h-3.5 text-[#1877F2]" />
+              </button>
+              <button
+                type="button"
+                onClick={() => contact.userId && startCall(contact.userId, contact.name, 'video')}
+                disabled={!contact.userId}
+                className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
+                title={t('chatBox.videoCall')}
+              >
+                <Video className="w-3.5 h-3.5 text-[#1877F2]" />
+              </button>
+            </>
+          )}
           <button
             onClick={() => toggleMinimize(contact.id)}
             className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors"

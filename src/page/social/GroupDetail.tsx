@@ -377,7 +377,7 @@ export default function GroupDetail() {
       {/* Floating Chat Button */}
       {group?.linkedConversationId && (myRole === "MEMBER" || myRole === "ADMIN") && (
         <button
-          onClick={() => navigate(`/social/messages?conversation=${group.linkedConversationId}`)}
+          onClick={() => navigate(`/messenger?conversation=${group.linkedConversationId}`)}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(59,130,246,0.3)] transition-all flex items-center justify-center z-40 group-chat-btn"
           title={t("groupPage.openGroupChat", "Mở nhóm chat")}
         >

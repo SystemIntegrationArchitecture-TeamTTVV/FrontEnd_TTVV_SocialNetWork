@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import MainLayout from "../components/layouts/MainLayout";
 import AuthLayout from "../components/layouts/AuthLayout";
@@ -39,7 +39,6 @@ const Friends = lazy(() => import("../page/profile/Friends"));
 // Messenger Pages
 const Messenger = lazy(() => import("../page/messenger/Messenger"));
 const NewMessage = lazy(() => import("../page/messenger/NewMessage"));
-const GroupChat = lazy(() => import("../page/messenger/GroupChat"));
 const ConversationSettings = lazy(() => import("../page/messenger/ConversationSettings"));
 const SharedMedia = lazy(() => import("../page/messenger/SharedMedia"));
 const MessengerSettings = lazy(() => import("../page/messenger/MessengerSettings"));
@@ -110,6 +109,13 @@ function S({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 
+/** Legacy URL `/messenger/group/:id` → single inbox UX at `/messenger?conversation=:id` */
+function MessengerGroupConversationRedirect() {
+  const { id } = useParams();
+  if (!id) return <Navigate to="/messenger" replace />;
+  return <Navigate to={`/messenger?conversation=${encodeURIComponent(id)}`} replace />;
+}
+
 export const router = createBrowserRouter([
   // Auth Routes
   {
@@ -162,7 +168,7 @@ export const router = createBrowserRouter([
       // Messenger
       { path: "messenger", element: <ProtectedRoute requireAuth={true}><S><Messenger /></S></ProtectedRoute> },
       { path: "messenger/new", element: <ProtectedRoute requireAuth={true}><S><NewMessage /></S></ProtectedRoute> },
-      { path: "messenger/group/:id", element: <ProtectedRoute requireAuth={true}><S><GroupChat /></S></ProtectedRoute> },
+      { path: "messenger/group/:id", element: <ProtectedRoute requireAuth={true}><MessengerGroupConversationRedirect /></ProtectedRoute> },
       { path: "messenger/:id/settings", element: <ProtectedRoute requireAuth={true}><S><ConversationSettings /></S></ProtectedRoute> },
       { path: "messenger/:id/media", element: <ProtectedRoute requireAuth={true}><S><SharedMedia /></S></ProtectedRoute> },
       { path: "messenger/settings", element: <ProtectedRoute requireAuth={true}><S><MessengerSettings /></S></ProtectedRoute> },

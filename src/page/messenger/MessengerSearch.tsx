@@ -39,7 +39,7 @@ export default function MessengerSearch() {
   };
 
   const openConversation = (conversation: Conversation) => {
-    navigate(`/messenger/group/${conversation.id}`);
+    navigate(`/messenger?conversation=${encodeURIComponent(conversation.id)}`);
   };
 
   const restoreConversation = async (conversationId: string) => {
@@ -47,7 +47,7 @@ export default function MessengerSearch() {
     try {
       setError(null);
       await conversationsApi.restoreConversation(conversationId, { userId: user.id });
-      navigate(`/messenger/group/${conversationId}`);
+      navigate(`/messenger?conversation=${encodeURIComponent(conversationId)}`);
     } catch (err: any) {
       setError(err?.message || 'Mo lai nhom that bai');
     }
@@ -65,7 +65,7 @@ export default function MessengerSearch() {
       await conversationsApi.unhideConversation(conversationId, { userId: user.id, pin: pin.trim() });
       setPin('');
       setActiveHiddenId(null);
-      navigate(`/messenger/group/${conversationId}`);
+      navigate(`/messenger?conversation=${encodeURIComponent(conversationId)}`);
     } catch (err: any) {
       setError(err?.message || 'Mo nhom that bai');
     }

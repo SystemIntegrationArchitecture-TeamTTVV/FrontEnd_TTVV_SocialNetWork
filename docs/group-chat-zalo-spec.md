@@ -6,7 +6,7 @@ Tài liệu này mô tả đầy đủ bộ chức năng group chat theo phong c
 ## Bối cảnh hiện tại của project
 - Project đã có module messenger với conversation, message, group conversation, socket realtime, reaction, pin, star, reply, file upload, voice record, poll, forward, call.
 - Project đã có AI assistant riêng ở mức app, nhưng chưa gắn vào luồng group chat.
-- Trang `GroupChat` hiện tại là mock UI, chưa có data thật hay logic gửi nhận message.
+- **Luồng nhóm chính:** [`Messenger.tsx`](../src/page/messenger/Messenger.tsx) khi `isGroup`, sidebar [`GroupChatSidebar`](../src/page/messenger/components/GroupChatSidebar.tsx). URL cũ `/messenger/group/:id` **redirect** về `/messenger?conversation=:id` (một màn hội thoại). File [`GroupChat.tsx`](../src/page/messenger/GroupChat.tsx) không còn là route entry (có thể gỡ sau khi chắc không tái sử dụng).
 - Backend đã có API cho conversation, message và group management cơ bản.
 
 ## Phạm vi group chat kiểu Zalo
@@ -252,13 +252,10 @@ Nếu muốn nhóm chat thông minh kiểu Zalo nâng cấp, có thể thêm cá
 - Reaction, pin, star, reply, file upload.
 - AI assistant ở cấp ứng dụng.
 
-### Chưa hoàn thiện cho group chat kiểu Zalo
-- GroupChat UI còn mock.
-- Chưa có AI gắn riêng cho nhóm.
-- Chưa có search trong nhóm thật.
-- Chưa có pinned message view riêng.
-- Chưa có member management UI đầy đủ cho nhóm.
-- Chưa có mention, poll, shared media panel đầy đủ ở group chat.
+### Chưa hoàn thiện / khác biệt so với Zalo đầy đủ
+- Chưa có AI gắn riêng cho nhóm (field `aiAssistantEnabled` chưa có UX đầy đủ).
+- Search trong cuộc: có API/search trong Messenger; có thể cần polish UX kiểu Zalo (highlight, jump message).
+- Member management, pinned/media, mention, poll: đã có phần lớn trong Messenger/group sidebar — cần đối chiếu từng mục với checklist Zalo (invite link, duyệt vào nhóm, ghim thông báo nhóm, kho media tập trung, v.v.).
 
 ## Kết luận
 Project hiện tại có nền tảng để làm group chat, nhưng chưa phải group chat kiểu Zalo hoàn chỉnh. Nếu triển khai theo tài liệu này, bạn có thể biến module messenger thành một group chat đầy đủ chức năng, và nếu muốn thì thêm luôn lớp AI để thành smart group chat.
