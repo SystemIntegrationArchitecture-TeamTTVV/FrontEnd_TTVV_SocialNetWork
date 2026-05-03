@@ -86,7 +86,7 @@ if (!canView && activeTab !== "about") {
     return <MembersTab groupId={group.id!} adminId={group.adminId!} />;
   if (activeTab === "photos") return <PhotosTab />;
   if (activeTab === "about") return <AboutTab group={group} />;
-  if (activeTab === "posts") return <PostsTab groupId={group.id!} />;
+  if (activeTab === "posts") return <PostsTab groupId={group.id!} isAdmin={userId === group.adminId} />;
 
   return null;
 }

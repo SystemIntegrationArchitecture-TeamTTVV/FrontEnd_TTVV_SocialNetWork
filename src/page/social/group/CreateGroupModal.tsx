@@ -56,6 +56,29 @@ const handleCreate = async () => {
             return;
         }
 
+        // Auto-link Messenger Chat
+        try {
+            // we need to dynamically import conversationsApi to avoid circular deps if any, but it's probably fine at the top level
+            const { conversationsApi } = await import('../../../apis/conversations');
+            
+            // Collect all members (admin + selected friends)
+            const participantIds = [userId, ...selected];
+            
+            const conv = await conversationsApi.createGroupConversation({
+                participantIds: participantIds,
+                ownerId: userId,
+                isGroup: true,
+                groupName: name,
+                groupAvatar: '', // Or group avatar if we have one
+            });
+            
+            // Update group with linked conversation id
+            await groupsApi.updateGroup(group.id, { linkedConversationId: conv.id });
+            
+        } catch (chatError) {
+            console.error("Failed to auto-link messenger chat", chatError);
+        }
+
         if (selected.length > 0) {
             await groupsApi.addMembers(group.id, selected);
         }

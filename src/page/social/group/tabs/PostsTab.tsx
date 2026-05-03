@@ -11,7 +11,7 @@ import PostCard from "./Postcard";
 import CommentSection from "./CommentSection";
 import { useTranslation } from "react-i18next";
 
-export default function PostsTab({ groupId }: { groupId: string }) {
+export default function PostsTab({ groupId, isAdmin }: { groupId: string, isAdmin?: boolean }) {
   const { t } = useTranslation();
   const [currentUser] = useState(() => authApi.getCurrentUser());
 
@@ -226,6 +226,23 @@ export default function PostsTab({ groupId }: { groupId: string }) {
           setIsDeleting(null);
         }
       }
+    } else if (action === "pin") {
+      try {
+        const updated = await postGroupApi.togglePinPost(postId);
+        // Thay thế bài viết hiện tại bằng updated
+        setPosts(prev => {
+          const newPosts = prev.map(p => p.id === postId ? updated : p);
+          // sort lại: isPinned = true lên đầu, sau đó sort theo createdAt
+          return newPosts.sort((a, b) => {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          });
+        });
+        showToast(t("groupTabs.pinPostSuccess", "Đã cập nhật ghim bài viết"), "success");
+      } catch (error) {
+        showToast(t("groupTabs.pinPostError", "Lỗi khi ghim bài viết"), "error");
+      }
     }
   };
 
@@ -316,6 +333,7 @@ export default function PostsTab({ groupId }: { groupId: string }) {
             editVisibility={editVisibility}
             openMenuId={openMenuId}
             menuRef={el => { if (post.id) menuRefs.current[post.id] = el; }}
+            isAdmin={isAdmin}
             onLike={handleLikePost}
             onToggleComments={toggleComments}
             onOpenMenu={id => setOpenMenuId(openMenuId === id ? null : id)}

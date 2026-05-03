@@ -24,6 +24,7 @@ interface PostCardProps {
   onEditSave: (postId: string) => void;
   onEditCancel: () => void;
   onMenuAction: (postId: string, action: string) => void;
+  isAdmin?: boolean;
   children?: React.ReactNode; // CommentSection slot
 }
 
@@ -37,7 +38,7 @@ export default function PostCard({
   editingPostId, editContent, editVisibility, openMenuId, menuRef,
   onLike, onToggleComments, onOpenMenu,
   onEditChange, onEditVisibilityChange, onEditSave, onEditCancel, onMenuAction,
-  children,
+  isAdmin, children,
 }: PostCardProps) {
   const { t } = useTranslation();
 
@@ -71,7 +72,7 @@ export default function PostCard({
       {/* Header */}
       <div className="p-5 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-base flex-shrink-0 overflow-hidden">
+          <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-base flex-shrink-0 overflow-hidden relative">
             {displayAvatar ? (
               <img
                 src={displayAvatar}
@@ -89,8 +90,16 @@ export default function PostCard({
             )}
           </div>
           <div>
-            <p className="font-semibold text-gray-900 text-base">{displayName}</p>
-            <div className="text-sm text-gray-500 flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-gray-900 text-base">{displayName}</p>
+              {post.isPinned && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
+                  <Bookmark className="w-3 h-3 fill-current" />
+                  {t("groupTabs.postPinned", "Đã ghim")}
+                </span>
+              )}
+            </div>
+            <div className="text-sm text-gray-500 flex items-center gap-2 mt-0.5">
               <span>{getTimeAgo(post.createdAt)}</span>
               <span>·</span>
               <span className="inline-flex items-center gap-1">
@@ -133,6 +142,18 @@ export default function PostCard({
                   </button>
                   <div className="h-px bg-gray-200 my-2" />
                 </>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => onMenuAction(post.id!, "pin")}
+                  className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left"
+                >
+                  <Bookmark className={`w-5 h-5 ${post.isPinned ? "text-blue-600 fill-blue-600" : "text-gray-600"}`} />
+                  <span className={post.isPinned ? "text-blue-600 font-medium" : "text-gray-900 font-medium"}>
+                    {post.isPinned ? t("groupTabs.menuUnpinPost", "Bỏ ghim bài viết") : t("groupTabs.menuPinPost", "Ghim bài viết")}
+                  </span>
+                </button>
               )}
               <button
                 type="button"

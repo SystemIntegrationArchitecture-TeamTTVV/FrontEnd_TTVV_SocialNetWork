@@ -20,6 +20,7 @@ export interface PostGroupData {
   groupId?: string;
   createdAt?: string;
   updatedAt?: string;
+  isPinned?: boolean;
 }
 
 export interface CreatePostGroupRequest {
@@ -131,6 +132,24 @@ class PostGroupApi {
       console.log('✅ [PostGroup API] Successfully deleted post');
     } catch (error) {
       console.error(`❌ [PostGroup API] Failed to delete post ${postId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🔥 Toggle pin post
+   */
+  async togglePinPost(postId: string): Promise<PostGroupData> {
+    try {
+      console.log(`📡 [PostGroup API] Toggling pin for post ${postId}...`);
+      const response = await httpClient.post<PostGroupData>(
+        `${this.baseUrl}/${postId}/pin`,
+        {}
+      );
+      console.log('✅ [PostGroup API] Successfully toggled pin post:', response);
+      return response;
+    } catch (error) {
+      console.error(`❌ [PostGroup API] Failed to toggle pin post ${postId}:`, error);
       throw error;
     }
   }

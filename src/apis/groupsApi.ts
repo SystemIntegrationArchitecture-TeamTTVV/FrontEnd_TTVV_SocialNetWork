@@ -18,6 +18,8 @@ export interface GroupData {
 
     tags?: string[];
     category?: string;
+    linkedConversationId?: string;
+    joinQuestions?: string[];
 
     createdAt?: string;
     updatedAt?: string;
@@ -38,6 +40,8 @@ export interface CreateGroupRequest {
 
     tags?: string[];
     category?: string;
+    linkedConversationId?: string;
+    joinQuestions?: string[];
 }
 
 export interface UpdateGroupRequest {
@@ -51,6 +55,8 @@ export interface UpdateGroupRequest {
 
     tags?: string[];
     category?: string;
+    linkedConversationId?: string;
+    joinQuestions?: string[];
 }
 
 class GroupsApi {
@@ -230,11 +236,11 @@ class GroupsApi {
     /**
      * Join group
      */
-    async joinGroup(groupId: string, userId: string): Promise<void> {
+    async joinGroup(groupId: string, userId: string, answers?: string[]): Promise<void> {
 
-        console.log(`📡 [Groups API] User ${userId} joining group ${groupId}`);
+        console.log(`📡 [Groups API] User ${userId} joining group ${groupId}`, answers);
 
-        await httpClient.post(`${this.baseUrl}/${groupId}/join/${userId}`);
+        await httpClient.post(`${this.baseUrl}/${groupId}/join/${userId}`, answers || []);
 
     }
 

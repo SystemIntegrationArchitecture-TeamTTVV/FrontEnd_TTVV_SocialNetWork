@@ -1,8 +1,8 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Check, Bell, Share2, MoreVertical, Loader2, Users,
   LogOut, Settings, Trash2, Clock, UserPlus, Lock, Globe,
-  Gamepad2, Plane, Camera, BookOpen, ChefHat,
+  Gamepad2, Plane, Camera, BookOpen, ChefHat, MessageSquare
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { groupsApi, type GroupData } from "../../apis/groupsApi";
@@ -10,6 +10,7 @@ import GroupContent from "./group/GroupContent";
 import { authApi } from "../../apis/auth";
 import GroupManageModal from "../social/group/GroupManageModal";
 import InviteFriendsModal from "./group/InviteFriendsModal";
+import JoinGroupQuestionsModal from "./group/JoinGroupQuestionsModal";
 import { useTranslation } from "react-i18next";
 
 const CATEGORY_GRADIENT: Record<string, { from: string; to: string }> = {
@@ -40,6 +41,7 @@ function getGradient(category?: string) {
 export default function GroupDetail() {
   const { t } = useTranslation();
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [group, setGroup] = useState<GroupData | null>(null);
   const [activeTab, setActiveTab] = useState("posts");
@@ -49,6 +51,7 @@ export default function GroupDetail() {
   const [openMenu, setOpenMenu] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupData | null>(null);
   const [openInvite, setOpenInvite] = useState(false);
+  const [openQuestions, setOpenQuestions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -97,12 +100,29 @@ export default function GroupDetail() {
 
   const handleJoinGroup = async () => {
     if (!id || !userId || !group) return;
+    
+    // Nếu nhóm PRIVATE và có câu hỏi -> hiển thị modal
+    if (group.privacy === "PRIVATE" && group.joinQuestions && group.joinQuestions.length > 0) {
+      setOpenQuestions(true);
+      return;
+    }
+    
     try {
       setLoadingJoin(true);
       await groupsApi.joinGroup(id, userId);
       if (group.privacy === "PUBLIC") {
         setMyRole("MEMBER");
         setGroup(prev => prev ? { ...prev, memberCount: (prev.memberCount || 0) + 1 } : prev);
+        
+        // Auto-sync with Messenger
+        if (group.linkedConversationId) {
+            try {
+                const { conversationsApi } = await import('../../apis/conversations');
+                await conversationsApi.addGroupMembers(group.linkedConversationId, { participantIds: [userId] });
+            } catch (err) {
+                console.error("Failed to sync member to chat", err);
+            }
+        }
       } else if (group.privacy === "PRIVATE") {
         setMyRole("PENDING");
       }
@@ -120,6 +140,16 @@ export default function GroupDetail() {
       setMyRole(null);
       setGroup(prev => prev ? { ...prev, memberCount: (prev.memberCount || 1) - 1 } : prev);
       setOpenMenu(false);
+      
+      // Auto-sync with Messenger
+      if (group?.linkedConversationId) {
+          try {
+              const { conversationsApi } = await import('../../apis/conversations');
+              await conversationsApi.removeMember(group.linkedConversationId, userId);
+          } catch (err) {
+              console.error("Failed to sync leave to chat", err);
+          }
+      }
     } catch (error) {
       console.error("Leave group failed", error);
     }
@@ -333,6 +363,26 @@ export default function GroupDetail() {
           userId={userId}
           onClose={handleInviteModalClose}
         />
+      )}
+      
+      {openQuestions && group && userId && (
+        <JoinGroupQuestionsModal
+          group={group}
+          userId={userId}
+          onClose={() => setOpenQuestions(false)}
+          onSuccess={() => setMyRole("PENDING")}
+        />
+      )}
+      
+      {/* Floating Chat Button */}
+      {group?.linkedConversationId && (myRole === "MEMBER" || myRole === "ADMIN") && (
+        <button
+          onClick={() => navigate(`/social/messages?conversation=${group.linkedConversationId}`)}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(59,130,246,0.3)] transition-all flex items-center justify-center z-40 group-chat-btn"
+          title={t("groupPage.openGroupChat", "Mở nhóm chat")}
+        >
+          <MessageSquare className="w-6 h-6" />
+        </button>
       )}
     </div>
   );
