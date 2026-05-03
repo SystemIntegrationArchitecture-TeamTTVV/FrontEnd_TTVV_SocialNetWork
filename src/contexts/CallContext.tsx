@@ -41,6 +41,7 @@ interface CallContextType {
   leaveCall: (transferToUserId?: string) => void;
   endCallForAll: () => void;
   transferHost: (newHostId: string) => void;
+  inviteToCall: (targetUserId: string) => void;
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
@@ -651,6 +652,38 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setCallState(prev => ({ ...prev, hostId: newHostId }));
   }, []);
 
+  const inviteToCall = useCallback(async (targetId: string) => {
+    const currentUser = authApi.getCurrentUser();
+    if (!currentUser || !callState.conversationId) return;
+
+    const sendOffer = async () => {
+      const offer = await webrtcService.createOffer(
+        callState.callType || 'voice', targetId, currentUser.id,
+        currentUser.fullName || currentUser.username,
+        callState.conversationId, false
+      );
+      if (offer.callId) callIdToPeerRef.current.set(offer.callId, targetId);
+      pendingPeersRef.current.add(targetId);
+    };
+    
+    try {
+      await sendOffer();
+      schedulePeerTimeout(targetId, sendOffer, () => {
+        setCallState(prev => ({
+          ...prev,
+          participantIds: prev.participantIds.filter(id => id !== targetId),
+        }));
+      });
+      // Optionally add to participantIds so we know they are ringing
+      setCallState(prev => ({
+        ...prev,
+        participantIds: prev.participantIds.includes(targetId) ? prev.participantIds : [...prev.participantIds, targetId],
+      }));
+    } catch (error) {
+      console.error('Failed to invite user:', error);
+    }
+  }, [callState.callType, callState.conversationId, schedulePeerTimeout]);
+
   const rejectCall = useCallback(() => {
     const recipients = callState.isGroup ? callState.participantIds : [callState.remoteId];
     recipients.filter(Boolean).forEach(recipientId => {
@@ -691,7 +724,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   return (
     <CallContext.Provider value={{
       callState, startCall, acceptCall, rejectCall,
-      endCall, leaveCall, endCallForAll, transferHost,
+      endCall, leaveCall, endCallForAll, transferHost, inviteToCall,
     }}>
       {children}
       {callState.isActive && (
@@ -703,6 +736,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           remoteStream={callState.remoteStream}
           remoteStreams={callState.remoteStreams}
           isGroup={callState.isGroup}
+          conversationId={callState.conversationId}
           callCategory={callState.callCategory}
           hostId={callState.hostId}
           currentUserId={currentUser?.id || ''}
@@ -714,6 +748,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           onLeave={leaveCall}
           onEndAll={endCallForAll}
           onTransferHost={transferHost}
+          onInvite={inviteToCall}
         />
       )}
     </CallContext.Provider>

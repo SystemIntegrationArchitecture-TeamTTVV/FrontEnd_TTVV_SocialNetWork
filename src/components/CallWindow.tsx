@@ -1,7 +1,7 @@
-import {
   Phone, PhoneOff, Mic, MicOff, Video, VideoOff,
-  LogOut, Crown, Users, X, Check, ArrowRight,
+  LogOut, Crown, Users, X, Check, ArrowRight, UserPlus,
 } from 'lucide-react';
+import { conversationsApi, type Conversation } from '../apis/conversations';
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface CallWindowProps {
@@ -12,6 +12,7 @@ interface CallWindowProps {
   remoteStream: MediaStream | null;
   remoteStreams?: Array<{ peerId: string; stream: MediaStream }>;
   isGroup?: boolean;
+  conversationId?: string;
   callCategory: 'DIRECT' | 'GROUP';
   hostId: string | null;
   currentUserId: string;
@@ -23,6 +24,7 @@ interface CallWindowProps {
   onLeave: (transferToUserId?: string) => void;
   onEndAll: () => void;
   onTransferHost: (newHostId: string) => void;
+  onInvite?: (userId: string) => void;
 }
 
 export default function CallWindow({
@@ -44,6 +46,8 @@ export default function CallWindow({
   onLeave,
   onEndAll,
   onTransferHost,
+  onInvite,
+  conversationId,
 }: CallWindowProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -53,6 +57,9 @@ export default function CallWindow({
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showHostModal, setShowHostModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [selectedNewHost, setSelectedNewHost] = useState<string | null>(null);
   const [callSeconds, setCallSeconds] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
@@ -178,6 +185,26 @@ export default function CallWindow({
   const handleEndAll = () => {
     setShowHostModal(false);
     onEndAll();
+  };
+
+  const openInviteModal = async () => {
+    setShowInviteModal(true);
+    if (conversationId && !conversation) {
+      setInviteLoading(true);
+      try {
+        const conv = await conversationsApi.getConversationById(conversationId);
+        setConversation(conv);
+      } catch (error) {
+        console.error('Failed to fetch conversation for invite modal:', error);
+      } finally {
+        setInviteLoading(false);
+      }
+    }
+  };
+
+  const handleInvite = (userId: string) => {
+    if (onInvite) onInvite(userId);
+    setShowInviteModal(false);
   };
 
   // Avatar initials
@@ -411,6 +438,13 @@ export default function CallWindow({
               {isGroupCall ? (
                 <>
                   <button
+                    onClick={openInviteModal}
+                    className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-all"
+                    title="Thêm người"
+                  >
+                    <UserPlus className="w-5 h-5" />
+                  </button>
+                  <button
                     onClick={handleLeaveOrEnd}
                     className="h-12 px-5 rounded-full bg-amber-500/90 hover:bg-amber-500 text-white text-sm font-medium flex items-center gap-2 transition-all"
                     title="Rời cuộc gọi"
@@ -536,6 +570,75 @@ export default function CallWindow({
                 className="w-full h-10 rounded-xl text-white/40 hover:text-white/60 text-sm transition-colors"
               >
                 Huỷ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ INVITE MODAL ═══ */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1e293b] rounded-2xl w-[380px] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div className="flex items-center gap-2 text-white font-semibold">
+                <UserPlus className="w-5 h-5 text-blue-400" />
+                Mời thành viên nhóm
+              </div>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Participant list */}
+            <div className="px-5 py-3 max-h-64 overflow-y-auto">
+              {inviteLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : conversation?.participantIds ? (
+                conversation.participantIds.map((id, index) => {
+                  if (id === currentUserId) return null;
+                  const name = conversation.nicknames?.[id] || conversation.participantNames?.[index] || id;
+                  const isAlreadyInCall = activeParticipantIds.includes(id);
+
+                  return (
+                    <div key={id} className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-white/5 mb-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+                          {getInitials(name)}
+                        </div>
+                        <span className="text-white text-sm">{name}</span>
+                      </div>
+                      {isAlreadyInCall ? (
+                        <span className="text-white/40 text-xs italic">{name} đã ở trong cuộc gọi rồi</span>
+                      ) : (
+                        <button
+                          onClick={() => handleInvite(id)}
+                          className="px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs font-medium transition-colors"
+                        >
+                          Mời
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-white/40 text-center text-sm py-4">Không tìm thấy thành viên</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="px-5 py-3 border-t border-white/5">
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="w-full h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors"
+              >
+                Đóng
               </button>
             </div>
           </div>
