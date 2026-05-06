@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Settings as SettingsIcon, Lock, Bell, Shield, Globe,
   Palette, LogOut, Loader2, Check, Moon, Sun, Eye, UserMinus,
@@ -9,6 +9,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usersApi, type User as UserType } from '../../apis/users';
 import { setAppLanguage, getCurrentAppLanguage, type AppLanguage } from '../../i18n';
 import { useToast } from '../../contexts/useToast';
+import { FEATURE_FLAGS } from '../../apis/config';
+
+const StatusPicker = lazy(() => import('../../components/StatusPicker'));
+const TotpSetup = lazy(() => import('../../components/TotpSetup'));
 
 // ─── Types ───────────────────────────────────────────────────────────
 type TabId = 'general' | 'security' | 'notifications' | 'privacy' | 'language' | 'display' | 'logout';
@@ -36,6 +40,9 @@ export default function Settings() {
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [language, setLanguage] = useState<AppLanguage>(getCurrentAppLanguage());
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [showTotpSetup, setShowTotpSetup] = useState(false);
+  const [myStatus, setMyStatus] = useState<{ text: string; emoji: string }>({ text: '', emoji: '' });
 
   // Privacy settings (synced from profile)
   const [privacySettings, setPrivacySettings] = useState({
@@ -290,8 +297,47 @@ export default function Settings() {
               </div>
               <div className="p-4 rounded-xl bg-gray-50">
                 <p className="font-medium text-gray-900 mb-1">{t('settingsPage.loginHistory')}</p>
-                <p className="text-sm text-gray-500">{t('settingsPage.loginHistoryDesc')}</p>
+                <p className="text-sm text-gray-500 mb-3">{t('settingsPage.loginHistoryDesc')}</p>
+                {FEATURE_FLAGS.DEVICE_SESSIONS ? (
+                  <button
+                    onClick={() => navigate('/settings/sessions')}
+                    className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-colors"
+                  >
+                    Quan ly phien dang nhap
+                  </button>
+                ) : (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-block">
+                    Device sessions dang tat (VITE_FEATURE_DEVICE_SESSIONS=false)
+                  </p>
+                )}
               </div>
+              {FEATURE_FLAGS.USER_STATUS && (
+                <div className="p-4 rounded-xl bg-gray-50">
+                  <p className="font-medium text-gray-900 mb-1">Trạng thái cá nhân</p>
+                  <p className="text-sm text-gray-500 mb-3">Đặt emoji + văn bản hiển thị trên hồ sơ của bạn.</p>
+                  {(myStatus.emoji || myStatus.text) && (
+                    <p className="text-sm text-gray-700 mb-2">{myStatus.emoji} {myStatus.text}</p>
+                  )}
+                  <button
+                    onClick={() => setShowStatusPicker(true)}
+                    className="px-5 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                  >
+                    {myStatus.text || myStatus.emoji ? 'Sửa trạng thái' : 'Đặt trạng thái'}
+                  </button>
+                </div>
+              )}
+              {FEATURE_FLAGS.TWO_FACTOR && (
+                <div className="p-4 rounded-xl bg-gray-50">
+                  <p className="font-medium text-gray-900 mb-1">Xác thực 2 bước (2FA)</p>
+                  <p className="text-sm text-gray-500 mb-3">Bảo vệ tài khoản bằng Google Authenticator hoặc Authy.</p>
+                  <button
+                    onClick={() => setShowTotpSetup(true)}
+                    className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Quản lý 2FA
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -420,6 +466,21 @@ export default function Settings() {
                 {t('privacySettings.saveChanges')}
               </button>
             </div>
+
+            {/* Data Export */}
+            {FEATURE_FLAGS.DATA_EXPORT && (
+              <div className="mt-6 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                <p className="font-medium text-gray-900 mb-1">Xuất dữ liệu của bạn</p>
+                <p className="text-sm text-gray-500 mb-3">Tải xuống bản sao thông tin cá nhân dưới dạng JSON.</p>
+                <a
+                  href="/api/users/me/export"
+                  download
+                  className="inline-flex items-center gap-2 px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-colors"
+                >
+                  Tải xuống dữ liệu
+                </a>
+              </div>
+            )}
           </div>
         );
       }
@@ -570,6 +631,22 @@ export default function Settings() {
           {renderContent()}
         </div>
       </main>
+
+      {showStatusPicker && (
+        <Suspense fallback={null}>
+          <StatusPicker
+            currentText={myStatus.text}
+            currentEmoji={myStatus.emoji}
+            onClose={() => setShowStatusPicker(false)}
+            onSaved={(text, emoji) => setMyStatus({ text, emoji })}
+          />
+        </Suspense>
+      )}
+      {showTotpSetup && (
+        <Suspense fallback={null}>
+          <TotpSetup onClose={() => setShowTotpSetup(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { usersApi } from '../../apis/users';
 import { useToast } from '../../contexts/useToast';
+import { FEATURE_FLAGS } from '../../apis/config';
 
 export default function PrivacySettings() {
   const { t } = useTranslation();
@@ -284,25 +285,27 @@ export default function PrivacySettings() {
         </div>
 
         {/* Block Users */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <UserMinus className="w-5 h-5 text-red-600" />
+        {FEATURE_FLAGS.BLOCKING && (
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <UserMinus className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900">{t('privacySettings.sectionBlockTitle')}</h2>
+                  <p className="text-xs text-gray-500">{t('privacySettings.sectionBlockDesc')}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-bold text-gray-900">{t('privacySettings.sectionBlockTitle')}</h2>
-                <p className="text-xs text-gray-500">{t('privacySettings.sectionBlockDesc')}</p>
-              </div>
+              <Link
+                to="/settings/blocked"
+                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm transition-colors"
+              >
+                {t('privacySettings.manage')}
+              </Link>
             </div>
-            <Link
-              to="/settings/blocked"
-              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm transition-colors"
-            >
-              {t('privacySettings.manage')}
-            </Link>
           </div>
-        </div>
+        )}
 
         {/* Save Button */}
         <div className="flex justify-end pt-2">
