@@ -45,6 +45,22 @@ export const API_CONFIG = {
   TIMEOUT: 30000, // 30 seconds
 };
 
+const toBool = (value: unknown, fallback: boolean = false): boolean => {
+  if (value === undefined || value === null) return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+};
+
+export const FEATURE_FLAGS = {
+  BLOCKING: toBool(import.meta.env.VITE_FEATURE_BLOCKING, false),
+  DEVICE_SESSIONS: toBool(import.meta.env.VITE_FEATURE_DEVICE_SESSIONS, false),
+  SCHEDULED_MESSAGES: toBool(import.meta.env.VITE_FEATURE_SCHEDULED_MESSAGES, false),
+  USER_STATUS: toBool(import.meta.env.VITE_FEATURE_USER_STATUS, false),
+  FRIEND_SUGGESTIONS: toBool(import.meta.env.VITE_FEATURE_FRIEND_SUGGESTIONS, false),
+  DATA_EXPORT: toBool(import.meta.env.VITE_FEATURE_DATA_EXPORT, false),
+  TWO_FACTOR: toBool(import.meta.env.VITE_FEATURE_TWO_FACTOR, false),
+};
+
 // API Endpoints
 export const API_ENDPOINTS = {
   // Auth
