@@ -56,6 +56,8 @@ const ForwardMessage = lazy(() => import("../page/messenger/features/ForwardMess
 const DeleteMessage = lazy(() => import("../page/messenger/features/DeleteMessage"));
 const ReactionDetails = lazy(() => import("../page/messenger/features/ReactionDetails"));
 const ThemeCustomization = lazy(() => import("../page/messenger/features/ThemeCustomization"));
+const ScheduledMessages = lazy(() => import("../page/messenger/features/ScheduledMessages"));
+const FriendSuggestions = lazy(() => import("../page/social/FriendSuggestions"));
 
 // Music Pages
 const MusicEDM = lazy(() => import("../page/music/MusicEDM"));
@@ -91,6 +93,8 @@ const SavedItems = lazy(() => import("../page/social/SavedItems"));
 // Settings Pages
 const Settings = lazy(() => import("../page/settings/Settings"));
 const PrivacySettings = lazy(() => import("../page/settings/PrivacySettings"));
+const BlockedUsers = lazy(() => import("../page/settings/BlockedUsers"));
+const DeviceSessions = lazy(() => import("../page/settings/DeviceSessions"));
 
 // Admin Pages
 const AdminUserManagement = lazy(() => import("../page/admin/AdminUserManagement"));
@@ -186,6 +190,7 @@ export const router = createBrowserRouter([
       { path: "messenger/:id/delete", element: <ProtectedRoute requireAuth={true}><S><DeleteMessage /></S></ProtectedRoute> },
       { path: "messenger/:id/reactions", element: <ProtectedRoute requireAuth={true}><S><ReactionDetails /></S></ProtectedRoute> },
       { path: "messenger/theme", element: <ProtectedRoute requireAuth={true}><S><ThemeCustomization /></S></ProtectedRoute> },
+      { path: "messenger/:id/scheduled", element: <ProtectedRoute requireAuth={true}><S><ScheduledMessages /></S></ProtectedRoute> },
 
       // Music
       { path: "music", element: <S><MusicEDM /></S> },
@@ -198,6 +203,7 @@ export const router = createBrowserRouter([
 
       // Social
       { path: "find-people", element: <S><FindPeople /></S> },
+      { path: "find-people/suggestions", element: <ProtectedRoute requireAuth={true}><S><FriendSuggestions /></S></ProtectedRoute> },
       { path: "friends", element: <S><FriendRequests /></S> },
       { path: "groups", element: <S><Groups /></S> },
       { path: "groups/:id", element: <S><GroupDetail /></S> },
@@ -221,6 +227,8 @@ export const router = createBrowserRouter([
       // Settings
       { path: "settings", element: <ProtectedRoute requireAuth={true}><S><Settings /></S></ProtectedRoute> },
       { path: "settings/privacy", element: <ProtectedRoute requireAuth={true}><S><PrivacySettings /></S></ProtectedRoute> },
+      { path: "settings/blocked", element: <ProtectedRoute requireAuth={true}><S><BlockedUsers /></S></ProtectedRoute> },
+      { path: "settings/sessions", element: <ProtectedRoute requireAuth={true}><S><DeviceSessions /></S></ProtectedRoute> },
 
       { path: "404", element: <S><NotFound /></S> },
       { path: "*", element: <S><NotFound /></S> },
