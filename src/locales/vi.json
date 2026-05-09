@@ -461,7 +461,23 @@
   },
   "messengerSearch": {
     "title": "Tìm kiếm tin nhắn",
-    "comingSoon": "Chức năng tìm kiếm sẽ sớm có..."
+    "comingSoon": "Chức năng tìm kiếm sẽ sớm có...",
+    "placeholder": "Tìm nhóm theo tên",
+    "search": "Tìm",
+    "loading": "Đang tìm kiếm...",
+    "noResults": "Không có kết quả.",
+    "loginRequired": "Vui lòng đăng nhập để tìm nhóm.",
+    "searchFailed": "Tìm kiếm thất bại",
+    "errorRestore": "Mở lại nhóm thất bại",
+    "errorUnlock": "Mở nhóm thất bại",
+    "enterPin": "Nhập PIN để mở nhóm ẩn.",
+    "pinPlaceholder": "Nhập PIN",
+    "members": "thành viên",
+    "hidden": "đang ẩn",
+    "open": "Mở nhóm",
+    "unlock": "Mở khóa",
+    "restore": "Mở lại",
+    "confirm": "Xác nhận"
   },
   "messenger": {
     "messagesHeader": "Tin nhắn",
@@ -473,6 +489,9 @@
     "searchMessagesPlaceholder": "Tìm kiếm tin nhắn",
     "loadingConversations": "Đang tải cuộc trò chuyện...",
     "searchInConversationPlaceholder": "Tìm kiếm trong cuộc trò chuyện...",
+    "searchAllSenders": "Tất cả người gửi",
+    "searching": "Đang tìm kiếm...",
+    "searchResultsCount": "Tìm thấy {{count}} kết quả",
     "activeNow": "● Đang hoạt động",
     "typeMessagePlaceholder": "Nhập tin nhắn...",
     "replyingTo": "Đang trả lời {{sender}}...",
@@ -617,6 +636,8 @@
       "requireApproval": "Yêu cầu phê duyệt khi có người tham gia",
       "permissionsTitle": "Quyền nhóm",
       "onlyAdminsCanSend": "Chỉ trưởng/phó nhóm được gửi tin",
+      "aiAssistant": "Trợ lý AI (@ZalaBot)",
+      "aiAssistantHint": "Mention @ZalaBot để hỏi AI trong nhóm",
       "clearGroupHistory": "Xóa lịch sử nhóm",
       "clearGroupHistoryHint": "Chỉ trưởng nhóm mới có quyền xóa toàn bộ tin nhắn trong đoạn chat.",
       "joinRequestsTitle": "Yêu cầu tham gia ({{count}})",
@@ -1137,8 +1158,12 @@
     "delete": "Xóa",
     "tabs": {
       "all": "Tất cả",
-      "unread": "Chưa đọc"
+      "unread": "Chưa đọc",
+      "friend": "Bạn bè",
+      "group": "Nhóm",
+      "social": "Tương tác"
     },
+    "empty": "Không có thông báo",
     "actions": {
       "likedPost": "đã thích bài viết của bạn.",
       "commented": "đã bình luận: \"Ảnh đẹp quá!\"",
@@ -1160,6 +1185,13 @@
     "members": "thành viên",
     "postsThisWeek": "bài viết tuần này",
     "publicGroup": "Nhóm công khai",
+    "privateGroup": "Nhóm riêng tư",
+    "recentSearches": "Tìm kiếm gần đây",
+    "clearAll": "Xóa tất cả",
+    "noResults": "Không có kết quả",
+    "error": "Không thể tải dữ liệu",
+    "prompt": "Nhập từ khóa để tìm kiếm",
+    "requested": "Đã gửi",
     "filters": {
       "all": "Tất cả",
       "posts": "Bài viết",
@@ -1997,6 +2029,18 @@
     "showEmail": "Hiển thị email trên trang cá nhân",
     "showPhone": "Hiển thị số điện thoại trên trang cá nhân",
     "saveChanges": "Lưu thay đổi"
+  },
+  "blockedUsers": {
+    "pageTitle": "Người dùng đã chặn",
+    "pageSubtitle": "Quản lý danh sách người dùng bạn đã chặn.",
+    "backToPrivacy": "Cài đặt quyền riêng tư",
+    "loadError": "Không tải được danh sách chặn",
+    "unblockSuccess": "Đã bỏ chặn người dùng",
+    "unblockError": "Bỏ chặn thất bại",
+    "featureDisabled": "Tính năng chặn đang tắt. Bật VITE_FEATURE_BLOCKING=true để sử dụng.",
+    "emptyTitle": "Bạn chưa chặn ai",
+    "emptySubtitle": "Danh sách chặn sẽ hiển thị ở đây.",
+    "unblock": "Bỏ chặn"
   },
   "notificationSettings": {
     "pageTitle": "Cài đặt thông báo",

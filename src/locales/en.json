@@ -461,7 +461,23 @@
   },
   "messengerSearch": {
     "title": "Search Messages",
-    "comingSoon": "Search functionality coming soon..."
+    "comingSoon": "Search functionality coming soon...",
+    "placeholder": "Search groups by name",
+    "search": "Search",
+    "loading": "Searching...",
+    "noResults": "No results found.",
+    "loginRequired": "Please log in to search groups.",
+    "searchFailed": "Search failed",
+    "errorRestore": "Failed to restore group",
+    "errorUnlock": "Failed to unlock group",
+    "enterPin": "Enter PIN to unlock hidden group.",
+    "pinPlaceholder": "Enter PIN",
+    "members": "members",
+    "hidden": "hidden",
+    "open": "Open group",
+    "unlock": "Unlock",
+    "restore": "Restore",
+    "confirm": "Confirm"
   },
   "messenger": {
     "messagesHeader": "Messages",
@@ -472,6 +488,9 @@
     "collapseSidebarTitle": "Collapse sidebar",
     "searchMessagesPlaceholder": "Search messages",
     "loadingConversations": "Loading conversations...",
+    "searchAllSenders": "All senders",
+    "searching": "Searching...",
+    "searchResultsCount": "Found {{count}} results",
     "searchInConversationPlaceholder": "Search in conversation...",
     "activeNow": "● Active now",
     "typeMessagePlaceholder": "Type a message...",
@@ -617,6 +636,8 @@
       "requireApproval": "Require approval when someone joins",
       "permissionsTitle": "Group permissions",
       "onlyAdminsCanSend": "Only owner & admins can send messages",
+      "aiAssistant": "AI Assistant (@ZalaBot)",
+      "aiAssistantHint": "Mention @ZalaBot to ask AI in group",
       "clearGroupHistory": "Clear group history",
       "clearGroupHistoryHint": "Only the group owner can remove all messages from this chat.",
       "joinRequestsTitle": "Join requests ({{count}})",
@@ -1137,8 +1158,12 @@
     "delete": "Delete",
     "tabs": {
       "all": "All",
-      "unread": "Unread"
+      "unread": "Unread",
+      "friend": "Friends",
+      "group": "Groups",
+      "social": "Activity"
     },
+    "empty": "No notifications",
     "actions": {
       "likedPost": "liked your post.",
       "commented": "commented: \"Awesome photo!\"",
@@ -1159,6 +1184,13 @@
     "comments": "comments",
     "members": "members",
     "postsThisWeek": "posts this week",
+    "privateGroup": "Private group",
+    "recentSearches": "Recent searches",
+    "clearAll": "Clear all",
+    "noResults": "No results found",
+    "error": "Failed to load results",
+    "prompt": "Type a keyword to search",
+    "requested": "Requested",
     "publicGroup": "Public group",
     "filters": {
       "all": "All",
@@ -1997,6 +2029,18 @@
     "showEmail": "Show email on profile",
     "showPhone": "Show phone number on profile",
     "saveChanges": "Save changes"
+  },
+  "blockedUsers": {
+    "pageTitle": "Blocked users",
+    "pageSubtitle": "Manage the list of users you have blocked.",
+    "backToPrivacy": "Privacy settings",
+    "loadError": "Could not load blocked list",
+    "unblockSuccess": "User unblocked",
+    "unblockError": "Unblock failed",
+    "featureDisabled": "Blocking feature is disabled. Set VITE_FEATURE_BLOCKING=true to enable.",
+    "emptyTitle": "You haven't blocked anyone",
+    "emptySubtitle": "Your block list will appear here.",
+    "unblock": "Unblock"
   },
   "notificationSettings": {
     "pageTitle": "Notification settings",

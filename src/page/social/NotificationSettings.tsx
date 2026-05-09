@@ -2,24 +2,54 @@ import { Bell, Users, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+const PREF_KEY = 'notification_preferences';
+
+type NotifSettings = {
+  pushNotifications: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  postNotifications: boolean;
+  commentNotifications: boolean;
+  likeNotifications: boolean;
+  shareNotifications: boolean;
+  friendRequestNotifications: boolean;
+  messageNotifications: boolean;
+  eventNotifications: boolean;
+  groupNotifications: boolean;
+};
+
+const DEFAULTS: NotifSettings = {
+  pushNotifications: true,
+  emailNotifications: true,
+  smsNotifications: false,
+  postNotifications: true,
+  commentNotifications: true,
+  likeNotifications: true,
+  shareNotifications: true,
+  friendRequestNotifications: true,
+  messageNotifications: true,
+  eventNotifications: true,
+  groupNotifications: true,
+};
+
+function loadSettings(): NotifSettings {
+  try {
+    const stored = localStorage.getItem(PREF_KEY);
+    if (stored) return { ...DEFAULTS, ...JSON.parse(stored) };
+  } catch { /* ignore */ }
+  return DEFAULTS;
+}
+
 export default function NotificationSettings() {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState({
-    pushNotifications: true,
-    emailNotifications: true,
-    smsNotifications: false,
-    postNotifications: true,
-    commentNotifications: true,
-    likeNotifications: true,
-    shareNotifications: true,
-    friendRequestNotifications: true,
-    messageNotifications: true,
-    eventNotifications: true,
-    groupNotifications: true,
-  });
+  const [settings, setSettings] = useState<NotifSettings>(loadSettings);
 
   const handleToggle = (key: string) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key as keyof typeof settings] }));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: !prev[key as keyof NotifSettings] };
+      try { localStorage.setItem(PREF_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
   };
 
   const notificationGroups = [

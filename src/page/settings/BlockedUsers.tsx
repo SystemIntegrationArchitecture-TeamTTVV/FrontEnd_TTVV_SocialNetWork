@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, ShieldAlert, UserMinus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../contexts/useToast';
 import { FEATURE_FLAGS } from '../../apis/config';
 import { blockingApi, type BlockedUser } from '../../apis/blocking';
 
 export default function BlockedUsers() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function BlockedUsers() {
         const data = await blockingApi.getBlockedUsers();
         setItems(data || []);
       } catch {
-        showToast('Khong tai duoc danh sach chan', 'error');
+        showToast(t('blockedUsers.loadError'), 'error');
       } finally {
         setLoading(false);
       }
@@ -38,9 +40,9 @@ export default function BlockedUsers() {
     try {
       await blockingApi.unblockUser(userId);
       setItems(prev => prev.filter(x => x.userId !== userId));
-      showToast('Da bo chan nguoi dung', 'success');
+      showToast(t('blockedUsers.unblockSuccess'), 'success');
     } catch {
-      showToast('Bo chan that bai', 'error');
+      showToast(t('blockedUsers.unblockError'), 'error');
     } finally {
       setBusyUserId(null);
     }
@@ -54,15 +56,15 @@ export default function BlockedUsers() {
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-3 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Cai dat quyen rieng tu
+          {t('blockedUsers.backToPrivacy')}
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Nguoi dung da chan</h1>
-        <p className="text-sm text-gray-500 mt-1">Quan ly danh sach nguoi dung ban da chan.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('blockedUsers.pageTitle')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('blockedUsers.pageSubtitle')}</p>
       </div>
 
       {!FEATURE_FLAGS.BLOCKING ? (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 text-sm">
-          Tinh nang blocking dang tat. Bat VITE_FEATURE_BLOCKING=true de su dung.
+          {t('blockedUsers.featureDisabled')}
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-20">
@@ -71,8 +73,8 @@ export default function BlockedUsers() {
       ) : items.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
           <ShieldAlert className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-700 font-medium">Ban chua chan ai</p>
-          <p className="text-sm text-gray-500 mt-1">Danh sach chan se hien thi o day.</p>
+          <p className="text-gray-700 font-medium">{t('blockedUsers.emptyTitle')}</p>
+          <p className="text-sm text-gray-500 mt-1">{t('blockedUsers.emptySubtitle')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -95,7 +97,7 @@ export default function BlockedUsers() {
                 className="h-9 px-3 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 text-sm font-medium flex items-center gap-1"
               >
                 {busyUserId === item.userId ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserMinus className="w-4 h-4" />}
-                Bo chan
+                {t('blockedUsers.unblock')}
               </button>
             </div>
           ))}
