@@ -1,8 +1,10 @@
-import { X } from 'lucide-react';
+import { X, Heart, Laugh, ThumbsUp, Frown, Angry, Zap, Eye } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Story } from '../../types/story';
 import StoryAvatar from './StoryAvatar';
 import { resolveStoryContentUrl } from '../../utils/mediaUrl';
+import { storiesApi } from '../../apis/stories';
+import { useAuth } from '../../contexts/AuthContext';
 
 type StoryViewerProps = {
   storyGroups: Story[][];
@@ -15,9 +17,11 @@ export default function StoryViewer({
   initialUserIndex,
   onClose,
 }: StoryViewerProps) {
+  const { user } = useAuth();
   const [userIndex, setUserIndex] = useState(initialUserIndex);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [storyMeta, setStoryMeta] = useState<Record<string, Story>>({});
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -54,6 +58,25 @@ export default function StoryViewer({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  /* ================= VIEW TRACKING ================= */
+  useEffect(() => {
+    if (!story?.id || !user?.id) return;
+    storiesApi.viewStory(story.id, user.id)
+      .then(updated => setStoryMeta(prev => ({ ...prev, [story.id]: updated })))
+      .catch(() => {}); // silent — not critical
+  }, [story?.id, user?.id]);
+
+  const handleReact = async (emoji: string) => {
+    if (!story?.id || !user?.id) return;
+    try {
+      const updated = await storiesApi.reactStory(story.id, user.id, emoji);
+      setStoryMeta(prev => ({ ...prev, [story.id]: updated }));
+    } catch { /* silent */ }
+  };
+
+  const currentMeta = story?.id ? storyMeta[story.id] : undefined;
+  const isOwner = story?.user?.id === user?.id;
 
   /* ================= NAV ================= */
   const next = () => {
@@ -92,7 +115,7 @@ export default function StoryViewer({
       </button>
 
       {/* Viewer */}
-      <div className="relative w-[420px] h-[720px] bg-black rounded-2xl overflow-hidden">
+      <div className="relative w-105 h-180 bg-black rounded-2xl overflow-hidden">
 
         {/* Progress bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 flex gap-1 px-1 z-10">
@@ -191,6 +214,46 @@ export default function StoryViewer({
         <div className="absolute inset-0 flex z-20">
           <div className="w-1/2 cursor-pointer" onClick={prev} />
           <div className="w-1/2 cursor-pointer" onClick={next} />
+        </div>
+
+        {/* Reaction bar + seen count */}
+        <div className="absolute bottom-4 left-0 right-0 z-30 flex flex-col items-center gap-2 px-4 pointer-events-none">
+          {/* Seen count — only visible to story owner */}
+          {isOwner && (
+            <div className="flex items-center gap-1.5 bg-black/50 rounded-full px-3 py-1 pointer-events-auto">
+              <Eye className="w-3.5 h-3.5 text-white/80" />
+              <span className="text-white text-xs font-medium">
+                {currentMeta?.viewCount ?? story.viewCount ?? 0}
+              </span>
+            </div>
+          )}
+
+          {/* Quick reactions */}
+          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-2 pointer-events-auto">
+            {([
+              { emoji: 'like',  icon: ThumbsUp, color: 'text-blue-400' },
+              { emoji: 'love',  icon: Heart,    color: 'text-red-400' },
+              { emoji: 'haha',  icon: Laugh,    color: 'text-yellow-400' },
+              { emoji: 'wow',   icon: Zap,      color: 'text-yellow-300' },
+              { emoji: 'sad',   icon: Frown,    color: 'text-blue-300' },
+              { emoji: 'angry', icon: Angry,    color: 'text-orange-400' },
+            ] as const).map(({ emoji, icon: Icon, color }) => {
+              const count = (currentMeta?.reactions ?? story.reactions)?.[emoji] ?? 0;
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => handleReact(emoji)}
+                  className="flex flex-col items-center gap-0.5 hover:scale-125 transition-transform"
+                >
+                  <Icon className={`w-5 h-5 ${color}`} />
+                  {count > 0 && (
+                    <span className="text-white text-[10px] leading-none">{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

@@ -49,6 +49,13 @@ export default function CreateStory({ isOpen, onClose, onStoryCreated }: CreateS
       return;
     }
 
+    // Validate size (10 MB limit for stories)
+    const MAX_STORY_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_STORY_BYTES) {
+      alert(t('storyModal.fileTooLarge', { max: '10 MB' }));
+      return;
+    }
+
     setMediaFile(file);
     setStoryType(isImage ? 'image' : 'video');
     

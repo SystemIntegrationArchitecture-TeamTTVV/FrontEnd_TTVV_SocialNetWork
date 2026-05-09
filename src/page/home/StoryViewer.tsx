@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Heart, Eye } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, Eye, ThumbsUp, Laugh, Frown, Angry, Zap } from 'lucide-react';
 import type { Story } from '../../types/story';
 import { authApi } from '../../apis/auth';
 import { getLocaleTag } from '../../i18n';
 import { useTranslation } from 'react-i18next';
+import { storiesApi } from '../../apis/stories';
 
 interface StoryViewerProps {
   isOpen: boolean;
@@ -18,6 +19,25 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [storyMeta, setStoryMeta] = useState<Record<string, Story>>({});
+
+  // Track view when story changes
+  useEffect(() => {
+    const story = stories[currentIndex];
+    if (!story?.id || !currentUser?.id) return;
+    storiesApi.viewStory(story.id, currentUser.id)
+      .then(updated => setStoryMeta(prev => ({ ...prev, [story.id]: updated })))
+      .catch(() => {});
+  }, [currentIndex, currentUser?.id, stories]);
+
+  const handleReact = async (emoji: string) => {
+    const story = stories[currentIndex];
+    if (!story?.id || !currentUser?.id) return;
+    try {
+      const updated = await storiesApi.reactStory(story.id, currentUser.id, emoji);
+      setStoryMeta(prev => ({ ...prev, [story.id]: updated }));
+    } catch { /* silent */ }
+  };
 
   useEffect(() => {
     if (initialStoryId) {
@@ -107,7 +127,7 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
                 className="w-10 h-10 rounded-full border-2 border-white"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white">
+              <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white">
                 {getInitials(currentStory.user.name)}
               </div>
             )}
@@ -177,21 +197,57 @@ export default function StoryViewer({ isOpen, onClose, initialStoryId, stories }
             <ChevronRight className="w-6 h-6 text-white" />
           </button>
         )}
-      </div>      {/* Footer Stats */}
-      <div className="absolute bottom-8 left-0 right-0 px-4 z-10">
+      </div>      {/* Footer Stats + Reactions */}
+      <div className="absolute bottom-8 left-0 right-0 px-4 z-10 flex flex-col items-center gap-3">
+        {/* Reaction bar */}
+        <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-2">
+          {([
+            { emoji: 'like',  icon: ThumbsUp, color: 'text-blue-400' },
+            { emoji: 'love',  icon: Heart,    color: 'text-red-400' },
+            { emoji: 'haha',  icon: Laugh,    color: 'text-yellow-400' },
+            { emoji: 'wow',   icon: Zap,      color: 'text-yellow-300' },
+            { emoji: 'sad',   icon: Frown,    color: 'text-blue-300' },
+            { emoji: 'angry', icon: Angry,    color: 'text-orange-400' },
+          ] as const).map(({ emoji, icon: Icon, color }) => {
+            const meta = storyMeta[currentStory?.id];
+            const count = (meta?.reactions ?? currentStory?.reactions)?.[emoji] ?? 0;
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleReact(emoji)}
+                className="flex flex-col items-center gap-0.5 hover:scale-125 transition-transform"
+              >
+                <Icon className={`w-5 h-5 ${color}`} />
+                {count > 0 && <span className="text-white text-[10px] leading-none">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Stats row (owner: seen count; all: total reactions) */}
         <div className="flex items-center justify-center gap-6 text-white">
-          {currentStory.viewCount !== undefined && (
-            <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5" />
-              <span className="font-medium">{currentStory.viewCount}</span>
-            </div>
-          )}
-          {currentStory.reactions && (
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5" />
-              <span className="font-medium">{Object.values(currentStory.reactions).reduce((a, b) => (a || 0) + (b || 0), 0)}</span>
-            </div>
-          )}
+          {(() => {
+            const meta = storyMeta[currentStory?.id];
+            const viewCount = meta?.viewCount ?? currentStory?.viewCount;
+            return viewCount !== undefined && currentStory?.user?.id === currentUser?.id ? (
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                <span className="font-medium">{viewCount}</span>
+              </div>
+            ) : null;
+          })()}
+          {(() => {
+            const meta = storyMeta[currentStory?.id];
+            const reacts = meta?.reactions ?? currentStory?.reactions;
+            const total = reacts ? Object.values(reacts).reduce((a, b) => (a || 0) + (b || 0), 0) : 0;
+            return total > 0 ? (
+              <div className="flex items-center gap-2">
+                <Heart className="w-5 h-5" />
+                <span className="font-medium">{total}</span>
+              </div>
+            ) : null;
+          })()}
         </div>
       </div>
     </div>

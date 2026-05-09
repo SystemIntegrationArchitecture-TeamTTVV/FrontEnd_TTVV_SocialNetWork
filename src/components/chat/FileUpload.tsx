@@ -1,6 +1,22 @@
 import { useRef } from 'react';
 import { Paperclip, Image, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
+
+// Chat upload limits (per message)
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+
+function validateFile(file: File, allowedTypes?: string[]): string | null {
+  if (file.size > MAX_FILE_BYTES) {
+    return `File quá lớn (tối đa ${MAX_FILE_BYTES / 1024 / 1024} MB)`;
+  }
+  if (allowedTypes && !allowedTypes.includes(file.type)) {
+    return `Định dạng không hỗ trợ: ${file.type}`;
+  }
+  return null;
+}
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -16,6 +32,8 @@ export default function FileUpload({ onFileSelect, accept = '*', multiple = fals
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      const error = validateFile(files[0]);
+      if (error) { toast.error(error); return; }
       onFileSelect(files[0]);
       // Reset input
       if (fileInputRef.current) {
@@ -55,6 +73,8 @@ export function ImageUpload({ onFileSelect, minimal = false }: FileUploadProps) 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      const error = validateFile(files[0], ALLOWED_IMAGE_TYPES);
+      if (error) { toast.error(error); return; }
       onFileSelect(files[0]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -92,6 +112,8 @@ export function VideoUpload({ onFileSelect, minimal = false }: FileUploadProps) 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      const error = validateFile(files[0], ALLOWED_VIDEO_TYPES);
+      if (error) { toast.error(error); return; }
       onFileSelect(files[0]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

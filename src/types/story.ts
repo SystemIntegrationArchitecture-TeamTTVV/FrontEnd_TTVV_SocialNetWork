@@ -23,11 +23,9 @@ export type Story = {
   viewCount?: number;            // tổng lượt xem
 
   /* ===== INTERACTION (OPTIONAL) ===== */
-  reactions?: {
-    like?: number;
-    love?: number;
-    haha?: number;
-  };
+  reactions?: Record<string, number>;
+  /** Only populated for story owner — list of viewer userIds */
+  viewers?: string[];
 
   /* ===== SYSTEM ===== */
   isActive?: boolean;            // soft delete / hide

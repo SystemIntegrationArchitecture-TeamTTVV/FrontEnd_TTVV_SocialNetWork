@@ -1,4 +1,29 @@
 // import { httpClient } from './http';
+import { httpClient } from './http';
+import type { Story } from '../types/story';
+
+export const storiesApi = {
+  /**
+   * Mark a story as viewed by the current user.
+   * Idempotent — safe to call on every open.
+   */
+  viewStory: async (storyId: string, userId: string): Promise<Story> => {
+    return httpClient.post<Story>(`/api/stories/${storyId}/view?userId=${encodeURIComponent(userId)}`, {});
+  },
+
+  /**
+   * Add a quick reaction to a story.
+   * emoji: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry'
+   */
+  reactStory: async (storyId: string, userId: string, emoji: string): Promise<Story> => {
+    return httpClient.post<Story>(
+      `/api/stories/${storyId}/react?userId=${encodeURIComponent(userId)}&emoji=${encodeURIComponent(emoji)}`,
+      {}
+    );
+  },
+};
+
+// Legacy commented-out stubs kept below for reference
 
 // export interface StoryData {
 //   id: string;
