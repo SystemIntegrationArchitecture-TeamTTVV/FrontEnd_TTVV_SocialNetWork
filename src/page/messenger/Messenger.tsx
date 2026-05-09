@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, type Location } from 'react-router-dom';
+﻿import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -153,6 +153,7 @@ export default function Messenger() {
   const [forwardNote, setForwardNote] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchSenderId, setSearchSenderId] = useState('');
   const [searchResults, setSearchResults] = useState<ReturnType<typeof formatMessageForDisplay>[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -576,6 +577,7 @@ export default function Messenger() {
     handleJoinRequestDecision,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
+    handleToggleAiAssistant,
     handleTransferOwnership,
     handleDisbandGroup,
   } = useGroupActions({
@@ -1469,7 +1471,12 @@ export default function Messenger() {
     setSearchLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const results = await messagesApi.searchMessages(activeChat, searchQuery.trim(), user.id);
+        const results = await messagesApi.searchMessages(
+          activeChat,
+          searchQuery.trim(),
+          user.id,
+          searchSenderId || undefined
+        );
         setSearchResults(results.map(formatMessageForDisplay));
       } catch {
         setSearchResults([]);
@@ -1478,7 +1485,7 @@ export default function Messenger() {
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery, activeChat, user?.id, formatMessageForDisplay]);
+  }, [searchQuery, searchSenderId, activeChat, user?.id, formatMessageForDisplay]);
 
   // ── Auto-fetch pinned messages when switching chat ──
   useEffect(() => {
@@ -1819,35 +1826,57 @@ export default function Messenger() {
         )}
 
         {/* Search Bar */}
-        {activeConversation && showSearch && (
-          <div className="p-4 border-b border-gray-100 bg-white">
-            <div className="relative">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('messenger.searchInConversationPlaceholder')}
-                className="w-full h-12 pl-12 pr-4 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-base transition-all"
-              />
-              <button
-                onClick={() => {
-                  setShowSearch(false);
-                  setSearchQuery('');
-                  setSearchResults(null);
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
+        {activeConversation && showSearch && (() => {
+          // Build unique sender list from loaded messages
+          const senderMap = new Map<string, string>();
+          messages.forEach((m) => {
+            if (m.senderId && m.senderName) senderMap.set(m.senderId, m.senderName);
+          });
+          const senders = Array.from(senderMap.entries());
+          return (
+            <div className="p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#1a1d28]">
+              <div className="relative mb-2">
+                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('messenger.searchInConversationPlaceholder')}
+                  className="w-full h-12 pl-12 pr-10 rounded-lg bg-gray-50 dark:bg-[#242838] border border-gray-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-[#1a1d28] text-base transition-all dark:text-[#edf0fa]"
+                />
+                <button
+                  onClick={() => {
+                    setShowSearch(false);
+                    setSearchQuery('');
+                    setSearchSenderId('');
+                    setSearchResults(null);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2e3f] flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+              {senders.length > 0 && (
+                <select
+                  value={searchSenderId}
+                  onChange={(e) => setSearchSenderId(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-gray-50 dark:bg-[#242838] border border-gray-200 dark:border-white/5 text-sm text-gray-700 dark:text-[#9aa3bc] focus:outline-none focus:ring-1 focus:ring-blue-500 mb-1"
+                >
+                  <option value="">{t('messenger.searchAllSenders')}</option>
+                  {senders.map(([id, name]) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+              )}
+              {searchLoading && <p className="text-xs text-gray-400 mt-1 pl-1">{t('messenger.searching')}</p>}
+              {searchResults !== null && !searchLoading && (
+                <p className="text-xs text-gray-400 mt-1 pl-1">
+                  {t('messenger.searchResultsCount', { count: searchResults.length })}
+                </p>
+              )}
             </div>
-            {searchLoading && <p className="text-xs text-gray-400 mt-2 pl-1">ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âang tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬m...</p>}
-            {searchResults !== null && !searchLoading && (
-              <p className="text-xs text-gray-400 mt-2 pl-1">TÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬m thÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥y {searchResults.length} kÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿t quÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£</p>
-            )}
-          </div>
-        )}
-
+          );
+        })()}
         {/* Pinned Messages Panel (full list — toggle via header button) */}
         {activeConversation && showPinnedPanel && (
           <PinnedMessagesPanel
@@ -1898,6 +1927,7 @@ export default function Messenger() {
           loadingMore={loadingMore}
           messagesLoading={messagesLoading}
           backgroundUrl={activeConversationRaw?.backgroundUrl}
+          searchKeyword={searchResults !== null ? searchQuery : ''}
         />
 
         {activeConversation && (
@@ -2092,6 +2122,7 @@ export default function Messenger() {
           onClearGroupHistory={handleClearGroupHistory}
           onToggleRequireApproval={handleToggleRequireApproval}
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
+          onToggleAiAssistant={handleToggleAiAssistant}
           onTransferOwnership={handleTransferOwnership}
           onDisbandGroup={handleDisbandGroup}
           friendList={friendList}

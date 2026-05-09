@@ -17,7 +17,7 @@ export default function MessengerSearch() {
 
   const runSearch = async () => {
     if (!user?.id) {
-      setError('Vui long dang nhap de tim nhom.');
+      setError(t('messengerSearch.loginRequired'));
       return;
     }
     const q = keyword.trim();
@@ -32,7 +32,7 @@ export default function MessengerSearch() {
       const data = await conversationsApi.searchGroupConversations(user.id, q);
       setResults(data);
     } catch (err: any) {
-      setError(err?.message || 'Tim kiem that bai');
+      setError(err?.message || t('messengerSearch.searchFailed'));
     } finally {
       setLoading(false);
     }
@@ -49,14 +49,14 @@ export default function MessengerSearch() {
       await conversationsApi.restoreConversation(conversationId, { userId: user.id });
       navigate(`/messenger?conversation=${encodeURIComponent(conversationId)}`);
     } catch (err: any) {
-      setError(err?.message || 'Mo lai nhom that bai');
+      setError(err?.message || t('messengerSearch.errorRestore'));
     }
   };
 
   const unlockConversation = async (conversationId: string) => {
     if (!user?.id) return;
     if (!pin.trim()) {
-      setError('Nhap PIN de mo nhom an.');
+      setError(t('messengerSearch.enterPin'));
       return;
     }
 
@@ -67,7 +67,7 @@ export default function MessengerSearch() {
       setActiveHiddenId(null);
       navigate(`/messenger?conversation=${encodeURIComponent(conversationId)}`);
     } catch (err: any) {
-      setError(err?.message || 'Mo nhom that bai');
+      setError(err?.message || t('messengerSearch.errorUnlock'));
     }
   };
 
@@ -80,19 +80,19 @@ export default function MessengerSearch() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-            placeholder="Tim nhom theo ten"
+            placeholder={t('messengerSearch.placeholder')}
             className="flex-1 h-11 px-4 rounded-lg border border-gray-300"
           />
           <button onClick={runSearch} className="h-11 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
-            Tim
+            {t('messengerSearch.search')}
           </button>
         </div>
 
         {error && <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">{error}</div>}
 
-        {loading && <p className="text-[#65676B]">Dang tim kiem...</p>}
+        {loading && <p className="text-[#65676B]">{t('messengerSearch.loading')}</p>}
 
-        {!loading && results.length === 0 && <p className="text-[#65676B]">Khong co ket qua.</p>}
+        {!loading && results.length === 0 && <p className="text-[#65676B]">{t('messengerSearch.noResults')}</p>}
 
         <div className="space-y-2">
           {results.map((conversation) => {
@@ -104,28 +104,28 @@ export default function MessengerSearch() {
                   <div className="min-w-0">
                     <div className="font-semibold text-gray-900 truncate">{conversation.groupName || 'Group Chat'}</div>
                     <div className="text-xs text-gray-500">
-                      {conversation.participantIds?.length || 0} thanh vien
-                      {hidden ? ' • dang an' : ''}
+                      {conversation.participantIds?.length || 0} {t('messengerSearch.members')}
+                      {hidden ? ` • ${t('messengerSearch.hidden')}` : ''}
                     </div>
                   </div>
 
                   {!hidden ? (
                     <button onClick={() => openConversation(conversation)} className="h-9 px-3 rounded-lg bg-gray-900 hover:bg-black text-white text-sm">
-                      Mo nhom
+                      {t('messengerSearch.open')}
                     </button>
                   ) : hiddenRequiresPin ? (
                     <button
                       onClick={() => setActiveHiddenId((prev) => prev === conversation.id ? null : conversation.id)}
                       className="h-9 px-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm"
                     >
-                      Mo khoa
+                      {t('messengerSearch.unlock')}
                     </button>
                   ) : (
                     <button
                       onClick={() => restoreConversation(conversation.id)}
                       className="h-9 px-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm"
                     >
-                      Mo lai
+                      {t('messengerSearch.restore')}
                     </button>
                   )}
                 </div>
@@ -136,14 +136,14 @@ export default function MessengerSearch() {
                       type="password"
                       value={pin}
                       onChange={(e) => setPin(e.target.value)}
-                      placeholder="Nhap PIN"
+                      placeholder={t('messengerSearch.pinPlaceholder')}
                       className="flex-1 h-9 px-3 rounded-lg border border-gray-300"
                     />
                     <button
                       onClick={() => unlockConversation(conversation.id)}
                       className="h-9 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm"
                     >
-                      Xac nhan
+                      {t('messengerSearch.confirm')}
                     </button>
                   </div>
                 )}

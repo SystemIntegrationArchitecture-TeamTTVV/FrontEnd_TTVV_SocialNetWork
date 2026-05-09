@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Palette, Smile, Pencil, Lock, Search as SearchIcon,
   Trash2, UserPlus, Crown, Shield,
-  MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy,
+  MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy, Bot,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../../common/icons/IconComponents';
@@ -48,6 +48,7 @@ interface ChatInfoSidebarProps {
   onClearGroupHistory: () => void;
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
+  onToggleAiAssistant: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
   friendList: FriendDTO[];
   onInviteFriends: (ids: string[]) => void;
@@ -137,6 +138,7 @@ export default function GroupChatSidebar({
   onClearGroupHistory,
   onToggleRequireApproval,
   onToggleOnlyAdminsCanSend,
+  onToggleAiAssistant,
   onTransferOwnership,
   friendList,
   onInviteFriends,
@@ -372,12 +374,34 @@ export default function GroupChatSidebar({
                     <MessageSquareLock className="w-4 h-4 text-blue-500" />
                   </div>
                   <span className="text-sm text-gray-700 leading-snug">
-                    {t('messenger.groupPanel.onlyAdminsCanSend', 'Chá»‰ trÆ°á»Ÿng/phÃ³ nhÃ³m Ä‘Æ°á»£c gá»­i tin')}
+                    {t('messenger.groupPanel.onlyAdminsCanSend', 'Chỉ trưởng/phó nhóm được gửi tin')}
                   </span>
                 </div>
                 <Toggle
                   checked={!!conversationRaw.onlyAdminsCanSend}
                   onChange={() => onToggleOnlyAdminsCanSend(!!conversationRaw.onlyAdminsCanSend)}
+                  disabled={updatingGroup}
+                />
+              </div>
+
+              {/* AI Assistant toggle */}
+              <div className="flex items-center justify-between gap-3 py-1">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm text-gray-700 leading-snug block">
+                      {t('messenger.groupPanel.aiAssistant', 'Trợ lý AI (@ZalaBot)')}
+                    </span>
+                    <span className="text-xs text-gray-400 leading-snug">
+                      {t('messenger.groupPanel.aiAssistantHint', 'Mention @ZalaBot để hỏi AI trong nhóm')}
+                    </span>
+                  </div>
+                </div>
+                <Toggle
+                  checked={!!conversationRaw.aiAssistantEnabled}
+                  onChange={() => onToggleAiAssistant(!!conversationRaw.aiAssistantEnabled)}
                   disabled={updatingGroup}
                 />
               </div>

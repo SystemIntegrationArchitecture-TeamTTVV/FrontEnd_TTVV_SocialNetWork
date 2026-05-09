@@ -358,6 +358,25 @@ export function useGroupActions({
     }
   };
 
+  const handleToggleAiAssistant = async (currentValue: boolean) => {
+    if (!activeChat || !userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      await conversationsApi.updateConversationMeta(activeChat, {
+        requesterId: userId,
+        aiAssistantEnabled: !currentValue,
+      });
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to toggle aiAssistantEnabled', err);
+      setGroupActionError(err instanceof Error ? err.message : t('messenger.group.updateMetaError'));
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   return {
     groupMemberInput,
     setGroupMemberInput,
@@ -391,6 +410,7 @@ export function useGroupActions({
     handleTransferOwnership,
     handleToggleRequireApproval,
     handleToggleOnlyAdminsCanSend,
+    handleToggleAiAssistant,
     handleDisbandGroup,
   };
 }

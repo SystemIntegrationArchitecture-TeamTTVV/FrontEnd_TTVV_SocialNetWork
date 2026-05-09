@@ -29,6 +29,7 @@ interface ChatMessagesProps {
   loadingMore?: boolean;
   messagesLoading?: boolean;
   backgroundUrl?: string;
+  searchKeyword?: string;
 }
 
 export default function ChatMessages({
@@ -54,6 +55,7 @@ export default function ChatMessages({
   loadingMore = false,
   messagesLoading = false,
   backgroundUrl,
+  searchKeyword = '',
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -129,6 +131,7 @@ export default function ChatMessages({
             userId={userId}
             participantNames={participantNames}
             participantIds={participantIds}
+            searchKeyword={searchKeyword}
           />
         );
       })}

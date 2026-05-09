@@ -245,17 +245,33 @@ Nếu muốn nhóm chat thông minh kiểu Zalo nâng cấp, có thể thêm cá
 - `AI_GROUP_SUMMARY_READY`
 
 ## Mức độ hoàn thiện hiện tại so với spec
-### Đã có nền tảng
-- Conversation và message API.
-- Group conversation model cơ bản.
-- Socket realtime.
-- Reaction, pin, star, reply, file upload.
-- AI assistant ở cấp ứng dụng.
+### Đã có
+- Conversation và message API (REST + socket realtime).
+- Group conversation model đầy đủ: `isGroup`, `groupName`, `groupAvatar`, `ownerId`, `adminIds`, `coAdminIds`, `participantIds`, `participantNames`, `participantAvatars`, `approvalsRequired`, `pendingJoinIds`, background.
+- Reaction, pin, star, reply, forward, edit, delete/recall, file upload, voice record, sticker/emoji.
+- Poll (tạo + vote realtime), Appointment (tạo + join).
+- Mention UI (`@` autocomplete, highlight).
+- Typing indicator, presence realtime.
+- In-conversation search: keyword + **sender filter** (dropdown từ participant), **keyword highlight** trong message bubble (`<mark>`).
+- GroupChatSidebar: thành viên, quản lý quyền, invite, join-request, settings nhóm, kho media/file/link.
+- Pinned messages (PinnedBar + PinnedMessagesPanel), pinned notification bar.
+- URL `/messenger/group/:id` redirect về `/messenger?conversation=:id` (Messenger-centric).
+- Global chat bubble (ChatBoxManager) xuyên suốt MainLayout; nút gọi ẩn cho nhóm (`!contact.isGroup`).
+- Thông báo (Notifications.tsx): real API + socket + 5 tab filter.
+- Search page (Search.tsx): people/groups với real API, debounce, recent searches, join/add-friend.
 
-### Chưa hoàn thiện / khác biệt so với Zalo đầy đủ
-- Chưa có AI gắn riêng cho nhóm (field `aiAssistantEnabled` chưa có UX đầy đủ).
-- Search trong cuộc: có API/search trong Messenger; có thể cần polish UX kiểu Zalo (highlight, jump message).
-- Member management, pinned/media, mention, poll: đã có phần lớn trong Messenger/group sidebar — cần đối chiếu từng mục với checklist Zalo (invite link, duyệt vào nhóm, ghim thông báo nhóm, kho media tập trung, v.v.).
+### Chưa hoàn thiện / còn gap so với Zalo đầy đủ
+- **AI nhóm**: field `aiAssistantEnabled` tồn tại trong model nhưng chưa có UX toggle trong group settings + chưa có endpoint tóm tắt nhóm.
+- **Kho media tập trung**: tab media/file/link trong GroupChatSidebar có nhưng chưa có lazy-load và lọc theo tháng kiểu Zalo.
+- **Invite link**: chưa có generate/share link mời.
+- **Ghim thông báo nhóm** (announcement/banner riêng, khác pin message): chưa có.
+- **Mute per-member / snooze**: cấu trúc có nhưng UI chưa có.
+- **Read receipt theo từng người** trong nhóm: model `seenBy` có, nhưng UI chưa hiển thị danh sách "đã xem".
+
+### Luồng UI nhóm (đã chốt)
+- **Messenger-centric**: mọi deep link đều về `/messenger?conversation=:id`.
+- `GroupChat.tsx` không còn là route entry (giữ file để tái sử dụng component nếu cần, hoặc gỡ khi chắc chắn).
+- `GroupDetail.tsx` (social) → `navigate('/messenger?conversation=...')` ✅.
 
 ## Kết luận
 Project hiện tại có nền tảng để làm group chat, nhưng chưa phải group chat kiểu Zalo hoàn chỉnh. Nếu triển khai theo tài liệu này, bạn có thể biến module messenger thành một group chat đầy đủ chức năng, và nếu muốn thì thêm luôn lớp AI để thành smart group chat.

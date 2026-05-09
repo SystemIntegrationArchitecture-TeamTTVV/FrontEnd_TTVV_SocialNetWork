@@ -80,6 +80,7 @@ export interface ConversationMetaUpdateRequest {
   approvalsRequired?: boolean;
   onlyAdminsCanSend?: boolean;
   onlyAdminsCanAddMembers?: boolean;
+  aiAssistantEnabled?: boolean;
 }
 
 export interface JoinRequestUpdateRequest {

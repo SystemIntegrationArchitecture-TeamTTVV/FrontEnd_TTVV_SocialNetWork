@@ -1,7 +1,7 @@
 // ─── MessageBubble — single message rendering ──────────────────────────
 // Extracted from Messenger.tsx lines 2178–2510
 
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -33,6 +33,18 @@ export interface MessageBubbleProps {
   userId: string;
   participantNames?: string[];
   participantIds?: string[];
+  searchKeyword?: string;
+}
+
+function highlightText(text: string, keyword: string): React.ReactNode {
+  if (!keyword.trim()) return text;
+  const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part)
+      ? <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/40 text-inherit rounded px-0.5">{part}</mark>
+      : part
+  );
 }
 
 export default function MessageBubble({
@@ -53,6 +65,7 @@ export default function MessageBubble({
   userId,
   participantNames = [],
   participantIds = [],
+  searchKeyword = '',
 }: MessageBubbleProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -294,7 +307,7 @@ export default function MessageBubble({
             }`}
             onDoubleClick={() => onReaction(msg.id, '❤️')}
           >
-            <p className="whitespace-pre-line text-[14px] leading-relaxed">{msg.content}</p>
+            <p className="whitespace-pre-line text-[14px] leading-relaxed">{highlightText(msg.content, searchKeyword)}</p>
           </div>
         )}
 
