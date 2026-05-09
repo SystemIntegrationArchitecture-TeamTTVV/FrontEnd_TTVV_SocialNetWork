@@ -1,5 +1,4 @@
-# GitHub Actions — đặt trong repo FE (root Git = thư mục socialTTVV)
-# Push lên GitHub → chạy lint → test → build
+
 
 name: CI
 

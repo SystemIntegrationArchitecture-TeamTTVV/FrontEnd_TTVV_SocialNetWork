@@ -52,14 +52,14 @@ export default function MainLayout() {
   }, [isRightSidebarCollapsed]);
 
   return (
-    <div className="h-screen bg-[#f0f2f5] dark:bg-[#0c0e14] flex flex-col overflow-hidden">
+    <div className="app-shell h-screen flex flex-col overflow-hidden">
       {!isFlappyFullscreen && <Navbar />}
       
       <div className={`flex flex-1 overflow-hidden ${isFlappyFullscreen ? '' : 'pt-14'}`}>
         {/* LEFT SIDEBAR — cùng nền feed, viền tinh như Facebook */}
         {!isMessengerPage && !isFlappyFullscreen && (
           <aside
-            className={`hidden lg:block h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-r border-[#e4e6eb] dark:border-[#22263a] transition-all duration-200 ${
+            className={`hidden lg:block h-full overflow-y-auto scrollbar-hide ui-surface border-r transition-all duration-200 ${
               isLeftSidebarCollapsed ? 'w-24' : 'w-64 xl:w-72'
             }`}
           >
@@ -77,24 +77,32 @@ export default function MainLayout() {
             ? 'px-0 pt-0 pb-0 max-w-full overflow-hidden'
             : isMessengerPage
             ? 'px-0 max-w-full pb-16 md:pb-0'
-            : 'px-3 sm:px-5 lg:px-6 pt-4 sm:pt-5 pb-20 md:pb-8'
+            : 'px-3 sm:px-5 lg:px-7 pt-4 sm:pt-5 pb-20 md:pb-8'
         }`}>
           <div className={
             isFlappyFullscreen
               ? 'h-full min-h-0 w-full max-w-none'
               : isMessengerPage
               ? 'w-full'
-              : 'mx-auto max-w-full sm:max-w-225 lg:max-w-250 xl:max-w-275'
+                : 'mx-auto max-w-full sm:max-w-225 lg:max-w-260 xl:max-w-275'
           }>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 10, scale: 0.992 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+                transition={{ duration: 0.24, ease: 'easeOut' }}
               >
-                <Outlet />
+                {isMessengerPage || isFlappyFullscreen ? (
+                  <Outlet />
+                ) : (
+                  <div className="route-surface ui-surface animate-soft-float">
+                    <div className="route-frame bg-white/96 dark:bg-[#171b27]/96">
+                      <Outlet />
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -103,7 +111,7 @@ export default function MainLayout() {
         {/* RIGHT SIDEBAR */}
         {!isMessengerPage && !isFlappyFullscreen && (
           <aside
-            className={`hidden xl:block h-full overflow-y-auto scrollbar-hide bg-white dark:bg-[#13151f] border-l border-[#e4e6eb] dark:border-[#22263a] transition-all duration-200 ${
+            className={`hidden xl:block h-full overflow-y-auto scrollbar-hide ui-surface border-l transition-all duration-200 ${
               isRightSidebarCollapsed ? 'w-24' : 'w-80'
             }`}
           >

@@ -6,8 +6,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getCurrentAppLanguage, setAppLanguage } from '../../i18n';
 import logo from '../../assets/logo-favicon.png';
 
-const FACEBOOK_STYLE_IMAGE_URL =
-  'https://static.xx.fbcdn.net/rsrc.php/yb/r/HpEiFYDux5j.webp';
 
 type AuthFrameProps = {
   brandHeading: string;
@@ -171,22 +169,22 @@ export default function AuthFrame({
               </p>
             </div>
 
-            <div className="relative h-[500px] justify-self-end w-[390px]">
-              <div className="absolute left-0 top-0 w-[390px] h-[470px] rounded-[36px] bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-xl overflow-hidden">
-                <img
-                  src={FACEBOOK_STYLE_IMAGE_URL}
-                  alt={t('auth.frame.visualAlt')}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -left-6 top-20 rounded-2xl bg-white dark:bg-[#1a1d28] border border-gray-200 dark:border-[#2b2f45] shadow-md px-3 py-2.5">
-                <span className="text-2xl">😂</span>
-              </div>
-              <div className="absolute -right-2 bottom-20 rounded-full bg-[#ff2d87] text-white w-14 h-14 flex items-center justify-center shadow-lg text-2xl">
-                ❤
-              </div>
-              <div className="absolute left-26 bottom-0 w-20 h-20 rounded-full border-4 border-[#f5f7fb] dark:border-[#141826] shadow-md overflow-hidden bg-white">
-                <img src={logo} alt="TTVV Logo mini" className="w-full h-full object-cover" />
+            <div className="relative h-[500px] justify-self-end w-[360px] flex items-center justify-center">
+              {/* Feature highlights card */}
+              <div className="w-full rounded-3xl bg-white/70 dark:bg-[#1f2230]/80 border border-gray-200/80 dark:border-[#272c3d] shadow-lg p-8 space-y-5">
+                {[
+                  { emoji: '💬', title: t('auth.frame.slide1Title'), desc: t('auth.frame.slide1Desc') },
+                  { emoji: '🤝', title: t('auth.frame.slide2Title'), desc: t('auth.frame.slide2Desc') },
+                  { emoji: '🔔', title: t('auth.frame.slide3Title'), desc: t('auth.frame.slide3Desc') },
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="text-2xl shrink-0">{f.emoji}</span>
+                    <div>
+                      <p className="font-semibold text-gray-800 dark:text-[#e8ecf5] text-sm">{f.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-[#8d97b0] mt-0.5 line-clamp-2">{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

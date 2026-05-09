@@ -114,34 +114,34 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="app-shell min-h-screen flex">
       {/* Sidebar */}
       <aside
-        className={`bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col ${
+        className={`ui-surface border-r border-gray-200/70 dark:border-[#2b2f45] transition-all duration-300 ease-in-out flex flex-col ${
           sidebarCollapsed ? "w-24" : "w-80"
         }`}
       >
         {/* Sidebar Header */}
-        <div className="h-20 border-b border-gray-200 flex items-center justify-between px-5">
+        <div className="h-20 border-b border-gray-200/70 dark:border-[#2b2f45] flex items-center justify-between px-5">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
                 <Shield className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{t("adminPanel.layout.sidebarTitle")}</h1>
-                <p className="text-sm text-gray-500">{t("adminPanel.layout.sidebarSubtitle")}</p>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-[#edf0fa]">{t("adminPanel.layout.sidebarTitle")}</h1>
+                <p className="text-sm text-gray-500 dark:text-[#9aa3bc]">{t("adminPanel.layout.sidebarSubtitle")}</p>
               </div>
             </div>
           )}
           {sidebarCollapsed && (
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg mx-auto">
+            <div className="w-14 h-14 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg mx-auto">
               <Shield className="w-7 h-7 text-white" />
             </div>
           )}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-11 h-11 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-600 hover:text-gray-900"
+            className="w-11 h-11 rounded-xl hover:bg-gray-100 dark:hover:bg-[#242838] flex items-center justify-center transition-colors text-gray-600 dark:text-[#9aa3bc] hover:text-gray-900 dark:hover:text-[#edf0fa]"
           >
             {sidebarCollapsed ? (
               <Menu className="w-6 h-6" />
@@ -164,7 +164,7 @@ export default function AdminLayout() {
                 className={`flex items-center gap-5 px-5 py-4 rounded-xl transition-all group relative ${
                   active
                     ? "bg-blue-50 text-blue-600 shadow-sm"
-                    : "text-gray-700 hover:bg-gray-50"
+                    : "text-gray-700 dark:text-[#c8ccde] hover:bg-gray-50 dark:hover:bg-[#242838]"
                 }`}
                 title={sidebarCollapsed ? t(item.labelKey) : ""}
               >
@@ -172,7 +172,7 @@ export default function AdminLayout() {
                   className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                     active
                       ? "bg-blue-500 text-white shadow-sm"
-                      : "bg-gray-100 text-gray-600 group-hover:bg-gray-200"
+                      : "bg-gray-100 dark:bg-[#22263a] text-gray-600 dark:text-[#9aa3bc] group-hover:bg-gray-200 dark:group-hover:bg-[#2b2f45]"
                   }`}
                 >
                   <Icon className="w-6 h-6" />
@@ -181,7 +181,7 @@ export default function AdminLayout() {
                   <>
                     <span
                       className={`flex-1 font-bold text-lg ${
-                        active ? "text-blue-600" : "text-gray-700"
+                        active ? "text-blue-600" : "text-gray-700 dark:text-[#c8ccde]"
                       }`}
                     >
                       {t(item.labelKey)}
@@ -202,10 +202,10 @@ export default function AdminLayout() {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-gray-200 p-5">
+        <div className="border-t border-gray-200/70 dark:border-[#2b2f45] p-5">
           {!sidebarCollapsed ? (
-            <div className="flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+            <div className="flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-[#242838] transition-colors cursor-pointer group">
+              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
                 {user?.avatar ? (
                   <img
                     src={user.avatar}
@@ -217,17 +217,17 @@ export default function AdminLayout() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 text-lg truncate">
+                <p className="font-bold text-gray-900 dark:text-[#edf0fa] text-lg truncate">
                   {user?.fullName || user?.username || "Admin"}
                 </p>
-                <p className="text-sm text-gray-500 truncate">
+                <p className="text-sm text-gray-500 dark:text-[#9aa3bc] truncate">
                   {user?.username || "admin@ttvv.com"}
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
                 {user?.avatar ? (
                   <img
                     src={user.avatar}
@@ -264,9 +264,9 @@ export default function AdminLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between shadow-sm">
+        <header className="h-20 ui-surface border-b border-gray-200/70 dark:border-[#2b2f45] px-8 flex items-center justify-between shadow-sm">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa]">
               {(() => {
                 const active = menuItems.find((item) => isActive(item.path));
                 return active ? t(active.labelKey) : t("adminPanel.layout.headerFallback");
@@ -274,12 +274,12 @@ export default function AdminLayout() {
             </h2>
           </div>
           <div className="flex items-center gap-5">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-              <Bell className="w-6 h-6 text-gray-600" />
+            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors">
+              <Bell className="w-6 h-6 text-gray-600 dark:text-[#9aa3bc]" />
             </div>
             <Link
               to="/home"
-              className="px-5 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors text-base"
+              className="px-5 py-3 rounded-xl bg-gray-100 dark:bg-[#22263a] hover:bg-gray-200 dark:hover:bg-[#2b2f45] text-gray-700 dark:text-[#c8ccde] font-semibold transition-colors text-base"
             >
               {t("adminPanel.layout.backHome")}
             </Link>
@@ -288,7 +288,11 @@ export default function AdminLayout() {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-8">
-          <Outlet />
+          <div className="ui-surface rounded-3xl p-2">
+            <div className="rounded-2xl bg-white/95 dark:bg-[#171b27]/95 min-h-[calc(100vh-180px)] p-4 sm:p-6">
+              <Outlet />
+            </div>
+          </div>
         </main>
       </div>
     </div>

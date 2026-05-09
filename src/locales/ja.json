@@ -160,7 +160,9 @@
     "music": "音楽",
     "live": "ライブ",
     "games": "ゲーム",
-    "messages": "メッセージ"
+    "messages": "メッセージ",
+    "notifications": "通知",
+    "search": "検索"
   },
   "leftSidebar": {
     "friends": "友達",

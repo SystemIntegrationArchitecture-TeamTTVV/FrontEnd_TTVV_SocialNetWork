@@ -97,9 +97,9 @@ export default function Login() {
             autoComplete="username"
             aria-invalid={!!errors.username}
             aria-describedby={errors.username ? 'login-username-error' : undefined}
-            className={`w-full h-14 px-5 rounded-xl border bg-[#f8faff] dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
-              errors.username ? 'border-red-300 dark:border-red-500/40 animate-shake-x' : 'border-gray-200 dark:border-[#2b2f45]'
-            } focus:outline-none focus:ring-4 focus:ring-blue-500/12 dark:focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white dark:focus:bg-[#1f2235] text-base transition-all`}
+            className={`w-full h-12 px-4 rounded-xl bg-[#f4f5f7] dark:bg-[#1f2230] text-gray-900 dark:text-[#e8ecf5] placeholder:text-gray-400 dark:placeholder:text-[#555f78] border transition-all text-[15px] ${
+              errors.username ? 'border-red-400 dark:border-red-500/50 animate-shake-x' : 'border-[#e2e5ea] dark:border-[#272c3d]'
+            } focus:outline-none focus:ring-2 focus:ring-[#1a6cf5]/20 dark:focus:ring-[#4d8ef8]/20 focus:border-[#1a6cf5] dark:focus:border-[#4d8ef8]`}
           />
           {errors.username && (
             <p id="login-username-error" className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
@@ -125,9 +125,9 @@ export default function Login() {
               onBlur={() => setCapsLockOn(false)}
               aria-invalid={!!errors.password}
               aria-describedby={errors.password ? 'login-password-error' : capsLockOn ? 'login-capslock-warning' : undefined}
-              className={`w-full h-14 px-5 pr-12 rounded-xl border bg-[#f8faff] dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] placeholder:text-gray-400 dark:placeholder:text-[#5a6278] ${
-                errors.password ? 'border-red-300 dark:border-red-500/40 animate-shake-x' : 'border-gray-200 dark:border-[#2b2f45]'
-              } focus:outline-none focus:ring-4 focus:ring-blue-500/12 dark:focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white dark:focus:bg-[#1f2235] text-base transition-all`}
+              className={`w-full h-12 px-4 pr-12 rounded-xl bg-[#f4f5f7] dark:bg-[#1f2230] text-gray-900 dark:text-[#e8ecf5] placeholder:text-gray-400 dark:placeholder:text-[#555f78] border transition-all text-[15px] ${
+                errors.password ? 'border-red-400 dark:border-red-500/50 animate-shake-x' : 'border-[#e2e5ea] dark:border-[#272c3d]'
+              } focus:outline-none focus:ring-2 focus:ring-[#1a6cf5]/20 dark:focus:ring-[#4d8ef8]/20 focus:border-[#1a6cf5] dark:focus:border-[#4d8ef8]`}
             />
             <button
               type="button"

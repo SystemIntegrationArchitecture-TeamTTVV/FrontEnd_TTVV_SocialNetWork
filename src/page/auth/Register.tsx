@@ -110,8 +110,17 @@ export default function Register() {
     >
       <form key={i18n.language} onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-3">
-          <div className="h-2 rounded-full bg-gray-100 dark:bg-[#22263a] overflow-hidden">
-            <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${(step / totalSteps) * 100}%` }} />
+          <div className="flex items-center justify-center gap-2 py-1">
+            {Array.from({ length: totalSteps }, (_, i) => (
+              <span
+                key={i}
+                className={`rounded-full transition-all duration-300 ${
+                  i + 1 <= step
+                    ? 'w-6 h-2 bg-[#1a6cf5] dark:bg-[#4d8ef8]'
+                    : 'w-2 h-2 bg-gray-200 dark:bg-[#272c3d]'
+                }`}
+              />
+            ))}
           </div>
           <div className="grid grid-cols-3 gap-2 text-xs">
             <p className={`text-center ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-400 dark:text-[#5a6278]'}`}>

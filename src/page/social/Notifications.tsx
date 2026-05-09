@@ -265,21 +265,3 @@ export default function Notifications() {
     </div>
   );
 }
-              </div>
-            </>
-          )}
-          {earlierNotifs.length > 0 && (
-            <>
-              <h2 className="text-base font-bold text-gray-900 dark:text-[#edf0fa] mb-3 px-2">
-                {t('notificationsSocial.earlier')}
-              </h2>
-              <div className="space-y-2">
-                {earlierNotifs.map((n) => renderCard(n, false))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}

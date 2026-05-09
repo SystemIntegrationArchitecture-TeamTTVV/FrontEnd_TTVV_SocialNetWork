@@ -219,7 +219,7 @@ export default function Navbar() {
       {/* ═══════════════════════════════════════════════════════
           TOP NAVBAR  (fixed, h-20 on all breakpoints)
       ═══════════════════════════════════════════════════════ */}
-      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-white dark:bg-[#13151f] border-b border-[#e4e6eb] dark:border-[#22263a] shadow-none">
+      <nav className="fixed top-0 left-0 right-0 h-14 z-50 ui-surface border-b border-[#e4e6eb]/80 dark:border-[#2b2f45] shadow-sm">
 
 
         {/* ── DESKTOP layout (md+) ── */}
@@ -604,22 +604,19 @@ export default function Navbar() {
       {/* ═══════════════════════════════════════════════════════
           MOBILE BOTTOM NAVIGATION  (md:hidden, fixed bottom)
       ═══════════════════════════════════════════════════════ */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden bg-white dark:bg-[#12151f] border-t border-gray-200 dark:border-[#1e2130] flex items-stretch z-50 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+      <nav className="fixed bottom-0 left-0 right-0 h-16 md:hidden ui-surface border-t border-gray-200/80 dark:border-[#2b2f45] flex items-stretch z-50 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.35)]">
         {[
-          { to: '/home',        icon: Home,          labelKey: 'mobileNav.home' as const, requireAuth: false },
-          { to: '/watch',       icon: Video,         labelKey: 'mobileNav.video' as const, requireAuth: true },
-          { to: '/marketplace', icon: Store,         labelKey: 'mobileNav.marketplace' as const, requireAuth: true },
-          { to: '/groups',      icon: LayoutGrid,   labelKey: 'mobileNav.groups' as const, requireAuth: true },
-          { to: '/music',       icon: Music2,        labelKey: 'mobileNav.music' as const, requireAuth: false },
-          { to: '/livestream',  icon: Radio,         labelKey: 'mobileNav.live' as const, requireAuth: true },
-          { to: '/games',       icon: Gamepad2,      labelKey: 'mobileNav.games' as const, requireAuth: false },
-          { to: '/messenger',   icon: MessageCircle, labelKey: 'mobileNav.messages' as const, requireAuth: true },
+          { to: '/home',      icon: Home,          labelKey: 'mobileNav.home' as const,     requireAuth: false },
+          { to: '/messenger', icon: MessageCircle, labelKey: 'mobileNav.messages' as const,  requireAuth: true  },
+          { to: '#notif',     icon: Bell,          labelKey: 'mobileNav.notifications' as const, requireAuth: true  },
+          { to: '#search',    icon: Search,        labelKey: 'mobileNav.search' as const,    requireAuth: false },
+          { to: '/groups',    icon: LayoutGrid,    labelKey: 'mobileNav.groups' as const,    requireAuth: true  },
         ].map(({ to, icon: Icon, labelKey, requireAuth }) => {
           const needsAuth = requireAuth && !currentUser;
           const navOn =
-            to === '/games'
-              ? location.pathname.startsWith('/games')
-              : isActive(to);
+            to === '#notif' ? isNotificationOpen
+            : to === '#search' ? isMobileSearchOpen
+            : isActive(to);
           const cls = `flex flex-col items-center justify-center gap-1 flex-1 transition-all ${
             navOn
               ? 'text-blue-600 dark:text-blue-400'
@@ -636,6 +633,12 @@ export default function Navbar() {
 
           if (to === '/messenger') {
             return <button key={to} type="button" onClick={handleMessengerClick} className={cls}>{inner}</button>;
+          }
+          if (to === '#notif') {
+            return <button key={to} type="button" onClick={() => { if (!currentUser) { requestLogin(); return; } setIsNotificationOpen(v => !v); }} className={cls}>{inner}</button>;
+          }
+          if (to === '#search') {
+            return <button key={to} type="button" onClick={() => setIsMobileSearchOpen(v => !v)} className={cls}>{inner}</button>;
           }
           if (needsAuth) {
             return <button key={to} type="button" onClick={requestLogin} className={cls}>{inner}</button>;

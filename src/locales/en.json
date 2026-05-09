@@ -160,7 +160,9 @@
     "music": "Music",
     "live": "Live",
     "games": "Games",
-    "messages": "Messages"
+    "messages": "Messages",
+    "notifications": "Alerts",
+    "search": "Search"
   },
   "leftSidebar": {
     "friends": "Friends",

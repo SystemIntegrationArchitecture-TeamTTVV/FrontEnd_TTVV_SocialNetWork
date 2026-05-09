@@ -11,7 +11,27 @@ import { ThemeProvider } from './contexts/ThemeContext';
 function App() {
   return (
     <ThemeProvider>
-      <Toaster />
+      <Toaster
+        position="top-right"
+        gutter={10}
+        toastOptions={{
+          duration: 3400,
+          className:
+            'rounded-2xl border border-gray-200/80 dark:border-[#2b2f45] bg-white/95 dark:bg-[#1a1d28]/95 text-gray-900 dark:text-[#edf0fa] shadow-lg backdrop-blur-md',
+          success: {
+            iconTheme: {
+              primary: '#16a34a',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#dc2626',
+              secondary: '#ffffff',
+            },
+          },
+        }}
+      />
       <AuthProvider>
         <SocketProvider>
           <CallProvider>

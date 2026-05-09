@@ -160,7 +160,9 @@
     "music": "Nhạc",
     "live": "Live",
     "games": "Trò chơi",
-    "messages": "Tin nhắn"
+    "messages": "Tin nhắn",
+    "notifications": "Thông báo",
+    "search": "Tìm kiếm"
   },
   "leftSidebar": {
     "friends": "Bạn bè",

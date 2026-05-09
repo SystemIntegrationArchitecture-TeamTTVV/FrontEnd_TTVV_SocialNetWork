@@ -89,15 +89,17 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
           const rowBase = `flex items-center rounded-xl transition-all duration-200 group min-h-12 ${
             collapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2.5'
           }`;
-          const rowActive = 'bg-[#e7f3ff] dark:bg-blue-500/12 shadow-sm ring-1 ring-[#1877F2]/15 dark:ring-blue-400/20 scale-[1.02]';
-          const rowInactive = 'hover:bg-[#f0f2f5] dark:hover:bg-[#1e2133]';
+          const rowActive = collapsed
+            ? 'bg-blue-50 dark:bg-blue-500/10'
+            : 'border-l-[3px] border-[#1a6cf5] dark:border-blue-400 pl-[9px] bg-blue-50/70 dark:bg-blue-500/8';
+          const rowInactive = 'hover:bg-[#f0f2f5] dark:hover:bg-[#1f2230]';
 
           const iconWrap = 'w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0';
-          const iconActive = 'bg-[#1877F2] text-white shadow-md shadow-blue-500/30';
-          const iconInactive = 'bg-[#e4e6eb] text-[#050505] group-hover:bg-[#d8dadf] dark:bg-[#22263a] dark:text-[#c8ccde] dark:group-hover:bg-[#2b2f45]';
+          const iconActive = 'bg-[#1a6cf5] text-white shadow-sm';
+          const iconInactive = 'bg-[#edf0f5] text-[#444] group-hover:bg-[#e2e6ee] dark:bg-[#272c3d] dark:text-[#c0c8da] dark:group-hover:bg-[#333848]';
 
-          const labelActive = 'text-[#050505] font-bold text-base dark:text-[#edf0fa]';
-          const labelInactive = 'text-[#050505] font-medium group-hover:text-[#050505] dark:text-[#c8ccde] dark:group-hover:text-[#edf0fa]';
+          const labelActive = 'text-[#1a6cf5] dark:text-blue-400 font-semibold text-[15px]';
+          const labelInactive = 'text-gray-700 dark:text-[#b8becf] font-medium group-hover:text-gray-900 dark:group-hover:text-[#e8ecf5]';
 
           const rowLabel = item.isUser ? item.displayName : t(`leftSidebar.${item.labelKey}`);
 
