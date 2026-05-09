@@ -553,6 +553,57 @@ export default function AdminReports() {
                 </div>
               </div>
 
+              {/* Timeline */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  {t("adminPanel.reports.sectionTimeline", "Dòng thời gian xử lý")}
+                </h3>
+                <ol className="relative border-l-2 border-gray-200 ml-3 space-y-4">
+                  <li className="ml-5">
+                    <span className="absolute -left-2.5 w-4 h-4 rounded-full bg-yellow-400 border-2 border-white flex items-center justify-center" />
+                    <p className="text-sm font-semibold text-gray-800">
+                      {t("adminPanel.reports.timelineCreated", "Tạo báo cáo")}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(selectedReport.createdAt).toLocaleString("vi-VN")}
+                    </p>
+                  </li>
+                  {selectedReport.reviewedAt && (
+                    <li className="ml-5">
+                      <span className="absolute -left-2.5 w-4 h-4 rounded-full bg-blue-400 border-2 border-white" />
+                      <p className="text-sm font-semibold text-gray-800">
+                        {t("adminPanel.reports.timelineReviewing", "Bắt đầu xem xét")}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(selectedReport.reviewedAt).toLocaleString("vi-VN")}
+                      </p>
+                    </li>
+                  )}
+                  {selectedReport.resolvedAt && (
+                    <li className="ml-5">
+                      <span className={`absolute -left-2.5 w-4 h-4 rounded-full border-2 border-white ${selectedReport.status === "resolved" ? "bg-green-500" : "bg-red-400"}`} />
+                      <p className="text-sm font-semibold text-gray-800">
+                        {selectedReport.status === "resolved"
+                          ? t("adminPanel.reports.timelineResolved", "Đã giải quyết")
+                          : t("adminPanel.reports.timelineRejected", "Đã từ chối")}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(selectedReport.resolvedAt).toLocaleString("vi-VN")}
+                      </p>
+                    </li>
+                  )}
+                </ol>
+              </div>
+
+              {selectedReport.actionTaken && (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">
+                    {t("adminPanel.reports.actionTakenNote", "Ghi chú xử lý")}
+                  </p>
+                  <p className="text-base text-gray-900 whitespace-pre-wrap">{selectedReport.actionTaken}</p>
+                </div>
+              )}
+
               <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
                 <p className="text-sm font-semibold text-gray-700 mb-2">
                   {t("adminPanel.reports.currentStatus")}

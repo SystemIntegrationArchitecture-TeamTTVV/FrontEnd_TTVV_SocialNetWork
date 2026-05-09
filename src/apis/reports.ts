@@ -12,6 +12,9 @@ export interface Report {
   status: "pending" | "reviewing" | "resolved" | "rejected";
   priority: "high" | "medium" | "low";
   createdAt: string;
+  reviewedAt?: string;
+  resolvedAt?: string;
+  actionTaken?: string;
 }
 
 export interface ReportStats {
@@ -58,7 +61,7 @@ export const reportsApi = {
    * Create a new report
    */
   createReport: async (
-    report: Omit<Report, "id" | "createdAt" | "status">,
+    report: Omit<Report, "id" | "createdAt" | "status" | "reviewedAt" | "resolvedAt" | "actionTaken">,
   ): Promise<Report> => {
     return httpClient.post<Report>("/api/reports", report);
   },

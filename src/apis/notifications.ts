@@ -30,6 +30,13 @@ export const notificationsApi = {
     return httpClient.get<number>(`/api/social/notifications/recipient/${recipientId}/unread/count`);
   },
 
+  /** Filter by one or more comma-separated types, e.g. "FRIEND_REQUEST,FRIEND_ACCEPTED" */
+  getNotificationsByType: async (recipientId: string, type: string): Promise<Notification[]> => {
+    return httpClient.get<Notification[]>(
+      `/api/social/notifications/recipient/${recipientId}/filter?type=${encodeURIComponent(type)}`
+    );
+  },
+
   getNotificationById: async (id: string): Promise<Notification> => {
     return httpClient.get<Notification>(`/api/social/notifications/${id}`);
   },
