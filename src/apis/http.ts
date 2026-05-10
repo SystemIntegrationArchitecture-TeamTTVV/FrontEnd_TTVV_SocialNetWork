@@ -115,12 +115,17 @@ class HttpClient {
     if (!response.ok) {
       // Handle 401 Unauthorized — attempt token refresh (skip for auth endpoints)
       if (response.status === 401 && !this.isAuthUrl(response.url) && retryFn) {
+        // Only attempt refresh if user had an active session (refresh token exists)
+        const hadSession = !!localStorage.getItem('refreshToken');
+        if (!hadSession) {
+          throw new HttpError(401, 'Unauthorized');
+        }
         try {
           await this.refreshToken();
           // Retry the original request with the new token
           return retryFn();
         } catch {
-          // Refresh failed — force logout
+          // Refresh failed — clear expired session and redirect to login
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');

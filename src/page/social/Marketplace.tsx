@@ -49,42 +49,51 @@ export default function Marketplace() {
   const activeCategoryLabel = categories.find((c) => c.id === activeCategory)?.label || t('marketplace.categories.all');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#f4f5f7] dark:bg-[#0c0e14] flex">
       {/* Left Sidebar */}
-      <aside className="w-80 bg-white border-r border-gray-200 p-5 shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('marketplace.title')}</h1>
-        <p className="text-sm text-gray-500 mb-4">{t('marketplace.subtitle')}</p>
+      <aside className="hidden md:flex md:flex-col w-56 xl:w-60 bg-white dark:bg-[#13151f] border-r border-gray-200 dark:border-[#22263a] p-3.5 shrink-0 shadow-sm">
+        <div className="mb-4">
+          <h1 className="text-[16px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{t('marketplace.title')}</h1>
+          <p className="text-[11px] text-gray-400 dark:text-[#5a6278] mt-0.5">{t('marketplace.subtitle')}</p>
+        </div>
 
         {/* Search */}
-        <div className="relative mb-6">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+        <div className="relative mb-4">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('marketplace.searchPlaceholder')}
-            className="w-full h-11 pl-10 pr-4 rounded-full bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full h-9 pl-8 pr-3 rounded-xl bg-gray-100 dark:bg-[#1e2133] border border-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 focus:outline-none text-[12.5px] text-gray-800 dark:text-[#edf0fa] placeholder-gray-400 transition-all"
           />
         </div>
 
         {/* Categories */}
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('marketplace.categoryTitle')}</p>
-          <div className="space-y-2">
+        <div className="mb-4 flex-1">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-[#4a5270] uppercase tracking-widest mb-2 px-1">{t('marketplace.categoryTitle')}</p>
+          <div className="space-y-0.5">
             {categories.map((category) => {
               const Icon = category.icon;
+              const isActive = activeCategory === category.id;
               return (
                 <button
                   key={category.id}
                   onClick={() => setActiveCategory(category.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-                    activeCategory === category.id
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-gray-100 text-gray-900'
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all duration-150 ${
+                    isActive
+                      ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400'
+                      : 'text-gray-700 dark:text-[#c8ccde] hover:bg-gray-50 dark:hover:bg-[#1e2133]'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-semibold">{category.label}</span>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                    isActive
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-[#22263a] text-gray-500 dark:text-[#9aa3bc]'
+                  }`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[12.5px] font-semibold">{category.label}</span>
                 </button>
               );
             })}
@@ -94,19 +103,19 @@ export default function Marketplace() {
         {/* Create Listing */}
         <Link
           to="/marketplace/my-products"
-          className="w-full h-11 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+          className="mt-auto w-full h-9 bg-blue-600 hover:bg-blue-700 text-white text-[12.5px] font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-[0_1px_4px_rgba(37,99,235,0.3)]"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-3.5 h-3.5" />
           <span>{t('marketplace.createListing')}</span>
         </Link>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 lg:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <main className="flex-1 p-4 md:p-5 overflow-y-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{t('marketplace.todayPicks')}</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-[15px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{t('marketplace.todayPicks')}</h2>
+            <p className="text-[11.5px] text-gray-400 dark:text-[#6a7494] mt-0.5">
               {t('marketplace.productSummary', { count: products.length, category: activeCategoryLabel })}
             </p>
           </div>
@@ -114,11 +123,8 @@ export default function Marketplace() {
           {(searchQuery.trim() || activeCategory !== 'all') && (
             <button
               type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setActiveCategory('all');
-              }}
-              className="h-9 px-4 rounded-full bg-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
+              onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
+              className="h-7 px-3 rounded-full bg-gray-100 dark:bg-[#22263a] text-[11.5px] font-semibold text-gray-600 dark:text-[#9aa3bc] hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors"
             >
               {t('marketplace.clearFilters')}
             </button>
@@ -127,55 +133,55 @@ export default function Marketplace() {
 
         {/* Products Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader className="w-8 h-8 text-blue-600 animate-spin" />
+          <div className="flex items-center justify-center py-24">
+            <Loader className="w-8 h-8 text-blue-500 animate-spin" />
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center">
-            <p className="text-base font-semibold text-red-900">{error}</p>
-            <button
-              onClick={() => loadProducts()}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
+          <div className="rounded-2xl border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-500/20 p-10 text-center">
+            <p className="text-[12.5px] font-semibold text-red-700 dark:text-red-400">{error}</p>
+            <button onClick={() => loadProducts()} className="mt-4 px-4 py-2 bg-red-600 text-white text-[12.5px] rounded-xl hover:bg-red-700 transition-colors">
               {t('common.retry')}
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {products.map((product) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {products.map((product, i) => (
               <Link
                 key={product.id}
                 to={`/marketplace/product/${product.id}`}
-                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                className="group bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#252840] shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.1)] hover:-translate-y-[3px] transition-all duration-200 overflow-hidden flex flex-col"
+                style={{ animationDelay: `${i * 40}ms` }}
               >
-                <div className="aspect-square bg-gray-100 flex items-center justify-center text-4xl overflow-hidden">
+                {/* Image */}
+                <div className="aspect-square bg-gray-100 dark:bg-[#22263a] overflow-hidden rounded-t-2xl">
                   {product.images && product.images.length > 0 ? (
                     <img
                       src={product.images[0]}
                       alt={product.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const img = e.target as HTMLImageElement;
-                        img.style.display = 'none';
-                      }}
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
-                    <Package className="w-12 h-12 text-gray-300" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-8 h-8 text-gray-300 dark:text-[#3a3f5c]" />
+                    </div>
                   )}
                 </div>
-                <div className="p-4">
-                  <p className="text-xl font-bold text-gray-900 mb-1">
-                    {product.price.toLocaleString(getLocaleTag())} {product.currency || 'VND'}
+
+                {/* Info */}
+                <div className="p-2.5 flex flex-col gap-0.5">
+                  <p className="text-[13px] font-bold text-gray-900 dark:text-[#edf0fa] leading-tight">
+                    {product.price.toLocaleString(getLocaleTag())}&nbsp;<span className="text-[10px] font-semibold text-gray-400">{product.currency || 'VND'}</span>
                   </p>
-                  <p className="font-semibold text-gray-900 mb-1 line-clamp-2">{product.title}</p>
-                  <p className="text-sm text-gray-500 mb-2">{product.location}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    {product.condition}
-                  </p>
+                  <p className="text-[11.5px] font-medium text-gray-700 dark:text-[#b8becf] line-clamp-2 leading-snug">{product.title}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-[#6a7494]">{product.location}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />
+                    <span className="text-[10.5px] text-gray-500 dark:text-[#7e89a6]">{product.condition}</span>
+                  </div>
                   {product.seller && (
-                    <p className="text-xs text-gray-600 mt-2">
-                      {t('marketplace.seller')}: {product.seller.fullName}
+                    <p className="text-[10.5px] text-gray-400 dark:text-[#5a6278] truncate mt-0.5">
+                      {t('marketplace.seller')}: <span className="font-medium">{product.seller.fullName}</span>
                     </p>
                   )}
                 </div>
@@ -185,9 +191,10 @@ export default function Marketplace() {
         )}
 
         {!loading && !error && products.length === 0 && (
-          <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center">
-            <p className="text-base font-semibold text-gray-900">{t('marketplace.emptyTitle')}</p>
-            <p className="text-sm text-gray-500 mt-1">{t('marketplace.emptySubtitle')}</p>
+          <div className="mt-8 rounded-2xl border border-gray-100 dark:border-[#252840] bg-white dark:bg-[#1a1d28] p-14 text-center">
+            <Package className="w-10 h-10 text-gray-300 dark:text-[#3a3f5c] mx-auto mb-3" />
+            <p className="text-[12.5px] font-semibold text-gray-700 dark:text-[#c8ccde]">{t('marketplace.emptyTitle')}</p>
+            <p className="text-[11.5px] text-gray-400 dark:text-[#6a7494] mt-1">{t('marketplace.emptySubtitle')}</p>
           </div>
         )}
       </main>

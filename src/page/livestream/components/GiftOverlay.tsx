@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 
 interface GiftEvent {
   id: string;
@@ -12,7 +12,7 @@ export interface GiftOverlayRef {
   showGift: (data: Omit<GiftEvent, 'id'>) => void;
 }
 
-const GiftOverlay = forwardRef<GiftOverlayRef, {}>((props, ref) => {
+const GiftOverlay = forwardRef<GiftOverlayRef, {}>((_, ref) => {
   const [gifts, setGifts] = useState<GiftEvent[]>([]);
 
   useImperativeHandle(ref, () => ({

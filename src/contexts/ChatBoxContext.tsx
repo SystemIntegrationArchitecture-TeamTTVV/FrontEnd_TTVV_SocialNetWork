@@ -8,6 +8,16 @@ import { conversationsApi } from '../apis/conversations';
 import { showAuthRequiredPrompt } from '../utils/authPrompt';
 import { IncomingMessageEventTypes } from '../services/socketEvents';
 
+// Deterministic color from any string id so the bubble color stays stable across re-opens
+const idToColor = (id: string): string => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  const palette = ['#1a6cf5','#7c3aed','#0e9f6e','#d97706','#e11d48','#0891b2','#7e22ce','#b45309'];
+  return palette[hash % palette.length];
+};
+
 // Re-export types for convenience
 export type { ChatContact, ChatMessage };
 
@@ -126,6 +136,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         id: displayMsg.id,
         sender: displayMsg.sender,
         senderId: displayMsg.senderId,
+        senderAvatar: (msg as any).senderAvatar,
         content: displayMsg.content,
         isMe: displayMsg.isMe,
         time: displayMsg.time,
@@ -161,7 +172,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
   }, [loadMessages, user?.id]);
 
   // Open chatbox by userId (creates conversation if needed)
-  const openChatBoxByUserId = useCallback(async (userId: string, userName?: string) => {
+  const openChatBoxByUserId = useCallback(async (userId: string, userName?: string, userAvatar?: string) => {
     if (!user?.id) {
       showAuthRequiredPrompt(window.location.pathname);
       return;
@@ -183,8 +194,9 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
         userId: userId, // Store actual userId for calls
         name: contactName,
         avatar: initials,
-        color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-        online: true, // Assume online when manually opening chat
+        avatarUrl: userAvatar || undefined,
+        color: idToColor(conversation.id),
+        online: true,
         isGroup: false,
       };
 
@@ -223,7 +235,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
           userId: otherUserId,
           name,
           avatar: initials,
-          color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+          color: idToColor(conv.id),
           online: true,
           isGroup: conv.isGroup,
         };
@@ -317,26 +329,35 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
           console.log('✅ Message is from another user, auto-opening chatbox');
           
           // Determine group vs direct so the floating chatbox has correct title (groupName)
-          let contactName = message.senderName || 'Unknown User';
+          let contactName = '';
           let userIdForCall: string | undefined = message.senderId;
+          let contactAvatarUrl: string | undefined = message.senderAvatar || undefined;
           let isGroupConversation = false;
 
           const inState = conversationsRef.current.find((c) => c.id === message.conversationId);
           if (inState?.isGroup) {
             contactName = inState.groupName || 'Group Chat';
             userIdForCall = undefined;
+            contactAvatarUrl = undefined;
             isGroupConversation = true;
-          } else if (!inState) {
+          } else if (inState) {
+            // Direct conversation already in state — use sender info
+            contactName = message.senderName || 'Unknown User';
+          } else {
             // Not in state: fetch minimal conversation to detect group
             try {
               const conv = await conversationsApi.getConversationById(message.conversationId);
               if (conv.isGroup) {
                 contactName = conv.groupName || 'Group Chat';
                 userIdForCall = undefined;
+                contactAvatarUrl = undefined;
                 isGroupConversation = true;
+              } else {
+                contactName = message.senderName || 'Unknown User';
               }
             } catch (e) {
               // ignore network/parse errors here
+              contactName = message.senderName || 'Unknown User';
               console.warn('Failed to fetch conversation for chatbox title:', e);
             }
           }
@@ -348,8 +369,9 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
             userId: userIdForCall,
             name: contactName,
             avatar: initials,
-            color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-            online: true, // sender is online since they just sent a message
+            avatarUrl: contactAvatarUrl,
+            color: idToColor(message.conversationId),
+            online: true,
             isGroup: isGroupConversation,
           };
 

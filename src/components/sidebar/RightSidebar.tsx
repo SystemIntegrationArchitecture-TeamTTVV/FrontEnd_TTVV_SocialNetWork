@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMessages } from '../../hooks/useMessages';
 import type { ChatContact } from '../../types/chat';
 import { getLocaleTag } from '../../i18n';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 type ContactWithLastMessage = ChatContact & {
   lastMessage?: string;
@@ -125,12 +126,15 @@ export default function RightSidebar({
         if (otherIndex === -1) return null;
 
         const otherName = names[otherIndex] || 'Unknown';
+        const avatars = conv.participantAvatars ?? [];
+        const rawAvatar = avatars[otherIndex] || '';
 
         return {
           id: conv.id,
           userId: ids[otherIndex],
           name: otherName,
           avatar: getInitials(otherName),
+          avatarUrl: rawAvatar ? resolveMediaUrl(rawAvatar) : undefined,
           color: getAvatarColor(otherName),
           online: false,
           lastMessage: conv.lastMessagePreview || '',
@@ -194,10 +198,12 @@ export default function RightSidebar({
                 className="relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1877F2] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#13151f]"
               >
                 <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-xs select-none shadow-sm"
-                  style={{ backgroundColor: contact.color }}
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-xs select-none shadow-sm overflow-hidden"
+                  style={{ backgroundColor: contact.avatarUrl ? undefined : contact.color }}
                 >
-                  {getInitials(contact.name)}
+                  {contact.avatarUrl
+                    ? <img src={contact.avatarUrl} alt={contact.name} className="w-full h-full object-cover" />
+                    : getInitials(contact.name)}
                 </div>
                 {contact.online && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#13151f]" />
@@ -318,10 +324,12 @@ export default function RightSidebar({
                   <div
                     className="w-12 h-12 rounded-full flex items-center 
                                justify-center text-white font-semibold 
-                               text-sm select-none shadow-sm"
-                    style={{ backgroundColor: contact.color }}
+                               text-sm select-none shadow-sm overflow-hidden"
+                    style={{ backgroundColor: contact.avatarUrl ? undefined : contact.color }}
                   >
-                    {getInitials(contact.name)}
+                    {contact.avatarUrl
+                      ? <img src={contact.avatarUrl} alt={contact.name} className="w-full h-full object-cover" />
+                      : getInitials(contact.name)}
                   </div>
                   {contact.online && (
                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 

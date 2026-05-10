@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RoomAudioRenderer,
@@ -44,7 +44,6 @@ import MemberPanelHost from './MemberPanelHost';
 
 const VIOLET = '#1877F2';
 const DANMU_PREFIX = '\u200B[D]';
-const VIP_LIMITS_SECONDS: Record<string, number> = { VIP0: 300, VIP1: 1800, VIP2: -1 };
 
 export type HostChatLine = {
   id: number;
@@ -105,12 +104,7 @@ function formatElapsed(startedAt?: string): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function formatDuration(seconds: number): string {
-  const s = Math.max(0, seconds);
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, '0')}`;
-}
+
 
 export default function StreamerThamKhaoLayout({
   stream,
@@ -143,37 +137,10 @@ export default function StreamerThamKhaoLayout({
   const [chatInput, setChatInput] = useState('');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<Array<{ id: string; type: 'heart' | 'like'; left: number }>>([]);
-  const [showVipWarning, setShowVipWarning] = useState(false);
-  const [vipElapsed, setVipElapsed] = useState(0);
-  const vipWarnedRef = useRef(false);
-  const vipTier = useMemo(() => {
-    const role = String(user.role || '').toUpperCase();
-    if (role.includes('VIP2')) return 'VIP2';
-    if (role.includes('VIP1')) return 'VIP1';
-    return 'VIP0';
-  }, [user.role]);
-  const maxVipSeconds = VIP_LIMITS_SECONDS[vipTier] ?? VIP_LIMITS_SECONDS.VIP0;
-  const vipRemain = maxVipSeconds > 0 ? Math.max(0, maxVipSeconds - vipElapsed) : -1;
-
   useEffect(() => {
     const id = window.setInterval(() => setTick((x) => x + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
-
-  useEffect(() => {
-    if (maxVipSeconds <= 0) return;
-    const startTs = stream.startedAt ? new Date(stream.startedAt).getTime() : Date.now();
-    const id = window.setInterval(() => {
-      const elapsedSec = Math.max(0, Math.floor((Date.now() - startTs) / 1000));
-      setVipElapsed(elapsedSec);
-      if (!vipWarnedRef.current && elapsedSec >= maxVipSeconds - 60 && elapsedSec < maxVipSeconds) {
-        vipWarnedRef.current = true;
-        setShowVipWarning(true);
-        window.alert('⚠️ Sắp hết giờ live: bạn còn khoảng 1 phút. Nâng cấp VIP để live lâu hơn.');
-      }
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [maxVipSeconds, stream.startedAt]);
 
   useEffect(() => {
     billingApi
@@ -318,29 +285,6 @@ export default function StreamerThamKhaoLayout({
                 {elapsed}
               </div>
             </div>
-            {maxVipSeconds > 0 && (
-              <div
-                className="rounded-xl px-3 py-1.5 border w-max"
-                style={{
-                  backgroundColor: showVipWarning ? 'rgba(239,68,68,0.9)' : 'rgba(17,24,39,0.72)',
-                  borderColor: showVipWarning ? '#fca5a5' : 'rgba(255,255,255,0.18)',
-                }}
-              >
-                <div className="flex items-center gap-2 text-white text-xs font-semibold">
-                  <Clock className="w-3.5 h-3.5 opacity-90" />
-                  <span>{formatDuration(vipRemain)}</span>
-                  {showVipWarning && (
-                    <button
-                      type="button"
-                      onClick={() => window.alert('Luồng nâng cấp VIP sẽ tích hợp theo hệ thống billing của bạn.')}
-                      className="ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-400 text-white hover:bg-amber-500 transition-colors"
-                    >
-                      Nâng cấp VIP
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {connState === ConnectionState.Reconnecting && (

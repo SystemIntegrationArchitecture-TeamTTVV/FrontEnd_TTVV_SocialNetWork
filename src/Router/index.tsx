@@ -21,7 +21,6 @@ const ResetPassword = lazy(() => import("../page/auth/ResetPassword"));
 
 // Home Pages
 const Newsfeed = lazy(() => import("../page/home/Newsfeed"));
-const CreatePost = lazy(() => import("../page/home/CreatePost"));
 const PostEdit = lazy(() => import("../page/home/PostEdit"));
 const CommentDetail = lazy(() => import("../page/home/CommentDetail"));
 const ShareDialog = lazy(() => import("../page/home/ShareDialog"));
@@ -154,7 +153,7 @@ export const router = createBrowserRouter([
       { index: true, element: <S><Newsfeed /></S> },
       // Home
       { path: "home", element: <S><Newsfeed /></S> },
-      { path: "post/create", element: <ProtectedRoute requireAuth={true}><S><CreatePost /></S></ProtectedRoute> },
+      { path: "post/create", element: <Navigate to="/" replace /> },
       { path: "post/:id/edit", element: <ProtectedRoute requireAuth={true}><S><PostEdit /></S></ProtectedRoute> },
       { path: "post/:id/comments", element: <ProtectedRoute requireAuth={true}><S><CommentDetail /></S></ProtectedRoute> },
       { path: "post/:id/share", element: <ProtectedRoute requireAuth={true}><S><ShareDialog /></S></ProtectedRoute> },

@@ -1,73 +1,23 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { livestreamApi, type LiveStreamData } from '../../apis/livestream';
-import { LiveKitRoom } from '@livekit/components-react';
-import '@livekit/components-styles';
-import LiveRegulationsModal from './components/LiveRegulationsModal';
-import DepositModal from './components/DepositModal';
-import ViewerThamKhaoExperience from './components/ViewerThamKhaoExperience';
 
-const RULES_KEY = 'ttvv_live_regulations_accepted';
+import { useLiveStreamViewer } from '../../contexts/LiveStreamViewerContext';
+import LiveRegulationsModal from './components/LiveRegulationsModal';
 
 export default function LiveViewer() {
-  const { id: streamId } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { id: routeStreamId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  const { 
+    streamId, setStreamId, stream, loading, rulesGate, acceptRules 
+  } = useLiveStreamViewer();
 
-  const [stream, setStream] = useState<LiveStreamData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [viewerCount, setViewerCount] = useState(0);
-  const [isEnded, setIsEnded] = useState(false);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [showRules, setShowRules] = useState(false);
-
-  const [rulesGate, setRulesGate] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem(RULES_KEY) === '1';
-  });
-
-  const [lkKey, setLkKey] = useState(0);
-  const [canSubscribe, setCanSubscribe] = useState(true);
-
-  const acceptRules = useCallback(() => {
-    try {
-      localStorage.setItem(RULES_KEY, '1');
-    } catch {
-      /* ignore */
-    }
-    setRulesGate(true);
-  }, []);
-
-  const bootstrap = useCallback(async () => {
-    if (!streamId || !user) return;
-    setLoading(true);
-    try {
-      const data = await livestreamApi.getStreamById(streamId, user.id);
-      setStream(data);
-      setViewerCount(data.viewerCount ?? 0);
-      if (data.status === 'ENDED') setIsEnded(true);
-
-      if (data.status === 'LIVE') {
-        const tokenData = await livestreamApi.getToken(data.roomName, user.id, user.fullName || user.username);
-        setStream(tokenData);
-        setCanSubscribe(tokenData.canSubscribe !== false);
-        await livestreamApi.joinStream(streamId, user.id);
-      }
-    } catch {
-      navigate('/livestream');
-    } finally {
-      setLoading(false);
-    }
-  }, [streamId, user, navigate]);
-
+  // Set the streamId in the global context when we land on this page
   useEffect(() => {
-    if (!streamId || !user || !rulesGate) return;
-    void bootstrap();
-    return () => {
-      livestreamApi.leaveStream(streamId, user.id).catch(() => {});
-    };
-  }, [streamId, user, rulesGate, bootstrap]);
+    if (routeStreamId && routeStreamId !== streamId) {
+      setStreamId(routeStreamId);
+    }
+  }, [routeStreamId, streamId, setStreamId]);
 
   if (!rulesGate) {
     return (
@@ -80,7 +30,8 @@ export default function LiveViewer() {
     );
   }
 
-  if (loading) {
+  // If we are still syncing the route ID to context, or loading the stream from context
+  if (loading || streamId !== routeStreamId) {
     return (
       <div className="flex justify-center py-32">
         <div
@@ -91,56 +42,15 @@ export default function LiveViewer() {
     );
   }
 
-  if (!stream) {
+  // If loading finished but no stream was found
+  if (!loading && !stream && streamId === routeStreamId) {
     return <div className="text-center py-32 text-slate-600 dark:text-slate-300">Stream không tồn tại</div>;
   }
 
+  // The actual viewer content is rendered via GlobalViewerOverlay using a React Portal into this div
   return (
     <div className="min-h-[calc(100vh-4rem)] px-2 sm:px-4">
-      <LiveRegulationsModal open={showRules} onClose={() => setShowRules(false)} />
-      {showDepositModal && user && (
-        <DepositModal onClose={() => setShowDepositModal(false)} onSuccess={() => setShowDepositModal(false)} />
-      )}
-
-      {stream.livekitToken && stream.livekitUrl && user ? (
-        <LiveKitRoom
-          key={`${stream.id}-${lkKey}`}
-          video={true}
-          audio={true}
-          token={stream.livekitToken}
-          serverUrl={stream.livekitUrl}
-          connect={!isEnded}
-          className="min-h-[min(92vh,900px)]"
-        >
-          <ViewerThamKhaoExperience
-            stream={stream}
-            streamId={streamId!}
-            user={user}
-            viewerCount={viewerCount}
-            setViewerCount={setViewerCount}
-            isEnded={isEnded}
-            setIsEnded={setIsEnded}
-            canSubscribe={canSubscribe}
-            setCanSubscribe={setCanSubscribe}
-            setStream={setStream}
-            setLkKey={setLkKey}
-            navigate={navigate}
-            onOpenDeposit={() => setShowDepositModal(true)}
-            onOpenRules={() => setShowRules(true)}
-          />
-        </LiveKitRoom>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-2">
-          <p>Không có token phòng live.</p>
-          <button
-            type="button"
-            className="text-blue-600 font-semibold underline"
-            onClick={() => navigate('/livestream')}
-          >
-            Quay lại danh sách
-          </button>
-        </div>
-      )}
+       <div id="live-viewer-portal" className="w-full h-full min-h-[min(92vh,900px)]" />
     </div>
   );
 }

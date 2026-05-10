@@ -8,9 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../apis/auth';
 import { friendRequestsApi, friendsApi, getFriends } from '../../apis/friendRequests';
 import type { FriendRequest } from '../../apis/friendRequests';
-import { usersApi } from '../../apis/users';
 import type { User } from '../../apis/users';
 import { useTranslation } from 'react-i18next';
+import { notify } from '../../services/notify';
 
 /* ─── helpers ─── */
 function getAvatarColor(name: string): string {
@@ -81,26 +81,35 @@ export default function Friends() {
     if (!userId) return;
     setLoadingSuggestions(true);
     try {
-      const [allUsers, currentFriends, sentReqs, recvReqs] = await Promise.all([
-        usersApi.getAllUsers().catch(() => [] as User[]),
-        friendsApi.getFriendsByUserId(userId).catch(() => []),
+      // Fast path: use the dedicated friends-of-friends suggestion API
+      const [data, sentReqs] = await Promise.all([
+        friendsApi.getSuggestions(userId, 12).catch(() => null),
         friendRequestsApi.getFriendRequestsBySenderId(userId).catch(() => []),
-        friendRequestsApi.getFriendRequestsByReceiverId(userId).catch(() => []),
       ]);
 
-      const pendingSent = sentReqs.filter(r => (r.status as string).toUpperCase() === 'PENDING');
-      if (pendingSent.length > 0) {
+      // Populate sentRequests map
+      const pending = sentReqs.filter(r => (r.status as string).toUpperCase() === 'PENDING');
+      if (pending.length > 0) {
         setSentRequests(prev => {
           const m = new Map(prev);
-          pendingSent.forEach(r => { if (r.receiverId) m.set(r.receiverId, r.id); });
+          pending.forEach(r => { if (r.receiverId) m.set(r.receiverId, r.id); });
           return m;
         });
       }
 
-      const friendIds = (currentFriends as { friendId: string }[]).map(f => f.friendId);
-      const exclude = new Set([userId, ...friendIds, ...recvReqs.map(r => r.senderId)]);
-      const filtered = (allUsers as User[]).filter(u => u.id && !exclude.has(u.id));
-      setSuggestions(filtered.slice(0, 12));
+      if (data && Array.isArray(data)) {
+        // Map FriendSuggestionDTO → User-compatible shape
+        setSuggestions(data.map(s => ({
+          id: s.userId,
+          fullName: s.fullName,
+          username: s.username,
+          avatar: s.avatar,
+          city: s.mutualFriendCount > 0 ? `${s.mutualFriendCount} bạn chung` : undefined,
+          online: false,
+        } as User)));
+      } else {
+        setSuggestions([]);
+      }
     } catch { setSuggestions([]); }
     finally  { setLoadingSuggestions(false); }
   }, [userId]);
@@ -116,7 +125,10 @@ export default function Friends() {
     try {
       await friendRequestsApi.acceptFriendRequest(req.id);
       setRequests(prev => prev.filter(r => r.id !== req.id));
-    } catch { /* silent */ } finally { setAccepting(null); }
+      notify.success('Đã chấp nhận lời mời kết bạn!');
+    } catch {
+      notify.error('Không thể chấp nhận lời mời, thử lại sau.');
+    } finally { setAccepting(null); }
   };
 
   const handleReject = async (req: FriendRequest) => {
@@ -125,7 +137,10 @@ export default function Friends() {
     try {
       await friendRequestsApi.rejectFriendRequest(req.id);
       setRequests(prev => prev.filter(r => r.id !== req.id));
-    } catch { /* silent */ } finally { setRejecting(null); }
+      notify.success('Đã xóa lời mời kết bạn.');
+    } catch {
+      notify.error('Không thể xóa lời mời, thử lại sau.');
+    } finally { setRejecting(null); }
   };
 
   const handleAddFriend = async (targetId: string) => {
@@ -134,7 +149,10 @@ export default function Friends() {
     try {
       const result = await friendRequestsApi.createFriendRequest({ senderId: userId, receiverId: targetId });
       setSentRequests(prev => new Map(prev).set(targetId, result.id));
-    } catch { /* silent */ } finally { setAdding(null); }
+      notify.success('Đã gửi lời mời kết bạn!');
+    } catch {
+      notify.error('Không thể gửi lời mời, thử lại sau.');
+    } finally { setAdding(null); }
   };
 
   const handleCancelRequest = async (targetId: string) => {
@@ -144,7 +162,10 @@ export default function Friends() {
     try {
       await friendRequestsApi.cancelFriendRequest(requestId);
       setSentRequests(prev => { const m = new Map(prev); m.delete(targetId); return m; });
-    } catch { /* silent */ } finally { setCancelling(null); }
+      notify.success('Đã thu hồi lời mời kết bạn.');
+    } catch {
+      notify.error('Không thể thu hồi lời mời, thử lại sau.');
+    } finally { setCancelling(null); }
   };
 
   const tabs = [
@@ -160,10 +181,10 @@ export default function Friends() {
     <div className="min-h-screen bg-[#F0F2F5] dark:bg-[#0c0e14] flex">
 
       {/* ── Left Sidebar ── */}
-      <aside className="w-72 bg-white dark:bg-[#13151f] border-r border-gray-200 dark:border-[#22263a] p-4 shrink-0 shadow-sm">
-        <div className="mb-6 px-1">
-          <h1 className="text-[22px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{t('friends.title')}</h1>
-          <p className="text-xs text-gray-400 dark:text-[#5a6278] mt-0.5">{t('friends.subtitle')}</p>
+      <aside className="hidden md:flex md:flex-col w-60 xl:w-64 bg-white dark:bg-[#13151f] border-r border-gray-200 dark:border-[#22263a] p-3.5 shrink-0 shadow-sm">
+        <div className="mb-4 px-1">
+          <h1 className="text-[16px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{t('friends.title')}</h1>
+          <p className="text-[11px] text-gray-400 dark:text-[#5a6278] mt-0.5">{t('friends.subtitle')}</p>
         </div>
 
         <nav className="space-y-0.5">
@@ -181,14 +202,14 @@ export default function Friends() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                     isActive
                       ? 'bg-blue-500 text-white shadow-sm shadow-blue-200'
                       : 'bg-gray-100 dark:bg-[#22263a] text-gray-500 dark:text-[#9aa3bc]'
                   }`}>
-                    <Icon className="w-[17px] h-[17px]" />
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <span className={`text-sm font-semibold`}>{tab.label}</span>
+                  <span className="text-[12.5px] font-semibold">{tab.label}</span>
                 </div>
                 {tab.badge ? (
                   <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center shadow-sm">
@@ -202,7 +223,7 @@ export default function Friends() {
       </aside>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 px-8 py-6 overflow-y-auto">
+      <main className="flex-1 px-4 md:px-6 py-5 overflow-y-auto">
 
         {/* === Lời mời kết bạn === */}
         {(activeTab === 'home' || activeTab === 'requests') && (
@@ -233,7 +254,7 @@ export default function Friends() {
                       <button
                         onClick={() => handleAccept(req)}
                         disabled={!!accepting || !!rejecting}
-                        className="w-full h-9 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-blue-200 disabled:opacity-60"
+                        className="w-full h-9 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-[0_1px_4px_rgba(37,99,235,0.35)] disabled:opacity-60"
                       >
                         {accepting === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                         {t('friends.confirm')}
@@ -241,7 +262,7 @@ export default function Friends() {
                       <button
                         onClick={() => handleReject(req)}
                         disabled={!!accepting || !!rejecting}
-                        className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#22263a] dark:hover:bg-[#2b2f45] text-gray-700 dark:text-[#c8ccde] text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
+                        className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#252840] dark:hover:bg-[#2d3150] text-gray-600 dark:text-[#c8ccde] text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
                         {rejecting === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                         {t('friends.delete')}
@@ -279,16 +300,15 @@ export default function Friends() {
                       onNameClick={() => navigate(`/profile/${user.id}`)}
                     >
                       {sent ? (
-                        <div className="flex gap-2">
-                          <div className="flex-1 h-9 bg-gray-100 dark:bg-[#22263a] text-gray-500 dark:text-[#7e89a6] text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5">
-                            <UserCheck className="w-3.5 h-3.5" />
-                            {t('friends.requestAlreadySent')}
+                        <div className="space-y-1.5">
+                          <div className="w-full h-9 bg-gray-100 dark:bg-[#22263a] text-gray-500 dark:text-[#7e89a6] text-[12.5px] font-semibold rounded-xl flex items-center justify-center gap-1.5">
+                            <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{t('friends.requestAlreadySent')}</span>
                           </div>
                           <button
                             onClick={() => handleCancelRequest(user.id!)}
                             disabled={cancelling === user.id}
-                            title={t('friends.withdrawRequest')}
-                            className="h-9 px-2.5 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 text-xs font-semibold rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center gap-1 disabled:opacity-60"
+                            className="w-full h-9 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 text-[12.5px] font-semibold rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
                           >
                             {cancelling === user.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
                             {t('friends.withdraw')}
@@ -298,7 +318,7 @@ export default function Friends() {
                         <button
                           onClick={() => handleAddFriend(user.id!)}
                           disabled={!!adding}
-                          className="w-full h-9 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 disabled:opacity-70"
+                          className="w-full h-9 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-[0_1px_4px_rgba(37,99,235,0.3)] disabled:opacity-70"
                         >
                           {adding === user.id
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -339,7 +359,7 @@ export default function Friends() {
                     >
                       <button
                         onClick={() => navigate(`/profile/${f.id}`)}
-                        className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#22263a] dark:hover:bg-[#2b2f45] text-gray-700 dark:text-[#c8ccde] text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#252840] dark:hover:bg-[#2d3150] text-gray-700 dark:text-[#c8ccde] text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
                         <Users className="w-3.5 h-3.5" />
                         {t('friends.profile')}
@@ -371,54 +391,44 @@ interface PersonCardProps {
 }
 
 function PersonCard({ name, avatar, color, subtitle, onNameClick, children, index = 0 }: PersonCardProps & { index?: number }) {
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
-
   return (
     <div
-      className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#2b2f45] overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group animate-card-in"
-      style={{ animationDelay: `${index * 60}ms` }}
+      className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-gray-100 dark:border-[#252840] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.09)] hover:-translate-y-[3px] transition-all duration-200 animate-card-in flex flex-col"
+      style={{ animationDelay: `${index * 55}ms` }}
     >
-      {/* Banner */}
-      <div
-        className="h-[72px] relative"
-        style={{ background: `linear-gradient(135deg, rgba(${r},${g},${b},0.18) 0%, rgba(${r},${g},${b},0.35) 100%)` }}
-      >
-        {/* Avatar overlapping */}
-        <div className="absolute -bottom-7 left-4">
+      {/* Avatar area */}
+      <div className="pt-6 px-4 pb-3 flex flex-col items-center text-center">
+        <div className="mb-3 relative">
           {avatar ? (
             <img
               src={avatar}
               alt={name}
-              className="w-14 h-14 rounded-full border-[3px] border-white dark:border-[#1a1d28] object-cover shadow-sm"
+              className="w-[68px] h-[68px] rounded-full object-cover ring-[3px] ring-white dark:ring-[#1a1d28] shadow-[0_2px_12px_rgba(0,0,0,0.12)]"
             />
           ) : (
             <div
-              className="w-14 h-14 rounded-full border-[3px] border-white dark:border-[#1a1d28] flex items-center justify-center text-white font-bold text-lg shadow-sm select-none"
+              className="w-[68px] h-[68px] rounded-full flex items-center justify-center text-white font-bold text-xl shadow-[0_2px_12px_rgba(0,0,0,0.15)] select-none"
               style={{ backgroundColor: color }}
             >
               {getInitials(name)}
             </div>
           )}
         </div>
-      </div>
-
-      {/* Content */}
-      <div className="pt-9 px-4 pb-4">
         <h3
-          className="font-bold text-gray-900 dark:text-[#edf0fa] text-[14px] leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate"
+          className="font-semibold text-[#0f1117] dark:text-[#edf0fa] text-[13px] leading-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1 w-full"
           onClick={onNameClick}
           title={name}
         >
           {name}
         </h3>
         {subtitle && (
-          <p className="text-xs text-gray-400 dark:text-[#7e89a6] mt-0.5 truncate">{subtitle}</p>
+          <p className="text-[11px] text-gray-400 dark:text-[#7e89a6] mt-0.5 truncate w-full">{subtitle}</p>
         )}
-        <div className="mt-3 space-y-1.5">
-          {children}
-        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="px-3 pb-4 mt-auto space-y-1.5">
+        {children}
       </div>
     </div>
   );
@@ -427,13 +437,13 @@ function PersonCard({ name, avatar, color, subtitle, onNameClick, children, inde
 /* ─── Section Header ─── */
 function SectionHeader({ title, badge }: { title: string; badge?: string }) {
   return (
-    <div className="flex items-center justify-between mb-5">
+    <div className="flex items-center justify-between mb-4">
       <div>
-        <h2 className="text-[17px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{title}</h2>
+        <h2 className="text-[14px] font-bold text-gray-900 dark:text-[#edf0fa] tracking-tight">{title}</h2>
         <div className="mt-1 h-0.5 w-10 rounded-full bg-blue-500 opacity-70" />
       </div>
       {badge && (
-        <span className="text-sm text-blue-500 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded-full">
+        <span className="text-[11.5px] text-blue-500 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-500/10 px-2.5 py-0.5 rounded-full">
           {badge}
         </span>
       )}

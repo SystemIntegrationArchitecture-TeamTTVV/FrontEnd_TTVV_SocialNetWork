@@ -65,6 +65,14 @@ export interface FriendDTO {
   friendAvatar?: string;
 }
 
+export interface FriendSuggestionDTO {
+  userId: string;
+  fullName: string;
+  username: string;
+  avatar: string;
+  mutualFriendCount: number;
+}
+
 export const friendsApi = {
   /** Lấy danh sách bạn bè từ bảng Friend (sau khi accept) */
   getFriendsByUserId: async (userId: string): Promise<FriendDTO[]> => {
@@ -72,6 +80,12 @@ export const friendsApi = {
   },
   checkIfFriends: async (userId: string, friendId: string): Promise<boolean> => {
     return httpClient.get<boolean>(`/api/social/friends/check?userId=${userId}&friendId=${friendId}`);
+  },
+  /** Gợi ý bạn bè dựa trên friends-of-friends (backend tính sẵn) */
+  getSuggestions: async (userId: string, limit = 12): Promise<FriendSuggestionDTO[]> => {
+    return httpClient.get<FriendSuggestionDTO[]>(
+      `/api/social/friends/suggestions?userId=${encodeURIComponent(userId)}&limit=${limit}`
+    );
   },
 };
 

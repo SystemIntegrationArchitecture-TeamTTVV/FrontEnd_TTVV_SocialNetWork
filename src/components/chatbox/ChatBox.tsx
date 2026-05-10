@@ -6,9 +6,16 @@ import EmojiPicker from '../chat/EmojiPicker';
 import { ImageUpload, VideoUpload } from '../chat/FileUpload';
 import VoiceRecorder from '../chat/VoiceRecorder';
 import type { ChatContact } from '../../types/chat';
-import { useMessages } from '../../hooks/useMessages';
 import { useTranslation } from 'react-i18next';
 import { notify } from '../../services/notify';
+
+// Deterministic color per sender so group chat bubble colors are stable
+const idToColor = (id: string): string => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  const palette = ['#1a6cf5','#7c3aed','#0e9f6e','#d97706','#e11d48','#0891b2','#7e22ce','#b45309'];
+  return palette[hash % palette.length];
+};
 interface ChatBoxProps {
   contact: ChatContact;
   index: number;
@@ -26,7 +33,6 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMinimized = minimizedBoxes.has(contact.id);
   const contactMessages = messages[contact.id] || [];
-  const { loadConversations } = useMessages();
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -43,7 +49,6 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
     try {
       setSending(true);
       await sendMessage(contact.id, messageInput);
-      await loadConversations();
       setMessageInput('');
       setTimeout(() => {
         scrollToBottom();
@@ -134,12 +139,16 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       >
         <div className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] rounded-t-xl transition-colors">
           <div className="relative">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
-              style={{ backgroundColor: contact.color }}
-            >
-              {contact.avatar}
-            </div>
+            {contact.avatarUrl ? (
+              <img src={contact.avatarUrl} alt={contact.name} className="w-9 h-9 rounded-full object-cover shadow-sm" />
+            ) : (
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
+                style={{ backgroundColor: contact.color }}
+              >
+                {contact.avatar}
+              </div>
+            )}
             {contact.online && (
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#1a1d28]" />
             )}
@@ -177,12 +186,16 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] rounded-t-xl shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-sm"
-              style={{ backgroundColor: contact.color }}
-            >
-              {contact.avatar}
-            </div>
+            {contact.avatarUrl ? (
+              <img src={contact.avatarUrl} alt={contact.name} className="w-8 h-8 rounded-full object-cover shadow-sm" />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-sm"
+                style={{ backgroundColor: contact.color }}
+              >
+                {contact.avatar}
+              </div>
+            )}
             {contact.online && (
               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-[#1a1d28]" />
             )}
@@ -193,28 +206,36 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
           </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          {!contact.isGroup && (
-            <>
-              <button
-                type="button"
-                onClick={() => contact.userId && startCall(contact.userId, contact.name, 'voice')}
-                disabled={!contact.userId}
-                className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
-                title={t('chatBox.voiceCall')}
-              >
-                <Phone className="w-3.5 h-3.5 text-[#1877F2]" />
-              </button>
-              <button
-                type="button"
-                onClick={() => contact.userId && startCall(contact.userId, contact.name, 'video')}
-                disabled={!contact.userId}
-                className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
-                title={t('chatBox.videoCall')}
-              >
-                <Video className="w-3.5 h-3.5 text-[#1877F2]" />
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (contact.isGroup) {
+                startCall(contact.id, contact.name, 'voice', contact.id, true);
+              } else if (contact.userId) {
+                startCall(contact.userId, contact.name, 'voice', contact.id, false);
+              }
+            }}
+            disabled={!contact.isGroup && !contact.userId}
+            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
+            title={t('chatBox.voiceCall')}
+          >
+            <Phone className="w-3.5 h-3.5 text-[#1877F2]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (contact.isGroup) {
+                startCall(contact.id, contact.name, 'video', contact.id, true);
+              } else if (contact.userId) {
+                startCall(contact.userId, contact.name, 'video', contact.id, false);
+              }
+            }}
+            disabled={!contact.isGroup && !contact.userId}
+            className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors disabled:opacity-40"
+            title={t('chatBox.videoCall')}
+          >
+            <Video className="w-3.5 h-3.5 text-[#1877F2]" />
+          </button>
           <button
             onClick={() => toggleMinimize(contact.id)}
             className="w-7 h-7 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] flex items-center justify-center transition-colors"
@@ -236,30 +257,55 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#f0f2f5] dark:bg-[#0c0e14]">
         {contactMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg mb-3"
-              style={{ backgroundColor: contact.color }}
-            >
-              {contact.avatar}
-            </div>
-            <p className="text-sm font-semibold text-[#050505] dark:text-[#edf0fa]">{contact.name}</p>
-            <p className="text-xs text-[#65676b] dark:text-[#7e89a6] mt-1">Bắt đầu cuộc trò chuyện</p>
-          </div>
-        )}
-        {contactMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex items-end gap-1.5 ${msg.isMe ? 'flex-row-reverse' : ''}`}
-          >
-            {!msg.isMe && (
+            {contact.avatarUrl ? (
+              <img src={contact.avatarUrl} alt={contact.name} className="w-14 h-14 rounded-full object-cover shadow mb-3" />
+            ) : (
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white font-semibold text-[10px] shrink-0 shadow-sm"
+                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg mb-3"
                 style={{ backgroundColor: contact.color }}
               >
                 {contact.avatar}
               </div>
             )}
+            <p className="text-sm font-semibold text-[#050505] dark:text-[#edf0fa]">{contact.name}</p>
+            <p className="text-xs text-[#65676b] dark:text-[#7e89a6] mt-1">Bắt đầu cuộc trò chuyện</p>
+          </div>
+        )}
+        {contactMessages.map((msg) => {
+          // Derive avatar for non-me messages
+          const senderInitials = msg.senderAvatar
+            ? null // has real avatar image
+            : msg.sender.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+          const senderColor = idToColor(msg.senderId);
+
+          return (
+          <div
+            key={msg.id}
+            className={`flex items-end gap-1.5 ${msg.isMe ? 'flex-row-reverse' : ''}`}
+          >
+            {!msg.isMe && (
+              <div className="relative shrink-0">
+                {msg.senderAvatar ? (
+                  <img
+                    src={msg.senderAvatar}
+                    alt={msg.sender}
+                    className="w-7 h-7 rounded-full object-cover shadow-sm"
+                  />
+                ) : (
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-white font-semibold text-[10px] shadow-sm"
+                    style={{ backgroundColor: contact.isGroup ? senderColor : contact.color }}
+                  >
+                    {contact.isGroup ? senderInitials : contact.avatar}
+                  </div>
+                )}
+              </div>
+            )}
             <div className={`max-w-[78%] ${msg.isMe ? 'text-right' : ''}`}>
+              {/* Sender name — group only, non-me messages */}
+              {contact.isGroup && !msg.isMe && (
+                <p className="text-[10px] font-medium text-[#65676b] dark:text-[#7e89a6] mb-0.5 px-1 truncate">{msg.sender}</p>
+              )}
               {/* Attachments */}
               {msg.attachments && msg.attachments.length > 0 && (
                 <div className="mb-1.5 space-y-1.5">
@@ -305,7 +351,8 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               <p className="text-[10px] text-[#65676b] dark:text-[#7e89a6] mt-0.5 px-1">{msg.time}</p>
             </div>
           </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 

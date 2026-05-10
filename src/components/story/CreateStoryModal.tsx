@@ -79,6 +79,7 @@ export default function CreateStoryModal({ onClose, onCreate }: Props) {
       onClose();
     } catch (err) {
       console.error('Create text story failed', err);
+      showToast(t('storyModal.createFailed'), 'error');
     } finally {
       setLoading(false);
     }

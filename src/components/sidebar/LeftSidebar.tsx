@@ -107,6 +107,7 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
             <button
               key={index}
               type="button"
+              data-sidebar-link={item.path}
               onClick={() => showAuthRequiredPrompt(location.pathname)}
               className={`w-full ${rowBase} ${rowInactive} text-gray-400 dark:text-[#6a7494]`}
               title={`${rowLabel} - ${t('leftSidebar.loginRequired')}`}

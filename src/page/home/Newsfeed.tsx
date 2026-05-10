@@ -19,6 +19,7 @@ import StoryAvatar from '../../components/story/StoryAvatar';
 import StoryViewer from '../../components/story/StoryViewer';
 // import StoryViewer from './StoryViewer';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
+import CreatePost from './CreatePost';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 import { useToast } from '../../contexts/useToast';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +36,7 @@ const _postCache: {
 
 export default function Newsfeed() {
   const { t } = useTranslation();
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -893,12 +895,12 @@ export default function Newsfeed() {
             )}
           </div>
           {currentUser ? (
-            <Link
-              to="/post/create"
+            <button
+              onClick={() => setIsCreatePostModalOpen(true)}
               className="flex-1 h-10 px-4 rounded-full bg-[#f0f2f5] dark:bg-[#22263a] hover:bg-[#e4e6eb] dark:hover:bg-[#2b2f45] border-0 text-left flex items-center text-[#65676b] dark:text-[#7e89a6] hover:text-[#050505] dark:hover:text-[#c8ccde] cursor-pointer text-[15px] transition-colors"
             >
               {t('newsfeed.createPostPlaceholder', { name: (currentUser.fullName || '').split(' ').filter(Boolean)[0] ?? '' })}
-            </Link>
+            </button>
           ) : (
             <button
               type="button"
@@ -912,33 +914,33 @@ export default function Newsfeed() {
         <div className="flex items-center justify-between gap-1 pt-3 border-t border-[#e4e6eb] dark:border-[#22263a]">
           {currentUser ? (
             <>
-              <Link
-                to="/post/create"
+              <button
+                onClick={() => setIsCreatePostModalOpen(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-green-500/10 transition-colors"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e7f3ff] dark:bg-green-500/15">
                   <Image className="w-[18px] h-[18px] text-[#1877F2] dark:text-green-400" />
                 </span>
                 <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.photoVideo')}</span>
-              </Link>
-              <Link
-                to="/post/create"
+              </button>
+              <button
+                onClick={() => setIsCreatePostModalOpen(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-amber-500/10 transition-colors"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff4d6] dark:bg-amber-500/15">
                   <Smile className="w-[18px] h-[18px] text-[#f7b928] dark:text-amber-400" />
                 </span>
                 <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.feeling')}</span>
-              </Link>
-              <Link
-                to="/post/create"
+              </button>
+              <button
+                onClick={() => setIsCreatePostModalOpen(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-rose-500/10 transition-colors"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe8ec] dark:bg-rose-500/15">
                   <Activity className="w-[18px] h-[18px] text-[#f3425f] dark:text-rose-400" />
                 </span>
                 <span className="text-[15px] text-[#65676b] dark:text-[#c8ccde] font-semibold">{t('newsfeed.activity')}</span>
-              </Link>
+              </button>
             </>
           ) : (
             <>
@@ -997,12 +999,12 @@ export default function Newsfeed() {
 
             <p className="text-gray-400 text-[15px]">{t('newsfeed.emptyFeed')}</p>
             {currentUser ? (
-              <Link
-                to="/post/create"
+              <button
+                onClick={() => setIsCreatePostModalOpen(true)}
                 className="mt-5 inline-block px-5 py-2.5 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors text-[15px] font-semibold"
               >
                 {t('newsfeed.createPost')}
-              </Link>
+              </button>
             ) : (
               <button
                 type="button"
@@ -1568,6 +1570,16 @@ export default function Newsfeed() {
         />
       )}
 
+      {/* Create Post Modal */}
+      {isCreatePostModalOpen && (
+        <CreatePost
+          onClose={() => setIsCreatePostModalOpen(false)}
+          onSuccess={() => {
+            setIsCreatePostModalOpen(false);
+            fetchPosts();
+          }}
+        />
+      )}
     </div>
   );
 }

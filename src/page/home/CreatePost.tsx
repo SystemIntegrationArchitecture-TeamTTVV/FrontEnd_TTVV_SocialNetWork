@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Image, X, Globe, UserCheck, Lock, Loader2, Video, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import Newsfeed from './Newsfeed';
+
 import { postsApi } from '../../apis/posts';
 import type { CreatePostRequest } from '../../apis/posts';
 import { authApi } from '../../apis/auth';
@@ -10,9 +10,13 @@ import { HttpError } from '../../apis/http';
 import { useToast } from '../../contexts/useToast';
 import { useTranslation } from 'react-i18next';
 
-export default function CreatePost() {
+interface CreatePostProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export default function CreatePost({ onClose, onSuccess }: CreatePostProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [content, setContent] = useState('');
   const [privacy, setPrivacy] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +52,9 @@ export default function CreatePost() {
     } catch (err: any) {
       console.error('❌ Image upload failed:', err);
       setError(t('createPost.errorUploadImages'));
+      // Clear previews added in this failed batch
+      setImagePreviews([]);
+      setImageUrls([]);
     } finally {
       setIsUploading(false);
     }
@@ -74,6 +81,9 @@ export default function CreatePost() {
     } catch (err: any) {
       console.error('❌ Video upload failed:', err);
       setError(t('createPost.errorUploadVideos'));
+      // Clear previews added in this failed batch
+      setVideoPreviews([]);
+      setVideoUrls([]);
     } finally {
       setIsUploading(false);
     }
@@ -126,7 +136,7 @@ export default function CreatePost() {
       imagePreviews.forEach(url => URL.revokeObjectURL(url));
       videoPreviews.forEach(url => URL.revokeObjectURL(url));
       
-      navigate('/', { replace: true });
+      onSuccess();
     } catch (err: unknown) {
       const message =
         err instanceof HttpError
@@ -165,12 +175,11 @@ export default function CreatePost() {
 
   return (
     <>
-      <Newsfeed />
       <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-125 max-h-[90vh] overflow-y-auto border border-gray-200 pointer-events-auto">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">{t('createPost.title')}</h2>
-            <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <button type="button" onClick={onClose} className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
               <X className="w-5 h-5 text-gray-700" />
             </button>
           </div>

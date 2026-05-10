@@ -10,6 +10,10 @@ import AIChatWidget from '../ai/AIChatWidget';
 import FeatureGuideBot from '../guide/FeatureGuideBot';
 import AuthRequiredModal from '../common/AuthRequiredModal';
 import { AUTH_REQUIRED_EVENT } from '../../utils/authPrompt';
+import { LiveStreamHostProvider } from '../../contexts/LiveStreamHostContext';
+import GlobalStreamerOverlay from '../../page/livestream/components/GlobalStreamerOverlay';
+import { LiveStreamViewerProvider } from '../../contexts/LiveStreamViewerContext';
+import GlobalViewerOverlay from '../../page/livestream/components/GlobalViewerOverlay';
 
 export default function MainLayout() {
   const location = useLocation();
@@ -52,8 +56,10 @@ export default function MainLayout() {
   }, [isRightSidebarCollapsed]);
 
   return (
-    <div className="app-shell h-screen flex flex-col overflow-hidden">
-      {!isFlappyFullscreen && <Navbar />}
+    <LiveStreamHostProvider>
+      <LiveStreamViewerProvider>
+        <div className="app-shell h-screen flex flex-col overflow-hidden">
+          {!isFlappyFullscreen && <Navbar />}
       
       <div className={`flex flex-1 overflow-hidden ${isFlappyFullscreen ? '' : 'pt-14'}`}>
         {/* LEFT SIDEBAR — cùng nền feed, viền tinh như Facebook */}
@@ -133,6 +139,10 @@ export default function MainLayout() {
         fromPath={fromPath}
         onClose={() => setShowAuthModal(false)}
       />
+      <GlobalStreamerOverlay />
+      <GlobalViewerOverlay />
     </div>
+    </LiveStreamViewerProvider>
+    </LiveStreamHostProvider>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search as SearchIcon, Users, UserPlus, X, Clock, Loader2, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usersApi, type User } from '../../apis/users';
@@ -275,7 +275,7 @@ export default function Search() {
               <div className="space-y-2">
                 {people.map((user) => {
                   const uid = user.id ?? user.username ?? '';
-                  const name = user.fullName ?? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.username ?? uid;
+                  const name = user.fullName ?? (`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || (user.username ?? uid));
                   const added = addedFriends.has(uid);
                   return (
                     <div

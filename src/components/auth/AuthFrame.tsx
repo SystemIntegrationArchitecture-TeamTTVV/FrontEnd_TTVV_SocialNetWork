@@ -169,23 +169,12 @@ export default function AuthFrame({
               </p>
             </div>
 
-            <div className="relative h-[500px] justify-self-end w-[360px] flex items-center justify-center">
-              {/* Feature highlights card */}
-              <div className="w-full rounded-3xl bg-white/70 dark:bg-[#1f2230]/80 border border-gray-200/80 dark:border-[#272c3d] shadow-lg p-8 space-y-5">
-                {[
-                  { emoji: '💬', title: t('auth.frame.slide1Title'), desc: t('auth.frame.slide1Desc') },
-                  { emoji: '🤝', title: t('auth.frame.slide2Title'), desc: t('auth.frame.slide2Desc') },
-                  { emoji: '🔔', title: t('auth.frame.slide3Title'), desc: t('auth.frame.slide3Desc') },
-                ].map((f, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="text-2xl shrink-0">{f.emoji}</span>
-                    <div>
-                      <p className="font-semibold text-gray-800 dark:text-[#e8ecf5] text-sm">{f.title}</p>
-                      <p className="text-xs text-gray-500 dark:text-[#8d97b0] mt-0.5 line-clamp-2">{f.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="relative h-[580px] justify-self-end w-[440px] flex items-center justify-center">
+              <img
+                src="https://static.xx.fbcdn.net/rsrc.php/yb/r/HpEiFYDux5j.webp"
+                alt="illustration"
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
         </div>
