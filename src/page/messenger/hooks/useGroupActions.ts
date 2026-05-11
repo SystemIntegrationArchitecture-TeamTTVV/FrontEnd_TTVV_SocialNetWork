@@ -268,10 +268,27 @@ export function useGroupActions({
     }
   };
 
-  const handleAdminToggle = (memberId: string) => {
-    setAdminDraft((prev) =>
-      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
-    );
+  const handleToggleAdminDirect = async (memberId: string, currentAdmins: string[], makeAdmin: boolean) => {
+    if (!activeChat || !userId) return;
+    setUpdatingGroup(true);
+    setGroupActionError(null);
+    setGroupActionMessage(null);
+    try {
+      const newAdmins = makeAdmin
+        ? [...currentAdmins, memberId]
+        : currentAdmins.filter((id) => id !== memberId);
+      await conversationsApi.updateGroupRoles(activeChat, {
+        requesterId: userId,
+        adminIds: newAdmins,
+      });
+      setGroupActionMessage(makeAdmin ? 'Đã bổ nhiệm phó nhóm' : 'Đã hủy tư cách phó nhóm');
+      await loadConversations();
+    } catch (err: unknown) {
+      console.error('Failed to toggle admin', err);
+      setGroupActionError(err instanceof Error ? err.message : 'Không thể thay đổi quyền phó nhóm');
+    } finally {
+      setUpdatingGroup(false);
+    }
   };
 
   const handleUpdateRoles = async () => {
@@ -405,7 +422,7 @@ export function useGroupActions({
     handleClearConversationForMe,
     handleClearGroupHistory,
     handleJoinRequestDecision,
-    handleAdminToggle,
+    handleToggleAdminDirect,
     handleUpdateRoles,
     handleTransferOwnership,
     handleToggleRequireApproval,

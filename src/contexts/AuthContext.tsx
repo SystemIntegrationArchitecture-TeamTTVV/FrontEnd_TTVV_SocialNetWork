@@ -15,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<AuthResponse>;
+  login: (username: string, password: string, captchaToken: string, captchaText: string) => Promise<AuthResponse>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   /** Đồng bộ user từ API + localStorage — gọi sau khi sửa profile/ảnh bìa để Navbar khớp trang profile */
@@ -115,10 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (username: string, password: string): Promise<AuthResponse> => {
+  const login = async (username: string, password: string, captchaToken: string, captchaText: string): Promise<AuthResponse> => {
     try {
       setIsLoading(true);
-      const response: AuthResponse = await authApi.login({ username, password });
+      const response: AuthResponse = await authApi.login({ username, password, captchaToken, captchaText });
 
       setUser({
         id: response.userId,

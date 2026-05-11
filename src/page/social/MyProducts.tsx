@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Check, Loader } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Check, Loader, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -14,6 +15,7 @@ import { getLocaleTag } from '../../i18n';
 export default function MyProducts() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,6 +175,15 @@ export default function MyProducts() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/marketplace')}
+          className="flex items-center gap-2 mb-4 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          {t('productDetail.backToMarketplace')}
+        </button>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -295,6 +306,13 @@ export default function MyProducts() {
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
+                          <button
+                            title={t('myProducts.view')}
+                            onClick={() => navigate(`/marketplace/product/${product.id}`)}
+                          >
+                            <ExternalLink className="w-4 h-4 text-blue-500" />
+                          </button>
+
                           <button
                             onClick={() => handleToggleActive(product.id!)}
                           >

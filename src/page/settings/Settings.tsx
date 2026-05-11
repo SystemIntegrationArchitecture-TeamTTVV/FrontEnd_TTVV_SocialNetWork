@@ -289,7 +289,7 @@ export default function Settings() {
                 <p className="font-medium text-gray-900 mb-1">{t('settingsPage.changePassword')}</p>
                 <p className="text-sm text-gray-500 mb-3">{t('settingsPage.changePasswordDesc')}</p>
                 <button
-                  onClick={() => navigate('/forgot-password')}
+                  onClick={() => navigate('/auth/forgot-password')}
                   className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {t('settingsPage.changePassword')}

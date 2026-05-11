@@ -69,6 +69,7 @@ export const API_ENDPOINTS = {
     REGISTER: "/api/auth/register",
     REFRESH: "/api/auth/refresh",
     LOGOUT: "/api/auth/logout",
+    CAPTCHA_CHALLENGE: "/api/auth/captcha/challenge",
   },
   // Add other endpoints here as needed
 };

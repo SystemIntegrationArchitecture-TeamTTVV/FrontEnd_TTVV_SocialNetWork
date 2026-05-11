@@ -880,6 +880,21 @@ export function useMessages() {
         return sortConversationsByActivity(updated);
       });
 
+      // Force fetch the latest conversation data to ensure 100% sync
+      // (in case the socket payload is partial and doesn't contain the updated groupAvatar/groupName)
+      conversationsApi
+        .getConversationById(payload.conversationId)
+        .then((freshConv) => {
+          setConversations((current) => {
+            const exists = current.some((item) => item.id === freshConv.id);
+            const merged = exists
+              ? current.map((item) => (item.id === freshConv.id ? { ...item, ...freshConv } : item))
+              : [freshConv, ...current];
+            return sortConversationsByActivity(merged);
+          });
+        })
+        .catch(() => undefined);
+
       // Fallback for backend flows that update conversation preview/meta without
       // reliable MESSAGE_RECEIVED payload for system events.
       const hasExplicitBlockMeta =

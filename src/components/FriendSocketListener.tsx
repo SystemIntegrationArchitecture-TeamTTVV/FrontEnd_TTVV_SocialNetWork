@@ -106,6 +106,48 @@ export default function FriendSocketListener() {
             },
           });
           break;
+
+        case 'POST':
+          toast(t('friendToast.postCreated', { name: actorName }), {
+            icon: '📝',
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: '#F0F9FF',
+              color: '#0C4A6E',
+              border: '1px solid #BAE6FD',
+              fontWeight: 500,
+            },
+          });
+          break;
+
+        case 'MENTION':
+          toast(t('friendToast.mentionInChat', { name: actorName }), {
+            icon: '@',
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: '#EFF6FF',
+              color: '#1D4ED8',
+              border: '1px solid #BFDBFE',
+              fontWeight: 500,
+            },
+          });
+          break;
+
+        case 'COMMENT_MENTION':
+          toast(t('friendToast.mentionInComment', { name: actorName }), {
+            icon: '@',
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: '#EFF6FF',
+              color: '#1D4ED8',
+              border: '1px solid #BFDBFE',
+              fontWeight: 500,
+            },
+          });
+          break;
       }
     });
 

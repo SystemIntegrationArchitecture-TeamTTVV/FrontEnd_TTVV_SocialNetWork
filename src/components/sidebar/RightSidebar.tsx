@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessages } from '../../hooks/useMessages';
@@ -86,8 +87,10 @@ export default function RightSidebar({
   );
   const { openChatBox } = useChatBox();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { conversations, loadConversations } = useMessages();
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'contacts' | 'groups'>('contacts');
 
   /**
    * 🔥 LOAD CONVERSATIONS
@@ -154,6 +157,37 @@ export default function RightSidebar({
   }, [conversations, user?.id]);
 
   /**
+   * 🔥 BUILD GROUP LIST
+   */
+  const allGroups = useMemo<ContactWithLastMessage[]>(() => {
+    if (!user?.id || !Array.isArray(conversations)) return [];
+
+    return conversations
+      .filter(conv => conv.isGroup && !conv.isDisbanded)
+      .map((conv): ContactWithLastMessage => {
+        const name = conv.groupName || 'Nhóm chat';
+        const rawAvatar = conv.groupAvatar || '';
+        return {
+          id: conv.id,
+          userId: conv.id,
+          name,
+          avatar: getInitials(name),
+          avatarUrl: rawAvatar ? resolveMediaUrl(rawAvatar) : undefined,
+          color: getAvatarColor(name),
+          online: false,
+          isGroup: true,
+          lastMessage: conv.lastMessagePreview || '',
+          lastMessageTime: conv.lastMessageAt,
+        };
+      })
+      .sort((a, b) => {
+        const t1 = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+        const t2 = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+        return t2 - t1;
+      });
+  }, [conversations, user?.id]);
+
+  /**
    * 🔥 FILTER CONTACTS BY SEARCH QUERY
    */
   const filteredContacts = useMemo(() => {
@@ -164,6 +198,12 @@ export default function RightSidebar({
       contact.name.toLowerCase().includes(query)
     );
   }, [allContacts, searchQuery]);
+
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery.trim()) return allGroups;
+    const query = searchQuery.toLowerCase().trim();
+    return allGroups.filter(g => g.name.toLowerCase().includes(query));
+  }, [allGroups, searchQuery]);
 
   const collapseBtn = (
     <button
@@ -228,10 +268,35 @@ export default function RightSidebar({
           {onToggleCollapse ? collapseBtn : null}
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 mb-3 p-0.5 bg-[#f0f2f5] dark:bg-[#1e2133] rounded-xl">
+          <button
+            onClick={() => { setActiveTab('contacts'); setSearchQuery(''); }}
+            className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all ${
+              activeTab === 'contacts'
+                ? 'bg-white dark:bg-[#2b2f45] text-[#1877F2] shadow-sm'
+                : 'text-[#65676b] dark:text-[#7e89a6] hover:text-[#050505] dark:hover:text-[#edf0fa]'
+            }`}
+          >
+            {t('rightSidebar.contacts')}
+          </button>
+          <button
+            onClick={() => { setActiveTab('groups'); setSearchQuery(''); }}
+            className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'groups'
+                ? 'bg-white dark:bg-[#2b2f45] text-[#1877F2] shadow-sm'
+                : 'text-[#65676b] dark:text-[#7e89a6] hover:text-[#050505] dark:hover:text-[#edf0fa]'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            {t('rightSidebar.groups', { defaultValue: 'Nhóm chat' })}
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#65676b] dark:text-[#5a6278]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[#65676b] dark:text-[#5a6278]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -268,12 +333,13 @@ export default function RightSidebar({
         </div>
       </div>
 
-      {/* Contacts List */}
+      {/* Contacts / Groups List */}
       <div className="flex-1 overflow-y-auto bg-transparent">
-        {filteredContacts.length === 0 ? (
+        {activeTab === 'contacts' && (
+          filteredContacts.length === 0 ? (
           <div className="flex items-start justify-center px-5 pt-8 pb-10">
             {searchQuery ? (
-              <div className="w-full rounded-[24px] bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
+              <div className="w-full rounded-3xl bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
                 <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-4">
                   <svg className="w-7 h-7 text-gray-300 dark:text-[#4e5870]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
@@ -288,7 +354,7 @@ export default function RightSidebar({
                 </p>
               </div>
             ) : (
-              <div className="w-full rounded-[24px] bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
+              <div className="w-full rounded-3xl bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
                 <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-4">
                   <svg className="w-7 h-7 text-gray-300 dark:text-[#4e5870]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
@@ -357,16 +423,88 @@ export default function RightSidebar({
               </div>
             ))}
           </div>
+        ))}
+
+        {/* Groups tab */}
+        {activeTab === 'groups' && (
+          filteredGroups.length === 0 ? (
+            <div className="flex items-start justify-center px-5 pt-8 pb-10">
+              <div className="w-full rounded-3xl bg-gray-50 dark:bg-[#1a1d28] p-6 text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center mb-4">
+                  <Users className="w-7 h-7 text-gray-300 dark:text-[#4e5870]" />
+                </div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] mb-1">
+                  {searchQuery ? t('rightSidebar.noResults') : t('rightSidebar.noGroups', { defaultValue: 'Chưa có nhóm chat' })}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-[#5a6278] leading-relaxed">
+                  {searchQuery ? t('rightSidebar.noResultsHint') : t('rightSidebar.noGroupsHint', { defaultValue: 'Tham gia hoặc tạo nhóm chat mới.' })}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-2 bg-transparent">
+              {filteredGroups.map((group, index) => (
+                <div
+                  key={group.id}
+                  onClick={() => openChatBox(group)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-colors
+                             border border-transparent
+                             hover:bg-gray-50 dark:hover:bg-[#1e2133]
+                             hover:border-gray-100 dark:hover:border-[#2b2f45]
+                             active:bg-gray-100 dark:active:bg-[#22263a]"
+                  style={{
+                    animation: searchQuery ? `fadeIn 0.3s ease-out ${index * 0.05}s both` : 'none'
+                  }}
+                >
+                  <div className="relative">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm select-none shadow-sm overflow-hidden"
+                      style={{ backgroundColor: group.avatarUrl ? undefined : group.color }}
+                    >
+                      {group.avatarUrl
+                        ? <img src={group.avatarUrl} alt={group.name} className="w-full h-full object-cover" />
+                        : getInitials(group.name)}
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#1877F2] rounded-full border-2 border-white dark:border-[#13151f] flex items-center justify-center">
+                      <Users className="w-2 h-2 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-[#edf0fa] truncate">
+                        {group.name}
+                      </p>
+                      {group.lastMessageTime && (
+                        <span className="text-[11px] font-medium text-gray-400 dark:text-[#6a7494] whitespace-nowrap">
+                          {formatMessageTime(group.lastMessageTime)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-[#7e89a6] truncate leading-relaxed">
+                      {group.lastMessage || t('rightSidebar.noLastMessage')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 
       {/* Footer Info */}
-      {filteredContacts.length > 0 && (
+      {activeTab === 'contacts' && filteredContacts.length > 0 && (
         <div className="px-4 py-2 border-t border-[#e4e6eb] dark:border-[#22263a]">
           <p className="text-xs text-gray-500 dark:text-[#7e89a6] text-center">
             {searchQuery
               ? t('rightSidebar.footerResults', { count: filteredContacts.length })
               : t('rightSidebar.footerContacts', { count: filteredContacts.length })}
+          </p>
+        </div>
+      )}
+      {activeTab === 'groups' && filteredGroups.length > 0 && (
+        <div className="px-4 py-2 border-t border-[#e4e6eb] dark:border-[#22263a]">
+          <p className="text-xs text-gray-500 dark:text-[#7e89a6] text-center">
+            {t('rightSidebar.footerGroups', { count: filteredGroups.length, defaultValue: `${filteredGroups.length} nhóm chat` })}
           </p>
         </div>
       )}

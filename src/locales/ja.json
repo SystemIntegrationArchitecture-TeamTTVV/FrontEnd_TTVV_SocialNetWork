@@ -247,6 +247,7 @@
     "address": "詳細住所",
     "addressPlaceholder": "オプション：通り、建物など",
     "images": "商品画像",
+    "uploadImage": "画像をアップロード",
     "imagePlaceholder": "画像URLを貼り付けてEnterキーを押す",
     "tags": "タグ",
     "tagPlaceholder": "タグを追加（スペースなし）",
@@ -283,6 +284,7 @@
     "sold": "売却済み",
     "activate": "アクティベート",
     "deactivate": "非アクティベート",
+    "view": "詳細を見る",
     "markSold": "売却済みにする",
     "filter": {
       "all": "すべて",

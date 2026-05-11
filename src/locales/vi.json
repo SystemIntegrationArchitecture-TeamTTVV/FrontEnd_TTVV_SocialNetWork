@@ -247,6 +247,7 @@
     "address": "Địa chỉ chi tiết",
     "addressPlaceholder": "Tùy chọn: Tên đường, tòa nhà, etc.",
     "images": "Ảnh sản phẩm",
+    "uploadImage": "Tải ảnh lên",
     "imagePlaceholder": "Dán URL ảnh và nhấn Enter",
     "tags": "Thẻ",
     "tagPlaceholder": "Thêm thẻ (không có dấu cách)",
@@ -283,6 +284,7 @@
     "sold": "Đã bán",
     "activate": "Kích hoạt",
     "deactivate": "Vô hiệu hóa",
+    "view": "Xem chi tiết",
     "markSold": "Đánh dấu đã bán",
     "filter": {
       "all": "Tất cả",
@@ -1819,6 +1821,13 @@
       "forgotPassword": "Quên mật khẩu?",
       "createAccount": "Tạo tài khoản mới"
     },
+    "captcha": {
+      "label": "Mã xác thực",
+      "placeholder": "Nhập mã trong ảnh",
+      "ariaLabel": "Mã xác thực",
+      "refresh": "Làm mới mã",
+      "required": "Vui lòng nhập đúng mã xác thực"
+    },
     "register": {
       "brandDescription": "Tạo tài khoản để bắt đầu kết nối và chia sẻ cùng bạn bè.",
       "cardTitle": "Bắt đầu",
@@ -2237,6 +2246,9 @@
     "requestRejected": "{{name}} đã từ chối lời mời kết bạn của bạn",
     "requestCancelled": "{{name}} đã thu hồi lời mời kết bạn",
     "friendRemoved": "{{name}} đã xóa bạn khỏi danh sách bạn bè",
+    "postCreated": "{{name}} vừa đăng bài viết mới",
+    "mentionInChat": "{{name}} đã nhắc đến bạn trong nhóm chat",
+    "mentionInComment": "{{name}} đã nhắc đến bạn trong bình luận",
     "cancelButton": "Thu hồi",
     "unfriendButton": "Xóa bạn",
     "confirmUnfriend": "Bạn có chắc muốn xóa {{name}} khỏi danh sách bạn bè?"

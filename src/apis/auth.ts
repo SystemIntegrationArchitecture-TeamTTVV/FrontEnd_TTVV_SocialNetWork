@@ -5,6 +5,8 @@ import { API_ENDPOINTS, API_CONFIG } from './config';
 export interface LoginRequest {
   username: string;
   password: string;
+  captchaToken: string;
+  captchaText: string;
 }
 
 export interface RegisterRequest {
@@ -119,6 +121,17 @@ export const authApi = {
       credentials,
       false, // No auth token needed for login
       true // Always via gateway
+    );
+  },
+
+  /**
+   * Fetch a one-time captcha challenge token from backend (stored in Redis)
+   */
+  getCaptchaChallenge: async (): Promise<{ token: string; image: string }> => {
+    return httpClient.get<{ token: string; image: string }>(
+      API_ENDPOINTS.AUTH.CAPTCHA_CHALLENGE,
+      false,
+      true
     );
   },
 

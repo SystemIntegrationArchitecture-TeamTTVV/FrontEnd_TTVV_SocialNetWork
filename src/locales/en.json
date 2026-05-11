@@ -247,6 +247,7 @@
     "address": "Detailed address",
     "addressPlaceholder": "Optional: Street address, building, etc.",
     "images": "Product images",
+    "uploadImage": "Upload image",
     "imagePlaceholder": "Paste image URL and press Enter",
     "tags": "Tags",
     "tagPlaceholder": "Add tags (no spaces)",
@@ -283,6 +284,7 @@
     "sold": "Sold",
     "activate": "Activate",
     "deactivate": "Deactivate",
+    "view": "View detail",
     "markSold": "Mark as sold",
     "filter": {
       "all": "All",
@@ -1819,6 +1821,13 @@
       "forgotPassword": "Forgot password?",
       "createAccount": "Create new account"
     },
+    "captcha": {
+      "label": "Security check",
+      "placeholder": "Answer",
+      "ariaLabel": "Enter the result of the calculation",
+      "refresh": "Refresh challenge",
+      "required": "Please solve the math puzzle to continue"
+    },
     "register": {
       "brandDescription": "Create an account to connect and share with friends.",
       "cardTitle": "Get started",
@@ -2237,6 +2246,9 @@
     "requestRejected": "{{name}} rejected your friend request",
     "requestCancelled": "{{name}} cancelled their friend request",
     "friendRemoved": "{{name}} removed you from their friend list",
+    "postCreated": "{{name}} just posted something new",
+    "mentionInChat": "{{name}} mentioned you in a group chat",
+    "mentionInComment": "{{name}} mentioned you in a comment",
     "cancelButton": "Cancel",
     "unfriendButton": "Unfriend",
     "confirmUnfriend": "Are you sure you want to unfriend {{name}}?"

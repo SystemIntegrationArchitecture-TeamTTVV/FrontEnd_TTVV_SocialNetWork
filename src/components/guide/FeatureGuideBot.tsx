@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChatBox } from '../../contexts/ChatBoxContext';
 import mascotPointSrc from '../../assets/Bot/mascot1.jpg';
 import mascotNormalSrc from '../../assets/Bot/mascot2.jpg';
 import mascotSmileSrc from '../../assets/Bot/mascot3.jpg';
@@ -68,6 +70,10 @@ function removeWhiteBg(src: string): Promise<string> {
 export default function FeatureGuideBot() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const location = useLocation();
+  const isMessengerPage = location.pathname.startsWith('/messages') || location.pathname.startsWith('/messenger');
+  const { openChatBoxes } = useChatBox();
+  const hasChatBoxOpen = openChatBoxes.length > 0;
   const [phase, setPhase] = useState<Phase>('idle');
   const [botPos, setBotPos] = useState({ x: 0, y: 0 });
   const [showBubble, setShowBubble] = useState(false);
@@ -267,10 +273,10 @@ export default function FeatureGuideBot() {
 
   return (
     <>
-      {(phase === 'idle' || phase === 'done') && (
-        <div className="fixed bottom-5 right-5 z-[60]">
+      {!isMessengerPage && !hasChatBoxOpen && (phase === 'idle' || phase === 'done') && (
+        <div className="fixed bottom-5 right-5 z-60">
           {menuOpen && (
-            <div className="mb-2 w-[260px] rounded-xl border border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] shadow-xl p-2.5">
+            <div className="mb-2 w-65 rounded-xl border border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] shadow-xl p-2.5">
               <p className="text-xs font-semibold text-[#050505] dark:text-[#edf0fa] px-1 pb-2">
                 {t('guideNpc.menuTitle', { defaultValue: 'Chon chuc nang can huong dan' })}
               </p>
@@ -289,7 +295,7 @@ export default function FeatureGuideBot() {
           )}
 
           {showAutoPrompt && (
-            <div className="mb-2 rounded-xl border border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] shadow-lg px-3 py-2 text-[11px] text-[#050505] dark:text-[#edf0fa] flex items-start gap-2 w-[260px]">
+            <div className="mb-2 rounded-xl border border-[#e4e6eb] dark:border-[#2b2f45] bg-white dark:bg-[#1a1d28] shadow-lg px-3 py-2 text-[11px] text-[#050505] dark:text-[#edf0fa] flex items-start gap-2 w-65">
               <div className="flex-1">
                 {t('guideNpc.autoPrompt', { defaultValue: 'Ban moi? Bam mascot de duoc huong dan nhanh tung chuc nang.' })}
               </div>
@@ -313,7 +319,7 @@ export default function FeatureGuideBot() {
 
       {active && (
         <div
-          className="fixed z-[9999] pointer-events-none"
+          className="fixed z-9999 pointer-events-none"
           style={{ left: `${botPos.x}px`, top: `${botPos.y}px`, transform: 'translate(-50%, -100%)' }}
         >
           <div className="pointer-events-auto">
@@ -356,7 +362,7 @@ export default function FeatureGuideBot() {
 
       {(interactionText || (showBubble && activeFeature)) && (
         <div
-          className={`z-[10000] w-[270px] pointer-events-auto animate-[fadeInUp_0.2s_ease-out_forwards] ${
+          className={`z-10000 w-67.5 pointer-events-auto animate-[fadeInUp_0.2s_ease-out_forwards] ${
             isMobile ? 'fixed right-5 bottom-22' : 'fixed'
           }`}
           style={
