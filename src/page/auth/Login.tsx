@@ -5,9 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { HttpError } from '../../apis/http';
+import { authApi } from '../../apis/auth';
 import { useToast } from '../../contexts/useToast';
 import AuthFrame from '../../components/auth/AuthFrame';
+import ImageCaptcha from '../../components/auth/ImageCaptcha';
 import i18n from '../../i18n';
+
 
 interface LoginForm {
   username: string;
@@ -31,10 +34,32 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaText, setCaptchaText] = useState('');
+  const [captchaImageUrl, setCaptchaImageUrl] = useState<string | null>(null);
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState(false);
+  const [challengeKey, setChallengeKey] = useState(0);
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
 
-  useEffect(() => {
-    setFocus('username');
-  }, [setFocus]);
+  // Fetch captcha image + one-time token from Redis on mount
+  const fetchChallenge = async () => {
+    setCaptchaLoading(true);
+    setCaptchaText('');
+    try {
+      const { token, image } = await authApi.getCaptchaChallenge();
+      setCaptchaToken(token);
+      setCaptchaImageUrl(image);
+    } catch {
+      // ignore — user can retry via refresh button
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchChallenge(); }, []);
 
   useEffect(() => {
     if (!submitCount) return;
@@ -48,10 +73,16 @@ export default function Login() {
   }, [errors.username, errors.password, setFocus, submitCount]);
 
   const onSubmit = async (data: LoginForm) => {
+    if (!captchaToken || !captchaText.trim()) {
+      setCaptchaError(true);
+      showToast(t('auth.captcha.required'), 'error');
+      return;
+    }
+    setCaptchaError(false);
     try {
       setError(null);
       setIsSubmitting(true);
-      const authResult = await login(data.username, data.password);
+      const authResult = await login(data.username, data.password, captchaToken, captchaText.trim());
       showToast(t('auth.login.submit'), 'success');
       const from =
         (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
@@ -71,6 +102,9 @@ export default function Login() {
         setError(msg);
         showToast(msg, 'error');
       }
+      // Refresh captcha on every failed attempt
+      setChallengeKey((k) => k + 1);
+      fetchChallenge();
       console.error('Login error:', err);
     } finally {
       setIsSubmitting(false);
@@ -155,6 +189,21 @@ export default function Login() {
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
+
+        <div>
+          <ImageCaptcha
+            key={challengeKey}
+            imageUrl={captchaImageUrl}
+            value={captchaText}
+            error={captchaError}
+            loading={captchaLoading}
+            onChange={(text) => {
+              setCaptchaText(text);
+              if (text) setCaptchaError(false);
+            }}
+            onRefresh={() => { setChallengeKey((k) => k + 1); fetchChallenge(); }}
+          />
+        </div>
 
         <button
           type="submit"

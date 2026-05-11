@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { passwordResetApi } from '../../apis/passwordReset';
 import { useToast } from '../../contexts/useToast';
@@ -13,7 +13,6 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [step, setStep] = useState(1);
 
   const isValidEmail = (value: string) => {
@@ -66,32 +65,6 @@ export default function ForgotPassword() {
       setIsLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <AuthFrame brandHeading={t('common.appName')} brandDescription={t('auth.forgot.brandDescriptionSuccess')}>
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-500/15 rounded-full mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa] mb-2">{t('auth.forgot.successTitle')}</h2>
-          <p className="text-gray-600 dark:text-[#7e89a6] mb-4 leading-relaxed">
-            {t('auth.forgot.successBodyPrefix')}
-            <strong className="text-gray-900 dark:text-[#c0c8de]">{email}</strong>
-            {t('auth.forgot.successBodySuffix')}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-[#5a6278] mb-8">{t('auth.forgot.successSpam')}</p>
-          <button
-            type="button"
-            onClick={() => navigate('/auth/login')}
-            className="w-full h-12 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            {t('auth.forgot.backToLogin')}
-          </button>
-        </div>
-      </AuthFrame>
-    );
-  }
 
   return (
     <AuthFrame

@@ -10,7 +10,9 @@ export default function ResetPasswordVerification() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(165); // 2:45
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const email = localStorage.getItem('resetEmail') ?? '';
 
@@ -61,6 +63,24 @@ export default function ResetPasswordVerification() {
     setCode(newCode);
   };
 
+  const handleResend = async () => {
+    if (isResending || timer > 0) return;
+    setIsResending(true);
+    setResendMsg(null);
+    setError(null);
+    try {
+      await passwordResetApi.forgotPassword(email);
+      setResendMsg('Mã xác minh mới đã được gửi đến email của bạn.');
+      setTimer(165);
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } catch {
+      setError('Không thể gửi lại mã. Vui lòng thử lại.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleContinue = async () => {
     if (!code.every((digit) => digit !== '')) return;
     const otp = code.join('');
@@ -81,7 +101,7 @@ export default function ResetPasswordVerification() {
   const isCodeComplete = code.every((digit) => digit !== '');
 
   return (
-    <div className="w-full max-w-[500px] mx-auto">
+    <div className="w-full max-w-125 mx-auto">
       <div className="bg-white dark:bg-[#1a1d28] rounded-[28px] shadow-xl p-8 relative border border-gray-200/80 dark:border-[#2b2f45]">
         <button
           onClick={() => navigate('/auth/login')}
@@ -143,9 +163,21 @@ export default function ResetPasswordVerification() {
           </div>
 
           <div className="text-center space-y-2">
+            {resendMsg && (
+              <p className="text-sm text-green-600 dark:text-green-400">{resendMsg}</p>
+            )}
             <p className="text-sm text-gray-500 dark:text-[#5a6278]">{t('auth.resetOtp.noCode')}</p>
-            <button type="button" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-              {t('auth.resetOtp.resend')}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending || timer > 0}
+              className={`text-sm font-medium hover:underline transition-colors ${
+                isResending || timer > 0
+                  ? 'text-gray-400 dark:text-[#555f78] cursor-not-allowed'
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}
+            >
+              {isResending ? 'Đang gửi...' : t('auth.resetOtp.resend')}
             </button>
           </div>
 
