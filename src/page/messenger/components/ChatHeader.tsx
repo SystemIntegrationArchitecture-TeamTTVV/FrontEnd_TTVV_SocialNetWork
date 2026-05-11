@@ -8,6 +8,7 @@ interface ActiveConversation {
   id: string;
   name: string;
   avatar: string;
+  imageUrl?: string;
   online: boolean;
   color: string;
   isGroup?: boolean;
@@ -49,12 +50,19 @@ export default function ChatHeader({
   return (
     <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shadow-sm">
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        {conversation.isGroup ? (
-          <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm shrink-0" style={{ backgroundColor: conversation.color }}>
-            <Users className="w-6 h-6 text-white" />
-          </div>
-        ) : (
-          <div className="relative shrink-0">
+        <div className="relative shrink-0">
+          {conversation.imageUrl ? (
+            <img
+              src={conversation.imageUrl}
+              alt={conversation.name}
+              className="w-12 h-12 rounded-full object-cover shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => navigate(`/profile/${conversation.id}`)}
+            />
+          ) : conversation.isGroup ? (
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: conversation.color }} onClick={() => navigate(`/profile/${conversation.id}`)}>
+              <Users className="w-6 h-6 text-white" />
+            </div>
+          ) : (
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
               style={{ backgroundColor: conversation.color }}
@@ -62,11 +70,11 @@ export default function ChatHeader({
             >
               {conversation.avatar}
             </div>
-            {conversation.online && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-3 border-white"></div>
-            )}
-          </div>
-        )}
+          )}
+          {conversation.online && (
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-3 border-white"></div>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900 text-lg truncate">{conversation.name}</p>
           {conversation.online && (

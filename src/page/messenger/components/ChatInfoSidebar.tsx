@@ -39,6 +39,7 @@ export interface ChatInfoSidebarProps {
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
+  onToggleAdmin: (memberId: string, isAdmin: boolean) => void;
   friendList: FriendDTO[];
   onInviteFriends: (ids: string[]) => void;
   // UI

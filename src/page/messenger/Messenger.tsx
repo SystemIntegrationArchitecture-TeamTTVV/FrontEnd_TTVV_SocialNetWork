@@ -1,4 +1,4 @@
-﻿import { useLocation, useNavigate, type Location } from 'react-router-dom';
+import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -579,6 +579,7 @@ export default function Messenger() {
     handleToggleOnlyAdminsCanSend,
     handleToggleAiAssistant,
     handleTransferOwnership,
+    handleToggleAdminDirect,
     handleDisbandGroup,
   } = useGroupActions({
     activeChat,
@@ -781,6 +782,7 @@ export default function Messenger() {
           id: conv.id,
           name,
           avatar: initials,
+          imageUrl: conv.isGroup ? conv.groupAvatar : (otherParticipantId ? conv.participantAvatars?.[otherParticipantIndex] : undefined),
           color: hashColor(conv.id),
           online,
           lastMessage: (() => {
@@ -2124,6 +2126,9 @@ export default function Messenger() {
           onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
           onToggleAiAssistant={handleToggleAiAssistant}
           onTransferOwnership={handleTransferOwnership}
+          onToggleAdmin={(memberId, isAdmin) => {
+            handleToggleAdminDirect(memberId, activeConversationRaw?.adminIds || [], isAdmin);
+          }}
           onDisbandGroup={handleDisbandGroup}
           friendList={friendList}
           onInviteFriends={handleInviteFriends}

@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Palette, Smile, Pencil, Lock, Search as SearchIcon,
   Trash2, UserPlus, Crown, Shield,
-  MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy, Bot,
+  MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy, Bot, Image as ImageIcon, Loader2
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../../common/icons/IconComponents';
 import type { Conversation } from '../../../apis/conversations';
 import type { FriendDTO } from '../../../apis/friendRequests';
 import { conversationsApi } from '../../../apis/conversations';
+import { messagesApi, type Message } from '../../../apis/messages';
+import { uploadApi } from '../../../apis/upload';
 import { notify } from '../../../services/notify';
 
 interface ActiveConversation {
@@ -50,6 +52,7 @@ interface ChatInfoSidebarProps {
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
   onToggleAiAssistant: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
+  onToggleAdmin: (memberId: string, isAdmin: boolean) => void;
   friendList: FriendDTO[];
   onInviteFriends: (ids: string[]) => void;
   // UI
@@ -140,6 +143,7 @@ export default function GroupChatSidebar({
   onToggleOnlyAdminsCanSend,
   onToggleAiAssistant,
   onTransferOwnership,
+  onToggleAdmin,
   friendList,
   onInviteFriends,
   onShowSearch,
@@ -155,8 +159,52 @@ export default function GroupChatSidebar({
   const [pendingOpen, setPendingOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string>('');
   const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ pid: string; x: number; y: number } | null>(null);
+  const [mediaMessages, setMediaMessages] = useState<Message[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingJoins = pendingJoinsRaw || [];
   const isDisbanded = !!conversationRaw?.isDisbanded;
+  
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // ── Fetch Media Messages ──
+  useEffect(() => {
+    if (!conversationRaw?.id || !userId) return;
+    let cancelled = false;
+    
+    messagesApi.getMediaMessages(conversationRaw.id, userId)
+      .then(messages => {
+        if (!cancelled) setMediaMessages(messages);
+      })
+      .catch(err => console.warn('Failed to fetch media:', err));
+      
+    return () => { cancelled = true; };
+  }, [conversationRaw?.id, userId]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      const res = await uploadApi.uploadFile(file);
+      onGroupAvatarChange(res.url);
+      notify.success('Tải ảnh lên thành công');
+    } catch (error) {
+      notify.error('Lỗi khi tải ảnh lên');
+      console.error(error);
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -191,85 +239,103 @@ export default function GroupChatSidebar({
   return (
     <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
 
-      {/* Header close button */}
-      <div className="flex items-center justify-end px-4 pt-3 pb-1">
+      {/* Header banner + avatar */}
+      <div className="relative">
+        {/* Color banner */}
+        <div
+          className="h-20 w-full"
+          style={{ backgroundColor: conversation.color }}
+        />
+        {/* Close button */}
         <button
           onClick={onCloseRightSidebar}
-          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/30 hover:bg-white/50 text-white transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
+        {/* Avatar overlapping banner */}
+        <div className="absolute left-1/2 -translate-x-1/2" style={{ top: '44px' }}>
+          {conversationRaw?.groupAvatar ? (
+            <img
+              src={conversationRaw.groupAvatar}
+              alt={conversation.name}
+              className="w-16 h-16 rounded-full border-4 border-white object-cover shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => navigate(`/profile/${conversation.id}`)}
+            />
+          ) : (
+            <div
+              className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center text-white text-xl font-bold shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: conversation.color }}
+              onClick={() => navigate(`/profile/${conversation.id}`)}
+            >
+              {conversation.avatar}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Profile Section */}
-      <div className="text-center px-4 pb-5">
-        <div
-          className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: conversation.color }}
-          onClick={() => navigate(`/profile/${conversation.id}`)}
-        >
-          {conversation.avatar}
-        </div>
-        <h3 className="text-base font-bold text-gray-900 mb-0.5">{conversation.name}</h3>
+      {/* Name + member count */}
+      <div className="text-center pt-10 pb-3 px-4">
+        <h3 className="text-lg font-bold text-gray-900 mb-0.5 leading-tight">{conversation.name}</h3>
         {isGroupChat && conversationRaw && (
-          <p className="text-xs text-gray-500">
-            {t('messenger.groupPanel.memberCount', { count: conversationRaw.participantIds.length })}
+          <p className="text-sm text-gray-500 font-medium">
+            {t('messenger.groupPanel.memberCount', { count: conversationRaw.participantIds.length })} thành viên
           </p>
         )}
         {!isGroupChat && conversation.online && (
-          <p className="text-xs text-green-500 font-medium">{t('messenger.activeNow')}</p>
+          <p className="text-sm text-green-500 font-medium">{t('messenger.activeNow')}</p>
         )}
       </div>
 
       {/* Quick Action Buttons */}
-      <div className="flex justify-center gap-3 px-4 pb-5">
+      <div className="flex justify-center gap-4 px-4 pb-4">
         <button
           onClick={() => navigate(`/profile/${conversation.id}`)}
-          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity"
+          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group"
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
+          <div className="w-11 h-11 rounded-full bg-gray-50 group-hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-100">
             <User className="w-5 h-5 text-blue-600" />
           </div>
-          <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.sidebarProfile')}</span>
+          <span className="text-[12px] text-gray-700 font-medium leading-tight text-center">Trang cá<br/>nhân</span>
         </button>
-        <button className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
-          <div className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+        <button className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group">
+          <div className="w-11 h-11 rounded-full bg-gray-50 group-hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-100">
             <Bell className="w-5 h-5 text-gray-600" />
           </div>
-          <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.sidebarMute')}</span>
+          <span className="text-[12px] text-gray-700 font-medium leading-tight text-center">Tắt<br/>thông báo</span>
         </button>
         <button
           onClick={() => { onShowSearch(); onCloseRightSidebar(); }}
-          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity"
+          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group"
         >
-          <div className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+          <div className="w-11 h-11 rounded-full bg-gray-50 group-hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-100">
             <SearchIcon className="w-5 h-5 text-gray-600" />
           </div>
-          <span className="text-xs text-gray-600 font-medium">{t('messenger.groupPanel.searchInConversation')}</span>
+          <span className="text-[12px] text-gray-700 font-medium leading-tight text-center">Tìm trong<br/>trò chuyện</span>
         </button>
         {!isAIChat && (
           isGroupChat ? (
             isOwner ? (
-              <button onClick={onDisbandGroup} disabled={isDisbanded} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
-                <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
-                  <Trash2 className="w-5 h-5 text-red-500" />
+              <button onClick={onDisbandGroup} disabled={isDisbanded} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed group">
+                <div className="w-11 h-11 rounded-full bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors shadow-sm border border-red-50">
+                  <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
-                <span className="text-xs text-red-500 font-medium">Giải tán nhóm</span>
+                <span className="text-[12px] text-red-600 font-medium leading-tight text-center">Giải tán<br/>nhóm</span>
               </button>
             ) : !isDisbanded ? (
-              <button onClick={() => userId && onRemoveMember(userId)} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
-                <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
-                  <Trash2 className="w-5 h-5 text-red-500" />
+              <button onClick={() => userId && onRemoveMember(userId)} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group">
+                <div className="w-11 h-11 rounded-full bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors shadow-sm border border-red-50">
+                  <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
-                <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
+                <span className="text-[12px] text-red-600 font-medium leading-tight text-center">{t('messenger.groupPanel.leave', 'Rời nhóm')}</span>
               </button>
             ) : null
           ) : (
-            <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity">
-              <div className="w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors">
-                <Trash2 className="w-5 h-5 text-red-500" />
+            <button onClick={onClearConversationForMe} className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group">
+              <div className="w-11 h-11 rounded-full bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors shadow-sm border border-red-50">
+                <Trash2 className="w-5 h-5 text-red-600" />
               </div>
-              <span className="text-xs text-red-500 font-medium">{t('messenger.groupPanel.leave')}</span>
+              <span className="text-[12px] text-red-600 font-medium leading-tight text-center">{t('messenger.groupPanel.leave', 'Rời nhóm')}</span>
             </button>
           )
         )}
@@ -297,7 +363,7 @@ export default function GroupChatSidebar({
 
       {/* ── GROUP MANAGEMENT SECTION ── */}
       {isGroupChat && conversationRaw && (
-        <div className="flex-1 px-4 py-4 space-y-4">
+        <div className="flex-1 px-3 py-2 space-y-2.5">
           
           {isDisbanded && (
             <div className="p-4 rounded-2xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center">
@@ -307,57 +373,77 @@ export default function GroupChatSidebar({
 
           {/* Group Info (editable) — only for admins/owner */}
           {!isDisbanded && canManageGroup && (
-            <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
-              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {t('messenger.groupPanel.groupInfo')}
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-4">
+              <h5 className="text-[13px] font-bold text-gray-800 uppercase tracking-wide">
+                THÔNG TIN NHÓM
               </h5>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600">{t('messenger.groupPanel.groupName')}</label>
-                <input
-                  type="text"
-                  value={groupNameDraft}
-                  onChange={(e) => onGroupNameChange(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
-                  placeholder={t('messenger.groupPanel.groupNamePlaceholder')}
-                  disabled={updatingGroup}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600">{t('messenger.groupPanel.groupAvatarUrl')}</label>
-                <input
-                  type="text"
-                  value={groupAvatarDraft}
-                  onChange={(e) => onGroupAvatarChange(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
-                  placeholder={t('messenger.groupPanel.groupAvatarPlaceholder')}
-                  disabled={updatingGroup}
-                />
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="block text-[12px] font-semibold text-gray-600">Tên nhóm</label>
+                  <input
+                    type="text"
+                    value={groupNameDraft}
+                    onChange={(e) => onGroupNameChange(e.target.value)}
+                    className="w-full h-10 px-3.5 rounded-xl bg-white border border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-[13px] font-medium text-gray-800 transition-all placeholder:font-normal placeholder:text-gray-400"
+                    placeholder="Nhập tên nhóm..."
+                    disabled={updatingGroup}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[12px] font-semibold text-gray-600">Avatar nhóm (chọn ảnh)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={groupAvatarDraft}
+                      onChange={(e) => onGroupAvatarChange(e.target.value)}
+                      className="flex-1 h-10 px-3.5 rounded-xl bg-white border border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-[13px] font-medium text-gray-800 transition-all placeholder:font-normal placeholder:text-gray-400"
+                      placeholder="URL hoặc upload ảnh..."
+                      disabled={updatingGroup || uploadingAvatar}
+                    />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleAvatarUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={updatingGroup || uploadingAvatar}
+                      className="h-10 px-3 shrink-0 rounded-xl bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors flex items-center justify-center"
+                      title="Tải ảnh lên"
+                    >
+                      {uploadingAvatar ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={onSaveGroupMeta}
                 disabled={updatingGroup}
-                className="w-full h-10 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-60 shadow-sm"
+                className="w-full h-10 mt-1 rounded-xl bg-[#1a66ff] text-white text-[13px] font-bold hover:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-60"
               >
-                {updatingGroup ? t('messenger.groupPanel.saving') : t('messenger.groupPanel.saveInfo')}
+                {updatingGroup ? t('messenger.groupPanel.saving', 'Đang lưu...') : t('messenger.groupPanel.saveInfo', 'Lưu thông tin nhóm')}
               </button>
             </section>
           )}
 
           {/* Group Permissions — only for admins/owner */}
           {!isDisbanded && canManageGroup && (
-            <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
-              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {t('messenger.groupPanel.permissionsTitle', 'Quyá» n nhÃ³m')}
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2">
+              <h5 className="text-[13px] font-bold text-gray-800 uppercase tracking-wide pb-2">
+                QUYỀN NHÓM
               </h5>
 
               {/* Require approval toggle */}
-              <div className="flex items-center justify-between gap-3 py-1">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+              <div className="flex items-center justify-between gap-3 py-2 group hover:bg-gray-50 -mx-2 px-2 rounded-xl transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
                     <UserCheck className="w-4 h-4 text-amber-500" />
                   </div>
-                  <span className="text-sm text-gray-700 leading-snug">
-                    {t('messenger.groupPanel.requireApproval')}
+                  <span className="text-[13px] text-gray-700 leading-snug">
+                    {t('messenger.groupPanel.requireApproval', 'Yêu cầu phê duyệt khi có người tham gia')}
                   </span>
                 </div>
                 <Toggle
@@ -368,12 +454,12 @@ export default function GroupChatSidebar({
               </div>
 
               {/* Only admins can send toggle */}
-              <div className="flex items-center justify-between gap-3 py-1">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <div className="flex items-center justify-between gap-3 py-2 group hover:bg-gray-50 -mx-2 px-2 rounded-xl transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
                     <MessageSquareLock className="w-4 h-4 text-blue-500" />
                   </div>
-                  <span className="text-sm text-gray-700 leading-snug">
+                  <span className="text-[13px] text-gray-700 leading-snug">
                     {t('messenger.groupPanel.onlyAdminsCanSend', 'Chỉ trưởng/phó nhóm được gửi tin')}
                   </span>
                 </div>
@@ -385,16 +471,16 @@ export default function GroupChatSidebar({
               </div>
 
               {/* AI Assistant toggle */}
-              <div className="flex items-center justify-between gap-3 py-1">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+              <div className="flex items-center justify-between gap-3 py-2 group hover:bg-gray-50 -mx-2 px-2 rounded-xl transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center shrink-0 group-hover:bg-purple-100 transition-colors">
                     <Bot className="w-4 h-4 text-purple-500" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-sm text-gray-700 leading-snug block">
+                    <span className="text-[13px] text-gray-700 leading-snug block">
                       {t('messenger.groupPanel.aiAssistant', 'Trợ lý AI (@ZalaBot)')}
                     </span>
-                    <span className="text-xs text-gray-400 leading-snug">
+                    <span className="text-[11px] text-gray-400 leading-snug mt-0.5 block">
                       {t('messenger.groupPanel.aiAssistantHint', 'Mention @ZalaBot để hỏi AI trong nhóm')}
                     </span>
                   </div>
@@ -407,18 +493,18 @@ export default function GroupChatSidebar({
               </div>
 
               {isOwner && (
-                <div className="pt-2 border-t border-red-100 mt-1">
-                  <div className="flex items-center justify-between gap-3 py-1">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                <div className="pt-2 mt-2 border-t border-red-50">
+                  <div className="flex items-center justify-between gap-3 py-2 group hover:bg-red-50 -mx-2 px-2 rounded-xl transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
                         <Trash2 className="w-4 h-4 text-red-500" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-gray-700 leading-snug">
-                          {t('messenger.groupPanel.clearGroupHistory')}
+                        <p className="text-[13px] text-gray-700 leading-snug">
+                          Xóa lịch sử nhóm
                         </p>
-                        <p className="text-xs text-gray-500 leading-snug mt-0.5">
-                          {t('messenger.groupPanel.clearGroupHistoryHint')}
+                        <p className="text-[11px] text-gray-400 leading-snug mt-0.5">
+                          Chỉ trưởng nhóm mới có quyền xóa toàn bộ tin nhắn trong đoạn chat.
                         </p>
                       </div>
                     </div>
@@ -426,9 +512,9 @@ export default function GroupChatSidebar({
                       type="button"
                       onClick={onClearGroupHistory}
                       disabled={updatingGroup}
-                      className="h-8 px-3 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="h-8 px-3 rounded-full bg-[#ff3333] text-white text-[12px] font-bold hover:bg-red-700 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed shrink-0 transition-all"
                     >
-                      {t('messenger.groupPanel.clearGroupHistory')}
+                      Xóa lịch sử
                     </button>
                   </div>
                 </div>
@@ -437,19 +523,19 @@ export default function GroupChatSidebar({
           )}
 
           {!isDisbanded && (
-            <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
-              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Link tham gia nhom
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+              <h5 className="text-[13px] font-bold text-gray-800 uppercase tracking-wide">
+                LINK THAM GIA NHÓM
               </h5>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Tat ca thanh vien deu thay link nay. Nguoi chua vao nhom bam link se tu dong tham gia hoac vao danh sach cho phe duyet.
+              <p className="text-[12px] text-gray-500 leading-relaxed">
+                Tất cả thành viên đều thấy link này. Người chưa vào nhóm bấm link sẽ tự động tham gia hoặc vào danh sách chờ phê duyệt.
               </p>
 
-              <div className="flex items-center gap-2">
-                <div className="h-10 flex-1 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-700 flex items-center overflow-hidden">
+              <div className="flex items-center gap-2 mt-2">
+                <div className="h-10 flex-1 rounded-full border border-gray-200 bg-white px-4 text-xs text-gray-700 flex items-center overflow-hidden">
                   <Link2 className="w-3.5 h-3.5 text-blue-500 shrink-0 mr-2" />
                   <span className="truncate">
-                    {inviteLinkLoading ? 'Dang tao link...' : (inviteLink || 'Chua tao duoc link')}
+                    {inviteLinkLoading ? 'Đang tạo link...' : (inviteLink || 'Chưa tạo được link')}
                   </span>
                 </div>
 
@@ -459,14 +545,14 @@ export default function GroupChatSidebar({
                     if (!inviteLink) return;
                     try {
                       await navigator.clipboard.writeText(inviteLink);
-                      notify.success('Da sao chep link tham gia nhom');
+                      notify.success('Đã sao chép link tham gia nhóm');
                     } catch {
-                      notify.error('Khong the sao chep link');
+                      notify.error('Không thể sao chép link');
                     }
                   }}
                   disabled={!inviteLink || inviteLinkLoading}
-                  className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center"
-                  title="Sao chep link"
+                  className="h-10 w-10 shrink-0 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors"
+                  title="Sao chép link"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
@@ -494,9 +580,9 @@ export default function GroupChatSidebar({
           )}
 
           {/* Members List */}
-          <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+          <section className="rounded-2xl border border-gray-100 bg-gray-50/50 p-3 space-y-1.5">
             <div className="flex items-center justify-between">
-              <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <h5 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                 {t('messenger.groupPanel.membersTitle')}
               </h5>
               {/* Invite button: visible to all members in the group */}
@@ -537,17 +623,68 @@ export default function GroupChatSidebar({
                         </div>
                       )}
                     </div>
-                    {!isDisbanded && canKick && (
-                      <button
-                        onClick={() => onRemoveMember(pid)}
-                        disabled={updatingGroup}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${isSelf
-                            ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                            : 'bg-red-50 text-red-600 hover:bg-red-100 opacity-0 group-hover:opacity-100'
-                          }`}
-                      >
-                        {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
-                      </button>
+                    {!isDisbanded && (
+                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isOwner && !isMemberOwner && (
+                          <div className="relative dropdown-container">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setContextMenu({ pid, x: rect.left, y: rect.bottom });
+                              }}
+                              className="px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            >
+                              Sửa
+                            </button>
+                            {contextMenu?.pid === pid && (
+                              <div
+                                className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {isMemberAdmin ? (
+                                  <button
+                                    onClick={() => { onToggleAdmin(pid, false); setContextMenu(null); }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    Hủy tư cách phó nhóm
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => { onToggleAdmin(pid, true); setContextMenu(null); }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    Bổ nhiệm phó nhóm
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm('Chuyển quyền trưởng nhóm cho người này?')) {
+                                      onTransferOwnership(pid);
+                                    }
+                                    setContextMenu(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+                                >
+                                  Chuyển quyền trưởng nhóm
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {canKick && (
+                          <button
+                            onClick={() => onRemoveMember(pid)}
+                            disabled={updatingGroup}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${isSelf
+                                ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 opacity-100'
+                                : 'bg-red-50 text-red-600 hover:bg-red-100'
+                              }`}
+                          >
+                            {isSelf ? t('messenger.groupPanel.leave') : t('messenger.groupPanel.remove')}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
@@ -724,15 +861,17 @@ export default function GroupChatSidebar({
 
           {/* Transfer Ownership — owner only */}
           {!isDisbanded && isOwner && conversationRaw && (
-            <section className="mt-4 p-3 rounded-2xl border border-amber-100 bg-amber-50/60">
-              <div className="flex items-center gap-2 mb-3">
-                <Crown className="w-4 h-4 text-amber-500" />
-                <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Chuyển quyền trưởng nhóm</h4>
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                  <Crown className="w-4 h-4 text-amber-500" />
+                </div>
+                <h4 className="text-[13px] font-bold text-gray-800 uppercase tracking-wide">CHUYỂN QUYỀN TRƯỞNG NHÓM</h4>
               </div>
               <select
                 value={transferOwnerId}
                 onChange={(e) => setTransferOwnerId(e.target.value)}
-                className="w-full text-sm rounded-xl border border-amber-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-300 mb-2"
+                className="w-full h-10 text-[13px] rounded-xl border border-gray-200 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
               >
                 <option value="">-- Chọn thành viên --</option>
                 {(conversationRaw.participantIds || []).map((pid, idx) => {
@@ -748,7 +887,7 @@ export default function GroupChatSidebar({
                   onTransferOwnership(transferOwnerId);
                   setTransferOwnerId('');
                 }}
-                className="w-full py-2 rounded-xl text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full h-10 rounded-xl text-[13px] font-semibold text-white bg-[#ffb74d] hover:bg-[#ffa726] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {updatingGroup ? 'Đang xử lý…' : 'Xác nhận chuyển quyền'}
               </button>
@@ -765,56 +904,31 @@ export default function GroupChatSidebar({
 
       <div className="h-px bg-gray-100 mx-4" />
 
-      {/* Customize Chat */}
-      <div className="px-4 py-4">
-        <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('messenger.groupPanel.customizeChat')}</h4>
-          <div className="space-y-1">
-            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                <Palette className="w-4 h-4 text-purple-500" />
-              </div>
-              <span>{t('messenger.groupPanel.changeTheme')}</span>
-            </button>
-            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center shrink-0">
-                <Smile className="w-4 h-4 text-yellow-500" />
-              </div>
-              <span>{t('messenger.groupPanel.changeEmoji')}</span>
-            </button>
-            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
-                <Pencil className="w-4 h-4 text-green-500" />
-              </div>
-              <span>{t('messenger.groupPanel.changeName')}</span>
-            </button>
-            <button className="w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm text-gray-700 font-medium flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                <Lock className="w-4 h-4 text-gray-500" />
-              </div>
-              <span>{t('messenger.groupPanel.disappearingMessages')}</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Media */}
-      <div className="px-4 pb-4">
-        <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('messenger.groupPanel.photosVideos')}</h4>
+      <div className="px-3 pb-3">
+        <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{t('messenger.groupPanel.photosVideos')}</h4>
             <button className="text-xs text-blue-600 hover:underline font-medium">{t('messenger.groupPanel.seeAll')}</button>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
-            <div className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-              <LargeBeachPlaceholder className="w-full h-full" />
-            </div>
-            <div className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-              <LargeSunPlaceholder className="w-full h-full" />
-            </div>
-            <div className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-              <LargePartyPlaceholder className="w-full h-full" />
-            </div>
+            {mediaMessages.length === 0 ? (
+              <p className="col-span-3 text-xs text-gray-400 text-center py-2">Chưa có ảnh/video nào</p>
+            ) : (
+              mediaMessages.flatMap(m => m.attachments || [])
+                .filter(a => a.type === 'image' || a.type === 'video')
+                .slice(0, 9)
+                .map((media, idx) => (
+                  <div key={idx} className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity bg-gray-100">
+                    {media.type === 'image' ? (
+                      <img src={media.url} alt="media" className="w-full h-full object-cover" onClick={() => window.open(media.url, '_blank')} />
+                    ) : (
+                      <video src={media.url} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                ))
+            )}
           </div>
         </div>
       </div>

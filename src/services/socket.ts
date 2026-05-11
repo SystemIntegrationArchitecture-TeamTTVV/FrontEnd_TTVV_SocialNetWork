@@ -302,6 +302,8 @@ class SocketService {
       return;
     }
 
+    console.log(`📤 Sending STOMP message to ${destination}:`, body);
+
     this.client.publish({
       destination,
       body: JSON.stringify(body),
@@ -404,6 +406,23 @@ class SocketService {
       return event.eventId;
     }
     const data = event.data as Record<string, any> | undefined;
+
+    // WebRTC signaling events: dedupe by callId + sender to prevent double-processing
+    // from primary + fallback channels. Do NOT use timestamp (it may differ per channel).
+    const webrtcTypes = ["CALL_OFFER", "CALL_ANSWER", "CALL_END", "CALL_REJECT",
+      "ICE_CANDIDATE", "CALL_ICE_CANDIDATE", "CALL_USER_JOINED", "CALL_USER_LEFT"];
+    if (webrtcTypes.includes(event.type)) {
+      const callId = typeof data?.callId === "string" ? data.callId : "";
+      const senderId = typeof data?.senderId === "string" ? data.senderId
+        : typeof data?.callerId === "string" ? data.callerId : "";
+      // For ICE candidates, include the candidate's sdpMLineIndex to differentiate
+      const candidate = data?.candidate || data?.iceCandidate;
+      const iceSuffix = candidate
+        ? `:${candidate.sdpMLineIndex ?? ""}:${(candidate.candidate || "").slice(0, 60)}`
+        : "";
+      return `${event.type}:${callId}:${senderId}${iceSuffix}`;
+    }
+
     const messageId = typeof data?.id === "string" ? data.id : "";
     const conversationId = typeof data?.conversationId === "string" ? data.conversationId : "";
     const eventDataMessageId = typeof data?.messageId === "string" ? data.messageId : "";
