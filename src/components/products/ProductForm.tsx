@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Plus, Trash2, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ProductDTO, CreateProductRequest, UpdateProductRequest } from '../../apis/products';
+import { uploadApi } from '../../apis/upload';
 
 interface ProductFormProps {
   product?: ProductDTO;
@@ -28,6 +29,7 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading = f
   const [imageInput, setImageInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const conditions = [
     { value: 'NEW', label: t('productForm.conditions.new') },
@@ -71,6 +73,32 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading = f
         delete newErrors[name];
         return newErrors;
       });
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (formData.images && formData.images.length >= 10) {
+      alert(t('productForm.maxImagesError') || 'Maximum 10 images allowed');
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      const response = await uploadApi.uploadFile(file);
+      setFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), response.url],
+      }));
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert(t('productForm.uploadError') || 'Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+      // Reset the input so the same file can be selected again if needed
+      e.target.value = '';
     }
   };
 
@@ -305,20 +333,30 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading = f
           </label>
           <div className="flex gap-2 mb-3">
             <input
-              type="url"
-              value={imageInput}
-              onChange={(e) => setImageInput(e.target.value)}
-              placeholder={t('productForm.imagePlaceholder')}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddImage())}
+              type="file"
+              accept="image/*"
+              id="product-image-upload"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isUploadingImage || (formData.images?.length || 0) >= 10}
             />
             <button
               type="button"
-              onClick={handleAddImage}
-              disabled={!imageInput.trim() || (formData.images?.length || 0) >= 10}
-              className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors flex items-center gap-2"
+              onClick={() => document.getElementById('product-image-upload')?.click()}
+              disabled={isUploadingImage || (formData.images?.length || 0) >= 10}
+              className="flex-1 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 disabled:bg-gray-100 disabled:hover:border-gray-300 disabled:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-gray-600 disabled:text-gray-400 font-medium"
             >
-              <Plus className="w-4 h-4" />
+              {isUploadingImage ? (
+                <>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span>{t('productForm.uploading') || 'Đang tải lên...'}</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  <span>{t('productForm.uploadImage') || 'Tải ảnh lên (Upload)'}</span>
+                </>
+              )}
             </button>
           </div>
           {errors.images && <p className="text-red-500 text-sm mb-2">{errors.images}</p>}

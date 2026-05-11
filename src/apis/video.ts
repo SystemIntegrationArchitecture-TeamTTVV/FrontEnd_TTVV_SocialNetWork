@@ -1,5 +1,6 @@
 // src/apis/video.ts
 import { httpClient } from "./http";
+import { API_CONFIG } from './config';
 
 export interface VideoData {
   id?: string;
@@ -209,6 +210,39 @@ class VideosApi {
       console.error(`❌ [Videos API] Failed to delete video ${id}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Upload video file (≤ 5 MB) + tạo bản ghi video trong một request multipart.
+   */
+  async uploadVideo(params: {
+    authorId: string;
+    title: string;
+    description?: string;
+    visibility: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+    file: File;
+  }): Promise<VideoData> {
+    const formData = new FormData();
+    formData.append("authorId", params.authorId);
+    formData.append("title", params.title);
+    if (params.description?.trim()) {
+      formData.append("description", params.description.trim());
+    }
+    formData.append("visibility", params.visibility);
+    formData.append("file", params.file);
+
+    const token = localStorage.getItem("token");
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const fullUrl = `${API_CONFIG.BASE_URL.replace(/\/$/, "")}/api/social/videos/upload`;
+    const res = await fetch(fullUrl, { method: "POST", headers, body: formData });
+
+    if (!res.ok) {
+      if (res.status === 413) throw new Error("VIDEO_TOO_LARGE");
+      const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    return res.json();
   }
 }
 
