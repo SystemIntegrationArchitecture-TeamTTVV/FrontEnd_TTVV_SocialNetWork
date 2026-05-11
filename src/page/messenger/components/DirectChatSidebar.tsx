@@ -49,6 +49,7 @@ interface DirectChatSidebarProps {
     id: string;
     name: string;
     avatar: string;
+    imageUrl?: string;
     online: boolean;
     color: string;
   };
@@ -485,11 +486,17 @@ export default function DirectChatSidebar({
       {/* Profile Section */}
       <div className="text-center px-4 pb-5">
         <div
-          className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+          className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
           style={{ backgroundColor: conversation.color }}
           onClick={() => navigate(profileLink)}
         >
-          {conversation.avatar}
+          {otherUser?.avatar ? (
+            <img src={otherUser.avatar} alt={conversation.name} className="w-full h-full object-cover" />
+          ) : conversation.imageUrl ? (
+            <img src={conversation.imageUrl} alt={conversation.name} className="w-full h-full object-cover" />
+          ) : (
+            conversation.avatar
+          )}
         </div>
         <h3 className="text-base font-bold text-gray-900 mb-1">{localNickname || conversation.name}</h3>
         <div className="flex items-center justify-center gap-1.5">

@@ -67,7 +67,7 @@ export default function CallWindow({
             id="webrtc-iframe"
             src={webrtcUrl}
             className="w-full h-full border-none"
-            allow="camera; microphone; fullscreen; speaker; display-capture"
+            allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
             title="Cuộc gọi WebRTC"
           />
         ) : null}

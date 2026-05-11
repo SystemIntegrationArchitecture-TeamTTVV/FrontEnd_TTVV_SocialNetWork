@@ -183,7 +183,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // During Vite HMR, context may temporarily disconnect.
+    // Return safe defaults instead of crashing the entire app.
+    console.warn('[useAuth] AuthContext is undefined — likely a HMR reload. Returning safe defaults.');
+    return {
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      login: async () => { throw new Error('AuthProvider not mounted'); },
+      register: async () => { throw new Error('AuthProvider not mounted'); },
+      logout: () => { window.location.href = '/auth/login'; },
+      refreshSessionUser: async () => {},
+    } as ReturnType<typeof useContext<typeof AuthContext>> & NonNullable<ReturnType<typeof useContext<typeof AuthContext>>>;
   }
   return context;
 }

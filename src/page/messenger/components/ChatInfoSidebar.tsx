@@ -7,6 +7,7 @@ interface ActiveConversation {
   id: string;
   name: string;
   avatar: string;
+  imageUrl?: string;
   online: boolean;
   color: string;
   isGroup?: boolean;
