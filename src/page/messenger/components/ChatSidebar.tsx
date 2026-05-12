@@ -23,6 +23,7 @@ export interface FormattedConversation {
   color: string;
   isGroup?: boolean;
   pinned?: boolean;
+  otherParticipantId?: string;
 }
 
 interface ChatSidebarProps {
@@ -54,6 +55,7 @@ interface ChatSidebarProps {
   // Pin conversation
   onTogglePinConversation?: (convId: string) => void;
   pinLoading?: boolean;
+  onViewProfile?: (userId: string, userName: string) => void;
 }
 
 export default function ChatSidebar({
@@ -80,6 +82,7 @@ export default function ChatSidebar({
   onStartHide,
   onTogglePinConversation,
   pinLoading,
+  onViewProfile,
 }: ChatSidebarProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -305,7 +308,15 @@ export default function ChatSidebar({
                 {hideError && <p className="text-[10px] text-red-500 text-center font-medium">{hideError}</p>}
               </div>
             ) : collapsed ? (
-              <div className="relative shrink-0">
+              <div 
+                className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                onClick={(e) => {
+                  if (conv.otherParticipantId && onViewProfile) {
+                    e.stopPropagation();
+                    onViewProfile(conv.otherParticipantId, conv.name);
+                  }
+                }}
+              >
                 {conv.id === aiConversationId ? (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                     <Bot className="w-5 h-5 text-white" />
@@ -316,25 +327,25 @@ export default function ChatSidebar({
                       <img
                         src={conv.imageUrl}
                         alt={conv.name}
-                        className="w-10 h-10 rounded-full object-cover shrink-0"
+                        className="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-gray-100 dark:border-white/5"
                       />
                     ) : conv.isGroup ? (
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: conv.color }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: conv.color }}>
                         <Users className="w-5 h-5 text-white" />
                       </div>
                     ) : (
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
                         style={{ backgroundColor: conv.color }}
                       >
                         {conv.avatar}
                       </div>
                     )}
                     {conv.online && (
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-[#1a1d28]"></div>
                     )}
                     {conv.unread > 0 && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg animate-bounce">
                         {conv.unread}
                       </div>
                     )}
@@ -343,7 +354,15 @@ export default function ChatSidebar({
               </div>
             ) : (
               <>
-                <div className="relative shrink-0">
+                <div 
+                  className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                  onClick={(e) => {
+                    if (conv.otherParticipantId && onViewProfile) {
+                      e.stopPropagation();
+                      onViewProfile(conv.otherParticipantId, conv.name);
+                    }
+                  }}
+                >
                   {conv.id === aiConversationId ? (
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                       <Bot className="w-5 h-5 text-white" />
@@ -354,22 +373,22 @@ export default function ChatSidebar({
                         <img
                           src={conv.imageUrl}
                           alt={conv.name}
-                          className="w-11 h-11 rounded-full object-cover shrink-0"
+                          className="w-11 h-11 rounded-full object-cover shrink-0 shadow-sm border border-gray-100 dark:border-white/5"
                         />
                       ) : conv.isGroup ? (
-                        <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: conv.color }}>
+                        <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: conv.color }}>
                           <Users className="w-5 h-5 text-white" />
                         </div>
                       ) : (
                         <div
-                          className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                          className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm"
                           style={{ backgroundColor: conv.color }}
                         >
                           {conv.avatar}
                         </div>
                       )}
                       {conv.online && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#1a1d28]"></div>
                       )}
                     </>
                   )}

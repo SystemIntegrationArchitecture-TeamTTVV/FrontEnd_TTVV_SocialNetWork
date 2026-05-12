@@ -52,6 +52,7 @@ interface DirectChatSidebarProps {
     imageUrl?: string;
     online: boolean;
     color: string;
+    otherParticipantId?: string;
   };
   conversationRaw: Conversation | null;
   onClearConversationForMe: () => void;
@@ -59,6 +60,7 @@ interface DirectChatSidebarProps {
   onCloseRightSidebar: () => void;
   userId?: string;
   loadConversations?: () => void;
+  onViewProfile?: (userId: string, userName: string) => void;
 }
 
 export default function DirectChatSidebar({
@@ -69,6 +71,7 @@ export default function DirectChatSidebar({
   onCloseRightSidebar,
   userId,
   loadConversations,
+  onViewProfile,
 }: DirectChatSidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -464,7 +467,8 @@ export default function DirectChatSidebar({
     }
   };
 
-  const profileLink = otherUserId ? `/profile/${otherUserId}` : `/profile/${conversation.id}`;
+  const effectiveOtherUserId = otherUserId || conversation.otherParticipantId;
+  const profileLink = effectiveOtherUserId ? `/profile/${effectiveOtherUserId}` : `/profile/${conversation.id}`;
   const blockedByOtherAll = !!(otherUserId && conversationRaw?.blockedByUserIds?.includes(otherUserId));
   const blockedByOtherMessage = !!(otherUserId && conversationRaw?.messageBlockedByUserIds?.includes(otherUserId));
   const blockedByOtherCall = !!(otherUserId && conversationRaw?.callBlockedByUserIds?.includes(otherUserId));
@@ -486,9 +490,15 @@ export default function DirectChatSidebar({
       {/* Profile Section */}
       <div className="text-center px-4 pb-5">
         <div
-          className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
+          className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-transform overflow-hidden"
           style={{ backgroundColor: conversation.color }}
-          onClick={() => navigate(profileLink)}
+          onClick={() => {
+            if (otherUserId && onViewProfile) {
+              onViewProfile(otherUserId, localNickname || conversation.name);
+            } else {
+              navigate(profileLink);
+            }
+          }}
         >
           {otherUser?.avatar ? (
             <img src={otherUser.avatar} alt={conversation.name} className="w-full h-full object-cover" />
@@ -512,7 +522,13 @@ export default function DirectChatSidebar({
       {/* Quick Action Buttons */}
       <div className="flex justify-center gap-3 px-4 pb-5">
         <button
-          onClick={() => navigate(profileLink)}
+          onClick={() => {
+            if (otherUserId && onViewProfile) {
+              onViewProfile(otherUserId, localNickname || conversation.name);
+            } else {
+              navigate(profileLink);
+            }
+          }}
           className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity"
         >
           <div className="w-12 h-12 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">

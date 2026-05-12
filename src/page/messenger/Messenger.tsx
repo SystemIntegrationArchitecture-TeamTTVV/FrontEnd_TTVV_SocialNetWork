@@ -16,6 +16,7 @@ import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
 import ForwardModal from './components/ForwardModal';
+import ViewProfileModal from './components/ViewProfileModal';
 import PinnedMessagesPanel from './components/PinnedMessagesPanel';
 import PinnedBar from './components/PinnedBar';
 import AppointmentBar from './components/AppointmentBar';
@@ -152,6 +153,7 @@ export default function Messenger() {
   const [forwardTargetConversationId, setForwardTargetConversationId] = useState<string>('');
   const [forwardNote, setForwardNote] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [viewProfileTarget, setViewProfileTarget] = useState<{ userId: string, userName: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSenderId, setSearchSenderId] = useState('');
   const [searchResults, setSearchResults] = useState<ReturnType<typeof formatMessageForDisplay>[] | null>(null);
@@ -819,6 +821,7 @@ export default function Messenger() {
           isGroup: conv.isGroup,
           sortTime: Number.isNaN(lastActivity) ? 0 : lastActivity,
           pinned: conv.pinnedByUserIds?.includes(user.id) || false,
+          otherParticipantId: conv.isGroup ? undefined : otherParticipantId,
         };
       })
       .filter((c): c is NonNullable<typeof c> => Boolean(c))
@@ -1703,6 +1706,7 @@ export default function Messenger() {
           }
         }}
         pinLoading={pinLoading}
+        onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
       />
 
       {/* Hidden Chats Panel + Context Menu + Unlock Modal */}
@@ -1847,6 +1851,7 @@ export default function Messenger() {
                 notify.error(t('messenger.errors.startVideoCall'));
               }
             }}
+            onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
           />
         )}
 
@@ -1948,6 +1953,7 @@ export default function Messenger() {
           participantIds={activeConversationRaw?.participantIds}
           onJoinAppointment={handleJoinAppointment}
           joiningAppointment={joiningAppointmentId}
+          onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
           onScroll={handleScroll}
           loadingMore={loadingMore}
           messagesLoading={messagesLoading}
@@ -2174,6 +2180,17 @@ export default function Messenger() {
           isForwarding={isForwarding}
           onConfirm={handleConfirmForward}
           onCancel={resetForwardDialog}
+        />
+      )}
+
+      {viewProfileTarget && (
+        <ViewProfileModal
+          userName={viewProfileTarget.userName}
+          onConfirm={() => {
+            navigate(`/profile/${viewProfileTarget.userId}`);
+            setViewProfileTarget(null);
+          }}
+          onCancel={() => setViewProfileTarget(null)}
         />
       )}
 
