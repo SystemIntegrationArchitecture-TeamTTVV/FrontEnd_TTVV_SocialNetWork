@@ -21,6 +21,17 @@ export interface PostData {
   pageId?: string;
   createdAt?: string;
   updatedAt?: string;
+  deletedAt?: string;
+  deleteReason?: string;
+  isHidden?: boolean;
+  isDeleted?: boolean;
+}
+
+export interface AdminPostFilter {
+  status?: string;
+  sortBy?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface CreatePostRequest {
@@ -65,6 +76,67 @@ class PostsApi {
       console.error('❌ [Posts API] Failed to fetch posts:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get all admin posts with filters
+   */
+  async getAdminPosts(filters: AdminPostFilter = {}): Promise<PostData[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (filters.status && filters.status !== 'ALL') queryParams.append('status', filters.status);
+      if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
+      if (filters.startDate) queryParams.append('startDate', `${filters.startDate}T00:00:00`);
+      if (filters.endDate) queryParams.append('endDate', `${filters.endDate}T23:59:59`);
+      
+      const queryString = queryParams.toString();
+      const url = queryString ? `/api/social/admin/posts?${queryString}` : '/api/social/admin/posts';
+      
+      const response = await httpClient.get<PostData[]>(url);
+      return response;
+    } catch (error) {
+      console.error('❌ [Posts API] Failed to fetch admin posts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle hide post (Shadowban)
+   */
+  async hidePost(id: string): Promise<PostData> {
+    const response = await httpClient.put<PostData>(`/api/social/admin/posts/${id}/hide`);
+    return response;
+  }
+
+  /**
+   * Toggle lock comments
+   */
+  async lockComments(id: string): Promise<PostData> {
+    const response = await httpClient.put<PostData>(`/api/social/admin/posts/${id}/lock-comments`);
+    return response;
+  }
+
+  /**
+   * Soft delete post with reason
+   */
+  async softDeletePost(id: string, reason: string): Promise<PostData> {
+    const response = await httpClient.put<PostData>(`/api/social/admin/posts/${id}/soft-delete`, { reason });
+    return response;
+  }
+
+  /**
+   * Restore soft-deleted post
+   */
+  async restorePost(id: string): Promise<PostData> {
+    const response = await httpClient.put<PostData>(`/api/social/admin/posts/${id}/restore`);
+    return response;
+  }
+
+  /**
+   * Hard delete post
+   */
+  async hardDeletePost(id: string): Promise<void> {
+    await httpClient.delete(`/api/social/admin/posts/${id}/hard-delete`);
   }
 
   /**

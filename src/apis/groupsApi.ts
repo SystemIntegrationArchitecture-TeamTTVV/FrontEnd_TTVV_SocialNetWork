@@ -25,6 +25,7 @@ export interface GroupData {
     updatedAt?: string;
 
     isActive?: boolean;
+    active?: boolean; // matches Jackson serialized field from backend
 }
 
 export interface CreateGroupRequest {
@@ -64,7 +65,7 @@ class GroupsApi {
     private baseUrl = '/api/social/groups';
 
     /**
-     * Get all groups
+     * Get all groups (for general users, active only if backend filters)
      */
     async getAllGroups(): Promise<GroupData[]> {
         try {
@@ -74,6 +75,21 @@ class GroupsApi {
             return response;
         } catch (error) {
             console.error('❌ [Groups API] Failed to fetch groups:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all groups including inactive (for Admin)
+     */
+    async getAllGroupsForAdmin(): Promise<GroupData[]> {
+        try {
+            console.log('📡 [Groups API] Fetching all groups for admin...');
+            const response = await httpClient.get<GroupData[]>(`${this.baseUrl}/all`);
+            console.log('✅ [Groups API] Successfully fetched all admin groups:', response.length);
+            return response;
+        } catch (error) {
+            console.error('❌ [Groups API] Failed to fetch admin groups:', error);
             throw error;
         }
     }
@@ -163,6 +179,21 @@ class GroupsApi {
             console.log('✅ [Groups API] Successfully deleted group');
         } catch (error) {
             console.error(`❌ [Groups API] Failed to delete group ${id}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Toggle lock group
+     */
+    async toggleLock(id: string): Promise<GroupData> {
+        try {
+            console.log(`📡 [Groups API] Toggling lock for group ${id}...`);
+            const response = await httpClient.post<GroupData>(`${this.baseUrl}/${id}/toggle-lock`, {});
+            console.log('✅ [Groups API] Successfully toggled lock');
+            return response;
+        } catch (error) {
+            console.error(`❌ [Groups API] Failed to toggle lock for group ${id}:`, error);
             throw error;
         }
     }

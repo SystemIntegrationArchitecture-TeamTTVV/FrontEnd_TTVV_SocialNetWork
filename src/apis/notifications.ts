@@ -52,5 +52,9 @@ export const notificationsApi = {
   deleteNotification: async (id: string): Promise<void> => {
     return httpClient.delete<void>(`/api/social/notifications/${id}`);
   },
+
+  createNotification: async (data: Partial<Notification>): Promise<Notification> => {
+    return httpClient.post<Notification>(`/api/social/notifications`, data);
+  },
 };
 

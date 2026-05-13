@@ -33,6 +33,7 @@ export interface User {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+  reportCount?: number;
 }
 
 export interface PresenceStatus {

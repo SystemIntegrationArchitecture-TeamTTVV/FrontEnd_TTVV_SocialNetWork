@@ -10,6 +10,7 @@ import CreatePostGroup from "./CreatePostGroup";
 import PostCard from "./Postcard";
 import CommentSection from "./CommentSection";
 import { useTranslation } from "react-i18next";
+import ReportModal from "../../../../components/common/ReportModal";
 
 export default function PostsTab({ groupId, isAdmin }: { groupId: string, isAdmin?: boolean }) {
   const { t } = useTranslation();
@@ -42,6 +43,7 @@ export default function PostsTab({ groupId, isAdmin }: { groupId: string, isAdmi
   const [editContent, setEditContent] = useState("");
   const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [reportingPost, setReportingPost] = useState<PostGroupData | null>(null);
   const { showToast } = useToast();
 
   const normalizeVisibility = (visibility?: string): 'PUBLIC' | 'PRIVATE' => {
@@ -243,6 +245,11 @@ export default function PostsTab({ groupId, isAdmin }: { groupId: string, isAdmi
       } catch (error) {
         showToast(t("groupTabs.pinPostError", "Lỗi khi ghim bài viết"), "error");
       }
+    } else if (action === "report") {
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        setReportingPost(post);
+      }
     }
   };
 
@@ -373,6 +380,16 @@ export default function PostsTab({ groupId, isAdmin }: { groupId: string, isAdmi
           </PostCard>
         );
       })}
+
+      {reportingPost && (
+        <ReportModal
+          isOpen={!!reportingPost}
+          onClose={() => setReportingPost(null)}
+          targetId={reportingPost.id!}
+          targetType="post"
+          targetName={reportingPost.authorName || t('groupTabs.authorUnknown', 'Không rõ')}
+        />
+      )}
     </div>
   );
 }

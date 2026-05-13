@@ -67,15 +67,40 @@ function normalizeAuthResponse(payload: any): AuthResponse | null {
     return null;
   }
 
+  let role = payload.role || (payload.user && payload.user.role);
+  if (!role && payload.roles && Array.isArray(payload.roles) && payload.roles.length > 0) {
+    role = payload.roles[0];
+  }
+  
+  let username = payload.username || (payload.user && payload.user.username);
+  let userId = payload.userId || payload.id || (payload.user && payload.user.id);
+  let fullName = payload.fullName || (payload.user && payload.user.fullName) || (payload.user && payload.user.lastName ? `${payload.user.firstName} ${payload.user.lastName}`.trim() : '');
+  let avatar = payload.avatar || (payload.user && payload.user.avatar) || '';
+
+  // Fallback to JWT payload if still missing
+  const decoded = decodeJwtPayload(token);
+  if (decoded) {
+    if (!role) {
+      role = decoded.role || (decoded.roles && decoded.roles[0]) || decoded.authorities || '';
+    }
+    if (!username) username = decoded.username || decoded.sub || '';
+    if (!userId) userId = decoded.userId || decoded.id || '';
+    if (!fullName) fullName = decoded.fullName || decoded.name || '';
+  }
+
+  // Final sanitization for role (e.g. if it is an array or object)
+  if (Array.isArray(role)) role = role[0];
+  else if (typeof role === 'object' && role !== null && role.authority) role = role.authority; // Handle Spring Security GrantedAuthority
+
   return {
     token,
     accessToken: payload.accessToken || payload.access_token,
     refreshToken: refreshToken || '',
-    username: payload.username || '',
-    role: payload.role || '',
-    userId: payload.userId || payload.id || '',
-    fullName: payload.fullName || '',
-    avatar: payload.avatar || '',
+    username: username || '',
+    role: typeof role === 'string' ? role.replace(/^ROLE_/, '') : '',
+    userId: userId || '',
+    fullName: fullName || '',
+    avatar: avatar || '',
   };
 }
 
