@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
 import { resolveMediaUrl, resolveStoryContentUrl } from '../../utils/mediaUrl';
 import { getUserInitials } from '../../utils/userDisplay';
+import ReportModal from '../../components/common/ReportModal';
 
 /** Module-level cache — survives component unmount so returning to Newsfeed is instant */
 const _postCache: {
@@ -49,6 +50,7 @@ export default function Newsfeed() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
+  const [reportingPost, setReportingPost] = useState<PostData | null>(null);
   // Tracks which postIds were successfully fetched (prevents re-fetch on collapse/expand)
   const fetchedCommentPosts = useRef<Set<string>>(new Set());
   const { subscribe } = useSocket();
@@ -630,8 +632,10 @@ export default function Newsfeed() {
       console.log('Hide post:', postId);
       // TODO: Implement hide post functionality
     } else if (action === 'report') {
-      console.log('Report post:', postId);
-      // TODO: Implement report post functionality
+      const targetPost = posts.find((p) => p.id === postId);
+      if (targetPost) {
+        setReportingPost(targetPost);
+      }
     }
   };
 
@@ -1106,13 +1110,15 @@ export default function Newsfeed() {
                         <EyeOff className="w-[18px] h-[18px] text-gray-500" />
                         <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuHidePost')}</span>
                       </button>
-                      <button
-                        onClick={() => handlePostAction(post.id!, 'report')}
-                        className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
-                      >
-                        <Flag className="w-[18px] h-[18px] text-gray-500" />
-                        <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuReport')}</span>
-                      </button>
+                      {currentUser?.id !== post.authorId && (
+                        <button
+                          onClick={() => handlePostAction(post.id!, 'report')}
+                          className="w-full px-4 py-2.5 hover:bg-red-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
+                        >
+                          <Flag className="w-[18px] h-[18px] text-red-500" />
+                          <span className="text-red-600 text-[15px] font-medium">{t('newsfeed.menuReport')}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1578,6 +1584,16 @@ export default function Newsfeed() {
             setIsCreatePostModalOpen(false);
             fetchPosts();
           }}
+        />
+      )}
+      
+      {reportingPost && (
+        <ReportModal
+          isOpen={!!reportingPost}
+          onClose={() => setReportingPost(null)}
+          targetId={reportingPost.id}
+          targetType="post"
+          targetName={reportingPost.authorName || t('newsfeed.authorUnknown', 'Không rõ')}
         />
       )}
     </div>

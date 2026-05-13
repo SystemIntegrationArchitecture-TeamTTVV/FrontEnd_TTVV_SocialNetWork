@@ -4,12 +4,24 @@ import {
   FileText,
   AlertCircle,
   BarChart3,
-  ArrowUpRight,
-  Eye,
-  MessageSquare,
+  Calendar,
+  Briefcase,
+  UserPlus,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import {
   statsApi,
   type DashboardStats,
@@ -18,6 +30,9 @@ import {
 } from "../../apis/stats";
 import { reportsApi } from "../../apis/reports";
 import { getLocaleTag } from "../../i18n";
+import { useAuth } from "../../contexts/AuthContext";
+import { PostPreviewModal } from "../../components/admin/PostPreviewModal";
+import { MetricDetailsModal, type MetricType } from "../../components/admin/MetricDetailsModal";
 
 interface AdminDashboardStats extends DashboardStats {
   pendingReports: number;
@@ -25,9 +40,14 @@ interface AdminDashboardStats extends DashboardStats {
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState("7days");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [activeMetricModal, setActiveMetricModal] = useState<MetricType | null>(null);
 
   const [stats, setStats] = useState<AdminDashboardStats>({
     totalUsers: 0,
@@ -42,23 +62,24 @@ export default function AdminDashboard() {
   });
 
   const [topPosts, setTopPosts] = useState<TopPost[]>([]);
-  const [engagementStats, setEngagementStats] =
-    useState<EngagementStats | null>(null);
 
   useEffect(() => {
     loadAllData();
-  }, [timeRange]);
+  }, [timeRange, startDate, endDate]);
 
   const loadAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [dashboardStats, reportStats, posts, engagement] = await Promise.all([
-        statsApi.getDashboardStats(),
+      // Build time range string. If custom dates are used, we might pass them differently.
+      // Assuming backend statsApi gets updated to support ?startDate=xxx&endDate=yyy or a custom timeRange string
+      const timeParam = startDate && endDate ? `custom_${startDate}_${endDate}` : timeRange;
+      
+      const [dashboardStats, reportStats, posts] = await Promise.all([
+        statsApi.getDashboardStats(timeParam),
         reportsApi.getReportStats(),
-        statsApi.getTopPosts(3),
-        statsApi.getEngagementStats(),
+        statsApi.getTopPosts(5),
       ]);
 
       setStats({
@@ -66,7 +87,6 @@ export default function AdminDashboard() {
         pendingReports: reportStats.pendingReports,
       });
       setTopPosts(posts);
-      setEngagementStats(engagement);
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
       setError(t("adminPanel.dashboard.loadError"));
@@ -77,395 +97,291 @@ export default function AdminDashboard() {
 
   const fmt = (n: number) => n.toLocaleString(getLocaleTag());
 
-  const dashboardCards = useMemo(
+  const metricCards = useMemo(
     () => [
       {
-        icon: Users,
-        label: t("adminPanel.dashboard.cardTotalUsers"),
+        title: "TỔNG NGƯỜI DÙNG",
         value: fmt(stats.totalUsers),
-        change: stats.totalUsers > 0 ? `${fmt(stats.newUsersThisMonth)} ${t('adminPanel.dashboard.unitNewMonth')}` : '—',
-        changeType: "positive" as const,
-        color: "#3B82F6",
+        icon: Users,
+        blobColor: "bg-indigo-50",
+        titleColor: "text-indigo-600",
+        type: "TOTAL_USERS" as MetricType,
       },
       {
-        icon: CheckCircle2,
-        label: t("adminPanel.dashboard.cardActiveUsers"),
-        value: fmt(stats.activeUsers),
-        change: stats.totalUsers > 0 ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}%` : '—',
-        changeType: "positive" as const,
-        color: "#10B981",
+        title: "NGƯỜI DÙNG MỚI",
+        value: fmt(stats.newUsersThisMonth || 0),
+        icon: UserPlus,
+        blobColor: "bg-blue-50",
+        titleColor: "text-blue-600",
+        type: "NEW_USERS" as MetricType,
       },
       {
-        icon: FileText,
-        label: t("adminPanel.dashboard.cardTotalPosts"),
-        value: fmt(stats.totalPosts),
-        change: stats.totalPosts > 0 ? `${fmt(stats.totalComments)} ${t('adminPanel.dashboard.unitComments')}` : '—',
-        changeType: "positive" as const,
-        color: "#F59E0B",
-      },
-      {
-        icon: AlertCircle,
-        label: t("adminPanel.dashboard.cardPendingReports"),
+        title: "BÁO CÁO CẦN DUYỆT",
         value: stats.pendingReports.toString(),
-        change: t("adminPanel.dashboard.needsReview"),
-        changeType: "warning" as const,
-        color: "#EF4444",
-      },
-    ],
-    [stats, t, i18n.language],
-  );
-
-  const overviewStats = useMemo(
-    () => [
-      {
-        label: t("adminPanel.dashboard.overviewTotalViews"),
-        value: fmt(stats.totalViews),
-        change: fmt(stats.totalViews),
-        icon: Eye,
-        color: "#3B82F6",
-      },
-      {
-        label: t("adminPanel.dashboard.overviewNewUsers"),
-        value: fmt(stats.newUsersThisMonth),
-        change: stats.totalUsers > 0 ? `${Math.round((stats.newUsersThisMonth / stats.totalUsers) * 100)}%` : '—',
-        icon: Users,
-        color: "#10B981",
-      },
-      {
-        label: t("adminPanel.dashboard.overviewPosts"),
-        value: fmt(stats.totalPosts),
-        change: stats.engagementRate > 0 ? `${stats.engagementRate} cmt/post` : '—',
-        icon: FileText,
-        color: "#F59E0B",
-      },
-      {
-        label: t("adminPanel.dashboard.overviewComments"),
-        value: fmt(stats.totalComments),
-        change: fmt(stats.totalComments),
-        icon: MessageSquare,
-        color: "#EF4444",
-      },
-    ],
-    [stats, t, i18n.language],
-  );
-
-  const keyMetrics = useMemo(
-    () => [
-      {
-        label: t("adminPanel.dashboard.cardTotalUsers"),
-        value: stats.totalUsers,
-        unit: t("adminPanel.dashboard.unitPeople"),
-        color: "#3B82F6",
-      },
-      {
-        label: t("adminPanel.dashboard.cardActiveUsers"),
-        value: stats.activeUsers,
-        unit: t("adminPanel.dashboard.unitPeople"),
-        color: "#10B981",
-      },
-      {
-        label: t("adminPanel.dashboard.cardTotalPosts"),
-        value: stats.totalPosts,
-        unit: t("adminPanel.dashboard.unitPosts"),
-        color: "#F59E0B",
-      },
-      {
-        label: t("adminPanel.dashboard.overviewComments"),
-        value: stats.totalComments,
-        unit: t("adminPanel.dashboard.unitComments"),
-        color: "#EF4444",
-      },
-    ],
-    [stats, t, i18n.language],
-  );
-
-  const quickActions = useMemo(
-    () => [
-      {
-        icon: Users,
-        label: t("adminPanel.dashboard.manageUsers"),
-        desc: t("adminPanel.dashboard.manageUsersDesc"),
-        link: "/admin/users",
-        color: "#3B82F6",
-      },
-      {
-        icon: FileText,
-        label: t("adminPanel.dashboard.managePosts"),
-        desc: t("adminPanel.dashboard.managePostsDesc"),
-        link: "/admin/posts",
-        color: "#F59E0B",
-      },
-      {
         icon: AlertCircle,
-        label: t("adminPanel.dashboard.manageReports"),
-        desc: t("adminPanel.dashboard.manageReportsDesc", {
-          count: stats.pendingReports,
-        }),
-        link: "/admin/reports",
-        color: "#EF4444",
+        blobColor: "bg-red-50",
+        titleColor: "text-red-600",
+        type: "PENDING_REPORTS" as MetricType,
       },
       {
-        icon: BarChart3,
-        label: t("adminPanel.dashboard.statsDetails"),
-        desc: t("adminPanel.dashboard.statsDetailsDesc"),
-        link: "#",
-        color: "#10B981",
+        title: "TỔNG BÀI VIẾT",
+        value: fmt(stats.totalPosts),
+        icon: Briefcase,
+        blobColor: "bg-amber-50",
+        titleColor: "text-amber-600",
+        type: "TOTAL_POSTS" as MetricType,
       },
     ],
-    [stats.pendingReports, t, i18n.language],
+    [stats]
   );
+
+  const pieData = useMemo(() => {
+    return [
+      { name: "Active", value: stats.activeUsers },
+      { name: "Inactive", value: Math.max(0, stats.totalUsers - stats.activeUsers) },
+    ];
+  }, [stats]);
+  const pieColors = ["#10B981", "#E5E7EB"];
+
+  const barData = useMemo(() => {
+    if (!stats.userGrowth) return [];
+    
+    return Object.entries(stats.userGrowth).map(([month, value]) => ({
+      name: month,
+      users: value,
+    }));
+  }, [stats]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-14 w-14 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">{t("adminPanel.dashboard.loading")}</p>
-        </div>
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-200 border-t-indigo-600"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 text-lg mb-4">{error}</p>
-          <button
-            type="button"
-            onClick={loadAllData}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {t("adminPanel.dashboard.retry")}
-          </button>
-        </div>
+      <div className="flex items-center justify-center h-64 text-red-600">
+        <p>{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-[1400px] mx-auto">
+      {/* Welcome Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t("adminPanel.dashboard.title")}</h1>
-          <p className="text-gray-600 text-lg">{t("adminPanel.dashboard.subtitle")}</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2 tracking-tight">
+            Welcome back, {user?.fullName || "Admin"}! <span className="text-2xl">👋</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1 font-medium">Here's what's happening in your network today.</p>
         </div>
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="h-12 px-6 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold cursor-pointer shadow-sm"
-        >
-          <option value="7days">{t("adminPanel.dashboard.range7")}</option>
-          <option value="30days">{t("adminPanel.dashboard.range30")}</option>
-          <option value="90days">{t("adminPanel.dashboard.range90")}</option>
-          <option value="1year">{t("adminPanel.dashboard.range1y")}</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 shadow-xs">
+            <span className="text-xs text-gray-500 font-medium ml-1">Từ:</span>
+            <input 
+              type="date" 
+              value={startDate}
+              onChange={(e) => { setStartDate(e.target.value); setTimeRange(""); }}
+              className="h-10 text-sm font-semibold focus:outline-none text-gray-700 bg-transparent"
+            />
+            <span className="text-xs text-gray-500 font-medium">Đến:</span>
+            <input 
+              type="date" 
+              value={endDate}
+              onChange={(e) => { setEndDate(e.target.value); setTimeRange(""); }}
+              className="h-10 text-sm font-semibold focus:outline-none text-gray-700 bg-transparent"
+            />
+          </div>
+          
+          <select
+            value={timeRange}
+            onChange={(e) => {
+              setTimeRange(e.target.value);
+              if (e.target.value !== "") {
+                setStartDate("");
+                setEndDate("");
+              }
+            }}
+            className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm font-semibold focus:outline-none text-gray-700 shadow-xs"
+          >
+            <option value="" disabled hidden>Mốc cố định</option>
+            <option value="7days">7 Ngày qua</option>
+            <option value="30days">30 Ngày qua</option>
+            <option value="90days">90 Ngày qua</option>
+            <option value="1year">1 Năm qua</option>
+          </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dashboardCards.map((stat, index) => {
-          const Icon = stat.icon;
+      {/* Metric Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {metricCards.map((card, idx) => {
+          const Icon = card.icon;
           return (
-            <div
-              key={index}
-              className="group bg-white rounded-2xl shadow-sm p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100 cursor-pointer"
+            <div 
+              key={idx} 
+              onClick={() => setActiveMetricModal(card.type)}
+              className="bg-white rounded-2xl p-6 border border-gray-200 relative overflow-hidden h-36 flex flex-col justify-between shadow-xs cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"
-                  style={{ backgroundColor: stat.color + "15" }}
-                >
-                  <Icon className="w-7 h-7" style={{ color: stat.color }} />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-2 font-medium">{stat.label}</p>
-              <p className="text-3xl font-bold text-gray-900 mb-3">{stat.value}</p>
-              <div className="flex items-center gap-1">
-                {stat.changeType === "positive" && (
-                  <>
-                    <ArrowUpRight className="w-4 h-4" style={{ color: stat.color }} />
-                    <span className="text-sm font-semibold" style={{ color: stat.color }}>
-                      {stat.change}
-                    </span>
-                  </>
-                )}
-                {stat.changeType === "warning" && (
-                  <span className="text-sm font-semibold text-red-600">{stat.change}</span>
-                )}
+              <div className={`absolute top-0 right-0 w-28 h-28 ${card.blobColor} rounded-bl-[60px] -mr-6 -mt-6 opacity-60 pointer-events-none transition-transform duration-500 group-hover:scale-110`}></div>
+              <h3 className={`text-[11px] font-bold uppercase tracking-wider z-10 ${card.titleColor}`}>{card.title}</h3>
+              <div className="flex items-end justify-between z-10">
+                <span className="text-4xl font-extrabold text-gray-900 leading-none">{card.value}</span>
+                <Icon className="w-6 h-6 text-gray-300 mb-1" />
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {overviewStats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={index}
-              className="group bg-white rounded-2xl shadow-sm p-6 hover:shadow-xl hover:-translate-y-1 transition-all border border-gray-100 cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"
-                  style={{ backgroundColor: stat.color + "20" }}
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* User Status Pie */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col">
+          <h3 className="text-sm font-bold text-gray-900 mb-1">Trạng thái người dùng</h3>
+          <p className="text-xs text-gray-500 mb-4">Tổng cộng {fmt(stats.totalUsers)} người dùng</p>
+          <div className="flex-1 min-h-[200px] flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="40%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
                 >
-                  <Icon className="w-7 h-7" style={{ color: stat.color }} />
-                </div>
-              </div>
-              <p className="text-base text-gray-600 mb-2 font-medium">{stat.label}</p>
-              <p className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</p>
-              <p className="text-base font-semibold flex items-center gap-1" style={{ color: stat.color }}>
-                <ArrowUpRight className="w-5 h-5" />
-                {stat.change}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">{t("adminPanel.dashboard.userGrowthChart")}</h3>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {Object.entries(stats.userGrowth).map(([month, value]) => {
-              const max = Math.max(...Object.values(stats.userGrowth));
-              const height = (value / max) * 100;
-              return (
-                <div
-                  key={month}
-                  className="flex-1 rounded-t-lg hover:opacity-80 transition-opacity cursor-pointer group relative"
-                  style={{
-                    height: `${height}%`,
-                    background: `linear-gradient(to top, #3B82F6, #60A5FA)`,
-                  }}
-                  title={t("adminPanel.dashboard.growthTooltip", {
-                    month,
-                    formatted: fmt(value),
-                  })}
-                >
-                  <div className="absolute -top-8 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs rounded px-2 py-1 text-center whitespace-nowrap">
-                    {fmt(value)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex justify-between mt-6 text-sm text-gray-600 font-medium">
-            {Object.keys(stats.userGrowth).map((month) => (
-              <span key={month}>{month}</span>
-            ))}
+                  {pieData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 600, color: '#4B5563' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {engagementStats && (
-          <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">{t("adminPanel.dashboard.engagement")}</h3>
-            <div className="space-y-6">
-              {Object.entries(engagementStats.metrics).map(([label, value]) => (
-                <div key={label}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-base font-semibold text-gray-700">{label}</span>
-                    <span className="text-base font-bold text-gray-900">{value}%</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${value}%`,
-                        background: `linear-gradient(to right, #3B82F6, #10B981)`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+        {/* Growth Bar Chart */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs lg:col-span-2 flex flex-col">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Tăng trưởng người dùng</h3>
+              <p className="text-xs text-gray-500">Người dùng mới theo thời gian</p>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-semibold text-gray-500">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Users</span>
             </div>
           </div>
-        )}
+          <div className="flex-1 min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={32}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
+                <RechartsTooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="users" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-sm p-8 border border-blue-100">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">{t("adminPanel.dashboard.keyMetrics")}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {keyMetrics.map((metric, index) => (
-            <div key={index} className="text-center">
-              <div
-                className="w-20 h-20 rounded-xl mx-auto mb-4 flex items-center justify-center"
-                style={{ backgroundColor: metric.color + "20" }}
-              >
-                <span className="text-2xl font-bold" style={{ color: metric.color }}>
-                  {metric.value >= 1000 ? (metric.value / 1000).toFixed(1) + "K" : metric.value}
-                </span>
+      {/* Bottom Area: Top Posts & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs lg:col-span-2">
+          <div className="border-b border-gray-100 flex gap-6 mb-4">
+            <button className="pb-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Bài viết thịnh hành ({topPosts.length})</button>
+            <button className="pb-3 text-sm font-semibold text-gray-400 hover:text-gray-600 transition-colors">Need Review</button>
+          </div>
+          <div className="space-y-2">
+            {topPosts.length > 0 ? (
+              topPosts.map((post) => (
+                <div key={post.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                      {post.authorName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">{post.authorName}</p>
+                      <p className="text-xs text-gray-500 truncate max-w-sm">{post.content}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-xs font-bold text-gray-900">{fmt(post.views)}</p>
+                      <p className="text-[10px] text-gray-500 uppercase">Views</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-gray-900">{fmt(post.likes)}</p>
+                      <p className="text-[10px] text-gray-500 uppercase">Likes</p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedPostId(post.id)}
+                      className="text-xs font-bold text-blue-600 px-3 py-1 rounded-full bg-blue-50 hover:bg-blue-100 transition-colors"
+                    >
+                      VIEW
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 py-4 text-center">Không có bài viết nào.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col">
+          <h3 className="text-sm font-bold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="space-y-3 flex-1">
+            <a href="/admin/users" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group border border-transparent hover:border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Users className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-sm text-gray-700 group-hover:text-gray-900">Quản lý người dùng</span>
               </div>
-              <p className="text-sm text-gray-700 font-medium">{metric.label}</p>
-              <p className="text-xs text-gray-500 mt-1">{metric.unit}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t("adminPanel.dashboard.topPosts")}</h2>
-        <div className="space-y-4">
-          {topPosts.length > 0 ? (
-            topPosts.map((post, index) => (
-              <div
-                key={post.id}
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100"
-              >
-                <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 font-bold text-white"
-                  style={{
-                    background: `linear-gradient(135deg, #3B82F6, #10B981)`,
-                  }}
-                >
-                  #{index + 1}
+            </a>
+            <a href="/admin/posts" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group border border-transparent hover:border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
+                  <FileText className="w-4 h-4" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-bold text-lg text-gray-900">{post.authorName}</p>
-                  <p className="text-base text-gray-600">{post.content}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-bold text-lg text-gray-900">{fmt(post.views)}</p>
-                  <p className="text-sm text-gray-500">{t("adminPanel.dashboard.viewsLabel")}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-bold text-lg text-gray-900">{fmt(post.likes)}</p>
-                  <p className="text-sm text-gray-500">{t("adminPanel.dashboard.likesLabel")}</p>
-                </div>
+                <span className="font-semibold text-sm text-gray-700 group-hover:text-gray-900">Quản lý bài viết</span>
               </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500">{t("adminPanel.dashboard.noPosts")}</p>
-          )}
+            </a>
+            <a href="/admin/reports" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group border border-transparent hover:border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-sm text-gray-700 group-hover:text-gray-900">Báo cáo vi phạm</span>
+              </div>
+            </a>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t("adminPanel.dashboard.quickActions")}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <a
-                key={index}
-                href={action.link}
-                className="p-6 rounded-2xl bg-gray-50 hover:shadow-lg transition-all text-center hover:bg-white group cursor-pointer border border-transparent hover:border-gray-100"
-              >
-                <div
-                  className="w-16 h-16 rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform"
-                  style={{ backgroundColor: action.color + "15" }}
-                >
-                  <Icon className="w-8 h-8" style={{ color: action.color }} />
-                </div>
-                <p className="font-bold text-lg text-gray-900 mb-1">{action.label}</p>
-                <p className="text-sm text-gray-600">{action.desc}</p>
-              </a>
-            );
-          })}
-        </div>
-      </div>
+      <PostPreviewModal 
+        postId={selectedPostId} 
+        onClose={() => setSelectedPostId(null)} 
+      />
+
+      <MetricDetailsModal 
+        type={activeMetricModal}
+        timeRange={timeRange}
+        startDate={startDate}
+        endDate={endDate}
+        onClose={() => setActiveMetricModal(null)}
+        onPostClick={(id) => {
+          setActiveMetricModal(null);
+          setSelectedPostId(id);
+        }}
+      />
     </div>
   );
 }

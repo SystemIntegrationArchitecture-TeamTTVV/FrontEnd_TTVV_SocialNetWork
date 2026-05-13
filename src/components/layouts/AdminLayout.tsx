@@ -15,6 +15,8 @@ import {
   UserCircle,
   Calendar,
   Bell,
+  Search,
+  Globe,
 } from "lucide-react";
 import { usersApi } from "../../apis/users";
 import { postsApi } from "../../apis/posts";
@@ -76,20 +78,20 @@ export default function AdminLayout() {
       path: "/admin/groups",
       badge: null,
     },
-    {
-      id: "events",
-      icon: Calendar,
-      labelKey: "adminPanel.layout.navEvents",
-      path: "/admin/events",
-      badge: null,
-    },
-    {
-      id: "messages",
-      icon: MessageSquare,
-      labelKey: "adminPanel.layout.navMessages",
-      path: "/admin/messages",
-      badge: null,
-    },
+    // {
+    //   id: "events",
+    //   icon: Calendar,
+    //   labelKey: "adminPanel.layout.navEvents",
+    //   path: "/admin/events",
+    //   badge: null,
+    // },
+    // {
+    //   id: "messages",
+    //   icon: MessageSquare,
+    //   labelKey: "adminPanel.layout.navMessages",
+    //   path: "/admin/messages",
+    //   badge: null,
+    // },
     {
       id: "reports",
       icon: AlertTriangle,
@@ -114,45 +116,43 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="app-shell min-h-screen flex">
+    <div className="h-screen overflow-hidden flex bg-[#F7F8FC] font-sans">
       {/* Sidebar */}
       <aside
-        className={`ui-surface border-r border-gray-200/70 dark:border-[#2b2f45] transition-all duration-300 ease-in-out flex flex-col ${
-          sidebarCollapsed ? "w-24" : "w-80"
-        }`}
+        className={`shrink-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col ${sidebarCollapsed ? "w-20" : "w-72"
+          }`}
       >
         {/* Sidebar Header */}
-        <div className="h-20 border-b border-gray-200/70 dark:border-[#2b2f45] flex items-center justify-between px-5">
+        <div className="h-20 flex items-center justify-between px-6 mb-2">
           {!sidebarCollapsed && (
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
-                <Shield className="w-7 h-7 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-[#edf0fa]">{t("adminPanel.layout.sidebarTitle")}</h1>
-                <p className="text-sm text-gray-500 dark:text-[#9aa3bc]">{t("adminPanel.layout.sidebarSubtitle")}</p>
+                <h1 className="text-xl font-bold text-gray-900 tracking-tight">TTVV</h1>
               </div>
             </div>
           )}
           {sidebarCollapsed && (
-            <div className="w-14 h-14 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg mx-auto">
-              <Shield className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center mx-auto">
+              <Shield className="w-5 h-5 text-white" />
             </div>
           )}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-11 h-11 rounded-xl hover:bg-gray-100 dark:hover:bg-[#242838] flex items-center justify-center transition-colors text-gray-600 dark:text-[#9aa3bc] hover:text-gray-900 dark:hover:text-[#edf0fa]"
+            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-900"
           >
             {sidebarCollapsed ? (
-              <Menu className="w-6 h-6" />
+              <Menu className="w-4 h-4" />
             ) : (
-              <X className="w-6 h-6" />
+              <X className="w-4 h-4" />
             )}
           </button>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto p-5 space-y-3">
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -161,40 +161,27 @@ export default function AdminLayout() {
               <Link
                 key={item.id}
                 to={item.path}
-                className={`flex items-center gap-5 px-5 py-4 rounded-xl transition-all group relative ${
-                  active
-                    ? "bg-blue-50 text-blue-600 shadow-sm"
-                    : "text-gray-700 dark:text-[#c8ccde] hover:bg-gray-50 dark:hover:bg-[#242838]"
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-colors group relative ${active
+                  ? "bg-gray-100 text-gray-900 font-semibold"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium"
+                  }`}
                 title={sidebarCollapsed ? t(item.labelKey) : ""}
               >
-                <div
-                  className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                    active
-                      ? "bg-blue-500 text-white shadow-sm"
-                      : "bg-gray-100 dark:bg-[#22263a] text-gray-600 dark:text-[#9aa3bc] group-hover:bg-gray-200 dark:group-hover:bg-[#2b2f45]"
-                  }`}
-                >
-                  <Icon className="w-6 h-6" />
-                </div>
+                <Icon className={`w-5 h-5 shrink-0 transition-colors ${active ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600"}`} />
                 {!sidebarCollapsed && (
                   <>
-                    <span
-                      className={`flex-1 font-bold text-lg ${
-                        active ? "text-blue-600" : "text-gray-700 dark:text-[#c8ccde]"
-                      }`}
-                    >
+                    <span className="flex-1 text-sm">
                       {t(item.labelKey)}
                     </span>
                     {item.badge && (
-                      <span className="min-w-[32px] h-8 px-2 rounded-full bg-blue-500 text-white text-sm font-bold flex items-center justify-center">
+                      <span className="min-w-[24px] h-6 px-1.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-xs font-semibold flex items-center justify-center">
                         {item.badge > 99 ? "99+" : item.badge}
                       </span>
                     )}
                   </>
                 )}
                 {sidebarCollapsed && item.badge && (
-                  <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-red-500 border-2 border-white"></span>
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-gray-400"></span>
                 )}
               </Link>
             );
@@ -202,10 +189,10 @@ export default function AdminLayout() {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-gray-200/70 dark:border-[#2b2f45] p-5">
+        <div className="border-t border-gray-100 p-4">
           {!sidebarCollapsed ? (
-            <div className="flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-[#242838] transition-colors cursor-pointer group">
-              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
                 {user?.avatar ? (
                   <img
                     src={user.avatar}
@@ -213,21 +200,21 @@ export default function AdminLayout() {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <UserCircle className="w-7 h-7 text-white" />
+                  <UserCircle className="w-6 h-6 text-gray-400" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 dark:text-[#edf0fa] text-lg truncate">
+                <p className="font-semibold text-gray-900 text-sm truncate">
                   {user?.fullName || user?.username || "Admin"}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-[#9aa3bc] truncate">
-                  {user?.username || "admin@ttvv.com"}
+                <p className="text-xs text-gray-500 truncate">
+                  {user?.username || "admin"}
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex justify-center">
-              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
                 {user?.avatar ? (
                   <img
                     src={user.avatar}
@@ -235,7 +222,7 @@ export default function AdminLayout() {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <UserCircle className="w-7 h-7 text-white" />
+                  <UserCircle className="w-6 h-6 text-gray-400" />
                 )}
               </div>
             </div>
@@ -246,16 +233,15 @@ export default function AdminLayout() {
               logout();
               navigate("/home");
             }}
-            className={`flex items-center gap-5 px-5 py-4 rounded-xl text-red-600 hover:bg-red-50 transition-colors mt-3 w-full ${
-              sidebarCollapsed ? "justify-center" : ""
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors mt-2 w-full ${sidebarCollapsed ? "justify-center" : ""
+              }`}
             title={sidebarCollapsed ? t("adminPanel.layout.logout") : ""}
           >
-            <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-              <LogOut className="w-6 h-6" />
+            <div className="w-8 h-8 rounded-md flex items-center justify-center text-gray-400 group-hover:text-gray-900">
+              <LogOut className="w-4 h-4" />
             </div>
             {!sidebarCollapsed && (
-              <span className="font-bold text-lg">{t("adminPanel.layout.logout")}</span>
+              <span className="font-medium text-sm">{t("adminPanel.layout.logout")}</span>
             )}
           </button>
         </div>
@@ -264,34 +250,52 @@ export default function AdminLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-20 ui-surface border-b border-gray-200/70 dark:border-[#2b2f45] px-8 flex items-center justify-between shadow-sm">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-[#edf0fa]">
-              {(() => {
-                const active = menuItems.find((item) => isActive(item.path));
-                return active ? t(active.labelKey) : t("adminPanel.layout.headerFallback");
-              })()}
-            </h2>
-          </div>
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#22263a] flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-[#2b2f45] transition-colors">
-              <Bell className="w-6 h-6 text-gray-600 dark:text-[#9aa3bc]" />
+        <header className="h-20 bg-[#F4F5F7] px-8 flex items-center justify-between z-10 sticky top-0">
+          <div className="flex-1 flex items-center">
+            <div className="relative w-96">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder={t("adminPanel.layout.searchPlaceholder", "Tìm kiếm...")}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
             </div>
-            <Link
-              to="/home"
-              className="px-5 py-3 rounded-xl bg-gray-100 dark:bg-[#22263a] hover:bg-gray-200 dark:hover:bg-[#2b2f45] text-gray-700 dark:text-[#c8ccde] font-semibold transition-colors text-base"
-            >
-              {t("adminPanel.layout.backHome")}
-            </Link>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
+              <Globe className="w-4 h-4 text-gray-500" />
+            </div>
+            <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
+              <Bell className="w-4 h-4 text-gray-500" />
+            </div>
+            <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
+              <Settings className="w-4 h-4 text-gray-500" />
+            </div>
+            <div className="h-8 w-px bg-gray-200 mx-2"></div>
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <UserCircle className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
+              <div className="hidden md:block">
+                <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                  {user?.fullName || user?.username || "Admin"}
+                </p>
+                <p className="text-xs text-gray-500">{user?.username}</p>
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-8">
-          <div className="ui-surface rounded-3xl p-2">
-            <div className="rounded-2xl bg-white/95 dark:bg-[#171b27]/95 min-h-[calc(100vh-180px)] p-4 sm:p-6">
-              <Outlet />
-            </div>
+        <main className="flex-1 overflow-y-auto p-8 bg-[#F4F5F7]">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
           </div>
         </main>
       </div>
