@@ -27,7 +27,10 @@ const normalizeUrl = (url: string) => {
 const resolveBaseUrl = (envUrl: string | undefined, devFallback: string) => {
   // Keep local runs stable (vite dev, local preview, local tunnel fallback)
   if (isDev || isRuntimeLocal) {
-    return normalizeUrl(envUrl || devFallback);
+    // NOTE: allow empty-string env values ("") to intentionally use same-origin URLs
+    // (useful when relying on Vite proxy in dev).
+    const candidate = envUrl !== undefined ? envUrl : devFallback;
+    return normalizeUrl(candidate);
   }
 
   // In production, never use localhost endpoints even if env vars are misconfigured.
@@ -39,7 +42,9 @@ const resolveBaseUrl = (envUrl: string | undefined, devFallback: string) => {
 };
 
 export const API_CONFIG = {
-  BASE_URL: resolveBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:8088'),
+  // In dev, default to same-origin and let Vite proxy forward /api/* to the Gateway.
+  // You can override via VITE_API_BASE_URL when needed.
+  BASE_URL: resolveBaseUrl(import.meta.env.VITE_API_BASE_URL, ''),
   COMMON_SERVICE_URL: resolveBaseUrl(import.meta.env.VITE_COMMON_SERVICE_URL, 'http://localhost:8081'),
   AUTH_SERVICE_URL: resolveBaseUrl(import.meta.env.VITE_AUTH_SERVICE_URL, 'http://localhost:8083'),
   TIMEOUT: 30000, // 30 seconds

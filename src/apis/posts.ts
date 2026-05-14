@@ -69,7 +69,10 @@ class PostsApi {
     try {
       console.log('📡 [Posts API] Fetching all posts...');
       const query = viewerId ? `?viewerId=${encodeURIComponent(viewerId)}` : '';
-      const response = await httpClient.get<PostData[]>(`${this.baseUrl}${query}`);
+      const response = await httpClient.get<PostData[]>(
+        `${this.baseUrl}${query}`,
+        Boolean(viewerId),
+      );
       console.log('✅ [Posts API] Successfully fetched posts:', response.length);
       return response;
     } catch (error) {
