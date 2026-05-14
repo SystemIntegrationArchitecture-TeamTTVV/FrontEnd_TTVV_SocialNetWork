@@ -440,12 +440,7 @@ export default function DirectChatSidebar({
     }
   };
 
-    } catch {
-      notify.error('Không thể gửi báo cáo');
-    } finally {
-      setReporting(false);
-    }
-  };
+
 
   const profileLink = otherUserId ? `/profile/${otherUserId}` : `/profile/${conversation.id}`;
   const blockedByOtherAll = !!(otherUserId && conversationRaw?.blockedByUserIds?.includes(otherUserId));

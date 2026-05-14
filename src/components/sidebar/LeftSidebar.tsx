@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, Radio, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, Radio, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import SystemUpdateModal, { hasSeenLatestChangelog } from './../../components/common/SystemUpdateModal';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
@@ -31,6 +33,7 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
   const { t } = useTranslation();
   const location = useLocation();
   const { user: currentUser } = useAuth();
+  const [showChangelog, setShowChangelog] = useState(false);
 
   const userAvatar = currentUser?.avatar || null;
   const userInitials = currentUser?.fullName
@@ -150,6 +153,37 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
             </Link>
           );
         })}
+
+        {/* ── System Update Button (new — does not affect existing items) ── */}
+        <button
+          type="button"
+          onClick={() => setShowChangelog(true)}
+          className={`flex items-center rounded-xl transition-all duration-200 group min-h-12 hover:bg-[#f0f2f5] dark:hover:bg-[#1f2230] w-full ${
+            collapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2.5'
+          }`}
+          title={collapsed ? 'Bản cập nhật mới' : undefined}
+        >
+          <div className="relative w-9 h-9 rounded-full flex items-center justify-center bg-[#edf0f5] text-[#444] group-hover:bg-[#e2e6ee] dark:bg-[#272c3d] dark:text-[#c0c8da] dark:group-hover:bg-[#333848] transition-all shrink-0">
+            <Sparkles className="w-5 h-5" />
+            {!hasSeenLatestChangelog(currentUser?.id) && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#13151f]" />
+            )}
+          </div>
+          {!collapsed && (
+            <span className="text-[15px] text-gray-700 dark:text-[#b8becf] font-medium group-hover:text-gray-900 dark:group-hover:text-[#e8ecf5] flex items-center gap-2">
+              Bản cập nhật mới
+              {!hasSeenLatestChangelog(currentUser?.id) && (
+                <span className="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+              )}
+            </span>
+          )}
+        </button>
+
+        <SystemUpdateModal
+          isOpen={showChangelog}
+          onClose={() => setShowChangelog(false)}
+          userId={currentUser?.id}
+        />
 
       </div>
     </div>

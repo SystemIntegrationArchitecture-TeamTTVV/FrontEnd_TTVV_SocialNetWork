@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/ — vitest/config gộp cấu hình test
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  server: {
+    port: 5311,
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],

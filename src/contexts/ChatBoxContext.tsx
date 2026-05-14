@@ -79,6 +79,7 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
               userId: b.userId ? String(b.userId) : undefined,
               name: String(b.name),
               avatar: typeof b.avatar === 'string' ? b.avatar : String(b.name).slice(0, 2).toUpperCase(),
+              avatarUrl: typeof b.avatarUrl === 'string' ? b.avatarUrl : undefined,
               color: typeof b.color === 'string' ? b.color : '#1877F2',
               online: typeof b.online === 'boolean' ? b.online : false,
               isGroup: typeof b.isGroup === 'boolean' ? b.isGroup : false,

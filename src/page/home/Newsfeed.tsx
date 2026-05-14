@@ -312,7 +312,11 @@ export default function Newsfeed() {
     acc[userId].push(story);
     return acc;
   }, {});
-  const storyGroups: Story[][] = Object.values(storiesByUser);
+
+  // Sort each group so the oldest story is first (chronological order)
+  const storyGroups: Story[][] = Object.values(storiesByUser).map(group => 
+    group.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  );
   // const handleViewStory = (storyId: string) => {
   //   setSelectedStoryId(storyId);
   //   setIsStoryViewerOpen(true);
@@ -740,15 +744,15 @@ export default function Newsfeed() {
           {loadingStories && <StorySkeleton />}
           {/* Friends Stories */}
           {storyGroups.map((group, index) => {
-            const firstStory = group[0];
+            const displayStory = group[group.length - 1]; // Use newest story for thumbnail
             const storyMediaUrl =
-              firstStory.contentType !== 'text'
-                ? resolveStoryContentUrl(firstStory.content)
+              displayStory.contentType !== 'text'
+                ? resolveStoryContentUrl(displayStory.content)
                 : '';
 
             return (
               <button
-                key={firstStory.user.id}
+                key={displayStory.user.id}
                 onClick={() => setViewerUserIndex(index)}
                 className="shrink-0 w-32 text-left"
               >
@@ -756,7 +760,7 @@ export default function Newsfeed() {
                   {/* Story Content Background */}
                   <div className="w-full h-full rounded-2xl overflow-hidden relative">
                     {/* Story preview */}
-                    {firstStory.contentType === 'image' && (
+                    {displayStory.contentType === 'image' && (
                       <div className="relative h-full w-full">
                         {storyMediaUrl ? (
                         <img
@@ -767,25 +771,25 @@ export default function Newsfeed() {
                         ) : (
                           <div className="h-full w-full bg-zinc-800" />
                         )}
-                        {firstStory.caption?.trim() ? (
+                        {displayStory.caption?.trim() ? (
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
-                            {firstStory.caption.trim()}
+                            {displayStory.caption.trim()}
                           </div>
                         ) : null}
                       </div>
                     )}
 
-                    {firstStory.contentType === 'text' && (
+                    {displayStory.contentType === 'text' && (
                       <div
-                        className={`w-full h-full ${firstStory.background} flex items-center justify-center p-3`}
+                        className={`w-full h-full ${displayStory.background} flex items-center justify-center p-3`}
                       >
                         <p className="text-white text-sm font-semibold text-center line-clamp-4">
-                          {firstStory.content}
+                          {displayStory.content}
                         </p>
                       </div>
                     )}
 
-                    {firstStory.contentType === 'video' && (
+                    {displayStory.contentType === 'video' && (
                       <div className="relative h-full w-full">
                         {storyMediaUrl ? (
                         <video
@@ -801,37 +805,35 @@ export default function Newsfeed() {
                         ) : (
                           <div className="h-full w-full bg-zinc-800" />
                         )}
-                        {firstStory.caption?.trim() ? (
+                        {displayStory.caption?.trim() ? (
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
-                            {firstStory.caption.trim()}
+                            {displayStory.caption.trim()}
                           </div>
                         ) : null}
                       </div>
                     )}
+                  </div>
 
-
-                    {/* Gradient overlay for better avatar visibility */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
-
-                    {/* User Avatar */}
-                    <div className="absolute top-3 left-3">
-                      <StoryAvatar
-                        name={firstStory.user.name}
-                        avatar={firstStory.user.avatar}
-                        className="h-10 w-10 rounded-full border-2 border-white object-cover shadow-lg"
-                      />
-                    </div>
+                  {/* Author Avatar & Name */}
+                  <div className="absolute top-2 left-2 ring-2 ring-blue-500 rounded-full">
+                    <StoryAvatar
+                      name={displayStory.user.name}
+                      avatar={displayStory.user.avatar}
+                      className="w-8 h-8 border-2 border-white rounded-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute bottom-2 left-2 right-2 z-10">
+                    <p className="text-white text-xs font-medium truncate drop-shadow-md">
+                      {displayStory.user.name}
+                    </p>
                   </div>
                 </div>
-
                 <p className="text-center mt-3 font-medium truncate text-sm">
-                  {firstStory.user.name}
+                  {displayStory.user.name}
                 </p>
               </button>
             );
           })}
-
-
         </div>
       </div>
 
