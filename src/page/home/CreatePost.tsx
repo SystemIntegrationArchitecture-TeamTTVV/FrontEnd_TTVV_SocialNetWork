@@ -3,7 +3,7 @@ import { Image, X, Globe, UserCheck, Lock, Loader2, Video, Trash2 } from 'lucide
 import { useRef, useState } from 'react';
 
 import { postsApi } from '../../apis/posts';
-import type { CreatePostRequest } from '../../apis/posts';
+import type { CreatePostRequest, PostData } from '../../apis/posts';
 import { authApi } from '../../apis/auth';
 import { uploadApi } from '../../apis/upload';
 import { HttpError } from '../../apis/http';
@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 
 interface CreatePostProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (post: PostData) => void;
 }
 
 export default function CreatePost({ onClose, onSuccess }: CreatePostProps) {
@@ -130,13 +130,13 @@ export default function CreatePost({ onClose, onSuccess }: CreatePostProps) {
         videos: videoUrls,
       };
 
-      await postsApi.createPost(postData);
+      const createdPost = await postsApi.createPost(postData);
       console.log('✅ Post created successfully');
       
       imagePreviews.forEach(url => URL.revokeObjectURL(url));
       videoPreviews.forEach(url => URL.revokeObjectURL(url));
       
-      onSuccess();
+      onSuccess(createdPost);
     } catch (err: unknown) {
       const message =
         err instanceof HttpError

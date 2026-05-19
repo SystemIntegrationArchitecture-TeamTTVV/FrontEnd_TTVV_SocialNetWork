@@ -82,7 +82,7 @@ export default function MainLayout() {
           isFlappyFullscreen
             ? 'px-0 pt-0 pb-0 max-w-full overflow-hidden'
             : isMessengerPage
-            ? 'px-0 max-w-full pb-16 md:pb-0'
+            ? 'px-0 max-w-full overflow-hidden'
             : 'px-3 sm:px-5 lg:px-7 pt-4 sm:pt-5 pb-20 md:pb-8'
         }`}>
           <div className={

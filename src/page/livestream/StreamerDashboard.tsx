@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Radio, Tv, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,7 +8,17 @@ export default function StreamerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { activeStream, loading, creating, handleCreateStream, ending } = useLiveStreamHost();
+  const { activeStream, loading, creating, handleCreateStream, ending, setPortalElement } = useLiveStreamHost();
+
+  // Callback ref — registers/unregisters the portal div element in context
+  const portalRef = useCallback((el: HTMLDivElement | null) => {
+    setPortalElement(el);
+  }, [setPortalElement]);
+
+  // Clean up portal element when unmounting
+  useEffect(() => {
+    return () => setPortalElement(null);
+  }, [setPortalElement]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -46,7 +56,7 @@ export default function StreamerDashboard() {
             </div>
           </div>
         )}
-        <div id="streamer-dashboard-portal" className="w-full h-full" />
+        <div ref={portalRef} id="streamer-dashboard-portal" className="w-full h-full" />
       </div>
     );
   }

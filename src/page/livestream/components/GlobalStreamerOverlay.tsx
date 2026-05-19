@@ -111,33 +111,21 @@ function StreamerThamKhaoLayoutWrapper({ user }: { user: any }) {
 }
 
 export default function GlobalStreamerOverlay() {
-  const { activeStream } = useLiveStreamHost();
+  const { activeStream, portalElement } = useLiveStreamHost();
   const { user } = useAuth();
   const location = useLocation();
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   const isDashboard = location.pathname === '/livestream/dashboard';
-
-  useEffect(() => {
-    if (isDashboard) {
-      let tries = 0;
-      const checkInterval = setInterval(() => {
-        const el = document.getElementById('streamer-dashboard-portal');
-        if (el) {
-          setPortalTarget(el);
-          clearInterval(checkInterval);
-        }
-        if (++tries > 20) clearInterval(checkInterval); // 2s max wait
-      }, 100);
-      return () => clearInterval(checkInterval);
-    } else {
-      setPortalTarget(null);
-    }
-  }, [isDashboard]);
 
   if (!activeStream || !activeStream.livekitUrl || !activeStream.livekitToken || !user) {
     return null;
   }
+
+  const streamerContent = (
+    <div className="w-full h-full relative fade-in">
+       <StreamerThamKhaoLayoutWrapper user={user} />
+    </div>
+  );
 
   return (
     <LiveKitRoom
@@ -149,12 +137,7 @@ export default function GlobalStreamerOverlay() {
       className="global-streamer-room"
     >
       {isDashboard ? (
-        portalTarget ? createPortal(
-          <div className="w-full h-full relative fade-in">
-             <StreamerThamKhaoLayoutWrapper user={user} />
-          </div>,
-          portalTarget
-        ) : null
+        portalElement ? createPortal(streamerContent, portalElement) : null
       ) : (
         <MiniStreamerPlayer />
       )}

@@ -342,6 +342,11 @@ export default function Messenger() {
     if (activeChat === AI_CONVERSATION_ID) return;
     if (activeChat && conversations.some((c) => c.id === activeChat)) return;
 
+    // On mobile (< md breakpoint), don't auto-select a conversation
+    // so the user sees the conversation list first
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
     const persisted = window.sessionStorage.getItem(LAST_ACTIVE_CHAT_KEY);
     if (persisted && conversations.some((c) => c.id === persisted)) {
       setActiveChat(persisted);
@@ -476,6 +481,23 @@ export default function Messenger() {
           ...prev,
           [incomingConversationId]: (prev[incomingConversationId] || 0) + 1,
         }));
+        // Show toast notification for messages from other conversations
+        const senderName = message?.senderName || message?.senderId || '';
+        const content = message?.content || '';
+        const preview = content.length > 50 ? content.slice(0, 50) + '…' : content;
+        if (senderName) {
+          notify.info(`${senderName}: ${preview || 'Đã gửi tin nhắn'}`);
+        }
+      }
+
+      // Show notification when user has no active chat
+      if (!activeChat) {
+        const senderName = message?.senderName || message?.senderId || '';
+        const content = message?.content || '';
+        const preview = content.length > 50 ? content.slice(0, 50) + '…' : content;
+        if (senderName) {
+          notify.info(`${senderName}: ${preview || 'Đã gửi tin nhắn'}`);
+        }
       }
 
       setActiveChat((prev) => {
@@ -776,8 +798,8 @@ export default function Messenger() {
         const name = conv.isGroup
           ? conv.groupName || 'Group Chat'
           : (otherParticipantId && conv.nicknames?.[otherParticipantId])
-            || conv.participantNames?.[otherParticipantIndex]
-            || 'Unknown User';
+          || conv.participantNames?.[otherParticipantIndex]
+          || 'Unknown User';
 
         const initials = name
           .split(' ')
@@ -1431,7 +1453,7 @@ export default function Messenger() {
             if (activeChat) {
               messagesApi.getPinnedMessages(activeChat, user.id).then((data) => {
                 setPinnedMessages(data.map(formatMessageForDisplay));
-              }).catch(() => {});
+              }).catch(() => { });
             }
           }).catch((err: unknown) => {
             console.error('Failed to toggle pin:', err);
@@ -1533,7 +1555,7 @@ export default function Messenger() {
         // Reload full pinned list to stay in sync
         messagesApi.getPinnedMessages(activeChat, user.id)
           .then((pins) => setPinnedMessages(pins.map(formatMessageForDisplay)))
-          .catch(() => {});
+          .catch(() => { });
       }
     });
     return unsub;
@@ -1630,80 +1652,91 @@ export default function Messenger() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [selectedMessage]);
 
+  // On mobile (< md), only one panel is visible at a time:
+  // - If right sidebar is open → show only right sidebar
+  // - If a chat is active → show only chat area
+  // - Otherwise → show conversation list
+  const mobileShowRightPanel = !rightSidebarCollapsed && !!activeConversation;
+  const mobileShowChat = !!activeChat && !mobileShowRightPanel;
+  const mobileShowSidebar = !activeChat || (!mobileShowChat && !mobileShowRightPanel);
+
   return (
     <div className="h-[calc(100vh-5rem)] bg-slate-50 dark:bg-[#0c0e14] flex relative overflow-hidden transition-colors duration-300">
 
       {/* Left Sidebar - Conversations */}
-      <ChatSidebar
-        formattedConversations={formattedConversations}
-        activeChat={activeChat}
-        onSelectChat={handleSelectChat}
-        collapsed={leftSidebarCollapsed}
-        onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-        sidebarSearch={sidebarSearch}
-        onSearchChange={setSidebarSearch}
-        loading={conversationsLoading}
-        aiConversationId={AI_CONVERSATION_ID}
-        contextMenu={contextMenu}
-        onContextMenu={(e, convId) => {
-          setContextMenu({ x: e.clientX, y: e.clientY, convId });
-        }}
-        showHideInput={showHideInput}
-        hidePin={hidePin}
-        onHidePinChange={setHidePin}
-        hideLoading={hideLoading}
-        hideError={hideError}
-        onHideError={setHideError}
-        onHideConversation={async (convId, pin) => {
-          if (!user?.id) return;
-          setHideLoading(true);
-          setHideError(null);
-          try {
-            await conversationsApi.hideConversation(convId, { userId: user.id, pin });
-            setShowHideInput(null);
+      {/* Left Sidebar - hidden on mobile when chat or right panel is open */}
+      <div className={`${mobileShowSidebar ? 'flex' : 'hidden'} md:flex flex-col shrink-0 h-full`}>
+        <ChatSidebar
+          formattedConversations={formattedConversations}
+          activeChat={activeChat}
+          onSelectChat={handleSelectChat}
+          collapsed={leftSidebarCollapsed}
+          onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+          sidebarSearch={sidebarSearch}
+          onSearchChange={setSidebarSearch}
+          loading={conversationsLoading}
+          aiConversationId={AI_CONVERSATION_ID}
+          contextMenu={contextMenu}
+          onContextMenu={(e, convId) => {
+            setContextMenu({ x: e.clientX, y: e.clientY, convId });
+          }}
+          showHideInput={showHideInput}
+          hidePin={hidePin}
+          onHidePinChange={setHidePin}
+          hideLoading={hideLoading}
+          hideError={hideError}
+          onHideError={setHideError}
+          onHideConversation={async (convId, pin) => {
+            if (!user?.id) return;
+            setHideLoading(true);
+            setHideError(null);
+            try {
+              await conversationsApi.hideConversation(convId, { userId: user.id, pin });
+              setShowHideInput(null);
+              setHidePin('');
+              loadConversations();
+              if (activeChat === convId) setActiveChat(null);
+              notify.success('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ ÃƒÂ¡Ã‚ÂºÃ‚Â©n hÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢i thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i');
+            } catch (err: any) {
+              setHideError(err?.message || 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i');
+            } finally {
+              setHideLoading(false);
+            }
+          }}
+          onCancelHide={() => { setShowHideInput(null); setHidePin(''); setHideError(null); }}
+          onShowHidden={async () => {
+            setShowHiddenPanel(true);
+            if (!user?.id) return;
+            setHiddenLoading(true);
+            try {
+              const data = await conversationsApi.getHiddenConversationsByUserId(user.id);
+              setHiddenConversations(Array.isArray(data) ? data : []);
+            } catch { setHiddenConversations([]); }
+            finally { setHiddenLoading(false); }
+          }}
+          onStartHide={(convId) => {
+            setShowHideInput(convId);
             setHidePin('');
-            loadConversations();
-            if (activeChat === convId) setActiveChat(null);
-            notify.success('Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â£ ÃƒÂ¡Ã‚ÂºÃ‚Â©n hÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢i thoÃƒÂ¡Ã‚ÂºÃ‚Â¡i');
-          } catch (err: any) {
-            setHideError(err?.message || 'LÃƒÂ¡Ã‚Â»Ã¢â‚¬â€i');
-          } finally {
-            setHideLoading(false);
-          }
-        }}
-        onCancelHide={() => { setShowHideInput(null); setHidePin(''); setHideError(null); }}
-        onShowHidden={async () => {
-          setShowHiddenPanel(true);
-          if (!user?.id) return;
-          setHiddenLoading(true);
-          try {
-            const data = await conversationsApi.getHiddenConversationsByUserId(user.id);
-            setHiddenConversations(Array.isArray(data) ? data : []);
-          } catch { setHiddenConversations([]); }
-          finally { setHiddenLoading(false); }
-        }}
-        onStartHide={(convId) => {
-          setShowHideInput(convId);
-          setHidePin('');
-          setHideError(null);
-          if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
-          setContextMenu(null);
-        }}
-        onTogglePinConversation={async (convId) => {
-          if (!user?.id || pinLoading) return;
-          setPinLoading(true);
-          try {
-            await conversationsApi.togglePinConversation(convId, { userId: user.id });
-            await loadConversations();
-          } catch (err: any) {
-            const msg = err?.message || 'Không thể ghim hội thoại';
-            notify.error(msg);
-          } finally {
-            setPinLoading(false);
-          }
-        }}
-        pinLoading={pinLoading}
-      />
+            setHideError(null);
+            if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
+            setContextMenu(null);
+          }}
+          onTogglePinConversation={async (convId) => {
+            if (!user?.id || pinLoading) return;
+            setPinLoading(true);
+            try {
+              await conversationsApi.togglePinConversation(convId, { userId: user.id });
+              await loadConversations();
+            } catch (err: any) {
+              const msg = err?.message || 'Không thể ghim hội thoại';
+              notify.error(msg);
+            } finally {
+              setPinLoading(false);
+            }
+          }}
+          pinLoading={pinLoading}
+        />
+      </div>
 
       {/* Hidden Chats Panel + Context Menu + Unlock Modal */}
       <HiddenChatsPanel
@@ -1756,8 +1789,8 @@ export default function Messenger() {
         onCloseUnlockModal={() => { setShowUnlockModal(false); setPendingUnlockConv(null); setUnlockPin(''); setUnlockError(null); }}
       />
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-white min-w-0 relative">
+      {/* Main Chat Area - hidden on mobile when sidebar list or right panel is showing */}
+      <div className={`flex-1 flex flex-col bg-white min-w-0 relative ${mobileShowChat ? 'flex' : 'hidden'} md:flex`}>
         {invitePreviewLoading && (
           <div className="mx-4 mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
             Dang tai thong tin nhom tu link moi...
@@ -1847,6 +1880,7 @@ export default function Messenger() {
                 notify.error(t('messenger.errors.startVideoCall'));
               }
             }}
+            onBackToList={() => setActiveChat(null)}
           />
         )}
 
@@ -2123,42 +2157,45 @@ export default function Messenger() {
       </div>
 
       {/* Right Sidebar - Conversation Info */}
+      {/* Right Sidebar - on mobile takes full screen, on desktop stays side-by-side */}
       {activeConversation && !rightSidebarCollapsed && (
-        <ChatInfoSidebar
-          conversation={activeConversation}
-          conversationRaw={activeConversationRaw ?? null}
-          isGroupChat={isGroupChat}
-          isAIChat={isAIChat}
-          isOwner={isOwner}
-          isAdmin={isAdmin}
-          canManageGroup={canManageGroup}
-          groupNameDraft={groupNameDraft}
-          onGroupNameChange={setGroupNameDraft}
-          groupAvatarDraft={groupAvatarDraft}
-          onGroupAvatarChange={setGroupAvatarDraft}
-          groupActionMessage={groupActionMessage}
-          groupActionError={groupActionError}
-          updatingGroup={updatingGroup}
-          pendingJoins={pendingJoins}
-          onSaveGroupMeta={handleSaveGroupMeta}
-          onRemoveMember={handleRemoveMember}
-          onJoinRequestDecision={handleJoinRequestDecision}
-          onClearConversationForMe={handleClearConversationForMe}
-          onClearGroupHistory={handleClearGroupHistory}
-          onToggleRequireApproval={handleToggleRequireApproval}
-          onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
-          onToggleAiAssistant={handleToggleAiAssistant}
-          onTransferOwnership={handleTransferOwnership}
-          onToggleAdmin={(memberId, isAdmin) => {
-            handleToggleAdminDirect(memberId, activeConversationRaw?.adminIds || [], isAdmin);
-          }}
-          onDisbandGroup={handleDisbandGroup}
-          friendList={friendList}
-          onInviteFriends={handleInviteFriends}
-          onShowSearch={() => setShowSearch(true)}
-          onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
-          userId={user?.id}
-        />
+        <div className={`${mobileShowRightPanel ? 'absolute inset-0 z-30' : 'hidden'} md:relative md:block md:z-auto`}>
+          <ChatInfoSidebar
+            conversation={activeConversation}
+            conversationRaw={activeConversationRaw ?? null}
+            isGroupChat={isGroupChat}
+            isAIChat={isAIChat}
+            isOwner={isOwner}
+            isAdmin={isAdmin}
+            canManageGroup={canManageGroup}
+            groupNameDraft={groupNameDraft}
+            onGroupNameChange={setGroupNameDraft}
+            groupAvatarDraft={groupAvatarDraft}
+            onGroupAvatarChange={setGroupAvatarDraft}
+            groupActionMessage={groupActionMessage}
+            groupActionError={groupActionError}
+            updatingGroup={updatingGroup}
+            pendingJoins={pendingJoins}
+            onSaveGroupMeta={handleSaveGroupMeta}
+            onRemoveMember={handleRemoveMember}
+            onJoinRequestDecision={handleJoinRequestDecision}
+            onClearConversationForMe={handleClearConversationForMe}
+            onClearGroupHistory={handleClearGroupHistory}
+            onToggleRequireApproval={handleToggleRequireApproval}
+            onToggleOnlyAdminsCanSend={handleToggleOnlyAdminsCanSend}
+            onToggleAiAssistant={handleToggleAiAssistant}
+            onTransferOwnership={handleTransferOwnership}
+            onToggleAdmin={(memberId, isAdmin) => {
+              handleToggleAdminDirect(memberId, activeConversationRaw?.adminIds || [], isAdmin);
+            }}
+            onDisbandGroup={handleDisbandGroup}
+            friendList={friendList}
+            onInviteFriends={handleInviteFriends}
+            onShowSearch={() => setShowSearch(true)}
+            onCloseRightSidebar={() => setRightSidebarCollapsed(true)}
+            userId={user?.id}
+          />
+        </div>
       )}
 
 

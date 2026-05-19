@@ -234,7 +234,7 @@ class VideosApi {
     const token = localStorage.getItem("token");
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
-    const fullUrl = `${API_CONFIG.BASE_URL.replace(/\/$/, "")}/api/social/videos/upload`;
+    const fullUrl = `${API_CONFIG.BASE_URL.replace(/\/$/, "")}/api/common/videos/upload`;
     const res = await fetch(fullUrl, { method: "POST", headers, body: formData });
 
     if (!res.ok) {

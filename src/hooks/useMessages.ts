@@ -162,7 +162,12 @@ export function useMessages() {
 
   // Load messages for a conversation
   const loadMessages = useCallback(async (conversationId: string) => {
-    if (!conversationId || !user?.id) return;
+    if (!conversationId || !user?.id) {
+      console.warn('[useMessages] loadMessages skipped — missing conversationId or user.id', { conversationId, userId: user?.id });
+      return;
+    }
+
+    console.log('[useMessages] loadMessages called for', conversationId);
 
     const requestId = Date.now() + Math.random();
     latestLoadRequestRef.current[conversationId] = requestId;
@@ -197,6 +202,8 @@ export function useMessages() {
         user.id
       );
 
+      console.log('[useMessages] API returned', page.messages?.length || 0, 'messages for', conversationId);
+
       if (latestLoadRequestRef.current[conversationId] !== requestId) return;
 
       const initialMessages = page.messages || [];
@@ -212,7 +219,7 @@ export function useMessages() {
       setHasMoreMap(prev => ({ ...prev, [conversationId]: !!page.hasMore }));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
-      console.error('Failed to load messages:', err);
+      console.error('[useMessages] Failed to load messages for', conversationId, ':', err);
       setError(errorMessage);
     } finally {
       setLoading(false);

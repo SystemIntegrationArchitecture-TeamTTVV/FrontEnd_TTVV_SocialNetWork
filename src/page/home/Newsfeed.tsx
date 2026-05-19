@@ -99,11 +99,17 @@ export default function Newsfeed() {
   const [activeStreams, setActiveStreams] = useState<LiveStreamData[]>([]);
 
   useEffect(() => {
+    if (!currentUser?.id) {
+      setActiveStreams([]);
+      return;
+    }
     livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
-  }, []);
+  }, [currentUser?.id]);
 
   // Realtime: reload when someone goes live / ends
   useEffect(() => {
+    if (!currentUser?.id) return;
+
     const unsubs = [
       subscribe('LIVE_STARTED', () => {
         livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
@@ -113,7 +119,7 @@ export default function Newsfeed() {
       }),
     ];
     return () => unsubs.forEach(u => u());
-  }, [subscribe]);
+  }, [currentUser?.id, subscribe]);
 
   // ── Stale-while-revalidate: show cached posts instantly, refresh in background ──
   useEffect(() => {
@@ -512,12 +518,18 @@ export default function Newsfeed() {
     if (!replyText?.trim() || !currentUser) return;
 
     setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));    try {
-      const newReply = await commentsApi.createComment({
+      const createdReply = await commentsApi.createComment({
         postId,
         userId: currentUser.id,
         content: replyText.trim(),
         parentCommentId,
       });
+      const newReply: CommentData = {
+        ...createdReply,
+        parentCommentId: createdReply.parentCommentId || parentCommentId,
+        userName: createdReply.userName || currentUser.fullName,
+        userAvatar: createdReply.userAvatar || currentUser.avatar,
+      };
 
       // Add reply to state
       setCommentReplies(prev => ({
@@ -1413,7 +1425,7 @@ export default function Newsfeed() {
                                     }`}
                                   >
                                     {likedComments.has(comment.id!) ? `❤️ ${t('groupComments.liked')}` : t('groupComments.like')}
-                                    {comment.likeCount && comment.likeCount > 0 && ` · ${comment.likeCount}`}
+                                    {(comment.likeCount ?? 0) > 0 ? ` · ${comment.likeCount}` : null}
                                   </button>
                                   <span className="text-gray-300 text-xs">·</span>
                                   <button
@@ -1422,7 +1434,7 @@ export default function Newsfeed() {
                                   >
                                     {t('groupComments.reply')}
                                   </button>
-                                  {comment.replyCount && comment.replyCount > 0 && (
+                                  {(comment.replyCount ?? 0) > 0 ? (
                                     <>
                                       <span className="text-gray-300 text-xs">·</span>
                                       <button
@@ -1434,7 +1446,7 @@ export default function Newsfeed() {
                                           : `${comment.replyCount} ${t('newsfeed.repliesNoun')}`}
                                       </button>
                                     </>
-                                  )}
+                                  ) : null}
                                   <span className="text-gray-400 text-[11px] ml-auto">
                                     {comment.createdAt ? getTimeAgo(comment.createdAt) : t('watch.justNow')}
                                   </span>
@@ -1535,7 +1547,7 @@ export default function Newsfeed() {
                                               }`}
                                             >
                                               {likedComments.has(reply.id!) ? `❤️ ${t('groupComments.liked')}` : t('groupComments.like')}
-                                              {reply.likeCount && reply.likeCount > 0 && ` · ${reply.likeCount}`}
+                                              {(reply.likeCount ?? 0) > 0 ? ` · ${reply.likeCount}` : null}
                                             </button>
                                             <span className="text-gray-400 text-[11px] ml-auto">
                                               {reply.createdAt ? getTimeAgo(reply.createdAt) : t('watch.justNow')}
@@ -1582,9 +1594,18 @@ export default function Newsfeed() {
       {isCreatePostModalOpen && (
         <CreatePost
           onClose={() => setIsCreatePostModalOpen(false)}
-          onSuccess={() => {
+          onSuccess={(createdPost) => {
             setIsCreatePostModalOpen(false);
-            fetchPosts();
+            if (!createdPost?.id) return;
+
+            setPosts(prev => {
+              if (prev.some(post => post.id === createdPost.id)) {
+                return prev;
+              }
+              const nextPosts = [createdPost, ...prev];
+              _postCache.posts = nextPosts;
+              return nextPosts;
+            });
           }}
         />
       )}
