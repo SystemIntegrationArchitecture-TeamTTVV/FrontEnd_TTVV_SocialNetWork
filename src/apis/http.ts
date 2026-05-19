@@ -88,14 +88,18 @@ class HttpClient {
     return url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
   }
 
-  /**
-   * Force auth endpoints through API Gateway to avoid wrong service fallback.
-   */
   private buildFullUrl(url: string, useGateway: boolean): string {
     const shouldUseGateway = this.isAuthUrl(url) ? true : useGateway;
+    // Map /api/social/** to /api/common/** because Gateway's old process doesn't support /api/social yet
+    let targetUrl = url;
+    if (targetUrl.startsWith('/api/social/')) {
+      targetUrl = targetUrl.replace('/api/social/', '/api/common/');
+    } else if (targetUrl === '/api/social') {
+      targetUrl = '/api/common';
+    }
     return shouldUseGateway
-      ? `${API_CONFIG.BASE_URL}${url}`
-      : `${API_CONFIG.COMMON_SERVICE_URL}${url}`;
+      ? `${API_CONFIG.BASE_URL}${targetUrl}`
+      : `${API_CONFIG.COMMON_SERVICE_URL}${targetUrl}`;
   }
 
   private async handleResponse<T>(

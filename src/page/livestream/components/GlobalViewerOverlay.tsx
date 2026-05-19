@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate, matchPath } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { LiveKitRoom, useTracks, VideoTrack } from '@livekit/components-react';
@@ -72,7 +72,7 @@ function MiniViewerPlayer({ onClose }: { onClose: () => void }) {
 function ViewerThamKhaoExperienceWrapper() {
   const {
     stream, streamId, viewerCount, setViewerCount, isEnded, setIsEnded,
-    canSubscribe, setCanSubscribe, setStream, setLkKey
+    canSubscribe, setCanSubscribe, setStream, setLkKey, leaveCurrentStream
   } = useLiveStreamViewer();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -101,6 +101,7 @@ function ViewerThamKhaoExperienceWrapper() {
         setStream={setStream}
         setLkKey={setLkKey}
         navigate={navigate}
+        onLeaveRoom={leaveCurrentStream}
         onOpenDeposit={() => setShowDepositModal(true)}
         onOpenRules={() => setShowRules(true)}
       />
@@ -109,35 +110,23 @@ function ViewerThamKhaoExperienceWrapper() {
 }
 
 export default function GlobalViewerOverlay() {
-  const { stream, streamId, isEnded, rulesGate, leaveCurrentStream } = useLiveStreamViewer();
+  const { stream, streamId, isEnded, rulesGate, leaveCurrentStream, portalElement } = useLiveStreamViewer();
   const { user } = useAuth();
   const location = useLocation();
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   // Check if we are currently on the LiveViewer page for THIS stream
   const match = matchPath({ path: "/livestream/:id" }, location.pathname);
   const isViewingCurrentStream = match && match.params.id === streamId;
 
-  useEffect(() => {
-    if (isViewingCurrentStream) {
-      let tries = 0;
-      const checkInterval = setInterval(() => {
-        const el = document.getElementById('live-viewer-portal');
-        if (el) {
-          setPortalTarget(el);
-          clearInterval(checkInterval);
-        }
-        if (++tries > 20) clearInterval(checkInterval);
-      }, 100);
-      return () => clearInterval(checkInterval);
-    } else {
-      setPortalTarget(null);
-    }
-  }, [isViewingCurrentStream]);
-
   if (!stream || !stream.livekitUrl || !stream.livekitToken || !user || !rulesGate) {
     return null;
   }
+
+  const viewerContent = (
+    <div className="w-full h-full relative fade-in">
+       <ViewerThamKhaoExperienceWrapper />
+    </div>
+  );
 
   return (
     <LiveKitRoom
@@ -149,12 +138,7 @@ export default function GlobalViewerOverlay() {
       className="global-viewer-room"
     >
       {isViewingCurrentStream ? (
-        portalTarget ? createPortal(
-          <div className="w-full h-full relative fade-in">
-             <ViewerThamKhaoExperienceWrapper />
-          </div>,
-          portalTarget
-        ) : null
+        portalElement ? createPortal(viewerContent, portalElement) : null
       ) : (
         <MiniViewerPlayer onClose={leaveCurrentStream} />
       )}

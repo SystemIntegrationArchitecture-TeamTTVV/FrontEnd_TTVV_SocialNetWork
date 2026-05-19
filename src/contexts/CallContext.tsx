@@ -87,7 +87,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
       setCallState(prev => {
         if (prev.roomId === event.data.roomId) {
           notify.info(`${prev.remoteName} đã từ chối cuộc gọi`);
-          cleanup();
+          callSounds.stopAll();
+          return initialCallState;
         }
         return prev;
       });
@@ -97,7 +98,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
       setCallState(prev => {
         if (prev.roomId === event.data.roomId) {
           notify.info(`Cuộc gọi đã kết thúc`);
-          cleanup();
+          callSounds.stopAll();
+          return initialCallState;
         }
         return prev;
       });
