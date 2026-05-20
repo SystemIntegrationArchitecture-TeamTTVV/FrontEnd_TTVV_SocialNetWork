@@ -337,7 +337,9 @@
         const TOKEN = params.get('token') || '';
         const CALL_TYPE = params.get('callType') || 'video';
         const USER_NAME = params.get('displayName') || USERNAME;
+        const USER_AVATAR = params.get('avatar') || '';
         const WS_URL = params.get('wsUrl') || 'http://localhost:8081/ws';
+        const API_BASE_URL = params.get('apiBaseUrl') || '';
         const IS_EMBEDDED = params.get('embedded') === '1' || window.self !== window.top;
 
         // ─── DEBUG LOGGER ────────────────────────────────────────────────────────────
@@ -356,8 +358,117 @@
         let localStream = null;
         const peers = {};           // peerId → RTCPeerConnection
         const remoteStreams = {};    // peerId → MediaStream (stable per peer)
+        const participantProfiles = {}; // userId -> { name, avatar }
+        const profileFetchInFlight = {}; // userId -> Promise<void>
         let micMuted = false;
         let camOff = false;
+
+        function fallbackAvatar(name, seed) {
+            var safeName = (name || seed || 'User').trim();
+            return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(safeName) + '&background=6366f1&color=fff';
+        }
+
+        function normalizeText(v) {
+            if (v === null || v === undefined) return '';
+            var s = String(v).trim();
+            if (!s) return '';
+            var low = s.toLowerCase();
+            if (low === 'undefined' || low === 'null' || low === 'nan') return '';
+            return s;
+        }
+
+        function getProfile(userId) {
+            if (!userId) {
+                return { name: 'Người dùng', avatar: fallbackAvatar('User', 'user') };
+            }
+            var p = participantProfiles[userId];
+            if (p) {
+                var safeName = normalizeText(p.name) || userId;
+                var safeAvatar = normalizeText(p.avatar) || fallbackAvatar(safeName, userId);
+                return { name: safeName, avatar: safeAvatar };
+            }
+            return { name: userId, avatar: fallbackAvatar(userId.substring(0, 2), userId) };
+        }
+
+        function shouldResolveName(id, name) {
+            var n = normalizeText(name);
+            if (!n) return true;
+            if (n === id) return true;
+            if (/^u\d+$/i.test(n)) return true;
+            if (/^[a-f0-9]{16,}$/i.test(n)) return true;
+            return false;
+        }
+
+        async function fetchUserProfileById(userId) {
+            if (!userId) return;
+            if (profileFetchInFlight[userId]) return profileFetchInFlight[userId];
+
+            profileFetchInFlight[userId] = (async function () {
+                try {
+                    var path = '/api/common/users/' + encodeURIComponent(userId);
+                    var url = API_BASE_URL ? API_BASE_URL.replace(/\/$/, '') + path : path;
+                    var headers = {};
+                    if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+                    var resp = await fetch(url, { headers: headers });
+                    if (!resp.ok) return;
+                    var user = await resp.json();
+                    var fullName =
+                        normalizeText(user.fullName) ||
+                        normalizeText([user.firstName, user.lastName].filter(Boolean).join(' ')) ||
+                        normalizeText(user.username) ||
+                        userId;
+                    var avatar = normalizeText(user.avatar) || fallbackAvatar(fullName, userId);
+                    participantProfiles[userId] = { name: fullName, avatar: avatar };
+                    refreshPeerBadge(userId);
+                } catch (e) {
+                    // Silent fallback to id
+                } finally {
+                    delete profileFetchInFlight[userId];
+                }
+            })();
+
+            return profileFetchInFlight[userId];
+        }
+
+        function refreshPeerBadge(peerId) {
+            var tile = document.querySelector('[data-peer-id="' + peerId + '"]');
+            if (!tile) return;
+            var profile = getProfile(peerId);
+            var img = tile.querySelector('.badge img');
+            var span = tile.querySelector('.badge span');
+            if (img) img.src = profile.avatar;
+            if (span) span.textContent = profile.name;
+        }
+
+        function upsertProfile(user) {
+            if (!user) return;
+            var id = user.userId || user.id;
+            if (!id) return;
+            var prev = participantProfiles[id] || {};
+            var nextName =
+                normalizeText(user.name) ||
+                normalizeText(user.displayName) ||
+                normalizeText(user.username) ||
+                normalizeText(prev.name) ||
+                id;
+            var nextAvatar =
+                normalizeText(user.avatar) ||
+                normalizeText(prev.avatar) ||
+                fallbackAvatar(nextName, id);
+            participantProfiles[id] = {
+                name: nextName,
+                avatar: nextAvatar
+            };
+            refreshPeerBadge(id);
+            if (shouldResolveName(id, nextName)) {
+                fetchUserProfileById(id);
+            }
+        }
+
+        participantProfiles[USER_ID] = {
+            name: USER_NAME || USER_ID,
+            avatar: USER_AVATAR || fallbackAvatar(USER_NAME || USER_ID, USER_ID)
+        };
 
         // ICE servers (STUN + TURN from Metered)
         let iceServers = [
@@ -476,14 +587,18 @@
                     var badge = document.createElement('div');
                     badge.className = 'badge';
                     var img = document.createElement('img');
-                    img.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(peerId.substring(0, 2)) + '&background=6366f1&color=fff';
                     var span = document.createElement('span');
-                    span.textContent = peerId.substring(0, 10);
+                    var profile = getProfile(peerId);
+                    img.src = profile.avatar;
+                    span.textContent = profile.name;
                     badge.appendChild(img);
                     badge.appendChild(span);
                     div.appendChild(video);
                     div.appendChild(badge);
                     document.getElementById('group-video').appendChild(div);
+                    if (shouldResolveName(peerId, profile.name)) {
+                        fetchUserProfileById(peerId);
+                    }
                 }
 
                 var videoEl = div.querySelector('video');
@@ -728,21 +843,23 @@
         // When I join: I receive the list of existing users → create offers to each
         async function handleRoomUsers(event) {
             var users = event.users || [];
-            dbg('👥 room-users: ' + users.length + ' users');
+            dbg('?? room-users: ' + users.length + ' users');
+            users.forEach(upsertProfile);
 
             for (var u of users) {
-                if (u.userId === USER_ID) continue; // skip self
+                var peerId = u.userId || u.id || u.username;
+                if (!peerId || peerId === USER_ID) continue; // skip invalid/self
 
-                dbg('📞 Sending offer → ' + u.userId.substring(0, 8));
-                var pc = createPeerConnection(u.userId);
-                peers[u.userId] = pc;
+                dbg('?? Sending offer ? ' + String(peerId).substring(0, 8));
+                var pc = createPeerConnection(peerId);
+                peers[peerId] = pc;
 
                 var offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
 
                 stompClient.publish({
                     destination: '/app/call-room/' + ROOM_ID + '/signal',
-                    body: JSON.stringify({ to: u.userId, type: 'offer', data: offer })
+                    body: JSON.stringify({ to: peerId, type: 'offer', data: offer })
                 });
             }
             updateGrid();
@@ -750,8 +867,10 @@
 
         // When a new user joins: just create PC (they will send offer or we handle signal)
         function handleUserJoined(event) {
-            dbg('👤 User joined: ' + (event.userId || '').substring(0, 8));
-            if (event.userId === USER_ID) return;
+            dbg('?? User joined: ' + (event.userId || '').substring(0, 8));
+            var peerId = event.userId || event.id || event.username;
+            if (!peerId || peerId === USER_ID) return;
+            upsertProfile(event);
 
             // Don't create PC yet - the joiner will send offers (via room-users)
             // Just update badge info if tile exists
@@ -764,10 +883,10 @@
         }
 
         function handleSignalEvent(event) {
-            var from = event.from;
+            var from = event.from || event.userId || event.senderId || event.username;
             var signalType = event.signalType;
             var data = event.data;
-            if (from === USER_ID) return; // skip self
+            if (!from || from === USER_ID) return; // skip invalid/self
             handleSignal(from, signalType, data);
         }
 
@@ -777,3 +896,5 @@
 </body>
 
 </html>
+
+

@@ -449,7 +449,7 @@ export default function DirectChatSidebar({
   const hasAnyBlock = isBlocked || isMessageBlocked || isCallBlocked || blockedByOtherAll || blockedByOtherMessage || blockedByOtherCall;
 
   return (
-    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full h-full md:w-[320px] md:h-auto lg:w-85 shadow-sm flex flex-col">
+    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full h-full md:w-[320px] md:h-full lg:w-85 shadow-sm flex flex-col">
 
       {/* Header close button */}
       <div className="flex items-center justify-end px-4 pt-3 pb-1">
