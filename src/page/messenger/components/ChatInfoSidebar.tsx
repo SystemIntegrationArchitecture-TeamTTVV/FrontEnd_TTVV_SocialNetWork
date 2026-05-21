@@ -11,6 +11,7 @@ interface ActiveConversation {
   online: boolean;
   color: string;
   isGroup?: boolean;
+  otherParticipantId?: string;
 }
 
 export interface ChatInfoSidebarProps {
@@ -48,6 +49,7 @@ export interface ChatInfoSidebarProps {
   onCloseRightSidebar: () => void;
   userId?: string;
   loadConversations?: () => void;
+  onViewProfile?: (userId: string, userName: string) => void;
 }
 
 /**
@@ -68,6 +70,7 @@ export default function ChatInfoSidebar(props: ChatInfoSidebarProps) {
       onCloseRightSidebar={props.onCloseRightSidebar}
       userId={props.userId}
       loadConversations={props.loadConversations}
+      onViewProfile={props.onViewProfile}
     />
   );
 }

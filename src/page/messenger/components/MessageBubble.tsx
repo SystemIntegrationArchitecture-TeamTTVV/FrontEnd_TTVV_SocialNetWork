@@ -30,6 +30,7 @@ export interface MessageBubbleProps {
   voting?: string | null;
   onJoinAppointment?: (messageId: string) => void;
   joiningAppointment?: string | null;
+  onViewProfile?: (userId: string, userName: string) => void;
   userId: string;
   participantNames?: string[];
   participantIds?: string[];
@@ -62,6 +63,7 @@ export default function MessageBubble({
   voting,
   onJoinAppointment,
   joiningAppointment,
+  onViewProfile,
   userId,
   participantNames = [],
   participantIds = [],
@@ -91,10 +93,10 @@ export default function MessageBubble({
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
             msg.senderId === 'ai'
               ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-              : 'cursor-pointer'
+              : 'cursor-pointer hover:opacity-80 transition-opacity'
           }`}
           style={msg.senderId !== 'ai' ? { backgroundColor: hashColor(msg.senderId || 'u') } : undefined}
-          onClick={msg.senderId === 'ai' ? undefined : () => navigate(`/profile/${msg.senderId}`)}
+          onClick={msg.senderId === 'ai' || !onViewProfile ? undefined : () => onViewProfile(msg.senderId, msg.sender)}
         >
           {msg.senderId === 'ai' ? (
             <Bot className="w-4 h-4 text-white" />
@@ -304,8 +306,9 @@ export default function MessageBubble({
               msg.isMe
                 ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
                 : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
-            }`}
+            } cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all`}
             onDoubleClick={() => onReaction(msg.id, '❤️')}
+            onClick={() => msg.senderId !== 'ai' && onViewProfile?.(msg.senderId, msg.sender)}
           >
             <p className="whitespace-pre-line text-[14px] leading-relaxed">{highlightText(msg.content, searchKeyword)}</p>
           </div>

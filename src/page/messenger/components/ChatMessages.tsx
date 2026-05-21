@@ -22,6 +22,7 @@ interface ChatMessagesProps {
   voting?: string | null;
   onJoinAppointment?: (messageId: string) => void;
   joiningAppointment?: string | null;
+  onViewProfile?: (userId: string, userName: string) => void;
   userId: string;
   participantNames?: string[];
   participantIds?: string[];
@@ -48,6 +49,7 @@ export default function ChatMessages({
   voting,
   onJoinAppointment,
   joiningAppointment,
+  onViewProfile,
   userId,
   participantNames = [],
   participantIds = [],
@@ -128,6 +130,7 @@ export default function ChatMessages({
             voting={voting}
             onJoinAppointment={onJoinAppointment}
             joiningAppointment={joiningAppointment}
+            onViewProfile={onViewProfile}
             userId={userId}
             participantNames={participantNames}
             participantIds={participantIds}

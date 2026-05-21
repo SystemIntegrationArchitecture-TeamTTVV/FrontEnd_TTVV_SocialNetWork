@@ -21,6 +21,7 @@ interface ActiveConversation {
   online: boolean;
   color: string;
   isGroup?: boolean;
+  otherParticipantId?: string;
 }
 
 interface ChatInfoSidebarProps {
@@ -59,6 +60,7 @@ interface ChatInfoSidebarProps {
   onShowSearch: () => void;
   onCloseRightSidebar: () => void;
   userId?: string;
+  onViewProfile?: (userId: string, userName: string) => void;
 }
 
 /** Small toggle switch component */
@@ -149,6 +151,7 @@ export default function GroupChatSidebar({
   onShowSearch,
   onCloseRightSidebar,
   userId,
+  onViewProfile,
 }: ChatInfoSidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -606,7 +609,11 @@ export default function GroupChatSidebar({
                 const canKick = isSelf || (isOwner && !isMemberOwner) || (isAdmin && !isOwner && !isMemberOwner && !isMemberAdmin);
 
                 return (
-                  <div key={pid} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white transition-colors group">
+                  <div 
+                    key={pid} 
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white transition-colors group cursor-pointer"
+                    onClick={() => onViewProfile?.(pid, name)}
+                  >
                     <MemberAvatar name={name} color={colorFromId(pid)} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
@@ -751,25 +758,36 @@ export default function GroupChatSidebar({
                       filtered.map((f) => {
                         const isSelected = selectedFriendIds.includes(f.friendId);
                         return (
-                          <button
-                            key={f.friendId}
-                            onClick={() => toggleFriend(f.friendId)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
-                              }`}
-                          >
-                            {f.friendAvatar ? (
-                              <img src={f.friendAvatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
-                            ) : (
-                              <MemberAvatar name={f.friendName ?? f.friendId} color={colorFromId(f.friendId)} />
-                            )}
-                            <span className="flex-1 text-sm font-medium text-gray-800 text-left truncate">
-                              {f.friendName ?? f.friendId}
-                            </span>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
-                              }`}>
-                              {isSelected && <Check className="w-3 h-3 text-white" />}
-                            </div>
-                          </button>
+                            <button
+                              key={f.friendId}
+                              onClick={() => {
+                                if (onViewProfile) {
+                                  onViewProfile(f.friendId, f.friendName ?? f.friendId);
+                                } else {
+                                  toggleFriend(f.friendId);
+                                }
+                              }}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                                }`}
+                            >
+                              {f.friendAvatar ? (
+                                <img src={f.friendAvatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                              ) : (
+                                <MemberAvatar name={f.friendName ?? f.friendId} color={colorFromId(f.friendId)} />
+                              )}
+                              <span className="flex-1 text-sm font-medium text-gray-800 text-left truncate">
+                                {f.friendName ?? f.friendId}
+                              </span>
+                              <div 
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFriend(f.friendId);
+                                }}
+                              >
+                                {isSelected && <Check className="w-3 h-3 text-white" />}
+                              </div>
+                            </button>
                         );
                       })
                     )}

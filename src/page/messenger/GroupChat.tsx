@@ -44,6 +44,7 @@ import AppointmentMessageCard from './components/AppointmentMessageCard';
 import { useGroupPolls } from './hooks/useGroupPolls';
 import { useGroupAppointments } from './hooks/useGroupAppointments';
 import { useGroupMessages } from './hooks/useGroupMessages';
+import ViewProfileModal from './components/ViewProfileModal';
 
 export default function GroupChat() {
   const { id } = useParams();
@@ -101,6 +102,7 @@ export default function GroupChat() {
   const [forwardConversations, setForwardConversations] = useState<any[]>([]);
   const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [viewProfileTarget, setViewProfileTarget] = useState<{ userId: string, userName: string } | null>(null);
 
   const conversationId = id || '';
 
@@ -1069,7 +1071,14 @@ export default function GroupChat() {
               return (
                 <div key={msg.id} className={`group flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[78%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
-                    {!isMe && <div className="text-xs text-gray-500 mb-1">{msg.senderName}</div>}
+                    {!isMe && (
+                      <div 
+                        className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-blue-600 transition-colors"
+                        onClick={() => setViewProfileTarget({ userId: msg.senderId, userName: msg.senderName })}
+                      >
+                        {msg.senderName}
+                      </div>
+                    )}
 
                     {/* Edit mode */}
                     {editingMessageId === msg.id ? (
@@ -1090,7 +1099,10 @@ export default function GroupChat() {
                       <>
                         {/* Message bubble + hover actions */}
                         <div className="relative">
-                          <div className={`px-4 py-2 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'}`}>
+                          <div 
+                            className={`px-4 py-2 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'} cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all`}
+                            onClick={() => setViewProfileTarget({ userId: msg.senderId, userName: msg.senderName })}
+                          >
                             <div className="whitespace-pre-wrap wrap-break-word">{renderMessageContent(msg.content || '')}</div>
                             {msg.isEdited && <span className="text-[10px] opacity-60 ml-1">(Ã„â€˜ÃƒÂ£ sÃ¡Â»Â­a)</span>}
                             {renderAttachments(msg)}
@@ -1298,6 +1310,17 @@ export default function GroupChat() {
           onTargetChange={setForwardTargetId}
           onConfirm={submitForward}
           onCancel={() => setForwardingMessageId(null)}
+        />
+      )}
+
+      {viewProfileTarget && (
+        <ViewProfileModal
+          userName={viewProfileTarget.userName}
+          onConfirm={() => {
+            navigate(`/profile/${viewProfileTarget.userId}`);
+            setViewProfileTarget(null);
+          }}
+          onCancel={() => setViewProfileTarget(null)}
         />
       )}
     </div>
