@@ -1,7 +1,7 @@
 // ─── ChatHeader — chat area header with avatar, name, call buttons ─────
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Info, Pin, Users, Search as SearchIcon } from 'lucide-react';
+import { Phone, Video, Info, Pin, Users, Search as SearchIcon, ChevronLeft } from 'lucide-react';
 import type { PresenceStatus } from '../../../apis/users';
 
 interface ActiveConversation {
@@ -29,6 +29,7 @@ interface ChatHeaderProps {
   onVoiceCall: () => void;
   onVideoCall: () => void;
   onViewProfile?: (userId: string, userName: string) => void;
+  onBackToList?: () => void;
 }
 
 export default function ChatHeader({
@@ -45,6 +46,7 @@ export default function ChatHeader({
   onVoiceCall,
   onVideoCall,
   onViewProfile,
+  onBackToList,
 }: ChatHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -52,7 +54,17 @@ export default function ChatHeader({
 
   return (
     <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shadow-sm">
-      <div className="flex items-center gap-4 flex-1 min-w-0">
+      <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+        {/* Mobile back button */}
+        {onBackToList && (
+          <button
+            onClick={onBackToList}
+            className="md:hidden w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center shrink-0 transition-colors"
+            aria-label="Back to conversations"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
+        )}
         <div className="relative shrink-0">
           {conversation.imageUrl ? (
             <img
@@ -115,10 +127,10 @@ export default function ChatHeader({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         <button
           onClick={onToggleSearch}
-          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors hidden sm:flex ${
             showSearch ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
           }`}
           title={t('messenger.header.searchIconTitle')}
@@ -127,7 +139,7 @@ export default function ChatHeader({
         </button>
         <button
           onClick={onTogglePinned}
-          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors hidden sm:flex ${
             showPinnedPanel ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
           }`}
           title="Tin nhắn đã ghim"
@@ -137,7 +149,7 @@ export default function ChatHeader({
         <button
           onClick={onVoiceCall}
           disabled={isCallDisabled}
-          className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden sm:flex"
           title={
             callBlocked
               ? 'Cuộc gọi đã bị chặn'
@@ -153,7 +165,7 @@ export default function ChatHeader({
         <button
           onClick={onVideoCall}
           disabled={isCallDisabled}
-          className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden sm:flex"
           title={
             callBlocked
               ? 'Cuộc gọi đã bị chặn'

@@ -15,6 +15,8 @@ import { uploadApi } from '../../../apis/upload';
 import { useSocket } from '../../../contexts/SocketContext';
 import { notify } from '../../../services/notify';
 import type { Conversation } from '../../../apis/conversations';
+import { cn } from '../../../utils/cn';
+import ReportModal from '../../../components/common/ReportModal';
 
 const BLOCK_OVERRIDE_STORAGE_KEY = 'messenger:block-overrides';
 
@@ -106,8 +108,6 @@ export default function DirectChatSidebar({
   const [blockActionLoading, setBlockActionLoading] = useState(false);
   const blockStateLockUntilRef = useRef<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState('');
-  const [reporting, setReporting] = useState(false);
   const [onlineStatus, setOnlineStatus] = useState(conversation.online);
   const [removingBackground, setRemovingBackground] = useState(false);
   
@@ -443,29 +443,7 @@ export default function DirectChatSidebar({
     }
   };
 
-  // ── Report ──
-  const handleReport = async () => {
-    if (!reportReason.trim() || !otherUserId || !userId) return;
-    setReporting(true);
-    try {
-      await reportsApi.createReport({
-        type: 'user',
-        reporterName: '',
-        targetName: conversation.name || 'Người dùng',
-        targetType: 'user',
-        targetId: otherUserId,
-        reason: reportReason.trim(),
-        priority: 'medium',
-      });
-      notify.success('Đã gửi báo cáo');
-      setShowReportModal(false);
-      setReportReason('');
-    } catch {
-      notify.error('Không thể gửi báo cáo');
-    } finally {
-      setReporting(false);
-    }
-  };
+
 
   const effectiveOtherUserId = otherUserId || conversation.otherParticipantId;
   const profileLink = effectiveOtherUserId ? `/profile/${effectiveOtherUserId}` : `/profile/${conversation.id}`;
@@ -475,7 +453,7 @@ export default function DirectChatSidebar({
   const hasAnyBlock = isBlocked || isMessageBlocked || isCallBlocked || blockedByOtherAll || blockedByOtherMessage || blockedByOtherCall;
 
   return (
-    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full md:w-[320px] lg:w-85 shadow-sm flex flex-col">
+    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full h-full md:w-[320px] md:h-auto lg:w-85 shadow-sm flex flex-col">
 
       {/* Header close button */}
       <div className="flex items-center justify-end px-4 pt-3 pb-1">
@@ -867,44 +845,13 @@ export default function DirectChatSidebar({
 
       {/* ── Report Modal ── */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowReportModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Flag className="w-5 h-5 text-red-500" />
-                <h3 className="text-base font-semibold text-gray-900">Báo cáo người dùng</h3>
-              </div>
-              <button onClick={() => setShowReportModal(false)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-5 py-4">
-              <p className="text-sm text-gray-500 mb-3">Cho chúng tôi biết lý do bạn muốn báo cáo:</p>
-              <textarea
-                autoFocus
-                value={reportReason}
-                onChange={e => setReportReason(e.target.value)}
-                placeholder="Nhập lý do..."
-                className="w-full h-24 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm resize-none"
-              />
-            </div>
-            <div className="px-5 pb-5 flex gap-2">
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 font-medium transition-colors"
-              >
-                Huỷ
-              </button>
-              <button
-                onClick={handleReport}
-                disabled={!reportReason.trim() || reporting}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {reporting ? 'Đang gửi...' : 'Gửi báo cáo'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetId={otherUserId || conversation.id}
+          targetType="user"
+          targetName={conversation.name || 'Người dùng'}
+        />
       )}
 
       {/* ── Nickname Modal ── */}

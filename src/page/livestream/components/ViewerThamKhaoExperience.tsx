@@ -79,6 +79,7 @@ type Props = {
   setStream: Dispatch<SetStateAction<LiveStreamData | null>>;
   setLkKey: Dispatch<SetStateAction<number>>;
   navigate: NavigateFunction;
+  onLeaveRoom?: () => void;
   onOpenDeposit: () => void;
   onOpenRules: () => void;
 };
@@ -96,6 +97,7 @@ export default function ViewerThamKhaoExperience({
   setStream,
   setLkKey,
   navigate,
+  onLeaveRoom,
   onOpenDeposit,
   onOpenRules,
 }: Props) {
@@ -372,8 +374,12 @@ export default function ViewerThamKhaoExperience({
   };
 
   const leaveRoom = () => {
-    if (!window.confirm('Bạn muốn rời khỏi phòng?')) return;
+    // Navigate FIRST to unmount LiveViewer — this prevents its useEffect
+    // from re-setting streamId after leaveCurrentStream clears it
     navigate('/livestream');
+    if (onLeaveRoom) {
+      onLeaveRoom();
+    }
   };
 
   const isConnecting =
@@ -546,17 +552,15 @@ export default function ViewerThamKhaoExperience({
                     return (
                       <div
                         key={message.id}
-                        className={`mb-1 px-2.5 py-1.5 rounded-lg border-l-[3px] ${
-                          isHostMessage
+                        className={`mb-1 px-2.5 py-1.5 rounded-lg border-l-[3px] ${isHostMessage
                             ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-600'
                             : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-600'
-                        }`}
+                          }`}
                       >
                         <div className="flex justify-between items-center gap-2 mb-0.5">
                           <span
-                            className={`text-xs font-bold inline-flex items-center gap-1 ${
-                              isHostMessage ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
-                            }`}
+                            className={`text-xs font-bold inline-flex items-center gap-1 ${isHostMessage ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
+                              }`}
                           >
                             {message.userName || 'Khách'}
                             {isHostMessage && (
@@ -581,11 +585,10 @@ export default function ViewerThamKhaoExperience({
                     type="button"
                     title="Gửi dưới dạng chữ chạy"
                     onClick={() => setSendAsDanmaku(!sendAsDanmaku)}
-                    className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center border transition-colors ${
-                      sendAsDanmaku
+                    className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center border transition-colors ${sendAsDanmaku
                         ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700'
                         : 'border-slate-200 dark:border-slate-600 text-slate-400'
-                    }`}
+                      }`}
                   >
                     <Type className="w-4 h-4" />
                   </button>
@@ -620,7 +623,7 @@ export default function ViewerThamKhaoExperience({
                           billingApi
                             .getWallet(user.id)
                             .then((w) => setWalletBalance(w.balance))
-                            .catch(() => {});
+                            .catch(() => { });
                         }}
                         onNeedDeposit={() => {
                           setShowGiftPicker(false);
@@ -702,11 +705,10 @@ export default function ViewerThamKhaoExperience({
               <button
                 type="button"
                 onClick={() => setDanmakuEnabled(!danmakuEnabled)}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-[10px] text-sm font-semibold border transition-colors ${
-                  danmakuEnabled
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-[10px] text-sm font-semibold border transition-colors ${danmakuEnabled
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
-                }`}
+                  }`}
               >
                 <Type className="w-4 h-4" />
                 {danmakuEnabled ? 'Đang bật chữ chạy' : 'Đang tắt chữ chạy'}
@@ -715,9 +717,8 @@ export default function ViewerThamKhaoExperience({
                 <button
                   type="button"
                   onClick={() => setHideTopDonors(!hideTopDonors)}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-bold text-white min-h-[68px] ${
-                    hideTopDonors ? 'bg-orange-700' : 'bg-orange-500'
-                  }`}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-bold text-white min-h-[68px] ${hideTopDonors ? 'bg-orange-700' : 'bg-orange-500'
+                    }`}
                 >
                   <Trophy className="w-5 h-5" />
                   {hideTopDonors ? 'Hiện Top Donate' : 'Ẩn Top Donate'}

@@ -159,9 +159,8 @@ export default function ChatSidebar({
   };
 
   return (
-    <div className={`border-r border-gray-200/50 dark:border-white/5 glass-surface flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
-      collapsed ? 'w-20' : 'w-[340px]'
-    }`}>
+    <div className={`border-r border-gray-200/50 dark:border-white/5 glass-surface flex flex-col h-full transition-all duration-300 ease-in-out shrink-0 ${collapsed ? 'w-20' : 'w-full md:w-[340px]'
+      }`}>
       {/* Header */}
       <div className="p-4 border-b border-gray-100 flex items-center justify-between">
         {!collapsed && (
@@ -170,14 +169,14 @@ export default function ChatSidebar({
         <div className={`flex gap-2 ${collapsed ? 'flex-col w-full' : ''}`}>
           {!collapsed && (
             <>
-              <button 
+              <button
                 onClick={() => navigate('/messenger/new')}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 title={t('messenger.newMessageIconTitle')}
               >
                 <Edit className="w-5 h-5 text-gray-700" />
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/messenger/new', { state: { createGroup: true } })}
                 className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 title={t('messenger.createGroupIconTitle')}
@@ -253,11 +252,10 @@ export default function ChatSidebar({
               e.preventDefault();
               onContextMenu(e, conv.id);
             }}
-            className={`group/conv cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${
-              activeChat === conv.id 
-                ? 'bg-blue-50 dark:bg-blue-500/15' 
-                : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
-            } ${collapsed ? 'p-2 mx-2 my-0.5 flex items-center justify-center' : 'px-3 py-2.5 mx-1 my-0.5 flex items-center gap-3'}`}
+            className={`group/conv cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${activeChat === conv.id
+              ? 'bg-blue-50 dark:bg-blue-500/15'
+              : 'hover:bg-gray-100/80 dark:hover:bg-[#1e2130]/80'
+              } ${collapsed ? 'p-2 mx-2 my-0.5 flex items-center justify-center' : 'px-3 py-2.5 mx-1 my-0.5 flex items-center gap-3'}`}
             title={collapsed ? conv.name : ''}
           >
             {showHideInput === conv.id ? (

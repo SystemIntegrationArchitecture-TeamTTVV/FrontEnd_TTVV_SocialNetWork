@@ -16,22 +16,33 @@ import {
   Mail,
   Tags,
   FileText,
+  Trash2,
+  EyeOff,
+  Eye,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { authApi } from "../../apis/auth";
 import { usersApi, type User } from "../../apis/users";
 import { uploadApi } from "../../apis/upload";
 import {
   friendRequestsApi,
+  friendsApi,
   type FriendRequest,
+  type FriendDTO,
 } from "../../apis/friendRequests";
+import { postsApi, type PostData } from "../../apis/posts";
 import { useSocket } from "../../contexts/SocketContext";
 import { useChatBox } from "../../contexts/ChatBoxContext";
 import { useAuth } from "../../contexts/AuthContext";
 import About from "./tabs/About";
 import { useTranslation } from "react-i18next";
 import { getLocaleTag } from "../../i18n";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { useToast } from "../../contexts/useToast";
+import CreatePost from "../home/CreatePost";
+import { Image, Smile, Activity } from "lucide-react";
 
 function IntroRow({
   icon: Icon,
@@ -62,11 +73,21 @@ export default function Profile() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [loadingFriendRequest, setLoadingFriendRequest] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  // Posts tab state
+  const [profilePosts, setProfilePosts] = useState<PostData[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [hiddenPostIds, setHiddenPostIds] = useState<Set<string>>(new Set());
+  // Friends tab state
+  const [friends, setFriends] = useState<FriendDTO[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
   const currentUser = authApi.getCurrentUser();
   const { refreshSessionUser } = useAuth();
   const { subscribe } = useSocket();
   const { openChatBoxByUserId } = useChatBox();
+  const { showToast } = useToast();
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const isOwnProfile = !!(currentUser?.id && currentUser.id === id);
 
   // Load user profile data
   useEffect(() => {
@@ -156,6 +177,39 @@ export default function Profile() {
       loadFriendRequests();
     }
   }, [currentUser?.id, profileUser?.id]);
+
+  // Load posts when posts tab activated or profile changes
+  const loadProfilePosts = useCallback(async () => {
+    if (!id) return;
+    setLoadingPosts(true);
+    try {
+      const posts = await postsApi.getPostsByUserId(id);
+      setProfilePosts(Array.isArray(posts) ? posts : []);
+    } catch (err) {
+      console.error("Failed to load profile posts:", err);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [id]);
+
+  // Load friends when friends tab activated or profile changes
+  const loadFriendsList = useCallback(async () => {
+    if (!id) return;
+    setLoadingFriends(true);
+    try {
+      const data = await friendsApi.getFriendsByUserId(id);
+      setFriends(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to load friends:", err);
+    } finally {
+      setLoadingFriends(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === "posts") loadProfilePosts();
+    if (activeTab === "friends") loadFriendsList();
+  }, [activeTab, id]);
 
   const getFriendRequestStatus = (
     userId: string,
@@ -474,7 +528,10 @@ export default function Profile() {
           </div>
           {currentUser && currentUser.id === id && (
             <div className="flex gap-2 pb-1">
-              <button className="h-10 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm">
+              <button 
+                onClick={() => setIsCreatePostModalOpen(true)}
+                className="h-10 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm"
+              >
                 <Plus className="w-4 h-4" />
                 <span>{t("profilePage.actions.addStory")}</span>
               </button>
@@ -607,14 +664,182 @@ export default function Profile() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-4">
+          {/* ── TAB: BÀI VIẾT ── */}
           {activeTab === "posts" && (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100 bg-white px-6 py-14 text-center shadow-sm">
-              <FileText
-                className="mb-3 h-10 w-10 text-gray-300"
-                strokeWidth={1.25}
-                aria-hidden
-              />
-              <p className="text-sm text-gray-500">{t("profilePage.emptyPosts")}</p>
+            <div className="space-y-4">
+              {/* Vùng tạo bài viết (chỉ hiện cho chủ sở hữu profile) */}
+              {isOwnProfile && (
+                <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 shrink-0 overflow-hidden rounded-full bg-blue-500 flex items-center justify-center">
+                      {currentUser?.avatar ? (
+                        <img
+                          src={resolveMediaUrl(currentUser.avatar)}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-semibold text-white">
+                          {(currentUser?.fullName || "U")
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setIsCreatePostModalOpen(true)}
+                      className="flex-1 rounded-full bg-gray-100 px-4 py-2.5 text-left text-sm text-gray-500 hover:bg-gray-200 transition-colors"
+                    >
+                      {t("newsfeed.createPostPlaceholder", { name: (currentUser?.fullName || "").split(" ")[0] || "" })}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-1 border-t border-gray-100 pt-3">
+                    <button
+                      onClick={() => setIsCreatePostModalOpen(true)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 transition-colors hover:bg-gray-50"
+                    >
+                      <Image className="h-[18px] w-[18px] text-green-500" />
+                      <span className="text-sm font-medium text-gray-600">{t("newsfeed.photoVideo")}</span>
+                    </button>
+                    <button
+                      onClick={() => setIsCreatePostModalOpen(true)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 transition-colors hover:bg-gray-50"
+                    >
+                      <Smile className="h-[18px] w-[18px] text-yellow-500" />
+                      <span className="text-sm font-medium text-gray-600">{t("newsfeed.feeling")}</span>
+                    </button>
+                    <button
+                      onClick={() => setIsCreatePostModalOpen(true)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 transition-colors hover:bg-gray-50"
+                    >
+                      <Activity className="h-[18px] w-[18px] text-red-500" />
+                      <span className="text-sm font-medium text-gray-600">{t("newsfeed.activity")}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {loadingPosts ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                </div>
+              ) : profilePosts.filter(p => !p.isDeleted && (isOwnProfile || !p.isHidden)).length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100 bg-white px-6 py-14 text-center shadow-sm">
+                  <FileText className="mb-3 h-10 w-10 text-gray-300" strokeWidth={1.25} aria-hidden />
+                  <p className="text-sm text-gray-500">{t("profilePage.emptyPosts")}</p>
+                </div>
+              ) : (
+                profilePosts
+                  .filter(p => !p.isDeleted && (isOwnProfile || !p.isHidden))
+                  .map((post) => {
+                    const isClientHidden = hiddenPostIds.has(post.id!);
+                    const isActuallyHidden = post.isHidden || isClientHidden;
+                    return (
+                    <div
+                      key={post.id}
+                      className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-all ${isActuallyHidden ? "border-yellow-200 opacity-75" : "border-gray-100"}`}
+                    >
+                      {/* Post header */}
+                      <div className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {post.authorAvatar ? (
+                              <img src={resolveMediaUrl(post.authorAvatar)} alt={post.authorName} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-white font-semibold text-sm">
+                                {(post.authorName || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm text-gray-900">{post.authorName}</p>
+                            <p className="text-xs text-gray-500">
+                              {post.createdAt ? new Date(post.createdAt).toLocaleDateString("vi-VN") : ""}
+                              {isActuallyHidden && (
+                                <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">Đã ẩn</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Owner actions */}
+                        {isOwnProfile && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              title={isClientHidden ? "Bỏ ẩn bài viết" : "Ẩn bài viết"}
+                              onClick={() => {
+                                const postId = post.id!;
+                                setHiddenPostIds(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(postId)) {
+                                    next.delete(postId);
+                                    showToast("Đã hiển thị lại bài viết", "success");
+                                  } else {
+                                    next.add(postId);
+                                    showToast("Đã ẩn bài viết khỏi trang cá nhân", "success");
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className="w-8 h-8 rounded-lg hover:bg-yellow-50 flex items-center justify-center transition-colors"
+                            >
+                              {isClientHidden ? (
+                                <Eye className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <EyeOff className="w-4 h-4 text-yellow-600" />
+                              )}
+                            </button>
+                            <button
+                              title="Xóa bài viết"
+                              onClick={async () => {
+                                if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
+                                try {
+                                  await postsApi.deletePost(post.id!);
+                                  setProfilePosts(prev => prev.filter(p => p.id !== post.id));
+                                  showToast("Đã xóa bài viết", "success");
+                                } catch {
+                                  showToast("Lỗi khi xóa bài viết", "error");
+                                }
+                              }}
+                              className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Post content */}
+                      {post.content && (
+                        <div className="px-4 pb-3">
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                        </div>
+                      )}
+                      {/* Post images */}
+                      {post.images && post.images.length > 0 && (
+                        <div className={`grid gap-0.5 ${post.images.length === 1 ? "" : "grid-cols-2"}`}>
+                          {post.images.slice(0, 4).map((img, i) => (
+                            <div key={i} className="relative">
+                              <img src={img} alt="" className={`w-full object-cover ${post.images!.length === 1 ? "max-h-80" : "h-48"}`} />
+                              {i === 3 && post.images!.length > 4 && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <span className="text-white text-2xl font-bold">+{post.images!.length - 4}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Post stats */}
+                      <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
+                        <span>{post.likeCount || 0} lượt thích</span>
+                        <span>{post.commentCount || 0} bình luận</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
 
@@ -622,9 +847,96 @@ export default function Profile() {
             <About displayUser={displayUser} />
           )}
 
+          {/* ── TAB: BẠN BÈ ── */}
           {activeTab === "friends" && (
-            <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm">
-              <p className="text-sm text-gray-500">{t("profilePage.friendsComingSoon")}</p>
+            <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+                <Users className="w-5 h-5 text-gray-500" />
+                <h3 className="font-semibold text-gray-900">
+                  Bạn bè{friends.length > 0 && <span className="ml-2 text-sm text-gray-500 font-normal">({friends.length} người)</span>}
+                </h3>
+              </div>
+              {loadingFriends ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                </div>
+              ) : friends.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">Chưa có bạn bè nào</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y divide-gray-50">
+                  {friends.map((friend) => {
+                    const friendId = friend.friendId;
+                    const isMe = currentUser?.id === friendId;
+                    const friendStatus = getFriendRequestStatus(friendId);
+                    const requestId = getRequestId(friendId);
+                    const initials = (friend.friendName || "U")
+                      .split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+                    return (
+                      <div key={friend.id} className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors">
+                        <Link to={`/profile/${friendId}`} className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-blue-500 overflow-hidden flex items-center justify-center">
+                            {friend.friendAvatar ? (
+                              <img src={resolveMediaUrl(friend.friendAvatar)} alt={friend.friendName} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-white font-semibold text-sm">{initials}</span>
+                            )}
+                          </div>
+                        </Link>
+                        <div className="flex-1 min-w-0">
+                          <Link to={`/profile/${friendId}`} className="font-semibold text-sm text-gray-900 hover:underline truncate block">
+                            {friend.friendName || "Người dùng"}
+                          </Link>
+                        </div>
+                        {/* Action buttons – only show for other users */}
+                        {!isMe && (
+                          <div className="flex gap-1 flex-shrink-0">
+                            {/* Message */}
+                            <button
+                              onClick={async () => {
+                                await openChatBoxByUserId(friendId, friend.friendName || "", friend.friendAvatar);
+                              }}
+                              className="h-8 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Friend action */}
+                            {friendStatus === "none" && !isMe && currentUser && (
+                              <button
+                                onClick={() => handleSendFriendRequest(friendId)}
+                                disabled={loadingFriendRequest}
+                                className="h-8 px-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {friendStatus === "sent" && requestId && (
+                              <button
+                                onClick={() => handleCancelFriendRequest(requestId)}
+                                disabled={loadingFriendRequest}
+                                className="h-8 px-2 bg-orange-100 text-orange-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {friendStatus === "received" && requestId && (
+                              <button
+                                onClick={() => handleAcceptFriendRequest(requestId)}
+                                disabled={loadingFriendRequest}
+                                className="h-8 px-2 bg-green-500 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -763,6 +1075,17 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {isOwnProfile && isCreatePostModalOpen && (
+        <CreatePost
+          isOpen={isCreatePostModalOpen}
+          onClose={() => setIsCreatePostModalOpen(false)}
+          onSuccess={() => {
+            setIsCreatePostModalOpen(false);
+            loadProfilePosts();
+          }}
+        />
+      )}
     </div>
   );
 }

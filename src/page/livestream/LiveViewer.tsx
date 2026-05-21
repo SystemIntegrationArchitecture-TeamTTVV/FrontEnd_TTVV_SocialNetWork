@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { useLiveStreamViewer } from '../../contexts/LiveStreamViewerContext';
@@ -9,7 +9,7 @@ export default function LiveViewer() {
   const navigate = useNavigate();
   
   const { 
-    streamId, setStreamId, stream, loading, rulesGate, acceptRules 
+    streamId, setStreamId, stream, loading, rulesGate, acceptRules, setPortalElement 
   } = useLiveStreamViewer();
 
   // Set the streamId in the global context when we land on this page
@@ -18,6 +18,16 @@ export default function LiveViewer() {
       setStreamId(routeStreamId);
     }
   }, [routeStreamId, streamId, setStreamId]);
+
+  // Callback ref — registers/unregisters the portal div element in context
+  const portalRef = useCallback((el: HTMLDivElement | null) => {
+    setPortalElement(el);
+  }, [setPortalElement]);
+
+  // Clean up portal element when unmounting
+  useEffect(() => {
+    return () => setPortalElement(null);
+  }, [setPortalElement]);
 
   if (!rulesGate) {
     return (
@@ -50,7 +60,7 @@ export default function LiveViewer() {
   // The actual viewer content is rendered via GlobalViewerOverlay using a React Portal into this div
   return (
     <div className="min-h-[calc(100vh-4rem)] px-2 sm:px-4">
-       <div id="live-viewer-portal" className="w-full h-full min-h-[min(92vh,900px)]" />
+       <div ref={portalRef} id="live-viewer-portal" className="w-full h-full min-h-[min(92vh,900px)]" />
     </div>
   );
 }

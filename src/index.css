@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 /* Enable dark: variant via html.dark class */
@@ -185,6 +185,12 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
+}
+
+/* Hide native Edge/IE password reveal icons since we use our own */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 /* --- Surface utilities (solid, no blur) ---

@@ -171,14 +171,16 @@ export default function PostCard({
                 <EyeOff className="w-5 h-5 text-gray-600" />
                 <span className="text-gray-900 font-medium">{t("groupTabs.menuHidePost")}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onMenuAction(post.id!, "report")}
-                className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left"
-              >
-                <Flag className="w-5 h-5 text-gray-600" />
-                <span className="text-gray-900 font-medium">{t("groupTabs.menuReport")}</span>
-              </button>
+              {currentUserId !== post.authorId && (
+                <button
+                  type="button"
+                  onClick={() => onMenuAction(post.id!, "report")}
+                  className="w-full px-4 py-3 hover:bg-red-50 flex items-center gap-3 text-left"
+                >
+                  <Flag className="w-5 h-5 text-red-500" />
+                  <span className="text-red-600 font-medium">{t("groupTabs.menuReport")}</span>
+                </button>
+              )}
             </div>
           )}
         </div>

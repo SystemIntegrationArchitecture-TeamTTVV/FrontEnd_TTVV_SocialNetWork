@@ -22,8 +22,10 @@ type LiveStreamHostContextType = {
   hostChatMessages: HostChatLine[];
   requiresApprovalLive: boolean;
   donateTtsEnabled: boolean;
+  portalElement: HTMLElement | null;
   setDonateTtsEnabled: (v: boolean) => void;
   setRequiresApprovalLive: (v: boolean) => void;
+  setPortalElement: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
   recentGiftEvent: {
     senderName: string;
     giftName: string;
@@ -54,6 +56,7 @@ export function LiveStreamHostProvider({ children }: { children: ReactNode }) {
   const [creating, setCreating] = useState(false);
   const [ending, setEnding] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
 
   const [requiresApprovalLive, setRequiresApprovalLive] = useState(false);
   const [hostChatMessages, setHostChatMessages] = useState<HostChatLine[]>([]);
@@ -251,8 +254,10 @@ export function LiveStreamHostProvider({ children }: { children: ReactNode }) {
         hostChatMessages,
         requiresApprovalLive,
         donateTtsEnabled,
+        portalElement,
         setDonateTtsEnabled,
         setRequiresApprovalLive,
+        setPortalElement,
         recentGiftEvent,
         newDanmakuMessage,
         handleCreateStream,

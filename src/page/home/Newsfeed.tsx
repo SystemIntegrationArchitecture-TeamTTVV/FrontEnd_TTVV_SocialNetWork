@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { getLocaleTag } from '../../i18n';
 import { resolveMediaUrl, resolveStoryContentUrl } from '../../utils/mediaUrl';
 import { getUserInitials } from '../../utils/userDisplay';
+import ReportModal from '../../components/common/ReportModal';
 
 /** Module-level cache — survives component unmount so returning to Newsfeed is instant */
 const _postCache: {
@@ -49,6 +50,7 @@ export default function Newsfeed() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
   const [isLoadingComments, setIsLoadingComments] = useState<Record<string, boolean>>({});
+  const [reportingPost, setReportingPost] = useState<PostData | null>(null);
   // Tracks which postIds were successfully fetched (prevents re-fetch on collapse/expand)
   const fetchedCommentPosts = useRef<Set<string>>(new Set());
   const { subscribe } = useSocket();
@@ -97,11 +99,17 @@ export default function Newsfeed() {
   const [activeStreams, setActiveStreams] = useState<LiveStreamData[]>([]);
 
   useEffect(() => {
+    if (!currentUser?.id) {
+      setActiveStreams([]);
+      return;
+    }
     livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
-  }, []);
+  }, [currentUser?.id]);
 
   // Realtime: reload when someone goes live / ends
   useEffect(() => {
+    if (!currentUser?.id) return;
+
     const unsubs = [
       subscribe('LIVE_STARTED', () => {
         livestreamApi.getActiveStreams().then(setActiveStreams).catch(() => {});
@@ -111,7 +119,7 @@ export default function Newsfeed() {
       }),
     ];
     return () => unsubs.forEach(u => u());
-  }, [subscribe]);
+  }, [currentUser?.id, subscribe]);
 
   // ── Stale-while-revalidate: show cached posts instantly, refresh in background ──
   useEffect(() => {
@@ -310,7 +318,11 @@ export default function Newsfeed() {
     acc[userId].push(story);
     return acc;
   }, {});
-  const storyGroups: Story[][] = Object.values(storiesByUser);
+
+  // Sort each group so the oldest story is first (chronological order)
+  const storyGroups: Story[][] = Object.values(storiesByUser).map(group => 
+    group.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  );
   // const handleViewStory = (storyId: string) => {
   //   setSelectedStoryId(storyId);
   //   setIsStoryViewerOpen(true);
@@ -506,12 +518,18 @@ export default function Newsfeed() {
     if (!replyText?.trim() || !currentUser) return;
 
     setIsSubmittingComment(prev => ({ ...prev, [`reply-${parentCommentId}`]: true }));    try {
-      const newReply = await commentsApi.createComment({
+      const createdReply = await commentsApi.createComment({
         postId,
         userId: currentUser.id,
         content: replyText.trim(),
         parentCommentId,
       });
+      const newReply: CommentData = {
+        ...createdReply,
+        parentCommentId: createdReply.parentCommentId || parentCommentId,
+        userName: createdReply.userName || currentUser.fullName,
+        userAvatar: createdReply.userAvatar || currentUser.avatar,
+      };
 
       // Add reply to state
       setCommentReplies(prev => ({
@@ -630,8 +648,10 @@ export default function Newsfeed() {
       console.log('Hide post:', postId);
       // TODO: Implement hide post functionality
     } else if (action === 'report') {
-      console.log('Report post:', postId);
-      // TODO: Implement report post functionality
+      const targetPost = posts.find((p) => p.id === postId);
+      if (targetPost) {
+        setReportingPost(targetPost);
+      }
     }
   };
 
@@ -736,15 +756,15 @@ export default function Newsfeed() {
           {loadingStories && <StorySkeleton />}
           {/* Friends Stories */}
           {storyGroups.map((group, index) => {
-            const firstStory = group[0];
+            const displayStory = group[group.length - 1]; // Use newest story for thumbnail
             const storyMediaUrl =
-              firstStory.contentType !== 'text'
-                ? resolveStoryContentUrl(firstStory.content)
+              displayStory.contentType !== 'text'
+                ? resolveStoryContentUrl(displayStory.content)
                 : '';
 
             return (
               <button
-                key={firstStory.user.id}
+                key={displayStory.user.id}
                 onClick={() => setViewerUserIndex(index)}
                 className="shrink-0 w-32 text-left"
               >
@@ -752,7 +772,7 @@ export default function Newsfeed() {
                   {/* Story Content Background */}
                   <div className="w-full h-full rounded-2xl overflow-hidden relative">
                     {/* Story preview */}
-                    {firstStory.contentType === 'image' && (
+                    {displayStory.contentType === 'image' && (
                       <div className="relative h-full w-full">
                         {storyMediaUrl ? (
                         <img
@@ -763,25 +783,25 @@ export default function Newsfeed() {
                         ) : (
                           <div className="h-full w-full bg-zinc-800" />
                         )}
-                        {firstStory.caption?.trim() ? (
+                        {displayStory.caption?.trim() ? (
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
-                            {firstStory.caption.trim()}
+                            {displayStory.caption.trim()}
                           </div>
                         ) : null}
                       </div>
                     )}
 
-                    {firstStory.contentType === 'text' && (
+                    {displayStory.contentType === 'text' && (
                       <div
-                        className={`w-full h-full ${firstStory.background} flex items-center justify-center p-3`}
+                        className={`w-full h-full ${displayStory.background} flex items-center justify-center p-3`}
                       >
                         <p className="text-white text-sm font-semibold text-center line-clamp-4">
-                          {firstStory.content}
+                          {displayStory.content}
                         </p>
                       </div>
                     )}
 
-                    {firstStory.contentType === 'video' && (
+                    {displayStory.contentType === 'video' && (
                       <div className="relative h-full w-full">
                         {storyMediaUrl ? (
                         <video
@@ -797,37 +817,35 @@ export default function Newsfeed() {
                         ) : (
                           <div className="h-full w-full bg-zinc-800" />
                         )}
-                        {firstStory.caption?.trim() ? (
+                        {displayStory.caption?.trim() ? (
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-4 pb-8 pt-10 text-center text-[10px] font-semibold leading-tight text-white line-clamp-3">
-                            {firstStory.caption.trim()}
+                            {displayStory.caption.trim()}
                           </div>
                         ) : null}
                       </div>
                     )}
+                  </div>
 
-
-                    {/* Gradient overlay for better avatar visibility */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
-
-                    {/* User Avatar */}
-                    <div className="absolute top-3 left-3">
-                      <StoryAvatar
-                        name={firstStory.user.name}
-                        avatar={firstStory.user.avatar}
-                        className="h-10 w-10 rounded-full border-2 border-white object-cover shadow-lg"
-                      />
-                    </div>
+                  {/* Author Avatar & Name */}
+                  <div className="absolute top-2 left-2 ring-2 ring-blue-500 rounded-full">
+                    <StoryAvatar
+                      name={displayStory.user.name}
+                      avatar={displayStory.user.avatar}
+                      className="w-8 h-8 border-2 border-white rounded-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute bottom-2 left-2 right-2 z-10">
+                    <p className="text-white text-xs font-medium truncate drop-shadow-md">
+                      {displayStory.user.name}
+                    </p>
                   </div>
                 </div>
-
                 <p className="text-center mt-3 font-medium truncate text-sm">
-                  {firstStory.user.name}
+                  {displayStory.user.name}
                 </p>
               </button>
             );
           })}
-
-
         </div>
       </div>
 
@@ -1106,13 +1124,15 @@ export default function Newsfeed() {
                         <EyeOff className="w-[18px] h-[18px] text-gray-500" />
                         <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuHidePost')}</span>
                       </button>
-                      <button
-                        onClick={() => handlePostAction(post.id!, 'report')}
-                        className="w-full px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
-                      >
-                        <Flag className="w-[18px] h-[18px] text-gray-500" />
-                        <span className="text-gray-800 text-[15px] font-medium">{t('newsfeed.menuReport')}</span>
-                      </button>
+                      {currentUser?.id !== post.authorId && (
+                        <button
+                          onClick={() => handlePostAction(post.id!, 'report')}
+                          className="w-full px-4 py-2.5 hover:bg-red-50 flex items-center gap-3 text-left transition-colors rounded-xl mx-auto"
+                        >
+                          <Flag className="w-[18px] h-[18px] text-red-500" />
+                          <span className="text-red-600 text-[15px] font-medium">{t('newsfeed.menuReport')}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1405,7 +1425,7 @@ export default function Newsfeed() {
                                     }`}
                                   >
                                     {likedComments.has(comment.id!) ? `❤️ ${t('groupComments.liked')}` : t('groupComments.like')}
-                                    {comment.likeCount && comment.likeCount > 0 && ` · ${comment.likeCount}`}
+                                    {(comment.likeCount ?? 0) > 0 ? ` · ${comment.likeCount}` : null}
                                   </button>
                                   <span className="text-gray-300 text-xs">·</span>
                                   <button
@@ -1414,7 +1434,7 @@ export default function Newsfeed() {
                                   >
                                     {t('groupComments.reply')}
                                   </button>
-                                  {comment.replyCount && comment.replyCount > 0 && (
+                                  {(comment.replyCount ?? 0) > 0 ? (
                                     <>
                                       <span className="text-gray-300 text-xs">·</span>
                                       <button
@@ -1426,7 +1446,7 @@ export default function Newsfeed() {
                                           : `${comment.replyCount} ${t('newsfeed.repliesNoun')}`}
                                       </button>
                                     </>
-                                  )}
+                                  ) : null}
                                   <span className="text-gray-400 text-[11px] ml-auto">
                                     {comment.createdAt ? getTimeAgo(comment.createdAt) : t('watch.justNow')}
                                   </span>
@@ -1527,7 +1547,7 @@ export default function Newsfeed() {
                                               }`}
                                             >
                                               {likedComments.has(reply.id!) ? `❤️ ${t('groupComments.liked')}` : t('groupComments.like')}
-                                              {reply.likeCount && reply.likeCount > 0 && ` · ${reply.likeCount}`}
+                                              {(reply.likeCount ?? 0) > 0 ? ` · ${reply.likeCount}` : null}
                                             </button>
                                             <span className="text-gray-400 text-[11px] ml-auto">
                                               {reply.createdAt ? getTimeAgo(reply.createdAt) : t('watch.justNow')}
@@ -1574,10 +1594,29 @@ export default function Newsfeed() {
       {isCreatePostModalOpen && (
         <CreatePost
           onClose={() => setIsCreatePostModalOpen(false)}
-          onSuccess={() => {
+          onSuccess={(createdPost) => {
             setIsCreatePostModalOpen(false);
-            fetchPosts();
+            if (!createdPost?.id) return;
+
+            setPosts(prev => {
+              if (prev.some(post => post.id === createdPost.id)) {
+                return prev;
+              }
+              const nextPosts = [createdPost, ...prev];
+              _postCache.posts = nextPosts;
+              return nextPosts;
+            });
           }}
+        />
+      )}
+      
+      {reportingPost && (
+        <ReportModal
+          isOpen={!!reportingPost}
+          onClose={() => setReportingPost(null)}
+          targetId={reportingPost.id}
+          targetType="post"
+          targetName={reportingPost.authorName || t('newsfeed.authorUnknown', 'Không rõ')}
         />
       )}
     </div>

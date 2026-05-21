@@ -7,7 +7,7 @@ export interface Report {
   reporterName: string;
   reporterAvatar?: string;
   targetName: string;
-  targetType: "post" | "user" | "message" | "comment";
+  targetType: "post" | "user" | "group" | "message" | "comment";
   targetId: string;
   status: "pending" | "reviewing" | "resolved" | "rejected";
   priority: "high" | "medium" | "low";
@@ -27,11 +27,12 @@ export interface ReportStats {
 
 export const reportsApi = {
   /**
-   * Get all reports
+   * Get all reports (optionally filtered by targetId)
    */
-  getAllReports: async (): Promise<Report[]> => {
+  getAllReports: async (targetId?: string): Promise<Report[]> => {
     try {
-      return await httpClient.get<Report[]>("/api/reports");
+      const url = targetId ? `/api/reports?targetId=${targetId}` : "/api/reports";
+      return await httpClient.get<Report[]>(url);
     } catch (error) {
       console.error("Failed to get reports:", error);
       throw error;
@@ -67,15 +68,17 @@ export const reportsApi = {
   },
 
   /**
-   * Update report status
+   * Update report status with optional audit note
    */
   updateReportStatus: async (
     id: string,
     status: "pending" | "reviewing" | "resolved" | "rejected",
+    actionNote?: string,
   ): Promise<any> => {
+    const body = actionNote ? { actionTaken: actionNote } : {};
     return httpClient.put<any>(
       `/api/reports/${id}/status?status=${status}`,
-      {},
+      body,
     );
   },
 

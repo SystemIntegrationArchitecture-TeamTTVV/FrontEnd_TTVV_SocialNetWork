@@ -413,6 +413,7 @@ class SocketService {
       "ICE_CANDIDATE", "CALL_ICE_CANDIDATE", "CALL_USER_JOINED", "CALL_USER_LEFT"];
     if (webrtcTypes.includes(event.type)) {
       const callId = typeof data?.callId === "string" ? data.callId : "";
+      const roomId = typeof data?.roomId === "string" ? data.roomId : "";
       const senderId = typeof data?.senderId === "string" ? data.senderId
         : typeof data?.callerId === "string" ? data.callerId : "";
       // For ICE candidates, include the candidate's sdpMLineIndex to differentiate
@@ -420,7 +421,24 @@ class SocketService {
       const iceSuffix = candidate
         ? `:${candidate.sdpMLineIndex ?? ""}:${(candidate.candidate || "").slice(0, 60)}`
         : "";
-      return `${event.type}:${callId}:${senderId}${iceSuffix}`;
+      return `${event.type}:${callId}:${roomId}:${senderId}${iceSuffix}`;
+    }
+    // Livestream status events: viewer count updates happen frequently with the same
+    // streamId but different values. Use the actual value in the key to avoid dropping updates.
+    const liveStatusTypes = ["LIVE_VIEWER_COUNT", "LIVE_CHAT"];
+    if (liveStatusTypes.includes(event.type)) {
+      const streamId = typeof data?.streamId === "string" ? data.streamId : "";
+      const viewerCount = data?.viewerCount != null ? String(data.viewerCount) : "";
+      const content = typeof data?.content === "string" ? data.content.slice(0, 40) : "";
+      const userId = typeof data?.userId === "string" ? data.userId : "";
+      const ts = event.timestamp || String(Date.now());
+      return `${event.type}:${streamId}:${viewerCount}:${userId}:${content}:${ts}`;
+    }
+
+    // Livestream events that should never be deduped (each occurrence is unique)
+    const liveNoDedupe = ["LIVE_ENDED", "LIVE_GIFT_RECEIVED", "LIVE_VIEWER_APPROVED", "LIVE_KICKED"];
+    if (liveNoDedupe.includes(event.type)) {
+      return `${event.type}:${Date.now()}:${Math.random()}`;
     }
 
     const messageId = typeof data?.id === "string" ? data.id : "";

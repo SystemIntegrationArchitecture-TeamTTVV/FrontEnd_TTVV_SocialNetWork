@@ -8,6 +8,7 @@ import VoiceRecorder from '../chat/VoiceRecorder';
 import type { ChatContact } from '../../types/chat';
 import { useTranslation } from 'react-i18next';
 import { notify } from '../../services/notify';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // Deterministic color per sender so group chat bubble colors are stable
 const idToColor = (id: string): string => {
@@ -140,7 +141,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
         <div className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] rounded-t-xl transition-colors">
           <div className="relative">
             {contact.avatarUrl ? (
-              <img src={contact.avatarUrl} alt={contact.name} className="w-9 h-9 rounded-full object-cover shadow-sm" />
+              <img src={resolveMediaUrl(contact.avatarUrl)} alt={contact.name} className="w-9 h-9 rounded-full object-cover shadow-sm" />
             ) : (
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
@@ -187,7 +188,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative">
             {contact.avatarUrl ? (
-              <img src={contact.avatarUrl} alt={contact.name} className="w-8 h-8 rounded-full object-cover shadow-sm" />
+              <img src={resolveMediaUrl(contact.avatarUrl)} alt={contact.name} className="w-8 h-8 rounded-full object-cover shadow-sm" />
             ) : (
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-sm"
@@ -258,7 +259,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
         {contactMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             {contact.avatarUrl ? (
-              <img src={contact.avatarUrl} alt={contact.name} className="w-14 h-14 rounded-full object-cover shadow mb-3" />
+              <img src={resolveMediaUrl(contact.avatarUrl)} alt={contact.name} className="w-14 h-14 rounded-full object-cover shadow mb-3" />
             ) : (
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg mb-3"
@@ -287,7 +288,7 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               <div className="relative shrink-0">
                 {msg.senderAvatar ? (
                   <img
-                    src={msg.senderAvatar}
+                    src={resolveMediaUrl(msg.senderAvatar)}
                     alt={msg.sender}
                     className="w-7 h-7 rounded-full object-cover shadow-sm"
                   />
@@ -340,14 +341,16 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               )}
 
               {/* Message Content */}
-              <div
-                className={`rounded-2xl px-3 py-2 shadow-sm inline-block text-left ${msg.isMe
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-white dark:bg-[#22263a] text-[#050505] dark:text-[#edf0fa] border border-[#e4e6eb] dark:border-[#2b2f45]'
-                  }`}
-              >
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed break-words">{msg.content}</p>
-              </div>
+              {msg.content?.trim() ? (
+                <div
+                  className={`rounded-2xl px-3 py-2 shadow-sm inline-block text-left ${msg.isMe
+                      ? 'bg-[#1877F2] text-white'
+                      : 'bg-white dark:bg-[#22263a] text-[#050505] dark:text-[#edf0fa] border border-[#e4e6eb] dark:border-[#2b2f45]'
+                    }`}
+                >
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed break-words">{msg.content}</p>
+                </div>
+              ) : null}
               <p className="text-[10px] text-[#65676b] dark:text-[#7e89a6] mt-0.5 px-1">{msg.time}</p>
             </div>
           </div>

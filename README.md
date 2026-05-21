@@ -110,7 +110,7 @@ npm install
 npm run dev
 ```
 
-The application starts at `http://localhost:5173` and proxies API requests to the Gateway at `http://localhost:8088`.
+The application starts at `http://localhost:5311` and proxies `/api/*` requests to the API Gateway at `http://localhost:8088`.
 
 ### Available Scripts
 
@@ -127,11 +127,11 @@ The application starts at `http://localhost:5173` and proxies API requests to th
 
 ### Environment Configuration
 
-API base URLs are configured in `src/apis/config.ts`. Default values point to `localhost` for local development:
+API base URLs are configured in `src/apis/config.ts`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `API_CONFIG.BASE_URL` | `http://localhost:8088` | API Gateway address |
+| `API_CONFIG.BASE_URL` | `''` (same-origin in dev) | API Gateway base URL (dev uses Vite proxy for `/api/*`) |
 | `API_CONFIG.COMMON_SERVICE_URL` | `http://localhost:8081` | Direct CommonService fallback |
 
 ## Build and Deployment

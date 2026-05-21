@@ -48,9 +48,10 @@ export const statsApi = {
   /**
    * Get dashboard statistics
    */
-  getDashboardStats: async (): Promise<DashboardStats> => {
+  getDashboardStats: async (timeRange?: string): Promise<DashboardStats> => {
     try {
-      return await httpClient.get<DashboardStats>("/api/stats/dashboard");
+      const url = timeRange ? `/api/stats/dashboard?timeRange=${timeRange}` : "/api/stats/dashboard";
+      return await httpClient.get<DashboardStats>(url);
     } catch (error) {
       console.error("Failed to get dashboard stats:", error);
       throw error;

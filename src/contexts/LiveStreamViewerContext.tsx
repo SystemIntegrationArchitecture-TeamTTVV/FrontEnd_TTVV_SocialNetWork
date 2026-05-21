@@ -14,12 +14,14 @@ type LiveStreamViewerContextType = {
   rulesGate: boolean;
   lkKey: number;
   canSubscribe: boolean;
+  portalElement: HTMLElement | null;
   setStreamId: React.Dispatch<React.SetStateAction<string | null>>;
   setViewerCount: React.Dispatch<React.SetStateAction<number>>;
   setIsEnded: React.Dispatch<React.SetStateAction<boolean>>;
   setCanSubscribe: React.Dispatch<React.SetStateAction<boolean>>;
   setStream: React.Dispatch<React.SetStateAction<LiveStreamData | null>>;
   setLkKey: React.Dispatch<React.SetStateAction<number>>;
+  setPortalElement: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
   acceptRules: () => void;
   leaveCurrentStream: () => void;
 };
@@ -28,13 +30,13 @@ const LiveStreamViewerContext = createContext<LiveStreamViewerContextType | null
 
 export function LiveStreamViewerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  
+
   const [streamId, setStreamId] = useState<string | null>(null);
   const [stream, setStream] = useState<LiveStreamData | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [isEnded, setIsEnded] = useState(false);
-  
+
   const [rulesGate, setRulesGate] = useState(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem(RULES_KEY) === '1';
@@ -42,21 +44,24 @@ export function LiveStreamViewerProvider({ children }: { children: ReactNode }) 
 
   const [lkKey, setLkKey] = useState(0);
   const [canSubscribe, setCanSubscribe] = useState(true);
+  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
 
   const acceptRules = useCallback(() => {
     try {
       localStorage.setItem(RULES_KEY, '1');
-    } catch {}
+    } catch { }
     setRulesGate(true);
   }, []);
 
   const leaveCurrentStream = useCallback(() => {
     if (streamId && user) {
-      livestreamApi.leaveStream(streamId, user.id).catch(() => {});
+      livestreamApi.leaveStream(streamId, user.id).catch(() => { });
     }
     setStreamId(null);
     setStream(null);
     setIsEnded(false);
+    setViewerCount(0);
+    setPortalElement(null);
     setLkKey((k) => k + 1);
   }, [streamId, user]);
 
@@ -74,6 +79,13 @@ export function LiveStreamViewerProvider({ children }: { children: ReactNode }) 
         setStream(tokenData);
         setCanSubscribe(tokenData.canSubscribe !== false);
         await livestreamApi.joinStream(streamId, user.id);
+        // Re-fetch stream after joining to get the updated viewer count (including this user)
+        try {
+          const refreshed = await livestreamApi.getStreamById(streamId, user.id);
+          setViewerCount(refreshed.viewerCount ?? data.viewerCount ?? 0);
+        } catch {
+          // keep the initial count if re-fetch fails
+        }
       }
     } catch {
       setStreamId(null);
@@ -99,12 +111,14 @@ export function LiveStreamViewerProvider({ children }: { children: ReactNode }) 
         rulesGate,
         lkKey,
         canSubscribe,
+        portalElement,
         setStreamId,
         setViewerCount,
         setIsEnded,
         setCanSubscribe,
         setStream,
         setLkKey,
+        setPortalElement,
         acceptRules,
         leaveCurrentStream,
       }}

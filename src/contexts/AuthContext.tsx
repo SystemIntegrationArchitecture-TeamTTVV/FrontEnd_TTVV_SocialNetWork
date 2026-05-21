@@ -45,12 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!stored?.id || !authApi.isAuthenticated()) return;
     try {
       const u = await usersApi.getUserById(stored.id);
+      const rawRole = u.role ?? stored.role;
       const next: User = {
         id: u.id ?? stored.id,
         username: u.username ?? stored.username,
         fullName: u.fullName ?? stored.fullName,
         avatar: u.avatar ?? '',
-        role: u.role ?? stored.role,
+        role: typeof rawRole === 'string' ? rawRole.replace(/^ROLE_/, '') : rawRole,
       };
       localStorage.setItem('user', JSON.stringify(next));
       setUser(next);
@@ -94,12 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const u = await usersApi.getUserById(savedUser.id);
           if (cancelled) return;
+          const rawRole = u.role ?? savedUser.role;
           const next: User = {
             id: u.id ?? savedUser.id,
             username: u.username ?? savedUser.username,
             fullName: u.fullName ?? savedUser.fullName,
             avatar: u.avatar ?? '',
-            role: u.role ?? savedUser.role,
+            role: typeof rawRole === 'string' ? rawRole.replace(/^ROLE_/, '') : rawRole,
           };
           localStorage.setItem('user', JSON.stringify(next));
           setUser(next);

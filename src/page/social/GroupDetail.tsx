@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Check, Bell, Share2, MoreVertical, Loader2, Users,
   LogOut, Settings, Trash2, Clock, UserPlus, Lock, Globe,
-  Gamepad2, Plane, Camera, BookOpen, ChefHat, MessageSquare
+  Gamepad2, Plane, Camera, BookOpen, ChefHat, MessageSquare, Flag
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { groupsApi, type GroupData } from "../../apis/groupsApi";
@@ -12,6 +12,7 @@ import GroupManageModal from "../social/group/GroupManageModal";
 import InviteFriendsModal from "./group/InviteFriendsModal";
 import JoinGroupQuestionsModal from "./group/JoinGroupQuestionsModal";
 import { useTranslation } from "react-i18next";
+import ReportModal from "../../components/common/ReportModal";
 
 const CATEGORY_GRADIENT: Record<string, { from: string; to: string }> = {
   travel:      { from: "#fb923c", to: "#f97316" },
@@ -53,6 +54,7 @@ export default function GroupDetail() {
   const [openInvite, setOpenInvite] = useState(false);
   const [openQuestions, setOpenQuestions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -270,6 +272,13 @@ export default function GroupDetail() {
                   {!myRole && myStatus !== "PENDING" && (
                     <MenuBtn icon={UserPlus} label={t("groupPage.menuJoin")} onClick={handleJoinGroup} />
                   )}
+                  <div className="h-px bg-gray-100 dark:bg-[#2b2f45] my-1" />
+                  <MenuBtn 
+                    icon={Flag} 
+                    label={t("reports.titleReportGroup", "Báo cáo nhóm")} 
+                    danger 
+                    onClick={() => { setShowReportModal(true); setOpenMenu(false); }} 
+                  />
                 </div>
               )}
             </div>
@@ -383,6 +392,16 @@ export default function GroupDetail() {
         >
           <MessageSquare className="w-6 h-6" />
         </button>
+      )}
+
+      {showReportModal && group && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetId={group.id!}
+          targetType="group"
+          targetName={group.name}
+        />
       )}
     </div>
   );

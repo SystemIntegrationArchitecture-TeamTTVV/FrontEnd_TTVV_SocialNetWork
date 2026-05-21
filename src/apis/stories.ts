@@ -8,7 +8,7 @@ export const storiesApi = {
    * Idempotent — safe to call on every open.
    */
   viewStory: async (storyId: string, userId: string): Promise<Story> => {
-    return httpClient.post<Story>(`/api/stories/${storyId}/view?userId=${encodeURIComponent(userId)}`, {});
+    return httpClient.post<Story>(`/api/social/stories/${storyId}/view?userId=${encodeURIComponent(userId)}`, {});
   },
 
   /**
@@ -17,7 +17,7 @@ export const storiesApi = {
    */
   reactStory: async (storyId: string, userId: string, emoji: string): Promise<Story> => {
     return httpClient.post<Story>(
-      `/api/stories/${storyId}/react?userId=${encodeURIComponent(userId)}&emoji=${encodeURIComponent(emoji)}`,
+      `/api/social/stories/${storyId}/react?userId=${encodeURIComponent(userId)}&emoji=${encodeURIComponent(emoji)}`,
       {}
     );
   },
