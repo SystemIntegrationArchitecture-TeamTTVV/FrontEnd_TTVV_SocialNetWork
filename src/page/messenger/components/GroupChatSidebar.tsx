@@ -12,6 +12,7 @@ import type { FriendDTO } from '../../../apis/friendRequests';
 import { conversationsApi } from '../../../apis/conversations';
 import { messagesApi, type Message } from '../../../apis/messages';
 import { uploadApi } from '../../../apis/upload';
+import { usersApi, type User as AppUser } from '../../../apis/users';
 import { notify } from '../../../services/notify';
 
 interface ActiveConversation {
@@ -165,6 +166,7 @@ export default function GroupChatSidebar({
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ pid: string; x: number; y: number } | null>(null);
   const [mediaMessages, setMediaMessages] = useState<Message[]>([]);
+  const [pendingUsersById, setPendingUsersById] = useState<Record<string, AppUser>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingJoins = pendingJoinsRaw || [];
   const isDisbanded = !!conversationRaw?.isDisbanded;
@@ -239,8 +241,37 @@ export default function GroupChatSidebar({
     };
   }, [isGroupChat, conversationRaw?.id, userId, isDisbanded]);
 
+  useEffect(() => {
+    const unresolvedIds = pendingJoins.filter((id) => {
+      if (pendingUsersById[id]) return false;
+      return !friendList.some((f) => f.friendId === id && (f.friendName || f.friendAvatar));
+    });
+    if (unresolvedIds.length === 0) return;
+
+    let cancelled = false;
+    const fetchPendingUsers = async () => {
+      const results = await Promise.allSettled(unresolvedIds.map((id) => usersApi.getUserById(id)));
+      if (cancelled) return;
+
+      const next: Record<string, AppUser> = {};
+      results.forEach((r) => {
+        if (r.status === 'fulfilled' && r.value?.id) {
+          next[r.value.id] = r.value;
+        }
+      });
+      if (Object.keys(next).length > 0) {
+        setPendingUsersById((prev) => ({ ...prev, ...next }));
+      }
+    };
+
+    fetchPendingUsers().catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingJoins, pendingUsersById, friendList]);
+
   return (
-    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full h-full md:w-[320px] md:h-auto lg:w-85 shadow-sm flex flex-col">
+    <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full h-full md:w-[320px] md:h-full lg:w-85 shadow-sm flex flex-col">
 
       {/* Header banner + avatar */}
       <div className="relative">
@@ -834,12 +865,21 @@ export default function GroupChatSidebar({
                   {pendingJoins.length === 0 ? (
                     <p className="text-center text-sm text-gray-400 py-8">Không có yêu cầu nào</p>
                   ) : (
-                    pendingJoins.map((pid) => (
+                    pendingJoins.map((pid) => {
+                      const friend = friendList.find((f) => f.friendId === pid);
+                      const fetched = pendingUsersById[pid];
+                      const displayName = friend?.friendName || fetched?.fullName || fetched?.username || pid;
+                      const avatarUrl = friend?.friendAvatar || fetched?.avatar;
+                      return (
                       <div key={pid} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <MemberAvatar name={pid} color={colorFromId(pid)} />
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt={displayName} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <MemberAvatar name={displayName} color={colorFromId(pid)} />
+                          )}
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{pid}</p>
+                            <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
                             <p className="text-xs text-amber-600">Chờ phê duyệt</p>
                           </div>
                         </div>
@@ -862,7 +902,8 @@ export default function GroupChatSidebar({
                           </button>
                         </div>
                       </div>
-                    ))
+                    );
+                    })
                   )}
                 </div>
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
