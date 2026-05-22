@@ -27,6 +27,7 @@ export default function FriendSocketListener() {
       if (event.type !== 'NOTIFICATION' || !event.data) return;
 
       const notification = event.data as {
+        id?: string;
         type?: string;
         actorName?: string;
         actorAvatar?: string;
@@ -35,10 +36,12 @@ export default function FriendSocketListener() {
       };
 
       const actorName = notification.actorName || t('friendToast.someone');
+      const toastId = notification.id || `${notification.type}-${notification.actorId || 'unknown'}`;
 
       switch (notification.type) {
         case 'FRIEND_REQUEST':
           toast(t('friendToast.requestReceived', { name: actorName }), {
+            id: toastId,
             icon: '👋',
             duration: 5000,
             position: 'top-center',
@@ -53,6 +56,7 @@ export default function FriendSocketListener() {
 
         case 'FRIEND_ACCEPTED':
           toast(t('friendToast.requestAccepted', { name: actorName }), {
+            id: toastId,
             icon: '🎉',
             duration: 5000,
             position: 'top-center',
@@ -67,6 +71,7 @@ export default function FriendSocketListener() {
 
         case 'FRIEND_REJECTED':
           toast(t('friendToast.requestRejected', { name: actorName }), {
+            id: toastId,
             icon: '😔',
             duration: 5000,
             position: 'top-center',
@@ -81,6 +86,7 @@ export default function FriendSocketListener() {
 
         case 'FRIEND_CANCELLED':
           toast(t('friendToast.requestCancelled', { name: actorName }), {
+            id: toastId,
             icon: '↩️',
             duration: 5000,
             position: 'top-center',
@@ -95,6 +101,7 @@ export default function FriendSocketListener() {
 
         case 'FRIEND_REMOVED':
           toast(t('friendToast.friendRemoved', { name: actorName }), {
+            id: toastId,
             icon: '💔',
             duration: 5000,
             position: 'top-center',
@@ -109,6 +116,7 @@ export default function FriendSocketListener() {
 
         case 'POST':
           toast(t('friendToast.postCreated', { name: actorName }), {
+            id: toastId,
             icon: '📝',
             duration: 5000,
             position: 'top-center',
@@ -123,6 +131,7 @@ export default function FriendSocketListener() {
 
         case 'MENTION':
           toast(t('friendToast.mentionInChat', { name: actorName }), {
+            id: toastId,
             icon: '@',
             duration: 5000,
             position: 'top-center',
@@ -137,6 +146,7 @@ export default function FriendSocketListener() {
 
         case 'COMMENT_MENTION':
           toast(t('friendToast.mentionInComment', { name: actorName }), {
+            id: toastId,
             icon: '@',
             duration: 5000,
             position: 'top-center',
