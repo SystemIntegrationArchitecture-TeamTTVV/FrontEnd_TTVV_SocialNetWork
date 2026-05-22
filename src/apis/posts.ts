@@ -268,6 +268,56 @@ class PostsApi {
       throw error;
     }
   }
+
+  /**
+   * Save a post
+   */
+  async savePost(postId: string): Promise<void> {
+    try {
+      await httpClient.post(`${this.baseUrl}/${postId}/save`);
+    } catch (error) {
+      console.error(`❌ [Posts API] Failed to save post ${postId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unsave a post
+   */
+  async unsavePost(postId: string): Promise<void> {
+    try {
+      await httpClient.delete(`${this.baseUrl}/${postId}/save`);
+    } catch (error) {
+      console.error(`❌ [Posts API] Failed to unsave post ${postId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get saved posts
+   */
+  async getSavedPosts(): Promise<PostData[]> {
+    try {
+      const response = await httpClient.get<PostData[]>(`${this.baseUrl}/saved`);
+      return response;
+    } catch (error) {
+      console.error('❌ [Posts API] Failed to fetch saved posts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get saved post IDs
+   */
+  async getSavedPostIds(): Promise<string[]> {
+    try {
+      const response = await httpClient.get<string[]>(`${this.baseUrl}/saved/ids`);
+      return response;
+    } catch (error) {
+      console.error('❌ [Posts API] Failed to fetch saved post IDs:', error);
+      throw error;
+    }
+  }
 }
 
 export const postsApi = new PostsApi();

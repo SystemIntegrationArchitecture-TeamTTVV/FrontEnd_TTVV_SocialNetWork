@@ -11,6 +11,7 @@ import type { FriendRequest } from '../../apis/friendRequests';
 import type { User } from '../../apis/users';
 import { useTranslation } from 'react-i18next';
 import { notify } from '../../services/notify';
+import { useSocket } from '../../contexts/SocketContext';
 
 /* ─── helpers ─── */
 function getAvatarColor(name: string): string {
@@ -117,6 +118,31 @@ export default function Friends() {
   useEffect(() => { loadRequests();    }, [loadRequests]);
   useEffect(() => { loadSuggestions(); }, [loadSuggestions]);
   useEffect(() => { if (activeTab === 'all') loadFriends(); }, [activeTab, loadFriends]);
+
+  const { subscribe } = useSocket();
+  
+  // Lắng nghe sự kiện realtime để cập nhật danh sách
+  useEffect(() => {
+    if (!userId) return;
+    const unsubscribe = subscribe('NOTIFICATION', (event) => {
+      if (event.type !== 'NOTIFICATION' || !event.data) return;
+      const type = event.data.type;
+      
+      // Có thay đổi về lời mời kết bạn (nhận, hủy, xác nhận, từ chối)
+      if (['FRIEND_REQUEST', 'FRIEND_CANCELLED', 'FRIEND_ACCEPTED', 'FRIEND_REJECTED'].includes(type)) {
+        loadRequests();
+      }
+      
+      // Có thay đổi về danh sách bạn bè (thêm bạn, hủy bạn)
+      if (['FRIEND_ACCEPTED', 'FRIEND_REMOVED'].includes(type)) {
+        if (activeTab === 'all') {
+          loadFriends();
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [userId, subscribe, loadRequests, loadFriends, activeTab]);
 
   /* ── Actions ── */
   const handleAccept = async (req: FriendRequest) => {
@@ -265,7 +291,7 @@ export default function Friends() {
                         className="w-full h-9 bg-gray-100 hover:bg-gray-200 dark:bg-[#252840] dark:hover:bg-[#2d3150] text-gray-600 dark:text-[#c8ccde] text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
                         {rejecting === req.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                        {t('friends.delete')}
+                        {t('friends.reject', 'Từ chối')}
                       </button>
                     </PersonCard>
                   );
