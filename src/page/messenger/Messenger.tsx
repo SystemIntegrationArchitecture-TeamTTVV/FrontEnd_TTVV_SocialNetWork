@@ -1706,29 +1706,7 @@ export default function Messenger() {
               setHideLoading(false);
             }
           }}
-          onCancelHide={() => { setShowHideInput(null); setHidePin(''); setHideError(null); }}
-          onShowHidden={async () => {
-            setShowHiddenPanel(true);
-            if (!user?.id) return;
-            setHiddenLoading(true);
-            try {
-              const data = await conversationsApi.getHiddenConversationsByUserId(user.id);
-              setHiddenConversations(Array.isArray(data) ? data : []);
-            } catch { setHiddenConversations([]); }
-            finally { setHiddenLoading(false); }
-          }}
-          onStartHide={(convId) => {
-            setShowHideInput(convId);
-            setHidePin('');
-            loadConversations();
-            if (activeChat === convId) setActiveChat(null);
-            notify.success('thanh cong');
-          } catch (err: any) {
-            setHideError(err?.message || 'loi');
-          } finally {
-            setHideLoading(false);
-          }
-        }}
+
         onCancelHide={() => { setShowHideInput(null); setHidePin(''); setHideError(null); }}
         onShowHidden={async () => {
           setShowHiddenPanel(true);
@@ -1763,6 +1741,7 @@ export default function Messenger() {
         pinLoading={pinLoading}
         onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
       />
+      </div>
 
       {/* Hidden Chats Panel + Context Menu + Unlock Modal */}
       <HiddenChatsPanel

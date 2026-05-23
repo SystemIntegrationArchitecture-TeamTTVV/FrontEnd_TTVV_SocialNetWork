@@ -124,6 +124,7 @@ export default function ViewerThamKhaoExperience({
   const danmakuRef = useRef<DanmakuLayerRef>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const recentGiftSigs = useRef<Map<string, number>>(new Map());
+  const mountTimeRef = useRef(Date.now());
 
   const elapsed = useMemo(() => formatElapsed(stream.startedAt), [stream.startedAt, tick]);
 
@@ -303,7 +304,13 @@ export default function ViewerThamKhaoExperience({
           ts: Date.now(),
         },
       ]);
-      if (isDanmaku && danmakuEnabled && danmakuRef.current && canSubscribe) {
+
+      // Only show danmaku animation for real-time messages (sent after we mounted)
+      const msgTimeStr = ev.timestamp || data?.createdAt || data?.timestamp;
+      const msgTime = msgTimeStr ? new Date(msgTimeStr).getTime() : Date.now();
+      const isHistorical = msgTime < mountTimeRef.current - 2000;
+
+      if (isDanmaku && danmakuEnabled && danmakuRef.current && canSubscribe && !isHistorical) {
         danmakuRef.current.addMessage(display, isSelf);
       }
     };

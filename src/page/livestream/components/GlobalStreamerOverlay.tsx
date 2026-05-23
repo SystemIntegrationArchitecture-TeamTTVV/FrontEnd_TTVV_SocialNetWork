@@ -63,21 +63,28 @@ function StreamerThamKhaoLayoutWrapper({ user }: { user: any }) {
   
   const giftOverlayRef = useRef<GiftOverlayRef>(null);
   const danmakuRef = useRef<DanmakuLayerRef>(null);
+  const mountTimeRef = useRef(Date.now());
   
   useEffect(() => {
     if (recentGiftEvent && giftOverlayRef.current) {
-      giftOverlayRef.current.showGift({
-        senderName: recentGiftEvent.senderName,
-        giftName: recentGiftEvent.giftName,
-        giftEmoji: recentGiftEvent.giftEmoji,
-        giftMessage: recentGiftEvent.giftMessage,
-      });
+      // Only show gift animation if it was received in real-time after mounting
+      if (recentGiftEvent.timestamp > mountTimeRef.current - 1500) {
+        giftOverlayRef.current.showGift({
+          senderName: recentGiftEvent.senderName,
+          giftName: recentGiftEvent.giftName,
+          giftEmoji: recentGiftEvent.giftEmoji,
+          giftMessage: recentGiftEvent.giftMessage,
+        });
+      }
     }
   }, [recentGiftEvent]);
   
   useEffect(() => {
     if (newDanmakuMessage && danmakuRef.current) {
-      danmakuRef.current.addMessage(newDanmakuMessage.content, newDanmakuMessage.isSelf);
+      // Only show danmaku animation if it was sent in real-time after mounting
+      if (newDanmakuMessage.timestamp > mountTimeRef.current - 1500) {
+        danmakuRef.current.addMessage(newDanmakuMessage.content, newDanmakuMessage.isSelf);
+      }
     }
   }, [newDanmakuMessage]);
 

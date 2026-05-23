@@ -427,103 +427,106 @@ export default function StreamerThamKhaoLayout({
           </button>
         </div>
 
-        <div className="p-3 grid grid-cols-2 gap-2">
-          {gridBtn(
-            micOn ? 'bg-blue-600' : 'bg-blue-800',
-            micOn ? 'Tắt mic' : 'Bật mic',
-            micOn ? <Mic /> : <MicOff />,
-            () => localParticipant.setMicrophoneEnabled(!micOn)
-          )}
-          {gridBtn(
-            camOn ? 'bg-blue-600' : 'bg-blue-800',
-            camOn ? 'Tắt cam' : 'Bật cam',
-            camOn ? <Video /> : <VideoOff />,
-            () => localParticipant.setCameraEnabled(!camOn)
-          )}
-          {gridBtn('bg-slate-600', 'Share', <Share2 />, toggleScreenShare)}
-          {gridBtn('bg-red-600', 'Kết thúc', <StopCircle />, onEndStream, ending)}
-          {gridBtn(
-            showDanmaku ? 'bg-emerald-600' : 'bg-emerald-800',
-            showDanmaku ? 'Ẩn chữ' : 'Hiện chữ',
-            <Type />,
-            () => setShowDanmaku(!showDanmaku)
-          )}
-          {gridBtn(
-            speakerMuted ? 'bg-blue-800' : 'bg-blue-600',
-            speakerMuted ? 'Bật loa' : 'Tắt loa',
-            speakerMuted ? <VolumeX /> : <Volume2 />,
-            () => setSpeakerMuted(!speakerMuted)
-          )}
-          {gridBtn(
-            hideGiftOverlay ? 'bg-pink-600' : 'bg-pink-500',
-            hideGiftOverlay ? 'Hiện chữ Donate' : 'Ẩn chữ Donate',
-            <Sparkles />,
-            () => setHideGiftOverlay(!hideGiftOverlay)
-          )}
-          {gridBtn(
-            hideTopDonors ? 'bg-orange-700' : 'bg-orange-500',
-            hideTopDonors ? 'Hiện Top Donate' : 'Ẩn Top Donate',
-            <Trophy />,
-            () => setHideTopDonors(!hideTopDonors)
-          )}
-        </div>
-
-        <div className="flex-1 min-h-0 flex flex-col px-2 pb-2">
-          <MemberPanelHost streamId={stream.id} roomName={stream.roomName} hostUserId={user.id} embedded />
-        </div>
-
-        <div className="p-4 border-t border-slate-100 dark:border-slate-700 space-y-3 bg-slate-50/50 dark:bg-[#151822]">
-          <div>
-            <p className="text-sm font-bold text-slate-900 dark:text-white">Cài đặt phòng</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">Chủ phòng quản lý cách người xem tham gia</p>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-xs text-slate-600 dark:text-slate-400">Yêu cầu duyệt</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={requiresApprovalLive}
-                onClick={() => setRequiresApprovalLive(!requiresApprovalLive)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  requiresApprovalLive ? '' : 'bg-slate-300 dark:bg-slate-600'
-                }`}
-                style={requiresApprovalLive ? { backgroundColor: VIOLET } : undefined}
-              >
-                <span
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    requiresApprovalLive ? 'left-6' : 'left-1'
-                  }`}
-                />
-              </button>
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-xs text-slate-600 dark:text-slate-400">Giọng đọc donate (TTS)</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={donateTtsEnabled}
-                onClick={() => onDonateTtsEnabledChange(!donateTtsEnabled)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  donateTtsEnabled ? '' : 'bg-slate-300 dark:bg-slate-600'
-                }`}
-                style={donateTtsEnabled ? { backgroundColor: VIOLET } : undefined}
-              >
-                <span
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    donateTtsEnabled ? 'left-6' : 'left-1'
-                  }`}
-                />
-              </button>
-            </div>
+        {/* Scrollable Container for Sidebar Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col [scrollbar-width:thin]">
+          <div className="p-3 grid grid-cols-2 gap-2 shrink-0">
+            {gridBtn(
+              micOn ? 'bg-blue-600' : 'bg-blue-800',
+              micOn ? 'Tắt mic' : 'Bật mic',
+              micOn ? <Mic /> : <MicOff />,
+              () => localParticipant.setMicrophoneEnabled(!micOn)
+            )}
+            {gridBtn(
+              camOn ? 'bg-blue-600' : 'bg-blue-800',
+              camOn ? 'Tắt cam' : 'Bật cam',
+              camOn ? <Video /> : <VideoOff />,
+              () => localParticipant.setCameraEnabled(!camOn)
+            )}
+            {gridBtn('bg-slate-600', 'Share', <Share2 />, toggleScreenShare)}
+            {gridBtn('bg-red-600', 'Kết thúc', <StopCircle />, onEndStream, ending)}
+            {gridBtn(
+              showDanmaku ? 'bg-emerald-600' : 'bg-emerald-800',
+              showDanmaku ? 'Ẩn chữ' : 'Hiện chữ',
+              <Type />,
+              () => setShowDanmaku(!showDanmaku)
+            )}
+            {gridBtn(
+              speakerMuted ? 'bg-blue-800' : 'bg-blue-600',
+              speakerMuted ? 'Bật loa' : 'Tắt loa',
+              speakerMuted ? <VolumeX /> : <Volume2 />,
+              () => setSpeakerMuted(!speakerMuted)
+            )}
+            {gridBtn(
+              hideGiftOverlay ? 'bg-pink-600' : 'bg-pink-500',
+              hideGiftOverlay ? 'Hiện chữ Donate' : 'Ẩn chữ Donate',
+              <Sparkles />,
+              () => setHideGiftOverlay(!hideGiftOverlay)
+            )}
+            {gridBtn(
+              hideTopDonors ? 'bg-orange-700' : 'bg-orange-500',
+              hideTopDonors ? 'Hiện Top Donate' : 'Ẩn Top Donate',
+              <Trophy />,
+              () => setHideTopDonors(!hideTopDonors)
+            )}
           </div>
-          <button
-            type="button"
-            disabled={savingSettings}
-            onClick={saveRoomSettings}
-            className="w-full py-3.5 rounded-2xl text-white text-sm font-bold shadow-md disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: VIOLET }}
-          >
-            {savingSettings ? 'Đang lưu...' : 'Lưu cài đặt'}
-          </button>
+
+          <div className="shrink-0 px-2 pb-2 h-[280px]">
+            <MemberPanelHost streamId={stream.id} roomName={stream.roomName} hostUserId={user.id} embedded />
+          </div>
+
+          <div className="p-4 border-t border-slate-100 dark:border-slate-700 space-y-3 bg-slate-50/50 dark:bg-[#151822] shrink-0">
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">Cài đặt phòng</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Chủ phòng quản lý cách người xem tham gia</p>
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Yêu cầu duyệt</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={requiresApprovalLive}
+                  onClick={() => setRequiresApprovalLive(!requiresApprovalLive)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    requiresApprovalLive ? '' : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                  style={requiresApprovalLive ? { backgroundColor: VIOLET } : undefined}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                      requiresApprovalLive ? 'left-6' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-xs text-slate-600 dark:text-slate-400">Giọng đọc donate (TTS)</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={donateTtsEnabled}
+                  onClick={() => onDonateTtsEnabledChange(!donateTtsEnabled)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    donateTtsEnabled ? '' : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                  style={donateTtsEnabled ? { backgroundColor: VIOLET } : undefined}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                      donateTtsEnabled ? 'left-6' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={savingSettings}
+              onClick={saveRoomSettings}
+              className="w-full py-3.5 rounded-2xl text-white text-sm font-bold shadow-md disabled:opacity-50 hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: VIOLET }}
+            >
+              {savingSettings ? 'Đang lưu...' : 'Lưu cài đặt'}
+            </button>
+          </div>
         </div>
       </aside>
       <style>{`
