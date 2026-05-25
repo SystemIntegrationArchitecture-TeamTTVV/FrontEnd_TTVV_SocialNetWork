@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, Radio, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { User, Users, LayoutGrid, Store, Video, Bookmark, Music2, Gamepad2, Radio, ChevronLeft, ChevronRight, Sparkles, Wallet } from 'lucide-react';
 import SystemUpdateModal, { hasSeenLatestChangelog } from './../../components/common/SystemUpdateModal';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 
-type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'games' | 'live' | 'saved';
+type LabelKey = 'friends' | 'groups' | 'marketplace' | 'video' | 'music' | 'games' | 'live' | 'saved' | 'wallet';
 
 type MenuItem =
   | {
@@ -55,6 +55,7 @@ export default function LeftSidebar({ collapsed = false, onToggleCollapse }: Lef
     { icon: Gamepad2, labelKey: 'games', path: '/games' },
     { icon: Radio, labelKey: 'live', path: '/livestream', requireAuth: true },
     { icon: Bookmark, labelKey: 'saved', path: '/saved', requireAuth: true },
+    { icon: Wallet, labelKey: 'wallet', path: '/wallet', requireAuth: true },
   ];
 
   const menuItemsWithUser: MenuItem[] =

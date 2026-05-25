@@ -17,6 +17,7 @@ import {
   Bell,
   Search,
   Globe,
+  Coins,
 } from "lucide-react";
 import { usersApi } from "../../apis/users";
 import { postsApi } from "../../apis/posts";
@@ -97,6 +98,13 @@ export default function AdminLayout() {
       icon: AlertTriangle,
       labelKey: "adminPanel.layout.navReports",
       path: "/admin/reports",
+      badge: null,
+    },
+    {
+      id: "billing",
+      icon: Coins,
+      labelKey: "adminPanel.layout.navBilling",
+      path: "/admin/billing",
       badge: null,
     },
     {
