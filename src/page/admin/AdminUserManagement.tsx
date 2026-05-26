@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Ban, CheckCircle2, XCircle, Eye, Trash2, Loader2, UserPlus, Lock, Unlock, RefreshCcw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, Eye, Trash2, Loader2, Lock, Unlock, RefreshCcw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usersApi, type User } from '../../apis/users';
 import { reportsApi } from '../../apis/reports';
@@ -10,7 +10,7 @@ export default function AdminUserManagement() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterRole, setFilterRole] = useState('all');
+  const filterRole = 'all';
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export default function AdminUserManagement() {
       const reportCounts: Record<string, number> = {};
       if (Array.isArray(reportsData)) {
         reportsData.forEach(r => {
-          if ((r.targetType === 'USER' || r.targetType === 'user') && r.targetId) {
+          if (((r.targetType as string) === 'USER' || r.targetType === 'user') && r.targetId) {
             reportCounts[r.targetId] = (reportCounts[r.targetId] || 0) + 1;
           }
         });

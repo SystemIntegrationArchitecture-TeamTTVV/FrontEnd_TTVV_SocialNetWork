@@ -1,28 +1,10 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Send,
-  Settings,
-  Users,
-  ChevronLeft,
-  Plus,
-  Shield,
-  Lock,
   Pin,
-  Images,
-  MessageSquare,
-  AtSign,
-  BarChart3,
-  Check,
   Smile,
   Pencil,
   Forward,
   Star,
-  Copy,
-  Link2,
-  VolumeX,
-  Volume2,
-  Ban,
-  ShieldOff,
   X,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -107,6 +89,40 @@ export default function GroupChat() {
   const conversationId = id || '';
 
   const isOwner = !!(user?.id && conversation?.ownerId === user.id);
+
+  const mergeMessages = (current: Message[], incoming: Message[]): Message[] => {
+    const map = new Map<string, Message>();
+    for (const m of current) {
+      map.set(m.id, m);
+    }
+    for (const m of incoming) {
+      const existing = map.get(m.id);
+      map.set(m.id, existing ? { ...existing, ...m } : m);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  };
+
+  const resyncRecentMessages = async () => {
+    if (!conversationId) return;
+    try {
+      const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 50, user?.id);
+      const recent = page.messages || [];
+      setMessages((prev) => mergeMessages(prev, recent));
+      setSeenByMessageId((prev) => {
+        const next = { ...prev };
+        for (const m of recent) {
+          if (m.seenByUserIds?.length) {
+            next[m.id] = Array.from(new Set(m.seenByUserIds));
+          }
+        }
+        return next;
+      });
+    } catch {
+      // ignore reconnect sync errors; next reload will recover
+    }
+  };
 
   const {
     isCreatePollOpen,
@@ -239,39 +255,6 @@ export default function GroupChat() {
     }
   };
 
-  const mergeMessages = (current: Message[], incoming: Message[]): Message[] => {
-    const map = new Map<string, Message>();
-    for (const m of current) {
-      map.set(m.id, m);
-    }
-    for (const m of incoming) {
-      const existing = map.get(m.id);
-      map.set(m.id, existing ? { ...existing, ...m } : m);
-    }
-    return Array.from(map.values()).sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-  };
-
-  const resyncRecentMessages = async () => {
-    if (!conversationId) return;
-    try {
-      const page = await messagesApi.getMessagesByConversationCursor(conversationId, undefined, 50, user?.id);
-      const recent = page.messages || [];
-      setMessages((prev) => mergeMessages(prev, recent));
-      setSeenByMessageId((prev) => {
-        const next = { ...prev };
-        for (const m of recent) {
-          if (m.seenByUserIds?.length) {
-            next[m.id] = Array.from(new Set(m.seenByUserIds));
-          }
-        }
-        return next;
-      });
-    } catch {
-      // ignore reconnect sync errors; next reload will recover
-    }
-  };
 
   // Smart auto-scroll and scroll-position maintenance
   useEffect(() => {
@@ -877,13 +860,25 @@ export default function GroupChat() {
     setContextMenuMsgId(null);
   };
 
+  const isMuted = !!(user?.id && conversation?.mutedByUserIds?.includes(user.id));
+
+  const handleToggleMute = async () => {
+    if (!conversationId || !user?.id) return;
+    try {
+      const updated = await conversationsApi.toggleMute(conversationId, { userId: user.id });
+      setConversation(updated);
+    } catch (err: any) {
+      setError(err?.message || 'Tắt/Bật thông báo thất bại');
+    }
+  };
+
   const handleToggleBlock = async () => {
     if (!conversationId || !user?.id) return;
     try {
       const updated = await conversationsApi.toggleBlockConversation(conversationId, user.id);
       setConversation(updated);
     } catch (err: any) {
-      setError(err?.message || 'ChÃ¡ÂºÂ·n/bÃ¡Â»Â  chÃ¡ÂºÂ·n thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'Chặn/bỏ chặn thất bại');
     }
   };
 
@@ -891,12 +886,12 @@ export default function GroupChat() {
     if (!conversationId || !user?.id) return;
     try {
       const updated = await conversationsApi.toggleBanMember(conversationId, {
-        requesterId: user.id,
-        targetUserId,
+        userId: user.id,
+        payload: targetUserId,
       });
       setConversation(updated);
     } catch (err: any) {
-      setError(err?.message || 'CÃ¡ÂºÂ¥m/bÃ¡Â»Â  cÃ¡ÂºÂ¥m thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i');
+      setError(err?.message || 'Cấm/bỏ cấm thất bại');
     }
   };
 
@@ -996,6 +991,8 @@ export default function GroupChat() {
           onGetInviteLink={handleGetInviteLink}
           inviteLink={inviteLink}
           userId={user?.id}
+          isMuted={isMuted}
+          onToggleMute={handleToggleMute}
         />
       )}
 
@@ -1122,7 +1119,7 @@ export default function GroupChat() {
                               <Forward className="w-3.5 h-3.5 text-gray-500" />
                             </button>
                             <button onClick={() => handleToggleStar(msg.id)} className="w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center" title="Star">
-                              <Star className={`w-3.5 h-3.5 ${msg.starred ? 'text-yellow-500 fill-yellow-500' : 'text-gray-500'}`} />
+                              <Star className={`w-3.5 h-3.5 ${msg.starredByUserIds?.includes(user?.id || '') ? 'text-yellow-500 fill-yellow-500' : 'text-gray-500'}`} />
                             </button>
                           </div>
 
@@ -1147,20 +1144,28 @@ export default function GroupChat() {
                         </div>
 
                         {/* Reaction display */}
-                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {Object.entries(msg.reactions).map(([key, count]) => (
-                              <button
-                                key={key}
-                                onClick={() => handleReaction(msg.id, key)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs border border-gray-200 transition-colors"
-                              >
-                                <ReactionIcon reactionKey={key} className="w-4 h-4 inline-block" />
-                                <span className="text-gray-600 font-medium">{count as number}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {(() => {
+                          const reactionsCount = (msg.emojis || []).reduce<Record<string, number>>((acc, emoji) => {
+                            acc[emoji] = (acc[emoji] || 0) + 1;
+                            return acc;
+                          }, {});
+                          const hasReactions = Object.keys(reactionsCount).length > 0;
+                          if (!hasReactions) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Object.entries(reactionsCount).map(([key, count]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => handleReaction(msg.id, key)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs border border-gray-200 transition-colors"
+                                >
+                                  <ReactionIcon reactionKey={key} className="w-4 h-4 inline-block" />
+                                  <span className="text-gray-600 font-medium">{count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
 

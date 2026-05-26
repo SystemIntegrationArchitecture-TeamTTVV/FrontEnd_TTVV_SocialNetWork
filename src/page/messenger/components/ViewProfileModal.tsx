@@ -1,4 +1,3 @@
-import React from 'react';
 import { User, ExternalLink, X } from 'lucide-react';
 
 interface ViewProfileModalProps {

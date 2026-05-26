@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Bookmark, FileText, Loader2, X, ThumbsUp, MessageSquare, Share2 } from 'lucide-react';
+import { Search, Bookmark, FileText, Loader2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { postsApi } from '../../apis/posts';
 import type { PostData } from '../../apis/posts';

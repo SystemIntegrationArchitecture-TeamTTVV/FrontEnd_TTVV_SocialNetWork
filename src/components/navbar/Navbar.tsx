@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Video, Store, LayoutGrid, Music2, Gamepad2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check, Radio } from 'lucide-react';
+import { Home, Video, Store, LayoutGrid, Gamepad2, MessageCircle, Bell, UserRound, Search, Sun, Moon, X, Globe, Check, Radio } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from './NotificationDropdown';

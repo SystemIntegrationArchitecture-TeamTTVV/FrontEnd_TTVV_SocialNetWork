@@ -29,7 +29,14 @@ export interface DisplayMessage {
   starred?: boolean;
   replyTo?: { id: string; content: string; sender: string };
   // Poll fields
+  pollQuestion?: string;
+  pollMultipleChoice?: boolean;
+  pollClosed?: boolean;
+  pollCanAddOptions?: boolean;
+  pollHideResultsBeforeVote?: boolean;
   pollHideVoters?: boolean;
+  pollOptions?: Message['pollOptions'];
+  pollDeadline?: string;
   // Appointment fields
   appointmentTitle?: string;
   appointmentTime?: string;

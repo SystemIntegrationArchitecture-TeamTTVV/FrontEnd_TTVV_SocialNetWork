@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { conversationsApi } from '../../../apis/conversations';
-import { messagesApi } from '../../../apis/messages';
-import { notify } from '../../../utils/toast';
-import type { Message } from '../../../apis/conversations';
+import { messagesApi, type Message } from '../../../apis/messages';
+import { notify } from '../../../services/notify';
 
 interface UseGroupMessagesProps {
   conversationId: string;
@@ -12,7 +10,7 @@ interface UseGroupMessagesProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
-export function useGroupMessages({ conversationId, userId, messages, setMessages }: UseGroupMessagesProps) {
+export function useGroupMessages({ conversationId: _conversationId, userId, messages, setMessages }: UseGroupMessagesProps) {
   const { t } = useTranslation();
   
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -24,14 +22,9 @@ export function useGroupMessages({ conversationId, userId, messages, setMessages
     if (!userId) return;
     const msg = messages.find((m) => m.id === messageId);
     if (!msg) return;
-    const isPinned = msg.pinned;
 
     try {
-      if (isPinned) {
-        await conversationsApi.unpinMessage(conversationId, messageId, userId);
-      } else {
-        await conversationsApi.pinMessage(conversationId, messageId, userId);
-      }
+      await messagesApi.togglePin(messageId, userId);
     } catch (err) {
       console.error('Failed to toggle pin', err);
       notify.error(t('messenger.group.pinMessageError'));
@@ -42,7 +35,7 @@ export function useGroupMessages({ conversationId, userId, messages, setMessages
     if (!userId) return;
     if (!window.confirm(t('messenger.group.confirmRecallMessage'))) return;
     try {
-      await messagesApi.recallMessage(conversationId, messageId, userId);
+      await messagesApi.deleteMessage(messageId, userId);
     } catch (err) {
       console.error('Recall fail', err);
       notify.error(t('messenger.group.recallMessageError'));
@@ -53,7 +46,7 @@ export function useGroupMessages({ conversationId, userId, messages, setMessages
     if (!userId) return;
     if (!window.confirm(t('messenger.group.confirmDeleteForMe'))) return;
     try {
-      await messagesApi.deleteMessageForMe(conversationId, messageId, userId);
+      await messagesApi.deleteMessageForMe(messageId, userId);
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
     } catch (err) {
       console.error('Delete for me fail', err);
@@ -74,8 +67,7 @@ export function useGroupMessages({ conversationId, userId, messages, setMessages
   const submitEdit = async () => {
     if (!userId || !editingMessageId || !editContent.trim()) return;
     try {
-      await messagesApi.editMessage(conversationId, editingMessageId, {
-        senderId: userId,
+      await messagesApi.updateMessage(editingMessageId, {
         content: editContent.trim(),
       });
       cancelEdit();
@@ -88,20 +80,17 @@ export function useGroupMessages({ conversationId, userId, messages, setMessages
   const handleToggleStar = async (msgId: string) => {
     if (!userId) return;
     try {
-      const msg = messages.find((m) => m.id === msgId);
-      if (!msg) return;
-      const isStarred = msg.starred;
-      if (isStarred) {
-        await conversationsApi.unstarMessage(conversationId, msgId, userId);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, starred: false } : m))
-        );
-      } else {
-        await conversationsApi.starMessage(conversationId, msgId, userId);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, starred: true } : m))
-        );
-      }
+      await messagesApi.toggleStar(msgId, userId);
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== msgId) return m;
+          const starredIds = m.starredByUserIds || [];
+          const nextIds = starredIds.includes(userId)
+            ? starredIds.filter((id) => id !== userId)
+            : [...starredIds, userId];
+          return { ...m, starredByUserIds: nextIds };
+        })
+      );
     } catch (err) {
       console.error('Failed to toggle star', err);
       notify.error(t('messenger.group.toggleStarError'));

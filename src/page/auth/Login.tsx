@@ -40,9 +40,6 @@ export default function Login() {
   const [captchaLoading, setCaptchaLoading] = useState(false);
   const [captchaError, setCaptchaError] = useState(false);
   const [challengeKey, setChallengeKey] = useState(0);
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
 
   // Fetch captcha image + one-time token from Redis on mount
   const fetchChallenge = async () => {

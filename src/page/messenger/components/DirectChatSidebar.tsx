@@ -9,13 +9,11 @@ import {
 } from 'lucide-react';
 import { usersApi, type User as UserType } from '../../../apis/users';
 import { conversationsApi } from '../../../apis/conversations';
-import { reportsApi } from '../../../apis/reports';
 import { messagesApi, type Message } from '../../../apis/messages';
 import { uploadApi } from '../../../apis/upload';
 import { useSocket } from '../../../contexts/SocketContext';
 import { notify } from '../../../services/notify';
 import type { Conversation } from '../../../apis/conversations';
-import { cn } from '../../../utils/cn';
 import ReportModal from '../../../components/common/ReportModal';
 
 const BLOCK_OVERRIDE_STORAGE_KEY = 'messenger:block-overrides';

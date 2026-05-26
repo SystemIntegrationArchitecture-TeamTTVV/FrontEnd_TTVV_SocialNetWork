@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   X, Bot, Radio, Music2, Gamepad2, MessageCircle, Eye,
   CheckCircle2, Sparkles, Trophy, Users, Share2, Bell,
-  Headphones, Play, Send, Phone, Video, Image, Clock,
+  Headphones, Play, Send, Phone, Image, Clock,
 } from 'lucide-react';
 import mascotHappySrc from '../../assets/Bot/happy.png';
 import mascot1Src from '../../assets/Bot/mascot1.jpg';

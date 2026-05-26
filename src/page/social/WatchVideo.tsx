@@ -333,8 +333,8 @@ export default function WatchVideo() {
   }, []);
 
   useEffect(() => {
-    if (lightbox && !comments[lightbox.id]) {
-      loadComments(lightbox.id);
+    if (lightbox && !comments[lightbox.id!]) {
+      loadComments(lightbox.id!);
     }
   }, [lightbox]);
 
@@ -658,18 +658,18 @@ export default function WatchVideo() {
                 {/* Stats & Actions */}
                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#3a3b3c] flex items-center justify-between text-sm font-medium">
                   <div className="flex items-center gap-2">
-                    <div className="relative" ref={(el) => { reactionRefs.current[lightbox.id] = el; }}>
+                    <div className="relative" ref={(el) => { reactionRefs.current[lightbox.id!] = el; }}>
                       <button 
                         onClick={() => {
-                          const myReaction = userReactions[lightbox.id];
-                          if (myReaction) handleReaction(lightbox.id, myReaction.type);
-                          else setOpenReactionId(openReactionId === lightbox.id ? null : lightbox.id);
+                          const myReaction = userReactions[lightbox.id!];
+                          if (myReaction) handleReaction(lightbox.id!, myReaction.type);
+                          else setOpenReactionId(openReactionId === lightbox.id! ? null : lightbox.id!);
                         }} 
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors ${userReactions[lightbox.id] ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3a3b3c]'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors ${userReactions[lightbox.id!] ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3a3b3c]'}`}
                       >
-                        {userReactions[lightbox.id] ? (
+                        {userReactions[lightbox.id!] ? (
                           (() => {
-                            const RIcon = REACTION_TYPES.find(r => r.type === userReactions[lightbox.id].type)?.icon || ThumbsUp;
+                            const RIcon = REACTION_TYPES.find(r => r.type === userReactions[lightbox.id!].type)?.icon || ThumbsUp;
                             return <RIcon className="w-5 h-5 fill-current" />;
                           })()
                         ) : (
@@ -678,12 +678,12 @@ export default function WatchVideo() {
                         <span>{formatNumber(lightbox.likeCount)}</span>
                       </button>
                       
-                      {openReactionId === lightbox.id && (
+                      {openReactionId === lightbox.id! && (
                         <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-[#242526] rounded-full shadow-xl border border-gray-100 dark:border-[#3a3b3c] px-2 py-1.5 flex gap-1 z-50 animate-in slide-in-from-bottom-2 duration-200">
                           {REACTION_TYPES.map((r) => {
                             const Icon = r.icon;
                             return (
-                              <button key={r.type} onClick={() => handleReaction(lightbox.id, r.type)} className={`w-10 h-10 rounded-full ${r.bg} flex items-center justify-center hover:scale-125 transition-transform`} title={r.type}>
+                              <button key={r.type} onClick={() => handleReaction(lightbox.id!, r.type)} className={`w-10 h-10 rounded-full ${r.bg} flex items-center justify-center hover:scale-125 transition-transform`} title={r.type}>
                                 <Icon className={`w-6 h-6 ${r.color}`} />
                               </button>
                             );
@@ -705,13 +705,13 @@ export default function WatchVideo() {
 
               {/* Comments List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#18191a]">
-                  {(comments[lightbox.id] ?? []).length === 0 ? (
+                  {(comments[lightbox.id!] ?? []).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
                       <MessageCircle className="w-10 h-10 opacity-20" />
                       <p className="text-sm font-medium">Chưa có bình luận nào</p>
                     </div>
                   ) : (
-                    comments[lightbox.id].map(c => (
+                    comments[lightbox.id!].map((c: CommentData) => (
                         <div key={c.id} className="flex gap-2.5">
                           <Avatar src={c.userAvatar} name={c.userName} size="sm" />
                           <div className="flex-1">
@@ -738,19 +738,19 @@ export default function WatchVideo() {
                     <input
                       type="text"
                       placeholder="Viết bình luận..."
-                      value={commentText[lightbox.id] ?? ""}
-                      onChange={e => setCommentText(p => ({ ...p, [lightbox.id]: e.target.value }))}
+                      value={commentText[lightbox.id!] ?? ""}
+                      onChange={e => setCommentText(p => ({ ...p, [lightbox.id!]: e.target.value }))}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
-                          handleComment(lightbox.id);
+                          handleComment(lightbox.id!);
                         }
                       }}
                       className="w-full bg-gray-100 dark:bg-[#3a3b3c] rounded-full pl-4 pr-10 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-gray-500"
                     />
                     <button 
-                      onClick={() => handleComment(lightbox.id)}
-                      disabled={!commentText[lightbox.id]?.trim()}
+                      onClick={() => handleComment(lightbox.id!)}
+                      disabled={!commentText[lightbox.id!]?.trim()}
                       className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:text-gray-500 flex items-center justify-center transition-colors"
                     >
                       <Send className="w-3.5 h-3.5 text-white ml-0.5" />

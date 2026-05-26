@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Smile, X, Check, Loader2 } from 'lucide-react';
-import { FEATURE_FLAGS } from '../../apis/config';
-import { userStatusApi } from '../../apis/userStatus';
+import { FEATURE_FLAGS } from '../apis/config';
+import { userStatusApi } from '../apis/userStatus';
 
 const QUICK_EMOJIS = ['😊', '😎', '🤔', '😴', '🎯', '💪', '🔥', '🎉', '❤️', '🚀', '🎮', '📚', '🍕', '☕', '🎵'];
 

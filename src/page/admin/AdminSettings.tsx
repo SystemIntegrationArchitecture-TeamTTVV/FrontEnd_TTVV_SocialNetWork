@@ -27,7 +27,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const savedTimer = useRef<ReturnType<typeof setTimeout>>();
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // ── Load settings from localStorage (persisted locally) ──
   useEffect(() => {

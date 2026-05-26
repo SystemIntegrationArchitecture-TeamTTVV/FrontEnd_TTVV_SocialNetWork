@@ -182,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     // During Vite HMR, context may temporarily disconnect.
@@ -196,7 +196,7 @@ export function useAuth() {
       register: async () => { throw new Error('AuthProvider not mounted'); },
       logout: () => { window.location.href = '/auth/login'; },
       refreshSessionUser: async () => {},
-    } as ReturnType<typeof useContext<typeof AuthContext>> & NonNullable<ReturnType<typeof useContext<typeof AuthContext>>>;
+    } as AuthContextType;
   }
   return context;
 }

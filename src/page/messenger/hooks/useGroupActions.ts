@@ -166,9 +166,8 @@ export function useGroupActions({
     setUpdatingGroup(true);
     setGroupActionError(null);
     setGroupActionMessage(null);
-
     try {
-      await conversationsApi.deleteConversation(activeChat, userId);
+      await conversationsApi.deleteConversation(activeChat);
       await loadConversations();
       setActiveChat(null);
     } catch (err: unknown) {
@@ -208,7 +207,7 @@ export function useGroupActions({
 
     setUpdatingGroup(true);
     try {
-      await conversationsApi.clearConversationForUser(activeChat, { requesterId: userId });
+      await conversationsApi.clearConversationForUser(activeChat, { userId });
       await loadConversations();
       setActiveChat(null);
     } catch (err: unknown) {

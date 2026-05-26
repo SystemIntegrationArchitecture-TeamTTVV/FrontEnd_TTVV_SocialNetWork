@@ -24,24 +24,27 @@ export const MAP_SIZES: MapSizeDef[] = [
   { id: 'large',  label: 'Lớn',  cols: 27, rows: 19, tileSize: 28 },
 ];
 
-export enum TileType {
-  EMPTY = 0,
-  WALL = 1,
-  BREAKABLE = 2,
-}
+export const TileType = {
+  EMPTY: 0,
+  WALL: 1,
+  BREAKABLE: 2,
+} as const;
+export type TileType = typeof TileType[keyof typeof TileType];
 
-export enum PowerUpType {
-  BOMB_COUNT = 'bomb_count',
-  BOMB_RANGE = 'bomb_range',
-  SPEED = 'speed',
-}
+export const PowerUpType = {
+  BOMB_COUNT: 'bomb_count',
+  BOMB_RANGE: 'bomb_range',
+  SPEED: 'speed',
+} as const;
+export type PowerUpType = typeof PowerUpType[keyof typeof PowerUpType];
 
-export enum Direction {
-  UP = 'up',
-  DOWN = 'down',
-  LEFT = 'left',
-  RIGHT = 'right',
-}
+export const Direction = {
+  UP: 'up',
+  DOWN: 'down',
+  LEFT: 'left',
+  RIGHT: 'right',
+} as const;
+export type Direction = typeof Direction[keyof typeof Direction];
 
 export interface Position {
   x: number;

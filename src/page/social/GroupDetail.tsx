@@ -120,7 +120,7 @@ export default function GroupDetail() {
         if (group.linkedConversationId) {
             try {
                 const { conversationsApi } = await import('../../apis/conversations');
-                await conversationsApi.addGroupMembers(group.linkedConversationId, { participantIds: [userId] });
+                await conversationsApi.addGroupMembers(group.linkedConversationId, { requesterId: userId, participantIds: [userId] });
             } catch (err) {
                 console.error("Failed to sync member to chat", err);
             }
@@ -147,7 +147,7 @@ export default function GroupDetail() {
       if (group?.linkedConversationId) {
           try {
               const { conversationsApi } = await import('../../apis/conversations');
-              await conversationsApi.removeMember(group.linkedConversationId, userId);
+              await conversationsApi.removeGroupMember(group.linkedConversationId, { requesterId: userId, participantId: userId });
           } catch (err) {
               console.error("Failed to sync leave to chat", err);
           }

@@ -1078,7 +1078,6 @@ export default function Profile() {
 
       {isOwnProfile && isCreatePostModalOpen && (
         <CreatePost
-          isOpen={isCreatePostModalOpen}
           onClose={() => setIsCreatePostModalOpen(false)}
           onSuccess={() => {
             setIsCreatePostModalOpen(false);

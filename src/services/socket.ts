@@ -27,8 +27,7 @@ class SocketService {
   private subscriptions: Map<string, any> = new Map();
   private handlers: Map<string, Set<EventHandler>> = new Map();
   private isConnected = false;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+
   private recentEventKeys: Map<string, number> = new Map();
   private dedupeWindowMs = 2 * 60 * 1000;
   private roomSubscriptions: Map<string, { subscription: any | null; refCount: number }> =
@@ -68,7 +67,6 @@ class SocketService {
         console.log("✅ Socket connected successfully to WebSocket server");
         console.log("📡 Subscribing to channels...");
         this.isConnected = true;
-        this.reconnectAttempts = 0;
         this.recentEventKeys.clear();
         this.subscribeToChannels();
         this.resubscribeRooms();

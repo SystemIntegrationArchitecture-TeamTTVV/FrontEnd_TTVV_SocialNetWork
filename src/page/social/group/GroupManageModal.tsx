@@ -129,7 +129,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
       if (group?.linkedConversationId) {
           try {
               const { conversationsApi } = await import('../../../apis/conversations');
-              await conversationsApi.removeMember(group.linkedConversationId, userId);
+              await conversationsApi.removeGroupMember(group.linkedConversationId, { requesterId: currentUser?.id || '', participantId: userId });
           } catch (err) {
               console.error("Failed to sync remove to chat", err);
           }
@@ -173,7 +173,7 @@ export default function GroupManageModal({ group, onClose }: Props) {
       if (group?.linkedConversationId) {
           try {
               const { conversationsApi } = await import('../../../apis/conversations');
-              await conversationsApi.addGroupMembers(group.linkedConversationId, { participantIds: [userId] });
+              await conversationsApi.addGroupMembers(group.linkedConversationId, { requesterId: currentUser?.id || '', participantIds: [userId] });
           } catch (err) {
               console.error("Failed to sync member to chat", err);
           }

@@ -53,6 +53,7 @@ export interface Message {
   createdAt: string;
   updatedAt?: string;
   replyTo?: MessageReplyTo;
+  deliveredToUserIds?: string[];
 }
 
 export interface CreateMessageDTO {

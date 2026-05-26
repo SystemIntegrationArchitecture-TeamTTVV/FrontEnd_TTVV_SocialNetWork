@@ -1,14 +1,12 @@
 // ─── ChatSidebar — left sidebar with conversation list, search, context menu ──
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Settings, Edit, Search, ChevronLeft, ChevronRight,
+  Edit, Search, ChevronLeft, ChevronRight,
   Users, Bot, EyeOff, X, UserRound, Image, Video, Mic, Paperclip, CornerUpLeft,
   MoreVertical, Pin, PinOff,
 } from 'lucide-react';
-import type { Conversation } from '../../../apis/conversations';
-import type { PresenceStatus } from '../../../apis/users';
 import { parseConversationPreview } from '../../../utils/messagePreview';
 
 export interface FormattedConversation {
@@ -68,7 +66,7 @@ export default function ChatSidebar({
   onSearchChange,
   loading,
   aiConversationId,
-  contextMenu,
+  contextMenu: _contextMenu,
   onContextMenu,
   showHideInput,
   hidePin,

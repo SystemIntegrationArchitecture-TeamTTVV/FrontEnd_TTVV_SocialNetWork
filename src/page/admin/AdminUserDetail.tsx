@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Mail, Calendar, FileText, Users, Shield, Ban, CheckCircle2, Edit, ArrowLeft, Loader2, Heart, Lock, Unlock } from 'lucide-react';
+import { Mail, Calendar, FileText, Users, Shield, CheckCircle2, ArrowLeft, Loader2, Heart, Lock, Unlock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usersApi, type User } from '../../apis/users';
 import { postsApi, type PostData } from '../../apis/posts';
@@ -90,7 +90,7 @@ export default function AdminUserDetail() {
   }
 
   const isActive = user.status === 'ACTIVE';
-  const friendCount = user.friendIds?.length || 0;
+  const friendCount = (user as any).friendIds?.length || 0;
 
   return (
     <div className="space-y-6">
@@ -212,7 +212,7 @@ export default function AdminUserDetail() {
                   <span className="text-xs text-gray-500">{formatDate(post.createdAt)}</span>
                   <span className="text-xs font-semibold text-gray-600 inline-flex items-center gap-1">
                     <Heart className="w-3.5 h-3.5 text-red-500" />
-                    {post.likeCount ?? post.likes?.length ?? 0} {t('adminPanel.userDetail.likesSuffix')}
+                    {post.likeCount ?? (post as any).likes?.length ?? 0} {t('adminPanel.userDetail.likesSuffix')}
                   </span>
                 </div>
               </div>

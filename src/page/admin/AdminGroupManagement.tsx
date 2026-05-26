@@ -1,5 +1,5 @@
-import { Search, Filter, Eye, Trash2, Users, FileText, Loader2, Globe, Lock, RefreshCcw, X, AlertTriangle, ShieldAlert } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Search, Eye, Trash2, Users, FileText, Loader2, Globe, Lock, RefreshCcw, X, ShieldAlert } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { groupsApi, type GroupData } from '../../apis/groupsApi';
 import { reportsApi, type Report } from '../../apis/reports';

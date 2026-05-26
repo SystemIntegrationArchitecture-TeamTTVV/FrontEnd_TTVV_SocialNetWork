@@ -37,7 +37,7 @@ export default function CallWindow({
       url.searchParams.set('roomId', roomId);
       url.searchParams.set('userId', currentUser.id);
       url.searchParams.set('username', currentUser.username);
-      url.searchParams.set('displayName', currentUser.displayName);
+      url.searchParams.set('displayName', currentUser.fullName);
       url.searchParams.set('callType', callType);
       url.searchParams.set('token', token);
       url.searchParams.set('group', isGroup ? '1' : '0');

@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Bell, Palette, Smile, Pencil, Lock, Search as SearchIcon,
+  User, Bell, Search as SearchIcon,
   Trash2, UserPlus, Crown, Shield,
   MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy, Bot, Image as ImageIcon, Loader2
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
-import { LargeBeachPlaceholder, LargeSunPlaceholder, LargePartyPlaceholder } from '../../../common/icons/IconComponents';
 import type { Conversation } from '../../../apis/conversations';
 import type { FriendDTO } from '../../../apis/friendRequests';
 import { conversationsApi } from '../../../apis/conversations';
@@ -52,7 +51,7 @@ interface ChatInfoSidebarProps {
   onClearGroupHistory: () => void;
   onToggleRequireApproval: (current: boolean) => void;
   onToggleOnlyAdminsCanSend: (current: boolean) => void;
-  onToggleAiAssistant: (current: boolean) => void;
+  onToggleAiAssistant?: (current: boolean) => void;
   onTransferOwnership: (newOwnerId: string) => void;
   onToggleAdmin: (memberId: string, isAdmin: boolean) => void;
   friendList: FriendDTO[];
@@ -521,7 +520,7 @@ export default function GroupChatSidebar({
                 </div>
                 <Toggle
                   checked={!!conversationRaw.aiAssistantEnabled}
-                  onChange={() => onToggleAiAssistant(!!conversationRaw.aiAssistantEnabled)}
+                  onChange={() => onToggleAiAssistant?.(!!conversationRaw.aiAssistantEnabled)}
                   disabled={updatingGroup}
                 />
               </div>

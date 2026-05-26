@@ -50,6 +50,7 @@ export interface ChatInfoSidebarProps {
   userId?: string;
   loadConversations?: () => void;
   onViewProfile?: (userId: string, userName: string) => void;
+  onToggleAiAssistant?: (current: boolean) => void;
 }
 
 /**

@@ -1,32 +1,18 @@
 import {
   Users,
-  CheckCircle2,
   FileText,
   AlertCircle,
-  BarChart3,
-  Calendar,
   Briefcase,
   UserPlus,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+// @ts-ignore
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import {
   statsApi,
   type DashboardStats,
   type TopPost,
-  type EngagementStats,
 } from "../../apis/stats";
 import { reportsApi } from "../../apis/reports";
 import { getLocaleTag } from "../../i18n";
@@ -39,7 +25,7 @@ interface AdminDashboardStats extends DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState("7days");
   const [startDate, setStartDate] = useState("");

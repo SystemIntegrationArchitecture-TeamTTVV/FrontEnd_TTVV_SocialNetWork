@@ -1,4 +1,4 @@
-import { X, Users } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { Message, PollOption } from '../../../apis/messages';
 
 interface PollVotersModalProps {

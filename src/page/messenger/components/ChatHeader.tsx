@@ -2,7 +2,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Video, Info, Pin, Users, Search as SearchIcon, ChevronLeft } from 'lucide-react';
-import type { PresenceStatus } from '../../../apis/users';
 
 interface ActiveConversation {
   id: string;

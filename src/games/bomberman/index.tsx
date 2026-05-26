@@ -187,7 +187,7 @@ export default function Bomberman() {
 
         updateGame(state, dt);
 
-        if (state.status === 'gameover') {
+        if ((state.status as string) === 'gameover') {
           setStatus('gameover');
           setWinner(state.winner);
         }
@@ -404,7 +404,6 @@ export default function Bomberman() {
                           : 'bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8'
                       }`}
                       style={{
-                        ringColor: selectedChar === i ? char.color : undefined,
                         borderColor: selectedChar === i ? char.color : 'transparent',
                       }}
                     >

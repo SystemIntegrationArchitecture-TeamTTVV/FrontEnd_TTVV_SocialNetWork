@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Image, Smile, Activity, Radio, Eye } from 'lucide-react';
 import { livestreamApi, type LiveStreamData } from '../../apis/livestream';
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -8,7 +8,7 @@ import type { PostData } from '../../apis/posts';
 import type { Story } from '../../types/story';
 import { reactionsApi } from '../../apis/reactions';
 import PostCard from '../../components/post/PostCard';
-import { HttpError } from '../../apis/http';
+
 import { useSocket } from '../../contexts/SocketContext';
 import { storiesApi } from '../../apis/storiesApi';
 import PostSkeleton from '../../components/common/PostSkeleton';
@@ -22,7 +22,7 @@ import CreatePost from './CreatePost';
 import { showAuthRequiredPrompt } from '../../utils/authPrompt';
 import { useToast } from '../../contexts/useToast';
 import { useTranslation } from 'react-i18next';
-import { getLocaleTag } from '../../i18n';
+
 import { resolveMediaUrl, resolveStoryContentUrl } from '../../utils/mediaUrl';
 import { getUserInitials } from '../../utils/userDisplay';
 import ReportModal from '../../components/common/ReportModal';
@@ -696,7 +696,7 @@ export default function Newsfeed() {
         <ReportModal
           isOpen={!!reportingPost}
           onClose={() => setReportingPost(null)}
-          targetId={reportingPost.id}
+          targetId={reportingPost.id || ''}
           targetType="post"
           targetName={reportingPost.authorName || t('newsfeed.authorUnknown', 'Không rõ')}
         />

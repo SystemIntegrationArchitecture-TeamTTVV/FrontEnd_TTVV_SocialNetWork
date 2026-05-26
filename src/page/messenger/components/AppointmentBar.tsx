@@ -1,6 +1,6 @@
 // ─── AppointmentBar — shows upcoming appointments under pinned bar (Zalo-style) ───
 import { useEffect, useState } from 'react';
-import { CalendarClock, X, ChevronDown, ChevronUp, MapPin, Users } from 'lucide-react';
+import { CalendarClock, ChevronDown, ChevronUp, MapPin, Users } from 'lucide-react';
 import type { DisplayMessage } from '../../../hooks/useMessages';
 
 interface AppointmentBarProps {
@@ -37,7 +37,7 @@ export default function AppointmentBar({ messages, onScrollTo }: AppointmentBarP
 
   // Filter upcoming appointments (not past > 1 day)
   const appointments = messages.filter((m) => {
-    if (m.type !== 'APPOINTMENT' || !m.appointmentTime) return false;
+    if (m.messageType !== 'APPOINTMENT' || !m.appointmentTime) return false;
     const diff = new Date(m.appointmentTime).getTime() - Date.now();
     return diff > -86400000; // show up to 1 day after passed
   }).sort((a, b) =>

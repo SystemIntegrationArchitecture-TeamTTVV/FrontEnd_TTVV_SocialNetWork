@@ -13,7 +13,6 @@ interface ImageCaptchaProps {
 
 export default function ImageCaptcha({
   imageUrl,
-  value,
   error = false,
   loading = false,
   onChange,

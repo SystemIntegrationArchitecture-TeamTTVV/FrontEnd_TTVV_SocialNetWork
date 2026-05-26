@@ -4,7 +4,6 @@ import { ArrowLeft, Sun, Moon, Globe, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getCurrentAppLanguage, setAppLanguage } from '../../i18n';
-import logo from '../../assets/logo-favicon.png';
 
 
 type AuthFrameProps = {

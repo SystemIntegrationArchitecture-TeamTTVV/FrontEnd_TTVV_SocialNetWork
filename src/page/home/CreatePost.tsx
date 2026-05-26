@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Image, X, Globe, UserCheck, Lock, Loader2, Video, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 

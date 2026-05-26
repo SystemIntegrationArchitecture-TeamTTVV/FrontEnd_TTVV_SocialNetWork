@@ -154,7 +154,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const offerData = {
       callerId: currentUser.id,
-      callerName: currentUser.displayName || currentUser.username || 'Unknown',
+      callerName: currentUser.fullName || currentUser.username || 'Unknown',
       callType,
       roomId,
       conversationId,

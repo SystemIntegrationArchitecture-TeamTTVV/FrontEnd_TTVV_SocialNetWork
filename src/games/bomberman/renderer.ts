@@ -9,7 +9,6 @@ import {
   PowerUpType,
   TILE_SIZE,
   BOMB_TIMER,
-  Direction,
   type GameState,
   type Player,
   type Bomb,

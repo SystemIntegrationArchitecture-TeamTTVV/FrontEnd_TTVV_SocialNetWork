@@ -9,8 +9,6 @@ import {
   type GameState,
   type Player,
   type Bomb,
-  type Explosion,
-  type PowerUp,
   PowerUpType,
 } from './types';
 import { bumpMapVersion } from '../renderer';

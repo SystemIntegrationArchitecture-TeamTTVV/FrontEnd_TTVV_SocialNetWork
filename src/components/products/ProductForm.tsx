@@ -26,7 +26,6 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading = f
     category: product?.category || '',
   });
 
-  const [imageInput, setImageInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -102,15 +101,7 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading = f
     }
   };
 
-  const handleAddImage = () => {
-    if (imageInput.trim() && formData.images && formData.images.length < 10) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images!, imageInput.trim()],
-      }));
-      setImageInput('');
-    }
-  };
+
 
   const handleRemoveImage = (index: number) => {
     setFormData(prev => ({

@@ -288,6 +288,8 @@ export default function ViewerThamKhaoExperience({
         userId?: string;
         userName?: string;
         content?: string;
+        createdAt?: string;
+        timestamp?: string;
       } | undefined;
       if (data?.streamId !== streamId || !data.content) return;
       const raw = data.content;
@@ -306,7 +308,7 @@ export default function ViewerThamKhaoExperience({
       ]);
 
       // Only show danmaku animation for real-time messages (sent after we mounted)
-      const msgTimeStr = ev.timestamp || data?.createdAt || data?.timestamp;
+      const msgTimeStr = (ev as any).timestamp || data?.createdAt || data?.timestamp;
       const msgTime = msgTimeStr ? new Date(msgTimeStr).getTime() : Date.now();
       const isHistorical = msgTime < mountTimeRef.current - 2000;
 

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { totpApi } from '../../apis/totp';
-import { FEATURE_FLAGS } from '../../apis/config';
+import { useEffect, useState } from 'react';
+import { totpApi } from '../apis/totp';
+import { FEATURE_FLAGS } from '../apis/config';
 
 interface Props {
   onClose: () => void;

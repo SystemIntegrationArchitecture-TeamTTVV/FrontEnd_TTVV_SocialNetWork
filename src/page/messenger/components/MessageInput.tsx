@@ -1,5 +1,5 @@
 // ─── MessageInput — full input area for Messenger chat ──────────────────
-import { useRef, type RefObject, type ChangeEvent } from 'react';
+import { type RefObject, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus, Send, Smile, Mic, Grid3X3, BarChart3, Calendar,

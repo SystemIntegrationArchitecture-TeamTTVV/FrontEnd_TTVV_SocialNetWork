@@ -3,16 +3,12 @@
 import {
   TileType,
   PowerUpType,
-  MAP_COLS,
-  MAP_ROWS,
-  TILE_SIZE,
   MAP_SIZES,
   CHARACTERS,
   Direction,
   type Player,
   type PowerUp,
   type GameState,
-  type MapSizeDef,
 } from './types';
 
 // ─── Map Templates ─────────────────────────────────────────────────────

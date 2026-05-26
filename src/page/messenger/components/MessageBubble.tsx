@@ -51,7 +51,7 @@ function highlightText(text: string, keyword: string): React.ReactNode {
 export default function MessageBubble({
   msg,
   isSelected,
-  isGroupChat,
+  isGroupChat: _isGroupChat,
   canRecall,
   selectedMessage,
   menuPosition,

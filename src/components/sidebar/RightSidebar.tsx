@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessages } from '../../hooks/useMessages';
@@ -87,7 +86,6 @@ export default function RightSidebar({
   );
   const { openChatBox } = useChatBox();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { conversations, loadConversations } = useMessages();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'contacts' | 'groups'>('contacts');

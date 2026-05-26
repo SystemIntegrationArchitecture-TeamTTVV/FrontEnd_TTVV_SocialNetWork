@@ -3,10 +3,12 @@
  * Import: import { REACTIONS, ReactionIcon } from '...'
  */
 
+import React from 'react';
+
 interface ReactionDef {
   key: string;
   label: string;
-  svg: JSX.Element;
+  svg: React.ReactElement;
 }
 
 const sz = 'w-full h-full';
@@ -89,7 +91,7 @@ export const REACTIONS: ReactionDef[] = [
 ];
 
 /** Lookup map: key → SVG component */
-const REACTION_MAP: Record<string, JSX.Element> = Object.fromEntries(
+const REACTION_MAP: Record<string, React.ReactElement> = Object.fromEntries(
   REACTIONS.map((r) => [r.key, r.svg])
 );
 

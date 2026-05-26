@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { reportsApi } from "../../apis/reports";

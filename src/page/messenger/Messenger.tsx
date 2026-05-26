@@ -1895,7 +1895,7 @@ export default function Messenger() {
           // Build unique sender list from loaded messages
           const senderMap = new Map<string, string>();
           messages.forEach((m) => {
-            if (m.senderId && m.senderName) senderMap.set(m.senderId, m.senderName);
+            if (m.senderId && m.sender) senderMap.set(m.senderId, m.sender);
           });
           const senders = Array.from(senderMap.entries());
           return (

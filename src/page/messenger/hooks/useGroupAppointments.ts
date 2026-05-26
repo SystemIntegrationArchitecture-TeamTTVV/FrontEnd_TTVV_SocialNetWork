@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { messagesApi, type Message } from '../../../apis/messages';
+import { messagesApi } from '../../../apis/messages';
 import { notify } from '../../../services/notify';
 import type { AppointmentFormData } from '../components/CreateAppointmentModal';
 

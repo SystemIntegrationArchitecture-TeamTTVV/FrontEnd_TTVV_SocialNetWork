@@ -313,7 +313,7 @@ export default function AdminReports() {
         if (pendingAction.type === "unhide_post") content = "Bài viết của bạn đã được bỏ ẩn bởi quản trị viên sau khi xem xét.";
         if (pendingAction.type === "lock_comments") content = "Bài viết của bạn đã bị khóa bình luận do vi phạm tiêu chuẩn cộng đồng.";
       } else if (selectedReport.targetType.toLowerCase() === "user" && previewUser) {
-        recipientId = previewUser.id;
+        recipientId = previewUser.id || "";
         title = "Cảnh báo tài khoản";
         if (pendingAction.type === "ban_user") content = "Tài khoản của bạn đã bị khóa do vi phạm tiêu chuẩn cộng đồng.";
       } else if (selectedReport.targetType.toLowerCase() === "group" && previewGroup) {
@@ -799,8 +799,8 @@ export default function AdminReports() {
                       ) : selectedReport.targetType.toLowerCase() === "group" && previewGroup ? (
                         <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
                           <div className="flex items-center gap-4">
-                            {previewGroup.coverImage ? (
-                               <img src={previewGroup.coverImage} alt={previewGroup.name} className="w-16 h-16 rounded-xl object-cover" />
+                            {previewGroup.coverPhoto ? (
+                               <img src={previewGroup.coverPhoto} alt={previewGroup.name} className="w-16 h-16 rounded-xl object-cover" />
                             ) : (
                                <div className="w-16 h-16 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl">
                                  {previewGroup.name.charAt(0)}

@@ -58,7 +58,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     // ── Privacy: listen for blocked messages ──
     const unsubscribeBlocked = socketService.on(SocketEventTypes.MESSAGE_BLOCKED, (event) => {
       console.warn('🚫 Message blocked by privacy settings:', event);
-      const reason = event.payload?.reason;
+      const reason = (event as any).payload?.reason || event.data?.reason;
       const msg = reason === 'PRIVACY_FRIENDS_ONLY'
         ? 'Không thể gửi tin nhắn: người nhận chỉ chấp nhận tin nhắn từ bạn bè.'
         : 'Tin nhắn bị chặn do cài đặt quyền riêng tư.';
