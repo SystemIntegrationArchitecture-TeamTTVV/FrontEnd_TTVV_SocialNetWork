@@ -173,6 +173,7 @@
     "games": "Games",
     "live": "Live Stream",
     "saved": "Saved",
+    "wallet": "My Wallet",
     "seeMore": "See more",
     "loginRequired": "Please log in"
   },
@@ -1437,6 +1438,7 @@
       "navEvents": "Events",
       "navMessages": "Messages",
       "navReports": "Reports",
+      "navBilling": "Coins & Gifts",
       "navSettings": "Settings",
       "sidebarTitle": "Admin Panel",
       "sidebarSubtitle": "System administration",

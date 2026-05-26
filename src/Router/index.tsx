@@ -72,6 +72,10 @@ const LiveStreamPage = lazy(() => import("../page/livestream/LiveStreamPage"));
 const StreamerDashboard = lazy(() => import("../page/livestream/StreamerDashboard"));
 const LiveViewer = lazy(() => import("../page/livestream/LiveViewer"));
 
+// Wallet / Billing Pages
+const WalletPage = lazy(() => import("../page/wallet/WalletPage"));
+const VnpayReturnPage = lazy(() => import("../page/wallet/VnpayReturnPage"));
+
 // Social Pages
 const FriendRequests = lazy(() => import("../page/social/FriendRequests"));
 const FindPeople = lazy(() => import("../page/social/FindPeople"));
@@ -105,6 +109,7 @@ const AdminReports = lazy(() => import("../page/admin/AdminReports"));
 const AdminMessages = lazy(() => import("../page/admin/AdminMessages"));
 const AdminSettings = lazy(() => import("../page/admin/AdminSettings"));
 const AdminDashboard = lazy(() => import("../page/admin/AdminDashboard"));
+const AdminBilling = lazy(() => import("../page/admin/AdminBilling"));
 const NotFound = lazy(() => import("../page/NotFound"));
 
 /** Wrap a lazy component with Suspense + PageLoader fallback */
@@ -223,6 +228,10 @@ export const router = createBrowserRouter([
       { path: "livestream/dashboard", element: <ProtectedRoute requireAuth={true}><S><StreamerDashboard /></S></ProtectedRoute> },
       { path: "livestream/:id", element: <ProtectedRoute requireAuth={true}><S><LiveViewer /></S></ProtectedRoute> },
 
+      // Wallet / Billing
+      { path: "wallet", element: <ProtectedRoute requireAuth={true}><S><WalletPage /></S></ProtectedRoute> },
+      { path: "wallet/vnpay-return", element: <ProtectedRoute requireAuth={true}><S><VnpayReturnPage /></S></ProtectedRoute> },
+
       // Settings
       { path: "settings", element: <ProtectedRoute requireAuth={true}><S><Settings /></S></ProtectedRoute> },
       { path: "settings/privacy", element: <ProtectedRoute requireAuth={true}><S><PrivacySettings /></S></ProtectedRoute> },
@@ -252,6 +261,7 @@ export const router = createBrowserRouter([
       { path: "reports", element: <S><AdminReports /></S> },
       { path: "messages", element: <S><AdminMessages /></S> },
       { path: "settings", element: <S><AdminSettings /></S> },
+      { path: "billing", element: <S><AdminBilling /></S> },
     ],
   },
 ]);

@@ -173,6 +173,7 @@
     "games": "Trò chơi",
     "live": "Phát trực tiếp",
     "saved": "Đã lưu",
+    "wallet": "Ví của tôi",
     "seeMore": "Xem thêm",
     "loginRequired": "Vui lòng đăng nhập"
   },
@@ -1457,6 +1458,7 @@
       "navEvents": "Sự kiện",
       "navMessages": "Tin nhắn",
       "navReports": "Báo cáo",
+      "navBilling": "Nạp xu & Quà tặng",
       "navSettings": "Cài đặt",
       "sidebarTitle": "Admin Panel",
       "sidebarSubtitle": "Quản trị hệ thống",
