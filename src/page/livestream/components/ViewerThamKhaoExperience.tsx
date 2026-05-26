@@ -41,20 +41,11 @@ import GiftPicker from './GiftPicker';
 import TopDonors from './TopDonors';
 import MemberPanelHost from './MemberPanelHost';
 
+import { useLiveStreamViewer, type ViewerChatLine } from '../../../contexts/LiveStreamViewerContext';
+
 const VIOLET = '#1877F2';
 const DANMU_PREFIX = '\u200B[D]';
 const GIFT_DEDUPE_MS = 2200;
-
-export type ViewerChatLine = {
-  id: string | number;
-  userId?: string;
-  userName?: string;
-  content: string;
-  isSystem?: boolean;
-  isGift?: boolean;
-  giftEmoji?: string;
-  ts?: number;
-};
 
 function formatElapsed(startedAt?: string): string {
   if (!startedAt) return '0:00';
@@ -101,6 +92,7 @@ export default function ViewerThamKhaoExperience({
   onOpenDeposit,
   onOpenRules,
 }: Props) {
+  const { chatMessages, setChatMessages } = useLiveStreamViewer();
   const { subscribe } = useSocket();
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -113,7 +105,6 @@ export default function ViewerThamKhaoExperience({
   const [hideTopDonors, setHideTopDonors] = useState(false);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<ViewerChatLine[]>([]);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [lastReconnectAt, setLastReconnectAt] = useState<number | null>(null);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
@@ -123,7 +114,6 @@ export default function ViewerThamKhaoExperience({
 
   const danmakuRef = useRef<DanmakuLayerRef>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  const recentGiftSigs = useRef<Map<string, number>>(new Map());
   const mountTimeRef = useRef(Date.now());
 
   const elapsed = useMemo(() => formatElapsed(stream.startedAt), [stream.startedAt, tick]);
@@ -237,51 +227,6 @@ export default function ViewerThamKhaoExperience({
   }, [room, canSubscribe, localParticipant.identity]);
 
   useEffect(() => {
-    const handleViewerCount = (ev: SocketEvent) => {
-      const data = ev.data as { streamId?: string; viewerCount?: number } | undefined;
-      if (data?.streamId === streamId && typeof data.viewerCount === 'number') {
-        setViewerCount(data.viewerCount);
-      }
-    };
-
-    const handleLiveEnded = (ev: SocketEvent) => {
-      const data = ev.data as { streamId?: string } | undefined;
-      if (data?.streamId === streamId) setIsEnded(true);
-    };
-
-    const handleGift = (ev: SocketEvent) => {
-      const data = ev.data as {
-        roomId?: string;
-        receiverId?: string;
-        senderName?: string;
-        giftName?: string;
-        giftEmoji?: string;
-        giftMessage?: string;
-      } | undefined;
-      if (!data || data.roomId !== stream.roomName) return;
-      if (data.receiverId && data.receiverId !== stream.streamerId) return;
-      const sig = `${data.senderName ?? 'u'}-${data.giftName ?? 'gift'}-${stream.roomName}`;
-      const now = Date.now();
-      const prevAt = recentGiftSigs.current.get(sig);
-      if (prevAt && now - prevAt < GIFT_DEDUPE_MS) return;
-      recentGiftSigs.current.set(sig, now);
-
-      const gName = data.giftName ?? 'quà';
-      const sName = data.senderName ?? 'Ai đó';
-      const note = data.giftMessage?.trim();
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: `gift-${Date.now()}`,
-          isSystem: true,
-          isGift: true,
-          giftEmoji: data.giftEmoji,
-          content: note ? `${sName} đã tặng ${gName}: "${note}"` : `${sName} đã tặng ${gName}`,
-          ts: Date.now(),
-        },
-      ]);
-    };
-
     const handleChat = (ev: SocketEvent) => {
       const data = ev.data as {
         streamId?: string;
@@ -294,16 +239,6 @@ export default function ViewerThamKhaoExperience({
       const isDanmaku = raw.startsWith(DANMU_PREFIX);
       const display = isDanmaku ? raw.slice(DANMU_PREFIX.length) : raw;
       const isSelf = data.userId === user.id;
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + Math.random(),
-          userId: data.userId,
-          userName: data.userName,
-          content: display,
-          ts: Date.now(),
-        },
-      ]);
 
       // Only show danmaku animation for real-time messages (sent after we mounted)
       const msgTimeStr = ev.timestamp || data?.createdAt || data?.timestamp;
@@ -315,54 +250,11 @@ export default function ViewerThamKhaoExperience({
       }
     };
 
-    const handleApproved = async (ev: SocketEvent) => {
-      const data = ev.data as { streamId?: string; roomName?: string } | undefined;
-      if (data?.streamId !== streamId || !data.roomName) return;
-      try {
-        const tokenData = await livestreamApi.getToken(
-          String(data.roomName),
-          user.id,
-          user.fullName || user.username
-        );
-        setStream((prev) => (prev ? { ...prev, ...tokenData } : tokenData));
-        setCanSubscribe(tokenData.canSubscribe !== false);
-        setLkKey((k) => k + 1);
-      } catch {
-        /* ignore */
-      }
-    };
-
-    const handleKicked = (ev: SocketEvent) => {
-      const data = ev.data as { streamId?: string } | undefined;
-      if (data?.streamId === streamId) {
-        navigate('/livestream', { replace: true });
-      }
-    };
-
     const unsubs = [
-      subscribe('LIVE_VIEWER_COUNT', handleViewerCount),
-      subscribe('LIVE_ENDED', handleLiveEnded),
-      subscribe('LIVE_GIFT_RECEIVED', handleGift),
       subscribe('LIVE_CHAT', handleChat),
-      subscribe('LIVE_VIEWER_APPROVED', handleApproved),
-      subscribe('LIVE_KICKED', handleKicked),
     ];
     return () => unsubs.forEach((u) => u());
-  }, [
-    subscribe,
-    streamId,
-    stream.roomName,
-    stream.streamerId,
-    user,
-    navigate,
-    setViewerCount,
-    setIsEnded,
-    setStream,
-    setCanSubscribe,
-    setLkKey,
-    danmakuEnabled,
-    canSubscribe,
-  ]);
+  }, [subscribe, streamId, danmakuEnabled, canSubscribe, user.id]);
 
   const sendChat = async () => {
     const trimmed = chatInput.trim();

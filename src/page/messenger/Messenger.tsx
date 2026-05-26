@@ -1664,7 +1664,7 @@ export default function Messenger() {
   const mobileShowSidebar = !activeChat || (!mobileShowChat && !mobileShowRightPanel);
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-slate-50 dark:bg-[#0c0e14] flex relative overflow-hidden transition-colors duration-300">
+    <div className="h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-3.5rem)] bg-slate-50 dark:bg-[#0c0e14] flex relative overflow-hidden transition-colors duration-300">
 
       {/* Left Sidebar - Conversations */}
       {/* Left Sidebar - hidden on mobile when chat or right panel is open */}
