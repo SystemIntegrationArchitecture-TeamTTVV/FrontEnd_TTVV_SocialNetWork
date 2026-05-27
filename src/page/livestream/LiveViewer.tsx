@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { useLiveStreamViewer } from '../../contexts/LiveStreamViewerContext';
@@ -19,14 +19,19 @@ export default function LiveViewer() {
     }
   }, [routeStreamId, streamId, setStreamId]);
 
+  const elementRef = useRef<HTMLDivElement | null>(null);
+
   // Callback ref — registers/unregisters the portal div element in context
   const portalRef = useCallback((el: HTMLDivElement | null) => {
+    elementRef.current = el;
     setPortalElement(el);
   }, [setPortalElement]);
 
   // Clean up portal element when unmounting
   useEffect(() => {
-    return () => setPortalElement(null);
+    return () => {
+      setPortalElement((prev) => (prev === elementRef.current ? null : prev));
+    };
   }, [setPortalElement]);
 
   if (!rulesGate) {
