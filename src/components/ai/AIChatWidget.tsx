@@ -196,7 +196,7 @@ export default function AIChatWidget() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 items-center justify-center text-gray-800 transition-colors hover:bg-gray-50 active:scale-95 z-50"
+        className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-gradient-to-tr from-blue-600 to-blue-500 rounded-2xl shadow-lg shadow-blue-500/20 border border-blue-400/20 items-center justify-center text-white transition-all hover:shadow-blue-500/30 hover:scale-105 active:scale-95 z-50"
         title={t('aiWidget.support')}
         aria-label={t('aiWidget.openAssistant')}
       >
@@ -209,7 +209,7 @@ export default function AIChatWidget() {
     return (
       <button
         onClick={() => setIsMinimized(false)}
-        className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-white rounded-2xl shadow-lg border border-gray-200 items-center justify-center text-gray-800 hover:bg-gray-50 transition-colors active:scale-95 z-50"
+        className="hidden md:flex fixed bottom-6 left-6 w-14 h-14 bg-gradient-to-tr from-blue-600 to-blue-500 rounded-2xl shadow-lg shadow-blue-500/20 border border-blue-400/20 items-center justify-center text-white transition-all hover:shadow-blue-500/30 hover:scale-105 active:scale-95 z-50"
         title={t('aiWidget.reopenSupport')}
         aria-label={t('aiWidget.reopenAssistant')}
       >
@@ -221,55 +221,55 @@ export default function AIChatWidget() {
   return (
     <div className="hidden md:flex fixed bottom-6 left-6 w-[380px] h-[560px] bg-white rounded-2xl shadow-xl flex-col z-50 border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-white text-gray-900 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-3.5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border border-gray-200">
-            <Bot className="w-5 h-5 text-gray-800" />
+          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+            <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">{t('aiWidget.assistant')}</h3>
-            <p className="text-xs text-gray-500">{t('aiWidget.quickSupport')}</p>
+            <h3 className="font-semibold text-sm text-white">{t('aiWidget.assistant')}</h3>
+            <p className="text-xs text-blue-100">{t('aiWidget.quickSupport')}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsMinimized(true)}
-            className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors active:scale-95"
+            className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors active:scale-95"
             title={t('aiWidget.minimize')}
             aria-label={t('aiWidget.minimize')}
           >
-            <Minimize2 className="w-4 h-4 text-gray-700" />
+            <Minimize2 className="w-4 h-4 text-white" />
           </button>
           <button
             onClick={() => {
               setIsOpen(false);
               setIsMinimized(false);
             }}
-            className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors active:scale-95"
+            className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors active:scale-95"
             title={t('common.close')}
             aria-label={t('common.close')}
           >
-            <X className="w-4 h-4 text-gray-700" />
+            <X className="w-4 h-4 text-white" />
           </button>
         </div>
       </div>
 
-      <div className="px-3 py-2 border-b border-gray-100 bg-white flex items-center gap-1.5 flex-wrap">
+      <div className="px-3 py-2 border-b border-gray-100 bg-blue-50/30 flex items-center gap-1.5 flex-wrap">
         <button
           onClick={() => setMode('chat')}
-          className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'chat' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          className={`px-3 h-8 rounded-full text-xs font-medium transition-all ${mode === 'chat' ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' : 'bg-white text-blue-600 border border-blue-100 hover:bg-blue-50'}`}
         >
           Chat
         </button>
         <button
           onClick={() => setMode('autopost')}
-          className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'autopost' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          className={`px-3 h-8 rounded-full text-xs font-medium transition-all ${mode === 'autopost' ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' : 'bg-white text-blue-600 border border-blue-100 hover:bg-blue-50'}`}
         >
           {t('aiWidget.autodraftTab')}
         </button>
         <button
           onClick={() => setMode('summary')}
-          className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'summary' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          className={`px-3 h-8 rounded-full text-xs font-medium transition-all ${mode === 'summary' ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' : 'bg-white text-blue-600 border border-blue-100 hover:bg-blue-50'}`}
         >
           {t('aiWidget.dailySummaryTab')}
         </button>
@@ -287,16 +287,16 @@ export default function AIChatWidget() {
             }`}
           >
             {!message.isUser && (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
-                <Bot className="w-4 h-4 text-gray-700" />
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
+                <Bot className="w-4 h-4 text-blue-600" />
               </div>
             )}
             <div className="flex flex-col gap-1 max-w-[85%]">
               <div
                 className={`rounded-2xl px-3 py-2 ${
                   message.isUser
-                    ? 'bg-gray-900 text-white rounded-tr-sm'
-                    : 'bg-gray-50 text-gray-800 border border-gray-200 rounded-tl-sm'
+                    ? 'bg-blue-600 text-white rounded-tr-sm shadow-sm'
+                    : 'bg-blue-50/70 text-blue-900 border border-blue-100/70 rounded-tl-sm'
                 }`}
               >
                 <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{message.text}</p>
@@ -369,13 +369,13 @@ export default function AIChatWidget() {
         ))}
         {isLoading && (
           <div className="flex items-start gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
-              <Bot className="w-4 h-4 text-gray-700" />
+            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
+              <Bot className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="bg-gray-50 rounded-2xl rounded-tl-sm px-3 py-2 border border-gray-200">
+            <div className="bg-blue-50/70 rounded-2xl rounded-tl-sm px-3 py-2 border border-blue-100/70">
               <div className="flex items-center gap-1.5">
-                <Loader2 className="w-4 h-4 text-gray-700 animate-spin" />
-                <span className="text-xs text-gray-500 font-medium">{t('messenger.aiAssistantReplying')}</span>
+                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                <span className="text-xs text-blue-600 font-medium">{t('messenger.aiAssistantReplying')}</span>
               </div>
             </div>
           </div>
@@ -395,13 +395,13 @@ export default function AIChatWidget() {
               onKeyPress={handleKeyPress}
               placeholder={t('aiWidget.inputPlaceholder')}
               disabled={isLoading}
-              className="w-full px-4 h-11 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed text-sm placeholder:text-gray-400"
+              className="w-full px-4 h-11 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed text-sm placeholder:text-gray-400"
             />
           </div>
           <button
             onClick={handleSend}
             disabled={!inputMessage.trim() || isLoading}
-            className="w-11 h-11 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white transition-colors active:scale-95 shrink-0"
+            className="w-11 h-11 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-200 disabled:cursor-not-allowed rounded-full flex items-center justify-center text-white transition-all active:scale-95 shrink-0"
             title={t('aiWidget.send')}
             aria-label={t('aiWidget.sendMessage')}
           >
@@ -421,7 +421,7 @@ export default function AIChatWidget() {
           value={postPrompt}
           onChange={(e) => setPostPrompt(e.target.value)}
           placeholder={t('aiWidget.postIdeaPlaceholder')}
-          className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 text-sm placeholder:text-gray-400 resize-none"
+          className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm placeholder:text-gray-400 resize-none"
         />
 
         <div className="flex items-center justify-between gap-2">
@@ -429,7 +429,7 @@ export default function AIChatWidget() {
           <select
             value={postVisibility}
             onChange={(e) => setPostVisibility(e.target.value as 'PUBLIC' | 'FRIENDS' | 'PRIVATE')}
-            className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+            className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
             <option value="PUBLIC">{t('aiWidget.visibilityPublic')}</option>
             <option value="FRIENDS">{t('aiWidget.visibilityFriends')}</option>
@@ -440,7 +440,7 @@ export default function AIChatWidget() {
         <button
           onClick={handleGenerateDraft}
           disabled={!postPrompt.trim() || isAutoPosting || !user?.id}
-          className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+          className="h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-200 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2"
         >
           {isAutoPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {isAutoPosting ? t('aiWidget.creatingDraft') : t('aiWidget.aiCreateDraft')}
@@ -451,13 +451,13 @@ export default function AIChatWidget() {
           value={draftContent}
           onChange={(e) => setDraftContent(e.target.value)}
           placeholder={t('aiWidget.draftPlaceholder')}
-          className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 text-sm placeholder:text-gray-400 resize-none"
+          className="w-full min-h-36 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm placeholder:text-gray-400 resize-none"
         />
 
         <button
           onClick={handlePublishDraft}
           disabled={!draftContent.trim() || isAutoPosting || !user?.id}
-          className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+          className="h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-200 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2"
         >
           {isAutoPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {isAutoPosting ? t('aiWidget.publishing') : t('aiWidget.publishDraft')}
@@ -478,7 +478,7 @@ export default function AIChatWidget() {
         <button
           onClick={handleGenerateDailySummary}
           disabled={isSummaryLoading || !user?.id}
-          className="h-11 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+          className="h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-200 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2"
         >
           {isSummaryLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
           {isSummaryLoading ? t('aiWidget.summarizing') : t('aiWidget.generateDailySummary')}
