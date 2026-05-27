@@ -1,6 +1,24 @@
 import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy as reactLazy, Suspense } from "react";
 import MainLayout from "../components/layouts/MainLayout";
+
+// Wrapper function to catch dynamic import (chunk load) failures and reload the page to get the latest assets
+function lazy<T extends React.ComponentType<any>>(
+  importFn: () => Promise<{ default: T }>
+): React.LazyExoticComponent<T> {
+  return reactLazy(() =>
+    importFn().catch((error) => {
+      console.error("Failed to load chunk, attempting page reload:", error);
+      const lastReload = sessionStorage.getItem("chunk_reload_timestamp");
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem("chunk_reload_timestamp", now.toString());
+        window.location.reload();
+      }
+      throw error;
+    })
+  );
+}
 import AuthLayout from "../components/layouts/AuthLayout";
 import AdminLayout from "../components/layouts/AdminLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
