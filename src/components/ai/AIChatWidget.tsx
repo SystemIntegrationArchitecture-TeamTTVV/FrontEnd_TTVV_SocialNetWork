@@ -315,7 +315,7 @@ export default function AIChatWidget() {
                       <tbody className="divide-y divide-gray-100">
                         {message.data.map((row, idx) => (
                           <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                            {Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline').map((key) => {
+                            {message.data && Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline').map((key) => {
                               const val = row[key];
                               let displayVal = '';
                               if (val === null || val === undefined) displayVal = '-';

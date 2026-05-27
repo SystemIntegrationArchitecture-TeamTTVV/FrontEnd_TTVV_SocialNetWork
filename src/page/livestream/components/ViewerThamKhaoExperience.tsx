@@ -41,11 +41,10 @@ import GiftPicker from './GiftPicker';
 import TopDonors from './TopDonors';
 import MemberPanelHost from './MemberPanelHost';
 
-import { useLiveStreamViewer, type ViewerChatLine } from '../../../contexts/LiveStreamViewerContext';
+import { useLiveStreamViewer } from '../../../contexts/LiveStreamViewerContext';
 
 const VIOLET = '#1877F2';
 const DANMU_PREFIX = '\u200B[D]';
-const GIFT_DEDUPE_MS = 2200;
 
 function formatElapsed(startedAt?: string): string {
   if (!startedAt) return '0:00';
@@ -80,13 +79,13 @@ export default function ViewerThamKhaoExperience({
   streamId,
   user,
   viewerCount,
-  setViewerCount,
+  setViewerCount: _setViewerCount,
   isEnded,
-  setIsEnded,
+  setIsEnded: _setIsEnded,
   canSubscribe,
-  setCanSubscribe,
-  setStream,
-  setLkKey,
+  setCanSubscribe: _setCanSubscribe,
+  setStream: _setStream,
+  setLkKey: _setLkKey,
   navigate,
   onLeaveRoom,
   onOpenDeposit,
