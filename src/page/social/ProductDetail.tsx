@@ -210,13 +210,23 @@ export default function ProductDetail() {
 
             {/* Actions */}
             <div className="flex gap-4 pt-4">
-              <button
-                onClick={handleContactSeller}
-                className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                {t('productDetail.contactSeller')}
-              </button>
+              {product.seller?.id === user?.id ? (
+                <button
+                  onClick={() => navigate('/marketplace/my-products')}
+                  className="flex-1 h-14 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Package className="w-5 h-5" />
+                  {t('productDetail.manageProduct', 'Quản lý sản phẩm')}
+                </button>
+              ) : (
+                <button
+                  onClick={handleContactSeller}
+                  className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {t('productDetail.contactSeller')}
+                </button>
+              )}
               <button
                 onClick={() => setIsLiked(!isLiked)}
                 className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${

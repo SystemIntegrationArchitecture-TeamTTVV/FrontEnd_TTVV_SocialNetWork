@@ -351,14 +351,23 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading = f
             </button>
           </div>
           {errors.images && <p className="text-red-500 text-sm mb-2">{errors.images}</p>}
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
             {formData.images?.map((img, index) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                <span className="text-sm text-gray-600 truncate">{img}</span>
+              <div key={index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                <img 
+                  src={img} 
+                  alt={`Preview ${index + 1}`} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const imgEl = e.target as HTMLImageElement;
+                    imgEl.src = 'https://via.placeholder.com/150?text=Error';
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => handleRemoveImage(index)}
-                  className="p-2 hover:bg-red-100 text-red-600 rounded transition-colors"
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
+                  title={t('common.delete') || 'Delete'}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
