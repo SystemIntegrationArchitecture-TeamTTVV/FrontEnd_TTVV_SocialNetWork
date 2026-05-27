@@ -88,15 +88,11 @@ export default function Friends() {
         friendRequestsApi.getFriendRequestsBySenderId(userId).catch(() => []),
       ]);
 
-      // Populate sentRequests map
-      const pending = sentReqs.filter(r => (r.status as string).toUpperCase() === 'PENDING');
-      if (pending.length > 0) {
-        setSentRequests(prev => {
-          const m = new Map(prev);
-          pending.forEach(r => { if (r.receiverId) m.set(r.receiverId, r.id); });
-          return m;
-        });
-      }
+      // Populate sentRequests map (freshly from API data)
+      const m = new Map<string, string>();
+      const pending = (sentReqs || []).filter(r => (r.status as string).toUpperCase() === 'PENDING');
+      pending.forEach(r => { if (r.receiverId) m.set(r.receiverId, r.id); });
+      setSentRequests(m);
 
       if (data && Array.isArray(data)) {
         // Map FriendSuggestionDTO → User-compatible shape
@@ -131,10 +127,12 @@ export default function Friends() {
       // Có thay đổi về lời mời kết bạn (nhận, hủy, xác nhận, từ chối)
       if (['FRIEND_REQUEST', 'FRIEND_CANCELLED', 'FRIEND_ACCEPTED', 'FRIEND_REJECTED'].includes(type)) {
         loadRequests();
+        loadSuggestions();
       }
       
       // Có thay đổi về danh sách bạn bè (thêm bạn, hủy bạn)
       if (['FRIEND_ACCEPTED', 'FRIEND_REMOVED'].includes(type)) {
+        loadSuggestions();
         if (activeTab === 'all') {
           loadFriends();
         }
