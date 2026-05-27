@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/useToast';
+import ShareDialog from '../../page/home/ShareDialog';
 
 export interface PostCardProps {
   post: PostData;
@@ -78,6 +79,7 @@ export default function PostCard({
   const [editContent, setEditContent] = useState(post.content);
   const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>('PUBLIC');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const composerAvatarSrc = useMemo(() => {
     const raw = currentUser?.avatar?.trim();
@@ -652,7 +654,7 @@ export default function PostCard({
             <span className="text-[15px] font-medium">{t('newsfeed.actionComment')}</span>
           </button>
           <button
-            onClick={() => currentUser ? nav(`/post/${post.id}/share`) : requestLogin()}
+            onClick={() => currentUser ? setShowShareModal(true) : requestLogin()}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl hover:bg-gray-50 transition-all group"
           >
             <Share2 className="w-5 h-5 text-gray-500 group-hover:text-green-600 transition-colors" />
@@ -844,6 +846,19 @@ export default function PostCard({
           </div>
         )}
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <ShareDialog
+          postId={post.id!}
+          onClose={() => setShowShareModal(false)}
+          onShareSuccess={() => {
+            setShowShareModal(false);
+            setPost(prev => ({ ...prev, shareCount: (prev.shareCount || 0) + 1 }));
+            showToast(t('sharePost.shareSuccess', 'Đã chia sẻ bài viết thành công!'), 'success');
+          }}
+        />
+      )}
     </div>
   );
 }

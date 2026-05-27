@@ -1,4 +1,3 @@
-import { useNavigate, useParams } from 'react-router-dom';
 import { X, Globe, UserCheck, Lock, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { postsApi, type PostData } from '../../apis/posts';
@@ -7,10 +6,14 @@ import { HttpError } from '../../apis/http';
 import { useToast } from '../../contexts/useToast';
 import { useTranslation } from 'react-i18next';
 
-export default function ShareDialog() {
+interface ShareDialogProps {
+  postId: string;
+  onClose: () => void;
+  onShareSuccess?: () => void;
+}
+
+export default function ShareDialog({ postId, onClose, onShareSuccess }: ShareDialogProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { id } = useParams();
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'ONLY_ME'>('PUBLIC');
   const [originalPost, setOriginalPost] = useState<PostData | null>(null);
@@ -21,11 +24,11 @@ export default function ShareDialog() {
 
   useEffect(() => {
     const loadOriginalPost = async () => {
-      if (!id) return;
+      if (!postId) return;
       
       try {
         setIsLoading(true);
-        const post = await postsApi.getPostById(id);
+        const post = await postsApi.getPostById(postId);
         setOriginalPost(post);
       } catch (error) {
         console.error('Failed to load post:', error);
@@ -35,16 +38,16 @@ export default function ShareDialog() {
     };
 
     loadOriginalPost();
-  }, [id]);
+  }, [postId]);
 
   const handleShare = async () => {
-    if (!id || !currentUser) return;
+    if (!postId || !currentUser) return;
 
     setIsSharing(true);
     try {
-      await postsApi.sharePost(id, currentUser.id, content, visibility);
+      await postsApi.sharePost(postId, currentUser.id, content, visibility);
       console.log('✅ Post shared successfully');
-      navigate('/home');
+      onShareSuccess?.();
     } catch (error) {
       console.error('Failed to share post:', error);
       const msg =
@@ -93,14 +96,17 @@ export default function ShareDialog() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-[540px] max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-gray-900">{t('sharePost.title')}</h2>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={onClose}
             className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5 text-gray-600" />
@@ -197,4 +203,3 @@ export default function ShareDialog() {
     </div>
   );
 }
-
