@@ -101,26 +101,63 @@
         .stage {
             flex: 1;
             min-height: 0;
-            padding: 12px;
+            padding: 8px;
             display: flex;
             justify-content: center;
             align-items: stretch
         }
 
         #group-video {
-            width: min(1400px, 100%);
+            width: 100%;
+            height: 100%;
             display: grid;
             grid-template-columns: 1fr;
-            gap: 12px;
-            align-content: center
+            grid-template-rows: 1fr;
+            gap: 8px;
+            align-content: stretch
+        }
+
+        /* 2 participants: side by side */
+        #group-video.grid-2 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr
+        }
+
+        /* 3 participants: 2 top + 1 bottom centered */
+        #group-video.grid-3 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr
+        }
+        #group-video.grid-3 > .zala-tile:nth-child(3) {
+            grid-column: 1 / -1;
+            max-width: 50%;
+            justify-self: center
+        }
+
+        /* 4 participants: 2x2 */
+        #group-video.grid-4 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr
+        }
+
+        /* 5-6 participants: 3 columns */
+        #group-video.grid-5,
+        #group-video.grid-6 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr 1fr
+        }
+
+        /* 7+ participants: 3 columns auto rows */
+        #group-video.grid-many {
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 1fr
         }
 
         .zala-tile {
             position: relative;
-            aspect-ratio: 16/9;
-            max-height: min(72vh, 620px);
+            min-height: 0;
             border: 1px solid var(--ring);
-            border-radius: 18px;
+            border-radius: 14px;
             overflow: hidden;
             background: #000;
             box-shadow: var(--shadow)
@@ -253,12 +290,29 @@
             line-height: 1.3;
             white-space: pre-wrap;
             word-break: break-all;
+            display: none !important
+        }
+
+        /* Embedded mode: hide topbar, use compact controls */
+        body.embedded .topbar {
             display: none
+        }
+        body.embedded .stage {
+            padding: 4px
+        }
+        body.embedded .controls {
+            padding: 8px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom))
+        }
+        body.embedded .iconbtn {
+            width: 48px;
+            height: 48px
         }
 
         @media(max-width:700px) {
             .topbar {
-                height: 52px
+                height: 48px;
+                padding: 0 10px
             }
 
             .iconbtn {
@@ -268,6 +322,23 @@
 
             .iconbar {
                 gap: 10px
+            }
+
+            #group-video.grid-2 {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr
+            }
+
+            .stage {
+                padding: 4px
+            }
+
+            #group-video {
+                gap: 4px
+            }
+
+            .zala-tile {
+                border-radius: 10px
             }
         }
     </style>
@@ -342,15 +413,14 @@
         const API_BASE_URL = params.get('apiBaseUrl') || '';
         const IS_EMBEDDED = params.get('embedded') === '1' || window.self !== window.top;
 
+        // Apply embedded class immediately
+        if (IS_EMBEDDED) {
+            document.body.classList.add('embedded');
+        }
+
         // ─── DEBUG LOGGER ────────────────────────────────────────────────────────────
         function dbg(msg) {
-            console.log(msg);
-            var el = document.getElementById('debug-log');
-            if (!el) return;
-            el.style.display = 'block';
-            var ts = new Date().toLocaleTimeString('vi-VN', { hour12: false });
-            el.textContent += ts + ' ' + msg + '\n';
-            el.scrollTop = el.scrollHeight;
+            console.log('[WebRTC]', msg);
         }
 
         // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -517,9 +587,14 @@
             var tiles = document.querySelectorAll('[data-peer-id]').length;
             var g = document.getElementById('group-video');
             if (!g) return;
-            if (tiles <= 1) g.style.gridTemplateColumns = '1fr';
-            else if (tiles <= 4) g.style.gridTemplateColumns = 'repeat(2, 1fr)';
-            else g.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            // Remove old grid classes
+            g.className = '';
+            if (tiles <= 1) g.classList.add('grid-1');
+            else if (tiles === 2) g.classList.add('grid-2');
+            else if (tiles === 3) g.classList.add('grid-3');
+            else if (tiles === 4) g.classList.add('grid-4');
+            else if (tiles <= 6) g.classList.add('grid-' + tiles);
+            else g.classList.add('grid-many');
             setText('call-count', String(tiles));
             if (tiles >= 2) { setText('call-status', 'Đang trong cuộc gọi ✓'); setDotOk(true); }
         }

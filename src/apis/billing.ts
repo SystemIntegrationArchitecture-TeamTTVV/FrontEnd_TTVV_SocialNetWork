@@ -112,7 +112,7 @@ export interface AdminReportData {
 }
 
 // VNPAY Service URL (the Node.js VNPAY bridge)
-const VNPAY_SERVICE_URL = import.meta.env.VITE_VNPAY_SERVICE_URL || 'http://localhost:8888';
+const VNPAY_SERVICE_URL = import.meta.env.VITE_VNPAY_SERVICE_URL || 'https://vp-be-veu1.onrender.com';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ═══ API Client ═══════════════════════════════════════════════════════════════
