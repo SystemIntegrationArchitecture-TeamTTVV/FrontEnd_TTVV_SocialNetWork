@@ -303,36 +303,55 @@ export default function AIChatWidget() {
                 
                 {/* Beautiful data table rendering */}
                 {message.data && message.data.length > 0 && (
-                  <div className="mt-2 overflow-x-auto border border-gray-200 rounded-lg max-w-full">
-                    <table className="min-w-full divide-y divide-gray-200 text-[10px] text-gray-700 bg-white">
-                      <thead className="bg-gray-50 font-semibold">
-                        <tr>
-                          {Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline').map((key) => (
-                            <th key={key} className="px-2 py-1 text-left capitalize font-medium">{key}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {message.data.map((row, idx) => (
-                          <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                            {message.data && Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline').map((key) => {
-                              const val = row[key];
-                              let displayVal = '';
-                              if (val === null || val === undefined) displayVal = '-';
-                              else if (typeof val === 'object') displayVal = JSON.stringify(val);
-                              else displayVal = String(val);
-                              
-                              return (
-                                <td key={key} className="px-2 py-1 truncate max-w-[100px]" title={displayVal}>
-                                  {displayVal}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  (() => {
+                    const keys = Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline' && k !== '_id');
+                    const isSingleScalar = message.data.length === 1 && keys.length === 1;
+                    
+                    if (isSingleScalar) {
+                      const key = keys[0];
+                      const val = message.data[0][key];
+                      const displayVal = (val === null || val === undefined) ? '0' : String(val);
+                      return (
+                        <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+                           <span className="text-xs text-blue-600 font-medium capitalize">{key === 'total' || key === 'count' ? 'Tổng số' : key}:</span>
+                           <span className="text-sm font-bold text-blue-900">{displayVal}</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="mt-2 overflow-x-auto border border-gray-200 rounded-lg max-w-full">
+                        <table className="min-w-full divide-y divide-gray-200 text-[10px] text-gray-700 bg-white">
+                          <thead className="bg-gray-50 font-semibold">
+                            <tr>
+                              {keys.map((key) => (
+                                <th key={key} className="px-2 py-1 text-left capitalize font-medium">{key}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {message.data.map((row, idx) => (
+                              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                                {keys.map((key) => {
+                                  const val = row[key];
+                                  let displayVal = '';
+                                  if (val === null || val === undefined) displayVal = '-';
+                                  else if (typeof val === 'object') displayVal = JSON.stringify(val);
+                                  else displayVal = String(val);
+                                  
+                                  return (
+                                    <td key={key} className="px-2 py-1 truncate max-w-[100px]" title={displayVal}>
+                                      {displayVal}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()
                 )}
 
                 {/* Collapsible Aggregation Pipeline JSON */}
