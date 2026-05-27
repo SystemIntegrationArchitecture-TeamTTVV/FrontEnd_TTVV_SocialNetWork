@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Check, Bell, Share2, MoreVertical, Loader2, Users,
   LogOut, Settings, Trash2, Clock, UserPlus, Lock, Globe,
-  Gamepad2, Plane, Camera, BookOpen, ChefHat, MessageSquare, Flag
+  Gamepad2, Plane, Camera, BookOpen, ChefHat, MessageSquare, Flag, MessageCirclePlus
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { groupsApi, type GroupData } from "../../apis/groupsApi";
@@ -55,6 +55,7 @@ export default function GroupDetail() {
   const [openQuestions, setOpenQuestions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -69,14 +70,15 @@ export default function GroupDetail() {
       if (!id) return;
       setIsLoading(true);
       try {
-        const data = await groupsApi.getGroupById(id);
+        // Parallel fetch: group data + user role/status at the same time
+        const dataPromise = groupsApi.getGroupById(id);
+        const rolePromise = userId ? groupsApi.getUserRole(id, userId) : Promise.resolve(null);
+        const statusPromise = userId ? groupsApi.getUserStatus(id, userId) : Promise.resolve(null);
+
+        const [data, role, status] = await Promise.all([dataPromise, rolePromise, statusPromise]);
         setGroup(data);
-        if (userId) {
-          const role = await groupsApi.getUserRole(id, userId);
-          const status = await groupsApi.getUserStatus(id, userId);
-          setMyRole(role);
-          setMyStatus(status);
-        }
+        setMyRole(role);
+        setMyStatus(status);
       } catch (error) {
         console.error("Load group failed", error);
         setGroup({
@@ -391,6 +393,59 @@ export default function GroupDetail() {
           title={t("groupPage.openGroupChat", "Mở nhóm chat")}
         >
           <MessageSquare className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Create Group Chat Button (Admin only, when no linked conversation yet) */}
+      {!group?.linkedConversationId && isAdmin && (
+        <button
+          onClick={async () => {
+            if (!group?.id || !userId || isCreatingChat) return;
+            setIsCreatingChat(true);
+            try {
+              const members = await groupsApi.getGroupMembers(group.id);
+              const memberIds = members.map((m: any) => m.userId || m.id).filter(Boolean);
+              if (!memberIds.includes(userId)) memberIds.unshift(userId);
+
+              if (memberIds.length < 3) {
+                alert(t("groupPage.chatNeedMembers", "Nhóm cần ít nhất 3 thành viên để tạo đoạn chat"));
+                setIsCreatingChat(false);
+                return;
+              }
+
+              const { conversationsApi } = await import('../../apis/conversations');
+              const conv = await conversationsApi.createGroupConversation({
+                participantIds: memberIds,
+                ownerId: userId,
+                isGroup: true,
+                groupName: group.name,
+                groupAvatar: group.avatar || '',
+              });
+
+              await groupsApi.updateGroup(group.id, { linkedConversationId: conv.id });
+              setGroup(prev => prev ? { ...prev, linkedConversationId: conv.id } : prev);
+              navigate(`/messenger?conversation=${conv.id}`);
+            } catch (err) {
+              console.error("Failed to create group chat", err);
+              alert(t("groupPage.chatCreateFailed", "Không thể tạo đoạn chat nhóm. Vui lòng thử lại."));
+            } finally {
+              setIsCreatingChat(false);
+            }
+          }}
+          disabled={isCreatingChat}
+          className="fixed bottom-6 right-6 h-14 px-5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(59,130,246,0.3)] transition-all flex items-center justify-center gap-2 z-40 disabled:opacity-60"
+          title={t("groupPage.createGroupChat", "Tạo đoạn chat nhóm")}
+        >
+          {isCreatingChat ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <MessageCirclePlus className="w-6 h-6" />
+          )}
+          <span className="text-sm font-semibold">
+            {isCreatingChat
+              ? t("groupPage.creatingChat", "Đang tạo...")
+              : t("groupPage.createGroupChat", "Tạo đoạn chat nhóm")}
+          </span>
         </button>
       )}
 
