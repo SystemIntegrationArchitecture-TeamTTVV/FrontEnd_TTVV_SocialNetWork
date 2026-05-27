@@ -409,7 +409,11 @@
         const CALL_TYPE = params.get('callType') || 'video';
         const USER_NAME = params.get('displayName') || USERNAME;
         const USER_AVATAR = params.get('avatar') || '';
-        const WS_URL = params.get('wsUrl') || 'http://localhost:8081/ws';
+        const WS_URL_RAW = params.get('wsUrl') || 'http://localhost:8081/ws';
+        // Auto-upgrade to HTTPS when page is loaded over HTTPS to avoid mixed-content SockJS errors
+        const WS_URL = (window.location.protocol === 'https:' && WS_URL_RAW.startsWith('http://') && !/localhost|127\.0\.0\.1/.test(WS_URL_RAW))
+            ? WS_URL_RAW.replace('http://', 'https://')
+            : WS_URL_RAW;
         const API_BASE_URL = params.get('apiBaseUrl') || '';
         const IS_EMBEDDED = params.get('embedded') === '1' || window.self !== window.top;
 

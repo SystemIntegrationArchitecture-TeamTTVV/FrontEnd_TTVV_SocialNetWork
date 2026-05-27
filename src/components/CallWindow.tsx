@@ -1,6 +1,7 @@
 import { Phone, PhoneOff, Video, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { authApi } from '../apis/auth';
+import { API_CONFIG } from '../apis/config';
 import type { CallPhase, CallType } from '../contexts/CallContext';
 
 interface CallWindowProps {
@@ -43,8 +44,8 @@ export default function CallWindow({
       url.searchParams.set('group', isGroup ? '1' : '0');
       url.searchParams.set('embedded', '1');
       
-      // Get the backend URL without the /api suffix if present
-      let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+      // Get the backend WebSocket URL from centralized config (handles HTTPS automatically)
+      let apiUrl = API_CONFIG.COMMON_SERVICE_URL || window.location.origin;
       if (apiUrl.endsWith('/api')) {
         apiUrl = apiUrl.substring(0, apiUrl.length - 4);
       }
