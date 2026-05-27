@@ -96,7 +96,12 @@ function StreamerVideoStage() {
 
 function formatElapsed(startedAt?: string): string {
   if (!startedAt) return '0:00';
-  const t = new Date(startedAt).getTime();
+  // Nếu date string không chứa chỉ thị múi giờ (Z hoặc +offset), thêm Z để parse đúng dạng UTC
+  let cleanStartedAt = startedAt;
+  if (!startedAt.endsWith('Z') && !startedAt.includes('+') && !startedAt.includes('-')) {
+    cleanStartedAt = startedAt + 'Z';
+  }
+  const t = new Date(cleanStartedAt).getTime();
   if (Number.isNaN(t)) return '0:00';
   const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
   const m = Math.floor(sec / 60);
@@ -151,8 +156,8 @@ export default function StreamerThamKhaoLayout({
 
   const elapsed = useMemo(() => formatElapsed(stream.startedAt), [stream.startedAt, tick]);
 
-  const micOn = localParticipant.isMicrophoneEnabled;
-  const camOn = localParticipant.isCameraEnabled;
+  const micOn = localParticipant?.isMicrophoneEnabled ?? false;
+  const camOn = localParticipant?.isCameraEnabled ?? false;
 
   const sendHostChat = useCallback(async () => {
     const text = chatInput.trim();
@@ -186,7 +191,7 @@ export default function StreamerThamKhaoLayout({
       _kind?: unknown,
       topic?: string
     ) => {
-      if (topic !== 'reaction' || participant?.identity === localParticipant.identity) return;
+      if (topic !== 'reaction' || participant?.identity === localParticipant?.identity) return;
       try {
         const parsed = JSON.parse(new TextDecoder().decode(payload)) as {
           type?: string;
@@ -207,6 +212,7 @@ export default function StreamerThamKhaoLayout({
   }, [room, localParticipant.identity]);
 
   const toggleScreenShare = async () => {
+    if (!localParticipant) return;
     try {
       const cur =
         localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track != null;
@@ -434,13 +440,13 @@ export default function StreamerThamKhaoLayout({
               micOn ? 'bg-blue-600' : 'bg-blue-800',
               micOn ? 'Tắt mic' : 'Bật mic',
               micOn ? <Mic /> : <MicOff />,
-              () => localParticipant.setMicrophoneEnabled(!micOn)
+              () => localParticipant?.setMicrophoneEnabled(!micOn)
             )}
             {gridBtn(
               camOn ? 'bg-blue-600' : 'bg-blue-800',
               camOn ? 'Tắt cam' : 'Bật cam',
               camOn ? <Video /> : <VideoOff />,
-              () => localParticipant.setCameraEnabled(!camOn)
+              () => localParticipant?.setCameraEnabled(!camOn)
             )}
             {gridBtn('bg-slate-600', 'Share', <Share2 />, toggleScreenShare)}
             {gridBtn('bg-red-600', 'Kết thúc', <StopCircle />, onEndStream, ending)}
