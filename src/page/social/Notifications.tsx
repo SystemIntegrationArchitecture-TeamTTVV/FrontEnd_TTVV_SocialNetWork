@@ -1,4 +1,4 @@
-﻿import { Heart, MessageCircle, Share2, UserPlus, Tag, Users, Bell } from 'lucide-react';
+import { Heart, MessageCircle, Share2, UserPlus, Tag, Users, Bell } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { notificationsApi, type Notification as NotificationData } from '../../apis/notifications';
@@ -10,6 +10,9 @@ import { SocketEventTypes } from '../../services/socketEvents';
 const NOTIFICATION_ICONS: Record<string, React.ElementType> = {
   FRIEND_REQUEST: UserPlus,
   FRIEND_ACCEPTED: UserPlus,
+  FRIEND_CANCELLED: UserPlus,
+  FRIEND_REJECTED: UserPlus,
+  FRIEND_REMOVED: UserPlus,
   GROUP_INVITE: Users,
   LIKE_POST: Heart,
   LIKE_COMMENT: Heart,
@@ -36,8 +39,12 @@ function formatTimeAgo(
   dateStr: string,
   t: (key: string, opts?: Record<string, unknown>) => string
 ) {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return t('notificationDropdown.timeSeconds', { count: diff });
+  let parsedDateStr = dateStr;
+  if (parsedDateStr && !parsedDateStr.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(parsedDateStr)) {
+    parsedDateStr = parsedDateStr + 'Z';
+  }
+  const diff = Math.floor((Date.now() - new Date(parsedDateStr).getTime()) / 1000);
+  if (diff < 60) return t('notificationDropdown.timeSeconds', { count: Math.max(0, diff) });
   if (diff < 3600) return t('notificationDropdown.timeMinutes', { count: Math.floor(diff / 60) });
   if (diff < 86400) return t('notificationDropdown.timeHours', { count: Math.floor(diff / 3600) });
   return t('notificationDropdown.timeDays', { count: Math.floor(diff / 86400) });
@@ -84,8 +91,13 @@ export default function Notifications() {
       const notif = event.data as NotificationData | undefined;
       if (!notif?.id) return;
       setNotifications((prev) => {
-        if (prev.some((n) => n.id === notif.id)) return prev;
-        return [notif, ...prev];
+        // If cancellation or rejection, remove the old FRIEND_REQUEST notification
+        let filtered = prev;
+        if (notif.type === 'FRIEND_CANCELLED' || notif.type === 'FRIEND_REJECTED') {
+          filtered = prev.filter(n => !(n.type === 'FRIEND_REQUEST' && n.actorId === notif.actorId));
+        }
+        if (filtered.some((n) => n.id === notif.id)) return filtered;
+        return [notif, ...filtered];
       });
     });
     return unsub;

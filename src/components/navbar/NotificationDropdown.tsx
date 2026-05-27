@@ -20,6 +20,9 @@ const getNotificationIcon = (type: string) => {
   switch (type) {
     case 'FRIEND_REQUEST':
     case 'FRIEND_ACCEPTED':
+    case 'FRIEND_CANCELLED':
+    case 'FRIEND_REJECTED':
+    case 'FRIEND_REMOVED':
       return UserPlus;
     case 'GROUP_INVITE':
       return Users;
@@ -68,11 +71,15 @@ interface JoinRequestItem {
 export default function NotificationDropdown({ isOpen, onClose, onNotificationRead }: NotificationDropdownProps) {
   const { t } = useTranslation();
   const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString);
+    let parsedDateString = dateString;
+    if (parsedDateString && !parsedDateString.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(parsedDateString)) {
+      parsedDateString = parsedDateString + 'Z';
+    }
+    const date = new Date(parsedDateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return t('notificationDropdown.timeSeconds', { count: diffInSeconds });
+    if (diffInSeconds < 60) return t('notificationDropdown.timeSeconds', { count: Math.max(0, diffInSeconds) });
     if (diffInSeconds < 3600) return t('notificationDropdown.timeMinutes', { count: Math.floor(diffInSeconds / 60) });
     if (diffInSeconds < 86400) return t('notificationDropdown.timeHours', { count: Math.floor(diffInSeconds / 3600) });
     return t('notificationDropdown.timeDays', { count: Math.floor(diffInSeconds / 86400) });
@@ -115,11 +122,11 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
         const conversations = Array.isArray(rawConversations) ? rawConversations : [];
         const allFriendRequests = [...friendRequests, ...sentFriendRequests];
         
-        // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request đã ACTIVE
+        // Filter notifications: Ẩn FRIEND_REQUEST nếu friend request không còn ở trạng thái PENDING
         const filteredData = data.filter(notification => {
           if (notification.type === 'FRIEND_REQUEST' && notification.relatedId) {
             const friendRequest = allFriendRequests.find(fr => fr.id === notification.relatedId);
-            if (friendRequest && friendRequest.status === 'ACTIVE') {
+            if (!friendRequest || friendRequest.status !== 'PENDING') {
               return false;
             }
           }
@@ -208,6 +215,10 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
         console.log('🔔 New notification received in dropdown:', notification);
         
         setNotifications((prev) => {
+          // If cancellation or rejection, remove the old FRIEND_REQUEST notification
+          if (notification.type === 'FRIEND_CANCELLED' || notification.type === 'FRIEND_REJECTED') {
+            return prev.filter(n => !(n.type === 'FRIEND_REQUEST' && n.actorId === notification.actorId));
+          }
           const exists = prev.some(n => n.id === notification.id);
           if (exists) return prev;
           return [notification, ...prev];
