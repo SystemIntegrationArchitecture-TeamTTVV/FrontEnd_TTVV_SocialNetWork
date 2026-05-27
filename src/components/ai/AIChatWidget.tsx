@@ -11,6 +11,9 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  generatedQuery?: string;
+  data?: Record<string, any>[];
+  mode?: string;
 }
 
 export default function AIChatWidget() {
@@ -64,6 +67,7 @@ export default function AIChatWidget() {
       text: messageToSend,
       isUser: true,
       timestamp: new Date(),
+      mode: 'CHAT',
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -75,6 +79,7 @@ export default function AIChatWidget() {
         message: messageToSend,
         userId: user.id,
         conversationId: conversationId || undefined,
+        mode: 'CHAT',
       };
 
       const response = await aiApi.chat(request);
@@ -88,6 +93,9 @@ export default function AIChatWidget() {
         text: response.response,
         isUser: false,
         timestamp: new Date(),
+        generatedQuery: response.generatedQuery,
+        data: response.data,
+        mode: response.mode || 'CHAT',
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -180,6 +188,10 @@ export default function AIChatWidget() {
     }
   };
 
+  if (!user?.id) {
+    return null;
+  }
+
   if (!isOpen && !isMinimized) {
     return (
       <button
@@ -242,7 +254,7 @@ export default function AIChatWidget() {
         </div>
       </div>
 
-      <div className="px-3 py-2 border-b border-gray-100 bg-white flex items-center gap-2">
+      <div className="px-3 py-2 border-b border-gray-100 bg-white flex items-center gap-1.5 flex-wrap">
         <button
           onClick={() => setMode('chat')}
           className={`px-3 h-8 rounded-full text-xs font-medium transition-colors ${mode === 'chat' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
@@ -279,7 +291,7 @@ export default function AIChatWidget() {
                 <Bot className="w-4 h-4 text-gray-700" />
               </div>
             )}
-            <div className="flex flex-col gap-1 max-w-[75%]">
+            <div className="flex flex-col gap-1 max-w-[85%]">
               <div
                 className={`rounded-2xl px-3 py-2 ${
                   message.isUser
@@ -288,6 +300,59 @@ export default function AIChatWidget() {
                 }`}
               >
                 <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{message.text}</p>
+                
+                {/* Beautiful data table rendering */}
+                {message.data && message.data.length > 0 && (
+                  <div className="mt-2 overflow-x-auto border border-gray-200 rounded-lg max-w-full">
+                    <table className="min-w-full divide-y divide-gray-200 text-[10px] text-gray-700 bg-white">
+                      <thead className="bg-gray-50 font-semibold">
+                        <tr>
+                          {Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline').map((key) => (
+                            <th key={key} className="px-2 py-1 text-left capitalize font-medium">{key}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {message.data.map((row, idx) => (
+                          <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                            {Object.keys(message.data[0]).filter(k => k !== 'embedding' && k !== 'pipeline').map((key) => {
+                              const val = row[key];
+                              let displayVal = '';
+                              if (val === null || val === undefined) displayVal = '-';
+                              else if (typeof val === 'object') displayVal = JSON.stringify(val);
+                              else displayVal = String(val);
+                              
+                              return (
+                                <td key={key} className="px-2 py-1 truncate max-w-[100px]" title={displayVal}>
+                                  {displayVal}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Collapsible Aggregation Pipeline JSON */}
+                {message.generatedQuery && (
+                  <details className="mt-2 text-[10px] text-gray-500 bg-white rounded-lg p-1.5 border border-gray-200 cursor-pointer">
+                    <summary className="font-medium select-none hover:text-gray-800">
+                      🔍 Chi tiết Aggregation Pipeline
+                    </summary>
+                    <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-36 bg-gray-900 text-gray-100 p-2 rounded border border-gray-850 font-mono text-[9px]">
+                      {(() => {
+                        try {
+                          const parsed = typeof message.generatedQuery === 'string' ? JSON.parse(message.generatedQuery) : message.generatedQuery;
+                          return JSON.stringify(parsed, null, 2);
+                        } catch {
+                          return message.generatedQuery;
+                        }
+                      })()}
+                    </pre>
+                  </details>
+                )}
               </div>
               <span
                 className={`text-xs px-1 ${

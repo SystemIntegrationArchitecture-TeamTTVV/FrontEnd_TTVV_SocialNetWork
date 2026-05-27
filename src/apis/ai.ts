@@ -5,11 +5,15 @@ type AIChatRequest = {
   message: string;
   userId?: string;
   conversationId?: string;
+  mode?: 'CHAT' | 'DATA_QUERY';
 };
 
 type AIChatResponse = {
   response: string;
   conversationId: string;
+  generatedQuery?: string;
+  data?: Record<string, any>[];
+  mode?: string;
 };
 
 type AIAutoPostRequest = {

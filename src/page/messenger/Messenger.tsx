@@ -1275,7 +1275,7 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
-      notify.error(t('messenger.sendMessageError'));
+      // Removed generic notify.error here because http.ts global interceptor already shows the specific backend error toast
     }
   };
 
@@ -1307,7 +1307,7 @@ export default function Messenger() {
       }, 100);
     } catch (error) {
       console.error('Failed to send sticker:', error);
-      notify.error(t('messenger.sendMessageError'));
+      // Removed generic notify.error because http.ts global interceptor already shows the specific backend error toast
     }
   };
 
