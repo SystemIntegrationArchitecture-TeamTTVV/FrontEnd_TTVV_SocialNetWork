@@ -354,24 +354,6 @@ export default function AIChatWidget() {
                   })()
                 )}
 
-                {/* Collapsible Aggregation Pipeline JSON */}
-                {message.generatedQuery && (
-                  <details className="mt-2 text-[10px] text-gray-500 bg-white rounded-lg p-1.5 border border-gray-200 cursor-pointer">
-                    <summary className="font-medium select-none hover:text-gray-800">
-                      🔍 Chi tiết Aggregation Pipeline
-                    </summary>
-                    <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-36 bg-gray-900 text-gray-100 p-2 rounded border border-gray-850 font-mono text-[9px]">
-                      {(() => {
-                        try {
-                          const parsed = typeof message.generatedQuery === 'string' ? JSON.parse(message.generatedQuery) : message.generatedQuery;
-                          return JSON.stringify(parsed, null, 2);
-                        } catch {
-                          return message.generatedQuery;
-                        }
-                      })()}
-                    </pre>
-                  </details>
-                )}
               </div>
               <span
                 className={`text-xs px-1 ${
