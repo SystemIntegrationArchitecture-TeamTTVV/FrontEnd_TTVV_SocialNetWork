@@ -48,12 +48,23 @@ const DANMU_PREFIX = '\u200B[D]';
 
 function formatElapsed(startedAt?: string): string {
   if (!startedAt) return '0:00';
-  // Nếu date string không chứa chỉ thị múi giờ (Z hoặc +offset), thêm Z để parse đúng dạng UTC
-  let cleanStartedAt = startedAt;
-  if (!startedAt.endsWith('Z') && !startedAt.includes('+') && !startedAt.includes('-')) {
-    cleanStartedAt = startedAt + 'Z';
+  
+  let t = NaN;
+  const match = startedAt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+  if (match) {
+    const [, y, m, d, h, min, s] = match;
+    t = Date.UTC(
+      parseInt(y, 10),
+      parseInt(m, 10) - 1,
+      parseInt(d, 10),
+      parseInt(h, 10),
+      parseInt(min, 10),
+      parseInt(s, 10)
+    );
+  } else {
+    t = new Date(startedAt).getTime();
   }
-  const t = new Date(cleanStartedAt).getTime();
+
   if (Number.isNaN(t)) return '0:00';
   const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
   const m = Math.floor(sec / 60);
