@@ -127,6 +127,7 @@ const AdminMessages = lazy(() => import("../page/admin/AdminMessages"));
 const AdminSettings = lazy(() => import("../page/admin/AdminSettings"));
 const AdminDashboard = lazy(() => import("../page/admin/AdminDashboard"));
 const AdminBilling = lazy(() => import("../page/admin/AdminBilling"));
+const AdminAIConsultation = lazy(() => import("../page/admin/AdminAIConsultation"));
 const NotFound = lazy(() => import("../page/NotFound"));
 
 /** Wrap a lazy component with Suspense + PageLoader fallback */
@@ -279,6 +280,7 @@ export const router = createBrowserRouter([
       { path: "messages", element: <S><AdminMessages /></S> },
       { path: "settings", element: <S><AdminSettings /></S> },
       { path: "billing", element: <S><AdminBilling /></S> },
+      { path: "ai-consultation", element: <S><AdminAIConsultation /></S> },
     ],
   },
 ]);

@@ -16,6 +16,7 @@ import {
   Search,
   Globe,
   Coins,
+  Bot,
 } from "lucide-react";
 import { usersApi } from "../../apis/users";
 import { postsApi } from "../../apis/posts";
@@ -103,6 +104,13 @@ export default function AdminLayout() {
       icon: Coins,
       labelKey: "adminPanel.layout.navBilling",
       path: "/admin/billing",
+      badge: null,
+    },
+    {
+      id: "ai-consultation",
+      icon: Bot,
+      labelKey: "adminPanel.layout.navAIConsultation",
+      path: "/admin/ai-consultation",
       badge: null,
     },
     {
