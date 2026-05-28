@@ -41,6 +41,7 @@ import DanmakuLayer from './DanmakuLayer';
 import type { DanmakuLayerRef } from './DanmakuLayer';
 import TopDonors from './TopDonors';
 import MemberPanelHost from './MemberPanelHost';
+import VipBadge from './VipBadge';
 
 const VIOLET = '#1877F2';
 const DANMU_PREFIX = '\u200B[D]';
@@ -166,6 +167,68 @@ export default function StreamerThamKhaoLayout({
   }, [user.id]);
 
   const elapsed = useMemo(() => formatElapsed(stream.startedAt), [stream.startedAt, tick]);
+
+  const countdown = useMemo(() => {
+    if (!stream.maxLiveDurationMinutes || stream.maxLiveDurationMinutes <= 0) return null;
+    if (!stream.startedAt) return '00:00';
+    
+    let t = NaN;
+    const match = stream.startedAt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+    if (match) {
+      const [, y, m, d, h, min, s] = match;
+      t = Date.UTC(
+        parseInt(y, 10),
+        parseInt(m, 10) - 1,
+        parseInt(d, 10),
+        parseInt(h, 10),
+        parseInt(min, 10),
+        parseInt(s, 10)
+      );
+    } else {
+      t = new Date(stream.startedAt).getTime();
+    }
+
+    if (Number.isNaN(t)) return '00:00';
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    const totalSec = stream.maxLiveDurationMinutes * 60;
+    const remainingSec = Math.max(0, totalSec - elapsedSec);
+
+    const h = Math.floor(remainingSec / 3600);
+    const m = Math.floor((remainingSec % 3600) / 60);
+    const s = remainingSec % 60;
+
+    if (h > 0) {
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }, [stream.startedAt, stream.maxLiveDurationMinutes, tick]);
+
+  const isTimeRunningOut = useMemo(() => {
+    if (!stream.maxLiveDurationMinutes || stream.maxLiveDurationMinutes <= 0) return false;
+    if (!stream.startedAt) return false;
+    
+    let t = NaN;
+    const match = stream.startedAt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+    if (match) {
+      const [, y, m, d, h, min, s] = match;
+      t = Date.UTC(
+        parseInt(y, 10),
+        parseInt(m, 10) - 1,
+        parseInt(d, 10),
+        parseInt(h, 10),
+        parseInt(min, 10),
+        parseInt(s, 10)
+      );
+    } else {
+      t = new Date(stream.startedAt).getTime();
+    }
+
+    if (Number.isNaN(t)) return false;
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    const totalSec = stream.maxLiveDurationMinutes * 60;
+    const remainingSec = Math.max(0, totalSec - elapsedSec);
+    return remainingSec <= 60;
+  }, [stream.startedAt, stream.maxLiveDurationMinutes, tick]);
 
   const micOn = localParticipant?.isMicrophoneEnabled ?? false;
   const camOn = localParticipant?.isCameraEnabled ?? false;
@@ -295,12 +358,27 @@ export default function StreamerThamKhaoLayout({
               <span className="text-white/90 text-xs font-medium border-l border-white/20 pl-2 ml-0.5">
                 {stream.viewerCount ?? 0} người xem
               </span>
+              <VipBadge vipLevel={stream.vipLevel} size="sm" className="ml-1" />
             </div>
-            <div className="rounded-xl bg-black/55 backdrop-blur-md px-3 py-1.5 border border-white/10 w-max">
-              <div className="flex items-center gap-2 text-white text-xs font-mono font-semibold">
-                <Clock className="w-3.5 h-3.5 opacity-80" />
-                {elapsed}
+            <div className="flex gap-2">
+              <div className="rounded-xl bg-black/55 backdrop-blur-md px-3 py-1.5 border border-white/10 w-max">
+                <div className="flex items-center gap-2 text-white text-xs font-mono font-semibold">
+                  <Clock className="w-3.5 h-3.5 opacity-80" />
+                  {elapsed}
+                </div>
               </div>
+              {countdown && (
+                <div className={`rounded-xl backdrop-blur-md px-3 py-1.5 border w-max transition-all ${
+                  isTimeRunningOut
+                    ? 'bg-red-600/90 border-red-500 animate-pulse text-white font-bold'
+                    : 'bg-black/55 border-white/10 text-amber-400'
+                }`}>
+                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Còn lại: {countdown}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

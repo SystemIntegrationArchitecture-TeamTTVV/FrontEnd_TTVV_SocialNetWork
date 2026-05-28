@@ -40,6 +40,11 @@ type LiveStreamViewerContextType = {
   setChatMessages: React.Dispatch<React.SetStateAction<ViewerChatLine[]>>;
   acceptRules: () => void;
   leaveCurrentStream: () => void;
+  /** VIP time expired */
+  timeExpired: boolean;
+  timeExpiredVipLevel: number;
+  timeExpiredMaxMinutes: number;
+  clearTimeExpired: () => void;
 };
 
 const LiveStreamViewerContext = createContext<LiveStreamViewerContextType | null>(null);
@@ -65,6 +70,11 @@ export function LiveStreamViewerProvider({ children }: { children: ReactNode }) 
   const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
   const [chatMessages, setChatMessages] = useState<ViewerChatLine[]>([]);
   const recentGiftSigs = React.useRef<Map<string, number>>(new Map());
+
+  // VIP time-expired
+  const [timeExpired, setTimeExpired] = useState(false);
+  const [timeExpiredVipLevel, setTimeExpiredVipLevel] = useState(0);
+  const [timeExpiredMaxMinutes, setTimeExpiredMaxMinutes] = useState(5);
 
   const acceptRules = useCallback(() => {
     try {
@@ -228,6 +238,15 @@ export function LiveStreamViewerProvider({ children }: { children: ReactNode }) 
       subscribe('LIVE_CHAT', handleChat),
       subscribe('LIVE_VIEWER_APPROVED', handleApproved),
       subscribe('LIVE_KICKED', handleKicked),
+      subscribe('LIVE_TIME_EXPIRED', (ev: SocketEvent) => {
+        const data = ev.data as { streamId?: string; vipLevel?: number; maxMinutes?: number } | undefined;
+        if (data?.streamId === streamId) {
+          setTimeExpired(true);
+          setTimeExpiredVipLevel(data?.vipLevel ?? 0);
+          setTimeExpiredMaxMinutes(data?.maxMinutes ?? 5);
+          setIsEnded(true);
+        }
+      }),
     ];
     return () => unsubs.forEach((u) => u());
   }, [streamId, stream?.roomName, stream?.streamerId, user, subscribe, navigate]);
@@ -255,6 +274,10 @@ export function LiveStreamViewerProvider({ children }: { children: ReactNode }) 
         setChatMessages,
         acceptRules,
         leaveCurrentStream,
+        timeExpired,
+        timeExpiredVipLevel,
+        timeExpiredMaxMinutes,
+        clearTimeExpired: () => setTimeExpired(false),
       }}
     >
       {children}

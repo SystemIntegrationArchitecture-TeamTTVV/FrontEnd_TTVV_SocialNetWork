@@ -1,14 +1,26 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Radio, Tv, ArrowLeft } from 'lucide-react';
+import { Radio, Tv, ArrowLeft, Crown, Clock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLiveStreamHost } from '../../contexts/LiveStreamHostContext';
+import { vipApi, type VipSubscription as VipInfo } from '../../apis/vip';
+import VipBadge from './components/VipBadge';
+import LiveTimeExpiredModal from './components/LiveTimeExpiredModal';
 
 export default function StreamerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { activeStream, loading, creating, handleCreateStream, ending, setPortalElement } = useLiveStreamHost();
+  const { activeStream, loading, creating, handleCreateStream, ending, setPortalElement,
+    timeExpired, timeExpiredVipLevel, timeExpiredMaxMinutes, clearTimeExpired } = useLiveStreamHost();
+
+  // Load VIP info
+  const [vipInfo, setVipInfo] = useState<VipInfo | null>(null);
+  useEffect(() => {
+    if (user?.id) {
+      vipApi.getVipInfo(user.id).then(setVipInfo).catch(() => {});
+    }
+  }, [user?.id]);
 
   const elementRef = useRef<HTMLDivElement | null>(null);
 
@@ -107,6 +119,44 @@ export default function StreamerDashboard() {
         </div>
       </div>
 
+      {/* VIP Info Panel */}
+      <div className="bg-white dark:bg-[#1a1d28] rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md text-white ${(vipInfo?.vipLevel ?? 0) > 0 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gray-400'}`}>
+              <Crown className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900 dark:text-white">Gói Livestream</span>
+                <VipBadge vipLevel={vipInfo?.vipLevel ?? 0} size="sm" />
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {(vipInfo?.vipLevel ?? 0) === 0
+                  ? 'Giới hạn 5 phút mỗi phiên'
+                  : `Tối đa ${(vipInfo?.maxLiveDurationMinutes ?? 0) < 0 ? 'không giới hạn' : (vipInfo?.maxLiveDurationMinutes ?? 0) >= 60 ? ((vipInfo?.maxLiveDurationMinutes ?? 0) / 60) + ' giờ' : (vipInfo?.maxLiveDurationMinutes ?? 0) + ' phút'}`
+                }
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {vipInfo?.expiresAt && vipInfo.status === 'ACTIVE' && (vipInfo?.vipLevel ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Hết hạn: {new Date(vipInfo.expiresAt).toLocaleDateString('vi-VN')}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate('/livestream/vip-packages')}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-md transition-all"
+            >
+              {(vipInfo?.vipLevel ?? 0) > 0 ? 'Đổi gói' : 'Nâng cấp VIP'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-xl mx-auto">
         <div className="bg-white dark:bg-[#1a1d28] rounded-2xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8 shadow-sm">
           <div className="flex items-center gap-3 mb-7">
@@ -183,6 +233,14 @@ export default function StreamerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Time Expired Modal */}
+      <LiveTimeExpiredModal
+        open={timeExpired}
+        vipLevel={timeExpiredVipLevel}
+        maxMinutes={timeExpiredMaxMinutes}
+        onClose={clearTimeExpired}
+      />
     </div>
   );
 }

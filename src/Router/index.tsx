@@ -88,10 +88,12 @@ const BombermanMultiplayer = lazy(() => import("../games/bomberman/multiplayer")
 const LiveStreamPage = lazy(() => import("../page/livestream/LiveStreamPage"));
 const StreamerDashboard = lazy(() => import("../page/livestream/StreamerDashboard"));
 const LiveViewer = lazy(() => import("../page/livestream/LiveViewer"));
+const VipPackagesPage = lazy(() => import("../page/livestream/VipPackagesPage"));
 
 // Wallet / Billing Pages
 const WalletPage = lazy(() => import("../page/wallet/WalletPage"));
 const VnpayReturnPage = lazy(() => import("../page/wallet/VnpayReturnPage"));
+const VnpayVipReturnPage = lazy(() => import("../page/wallet/VnpayVipReturnPage"));
 
 // Social Pages
 const FriendRequests = lazy(() => import("../page/social/FriendRequests"));
@@ -244,11 +246,13 @@ export const router = createBrowserRouter([
       // LiveStream
       { path: "livestream", element: <ProtectedRoute requireAuth={true}><S><LiveStreamPage /></S></ProtectedRoute> },
       { path: "livestream/dashboard", element: <ProtectedRoute requireAuth={true}><S><StreamerDashboard /></S></ProtectedRoute> },
+      { path: "livestream/vip-packages", element: <ProtectedRoute requireAuth={true}><S><VipPackagesPage /></S></ProtectedRoute> },
       { path: "livestream/:id", element: <ProtectedRoute requireAuth={true}><S><LiveViewer /></S></ProtectedRoute> },
 
       // Wallet / Billing
       { path: "wallet", element: <ProtectedRoute requireAuth={true}><S><WalletPage /></S></ProtectedRoute> },
       { path: "wallet/vnpay-return", element: <ProtectedRoute requireAuth={true}><S><VnpayReturnPage /></S></ProtectedRoute> },
+      { path: "wallet/vnpay-vip-return", element: <ProtectedRoute requireAuth={true}><S><VnpayVipReturnPage /></S></ProtectedRoute> },
 
       // Settings
       { path: "settings", element: <ProtectedRoute requireAuth={true}><S><Settings /></S></ProtectedRoute> },

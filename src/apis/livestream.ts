@@ -30,6 +30,11 @@ export interface LiveStreamData {
   canSubscribe?: boolean;
   /** APPROVED | WAITING | ENDED — từ getStreamById / getToken */
   joinStatus?: string;
+
+  /** VIP level of the host (0=Free, 1=Basic, 2=Pro, 3=Enterprise) */
+  vipLevel?: number;
+  /** Max live duration in minutes (5, 120, 480, -1=unlimited) */
+  maxLiveDurationMinutes?: number;
 }
 
 export interface CreateStreamParams {

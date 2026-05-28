@@ -3,8 +3,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
 import { livestreamApi, type LiveStreamData } from '../../apis/livestream';
-import { Radio, Eye, Plus, Users, Tv } from 'lucide-react';
+import { Radio, Eye, Plus, Users, Tv, Crown } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import VipBadge from './components/VipBadge';
 
 export default function LiveStreamPage() {
   const { subscribe } = useSocket();
@@ -51,13 +52,22 @@ export default function LiveStreamPage() {
               <p className="text-xs text-[#65676b] dark:text-[#7e89a6]">Live Stream</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate('/livestream/dashboard')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-medium text-sm transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.97]"
-          >
-            <Plus className="w-4 h-4" />
-            Phát trực tiếp
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/livestream/vip-packages')}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-bold text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.97]"
+            >
+              <Crown className="w-4 h-4" />
+              Nâng cấp VIP
+            </button>
+            <button
+              onClick={() => navigate('/livestream/dashboard')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-medium text-sm transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.97]"
+            >
+              <Plus className="w-4 h-4" />
+              Phát trực tiếp
+            </button>
+          </div>
         </div>
       </div>
 
@@ -151,7 +161,10 @@ export default function LiveStreamPage() {
                     <h3 className="text-sm font-semibold text-[#050505] dark:text-[#edf0fa] truncate group-hover:text-[#1877F2] transition-colors">
                       {stream.title}
                     </h3>
-                    <p className="text-xs text-[#65676b] dark:text-[#7e89a6] mt-0.5">{stream.streamerName}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                      <p className="text-xs text-[#65676b] dark:text-[#7e89a6] truncate">{stream.streamerName}</p>
+                      <VipBadge vipLevel={stream.vipLevel} size="sm" />
+                    </div>
                     <div className="flex items-center gap-1 mt-1 text-xs text-[#65676b] dark:text-[#7e89a6]">
                       <Users className="w-3 h-3" />
                       <span>{stream.viewerCount} người xem</span>

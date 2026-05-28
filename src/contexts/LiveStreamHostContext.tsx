@@ -41,6 +41,11 @@ type LiveStreamHostContextType = {
   handleCreateStream: (params: { title: string; description: string; requiresApprovalCreate: boolean; thumbnailFile: File | null }) => Promise<void>;
   handleEndStream: () => Promise<void>;
   saveRoomSettings: () => Promise<void>;
+  /** VIP time expired — stream auto-ended by backend */
+  timeExpired: boolean;
+  timeExpiredVipLevel: number;
+  timeExpiredMaxMinutes: number;
+  clearTimeExpired: () => void;
 };
 
 const LiveStreamHostContext = createContext<LiveStreamHostContextType | null>(null);
@@ -62,6 +67,11 @@ export function LiveStreamHostProvider({ children }: { children: ReactNode }) {
   const [hostChatMessages, setHostChatMessages] = useState<HostChatLine[]>([]);
   const [recentGiftEvent, setRecentGiftEvent] = useState<LiveStreamHostContextType['recentGiftEvent']>(null);
   const [newDanmakuMessage, setNewDanmakuMessage] = useState<LiveStreamHostContextType['newDanmakuMessage']>(null);
+
+  // VIP time-expired state
+  const [timeExpired, setTimeExpired] = useState(false);
+  const [timeExpiredVipLevel, setTimeExpiredVipLevel] = useState(0);
+  const [timeExpiredMaxMinutes, setTimeExpiredMaxMinutes] = useState(5);
 
   const [donateTtsEnabled, setDonateTtsEnabledState] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -176,6 +186,15 @@ export function LiveStreamHostProvider({ children }: { children: ReactNode }) {
       subscribe('LIVE_VIEWER_COUNT', handleViewerCount),
       subscribe('LIVE_GIFT_RECEIVED', handleGift),
       subscribe('LIVE_CHAT', handleChat),
+      subscribe('LIVE_TIME_EXPIRED', (ev: SocketEvent) => {
+        const data = ev.data as { streamId?: string; vipLevel?: number; maxMinutes?: number } | undefined;
+        if (data?.streamId === activeStream?.id) {
+          setTimeExpired(true);
+          setTimeExpiredVipLevel(data?.vipLevel ?? 0);
+          setTimeExpiredMaxMinutes(data?.maxMinutes ?? 5);
+          setActiveStream(null);
+        }
+      }),
     ];
     return () => unsubs.forEach((u) => u());
   }, [subscribe, activeStream, user?.id, donateTtsEnabled]);
@@ -263,6 +282,10 @@ export function LiveStreamHostProvider({ children }: { children: ReactNode }) {
         handleCreateStream,
         handleEndStream,
         saveRoomSettings,
+        timeExpired,
+        timeExpiredVipLevel,
+        timeExpiredMaxMinutes,
+        clearTimeExpired: () => setTimeExpired(false),
       }}
     >
       {children}
