@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bot, Phone, PhoneCall, Search, Settings, History, Users, User as UserIcon,
   Clock, ThumbsUp, CheckCircle2, XCircle, RotateCcw, Loader2,
-  Save, Sparkles, Package, SlidersHorizontal, X, Volume2,
-  MessageSquare, TrendingUp, RefreshCcw
+  Save, Sparkles, Package, SlidersHorizontal, Volume2,
+  RefreshCcw
 } from 'lucide-react';
 import { usersApi, type User } from '../../apis/users';
 import { aiConsultationApi, type ConsultationLog, type ConsultationSummary } from '../../apis/aiConsultation';
@@ -101,8 +101,8 @@ export default function AdminAIConsultation() {
 
     try {
       const res = await aiConsultationApi.startCall({
-        userId: callUser.id,
-        phoneNumber: callUser.phoneNumber,
+        userId: callUser.id as string,
+        phoneNumber: callUser.phoneNumber as string,
       });
       if (res.success) {
         setCallModal(prev => ({
