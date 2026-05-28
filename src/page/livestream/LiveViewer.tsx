@@ -2,15 +2,24 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { useLiveStreamViewer } from '../../contexts/LiveStreamViewerContext';
+import { useAuth } from '../../contexts/AuthContext';
 import LiveRegulationsModal from './components/LiveRegulationsModal';
 
 export default function LiveViewer() {
   const { id: routeStreamId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const { 
     streamId, setStreamId, stream, loading, rulesGate, acceptRules, setPortalElement 
   } = useLiveStreamViewer();
+
+  // If host accesses their own stream, redirect to dashboard immediately
+  useEffect(() => {
+    if (stream && user && stream.streamerId === user.id) {
+      navigate('/livestream/dashboard', { replace: true });
+    }
+  }, [stream, user, navigate]);
 
   // Set the streamId in the global context when we land on this page
   useEffect(() => {
