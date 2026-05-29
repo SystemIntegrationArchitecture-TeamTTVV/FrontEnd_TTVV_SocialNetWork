@@ -12,6 +12,7 @@ export interface DisplayMessage {
   id: string;
   sender: string;
   senderId: string;
+  senderAvatar?: string;
   content: string;
   time: string;
   isMe: boolean;
@@ -1039,6 +1040,7 @@ export function useMessages() {
       id: message.id,
       sender: message.senderName,
       senderId: message.senderId,
+      senderAvatar: message.senderAvatar,
       content: message.content,
       time,
       isMe,

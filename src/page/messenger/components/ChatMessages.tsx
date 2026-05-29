@@ -31,6 +31,7 @@ interface ChatMessagesProps {
   messagesLoading?: boolean;
   backgroundUrl?: string;
   searchKeyword?: string;
+  avatarsByUserId?: Record<string, string>;
 }
 
 export default function ChatMessages({
@@ -58,6 +59,7 @@ export default function ChatMessages({
   messagesLoading = false,
   backgroundUrl,
   searchKeyword = '',
+  avatarsByUserId = {},
 }: ChatMessagesProps) {
   if (!activeConversation) {
     return (
@@ -135,6 +137,7 @@ export default function ChatMessages({
             participantNames={participantNames}
             participantIds={participantIds}
             searchKeyword={searchKeyword}
+            avatarsByUserId={avatarsByUserId}
           />
         );
       })}

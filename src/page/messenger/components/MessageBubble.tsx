@@ -35,6 +35,7 @@ export interface MessageBubbleProps {
   participantNames?: string[];
   participantIds?: string[];
   searchKeyword?: string;
+  avatarsByUserId?: Record<string, string>;
 }
 
 function highlightText(text: string, keyword: string): React.ReactNode {
@@ -59,6 +60,7 @@ export default function MessageBubble({
   onSetMenuPosition,
   onMessageAction,
   onReaction,
+  msg: _msgVal, // Unused placeholder to keep variable binding happy if needed
   onVote,
   voting,
   onJoinAppointment,
@@ -68,6 +70,7 @@ export default function MessageBubble({
   participantNames = [],
   participantIds = [],
   searchKeyword = '',
+  avatarsByUserId = {},
 }: MessageBubbleProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -81,6 +84,8 @@ export default function MessageBubble({
     return id || null;
   };
 
+  const avatarUrl = msg.senderId !== 'ai' ? (avatarsByUserId[msg.senderId] || msg.senderAvatar) : undefined;
+
   return (
     <div
       id={`msg-${msg.id}`}
@@ -90,16 +95,22 @@ export default function MessageBubble({
     >
       {!msg.isMe && msg.messageType !== 'POLL' && msg.messageType !== 'APPOINTMENT' && (
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+          className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 ${
             msg.senderId === 'ai'
               ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-              : 'cursor-pointer hover:opacity-80 transition-opacity'
+              : 'cursor-pointer hover:opacity-80 transition-opacity shadow-sm border border-gray-100 dark:border-white/5'
           }`}
-          style={msg.senderId !== 'ai' ? { backgroundColor: hashColor(msg.senderId || 'u') } : undefined}
+          style={msg.senderId !== 'ai' && !avatarUrl ? { backgroundColor: hashColor(msg.senderId || 'u') } : undefined}
           onClick={msg.senderId === 'ai' || !onViewProfile ? undefined : () => onViewProfile(msg.senderId, msg.sender)}
         >
           {msg.senderId === 'ai' ? (
             <Bot className="w-4 h-4 text-white" />
+          ) : avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={msg.sender}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <span className="text-white font-semibold text-xs">{msg.sender.charAt(0)}</span>
           )}

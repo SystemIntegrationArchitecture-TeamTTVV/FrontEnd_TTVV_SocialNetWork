@@ -1994,6 +1994,7 @@ export default function Messenger() {
           messagesLoading={messagesLoading}
           backgroundUrl={activeConversationRaw?.backgroundUrl}
           searchKeyword={searchResults !== null ? searchQuery : ''}
+          avatarsByUserId={avatarsByUserId}
         />
 
         {activeConversation && (
