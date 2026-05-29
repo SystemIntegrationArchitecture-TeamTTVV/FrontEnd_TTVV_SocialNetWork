@@ -7,6 +7,7 @@ import { useMessages } from '../../hooks/useMessages';
 import type { ChatContact } from '../../types/chat';
 import { getLocaleTag } from '../../i18n';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { usersApi } from '../../apis/users';
 
 type ContactWithLastMessage = ChatContact & {
   lastMessage?: string;
@@ -87,6 +88,7 @@ export default function RightSidebar({
   const { openChatBox } = useChatBox();
   const { user } = useAuth();
   const { conversations, loadConversations } = useMessages();
+  const [avatarsByUserId, setAvatarsByUserId] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'contacts' | 'groups'>('contacts');
 
@@ -111,6 +113,41 @@ export default function RightSidebar({
     };
   }, [loadConversations]);
 
+  useEffect(() => {
+    if (!user?.id || !Array.isArray(conversations) || conversations.length === 0) return;
+    const ids = new Set<string>();
+    conversations
+      .filter((conv) => !conv.isGroup)
+      .forEach((conv) => {
+        const otherId = conv.participantIds?.find((id) => id !== user.id);
+        if (!otherId) return;
+        const otherIndex = conv.participantIds?.findIndex((id) => id === otherId) ?? -1;
+        const hasConversationAvatar = otherIndex >= 0 && !!conv.participantAvatars?.[otherIndex];
+        if (!hasConversationAvatar && !avatarsByUserId[otherId]) {
+          ids.add(otherId);
+        }
+      });
+
+    if (ids.size === 0) return;
+    const uncachedIds = Array.from(ids);
+
+    Promise.allSettled(uncachedIds.map((id) => usersApi.getUserById(id)))
+      .then((results) => {
+        const next: Record<string, string> = {};
+        results.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value?.id && result.value.avatar) {
+            next[result.value.id] = result.value.avatar;
+          }
+        });
+        if (Object.keys(next).length > 0) {
+          setAvatarsByUserId((prev) => ({ ...prev, ...next }));
+        }
+      })
+      .catch(() => {
+        // ignore avatar fallback errors
+      });
+  }, [conversations, user?.id, avatarsByUserId]);
+
   /**
    * 🔥 BUILD CONTACT LIST
    */
@@ -128,7 +165,7 @@ export default function RightSidebar({
 
         const otherName = names[otherIndex] || 'Unknown';
         const avatars = conv.participantAvatars ?? [];
-        const rawAvatar = avatars[otherIndex] || '';
+        const rawAvatar = avatars[otherIndex] || avatarsByUserId[ids[otherIndex]] || '';
 
         return {
           id: conv.id,
@@ -152,7 +189,7 @@ export default function RightSidebar({
           : 0;
         return t2 - t1;
       });
-  }, [conversations, user?.id]);
+  }, [conversations, user?.id, avatarsByUserId]);
 
   /**
    * 🔥 BUILD GROUP LIST

@@ -15,6 +15,7 @@ import { friendsApi, type FriendDTO } from '../../apis/friendRequests';
 import { getLocaleTag } from '../../i18n';
 import { canRecallByCreatedAt } from '../../constants/chatPolicy';
 import { notify } from '../../services/notify';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import ForwardModal from './components/ForwardModal';
 import ViewProfileModal from './components/ViewProfileModal';
 import PinnedMessagesPanel from './components/PinnedMessagesPanel';
@@ -829,7 +830,14 @@ export default function Messenger() {
           id: conv.id,
           name,
           avatar: initials,
-          imageUrl: conv.isGroup ? conv.groupAvatar : (otherParticipantId ? (conv.participantAvatars?.[otherParticipantIndex] || avatarsByUserId[otherParticipantId]) : undefined),
+          imageUrl: (() => {
+            const raw = conv.isGroup
+              ? conv.groupAvatar
+              : (otherParticipantId
+                ? (conv.participantAvatars?.[otherParticipantIndex] || avatarsByUserId[otherParticipantId])
+                : undefined);
+            return raw ? resolveMediaUrl(raw) : undefined;
+          })(),
           color: hashColor(conv.id),
           online,
           lastMessage: (() => {
