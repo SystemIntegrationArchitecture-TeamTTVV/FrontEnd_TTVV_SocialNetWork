@@ -99,6 +99,13 @@ export const aiConsultationApi = {
   },
 
   /**
+   * Send consultation email to a user with web client link
+   */
+  sendEmailLink: async (params: { userId: string }): Promise<{ success: boolean; message: string }> => {
+    return httpClient.post<{ success: boolean; message: string }>('/api/common/ai-consultation/send-email-link', params);
+  },
+
+  /**
    * Update consultation result
    */
   updateResult: async (logId: string, data: {

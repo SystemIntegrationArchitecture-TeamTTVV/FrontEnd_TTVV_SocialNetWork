@@ -1,9 +1,10 @@
 // VipPackagesPage — Premium pricing page for VIP livestream packages
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Crown, Star, Diamond, Zap, Check, ArrowLeft, Clock, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { vipApi, type VipSubscription, type VipPackageInfo } from '../../apis/vip';
+import { usersApi } from '../../apis/users';
 import toast from 'react-hot-toast';
 
 const TIER_STYLES = [
@@ -49,13 +50,49 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
 }
 
 export default function VipPackagesPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const emailUserId = searchParams.get('userId');
 
   const [packages, setPackages] = useState<VipPackageInfo[]>([]);
   const [currentVip, setCurrentVip] = useState<VipSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
+
+  // States check mismatch tài khoản
+  const [emailUser, setEmailUser] = useState<any>(null);
+  const [isMismatch, setIsMismatch] = useState(false);
+
+  useEffect(() => {
+    const checkMismatch = async () => {
+      if (!emailUserId) {
+        setIsMismatch(false);
+        return;
+      }
+      if (!user?.id) return;
+
+      if (user.id === emailUserId) {
+        setIsMismatch(false);
+        return;
+      }
+
+      // Xảy ra mismatch giữa user đăng nhập và userId từ email
+      try {
+        const fetchedUser = await usersApi.getUserById(emailUserId);
+        setEmailUser(fetchedUser);
+        setIsMismatch(true);
+        toast.error("Tài khoản bạn tư vấn và tài khoản bạn đăng nhập khác nhau!", {
+          duration: 6000,
+          position: "top-center"
+        });
+      } catch (err) {
+        console.error("Failed to fetch user by emailUserId:", err);
+        setIsMismatch(true); // Vẫn báo mismatch
+      }
+    };
+    checkMismatch();
+  }, [emailUserId, user?.id]);
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
@@ -151,6 +188,34 @@ export default function VipPackagesPage() {
           </div>
         )}
       </div>
+
+      {/* Mismatch Warning Banner */}
+      {isMismatch && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-200 dark:border-red-800/30 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-pulse">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+              <Crown className="w-6 h-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="space-y-1 text-left">
+              <h4 className="text-base font-bold text-red-700 dark:text-red-400">
+                ⚠️ Tài khoản không khớp!
+              </h4>
+              <p className="text-sm text-red-600 dark:text-red-300">
+                Tài khoản bạn được tư vấn là <span className="font-bold underline">{emailUser?.fullName || emailUser?.username || "đang được tải..."}</span>, nhưng tài khoản bạn đang đăng nhập là <span className="font-bold underline">{user?.fullName || user?.username}</span>.
+              </p>
+              <p className="text-xs text-red-500/80 dark:text-red-400/80">
+                Vui lòng đăng nhập đúng tài khoản được tư vấn để tiếp tục thanh toán và tránh lỗi giao dịch.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => logout()}
+            className="shrink-0 px-5 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-sm rounded-xl transition-all shadow-md hover:shadow-red-600/20"
+          >
+            Đăng nhập tài khoản khác
+          </button>
+        </div>
+      )}
 
       {/* Package Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -248,13 +313,16 @@ export default function VipPackagesPage() {
                 ) : (
                   <button
                     onClick={() => handlePurchase(pkg.level)}
-                    disabled={isPurchasing}
+                    disabled={isPurchasing || isMismatch}
                     className={`
                       w-full flex items-center justify-center gap-2 py-3 rounded-xl
                       text-sm font-bold text-white transition-all
                       hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
                       disabled:opacity-60 disabled:cursor-not-allowed
-                      bg-gradient-to-r ${style.gradient}
+                      ${isMismatch 
+                        ? 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed' 
+                        : `bg-gradient-to-r ${style.gradient}`
+                      }
                     `}
                   >
                     {isPurchasing ? (
@@ -262,7 +330,10 @@ export default function VipPackagesPage() {
                     ) : (
                       <Sparkles className="w-4 h-4" />
                     )}
-                    {isPurchasing ? 'Đang xử lý...' : isUpgrade ? 'Nâng cấp ngay' : 'Mua ngay'}
+                    {isMismatch 
+                      ? 'Khác tài khoản tư vấn' 
+                      : (isPurchasing ? 'Đang xử lý...' : isUpgrade ? 'Nâng cấp ngay' : 'Mua ngay')
+                    }
                   </button>
                 )}
               </div>

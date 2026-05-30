@@ -3,7 +3,7 @@ import {
   Bot, Phone, PhoneCall, Search, Settings, History, Users, User as UserIcon,
   Clock, ThumbsUp, CheckCircle2, XCircle, RotateCcw, Loader2,
   Save, Sparkles, Package, SlidersHorizontal, Volume2,
-  RefreshCcw
+  RefreshCcw, Mail
 } from 'lucide-react';
 import { usersApi, type User } from '../../apis/users';
 import { aiConsultationApi, type ConsultationLog, type ConsultationSummary } from '../../apis/aiConsultation';
@@ -31,6 +31,8 @@ export default function AdminAIConsultation() {
     open: false, user: null, status: 'idle', message: ''
   });
   const [phoneInputs, setPhoneInputs] = useState<Record<string, string>>({});
+  const [emailInputs, setEmailInputs] = useState<Record<string, string>>({});
+  const [updatingUsers, setUpdatingUsers] = useState<Record<string, boolean>>({});
 
   // Settings state
   const [packages, setPackages] = useState('');
@@ -44,6 +46,7 @@ export default function AdminAIConsultation() {
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('');
 
   const [savingSettings, setSavingSettings] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -120,6 +123,52 @@ export default function AdminAIConsultation() {
         ...prev, status: 'error',
         message: err?.message || 'Lỗi kết nối'
       }));
+    }
+  };
+
+  const handleSendEmail = async (user: User) => {
+    if (!user.id) return;
+    setSendingEmails(prev => ({ ...prev, [user.id!]: true }));
+    try {
+      // Use current input values if available
+      const currentEmail = emailInputs[user.id!] ?? user.email;
+      const currentPhone = phoneInputs[user.id!] ?? user.phoneNumber;
+      
+      // If user modified phone/email in UI but hasn't saved, let's warn them or save temporarily
+      const res = await aiConsultationApi.sendEmailLink({ userId: user.id });
+      if (res.success) {
+        alert(`Đã gửi mail tư vấn thành công tới ${currentEmail || user.fullName}!`);
+      } else {
+        alert(`Gửi mail thất bại: ${res.message || 'Lỗi hệ thống'}`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(`Lỗi kết nối: ${err?.message || 'Không rõ nguyên nhân'}`);
+    } finally {
+      setSendingEmails(prev => ({ ...prev, [user.id!]: false }));
+    }
+  };
+
+  const handleUpdateUserInfo = async (user: User) => {
+    if (!user.id) return;
+    const newPhone = phoneInputs[user.id] ?? user.phoneNumber ?? '';
+    const newEmail = emailInputs[user.id] ?? user.email ?? '';
+    
+    setUpdatingUsers(prev => ({ ...prev, [user.id!]: true }));
+    try {
+      await usersApi.updateUserProfile(user.id, {
+        phoneNumber: newPhone,
+        email: newEmail
+      });
+      
+      // Update local users state so it syncs up
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, phoneNumber: newPhone, email: newEmail } : u));
+      alert("Đã cập nhật thông tin người dùng thành công!");
+    } catch (err: any) {
+      console.error("Failed to update user profile:", err);
+      alert(`Lỗi cập nhật: ${err?.message || 'Không rõ nguyên nhân'}`);
+    } finally {
+      setUpdatingUsers(prev => ({ ...prev, [user.id!]: false }));
     }
   };
 
@@ -302,18 +351,54 @@ export default function AdminAIConsultation() {
                                   className="w-32 h-8 px-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono transition-all"
                                 />
                               </td>
-                              <td className="px-4 py-3 text-gray-600">{user.email || '—'}</td>
                               <td className="px-4 py-3">
-                                <div className="flex items-center justify-center">
+                                <input
+                                  type="text"
+                                  placeholder="Nhập Email..."
+                                  value={emailInputs[user.id!] ?? user.email ?? ''}
+                                  onChange={e => setEmailInputs(prev => ({ ...prev, [user.id!]: e.target.value }))}
+                                  className="w-56 h-8 px-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono transition-all"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    onClick={() => handleUpdateUserInfo(user)}
+                                    disabled={updatingUsers[user.id!] === true}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all duration-200 hover:shadow disabled:opacity-50"
+                                    title="Lưu thông tin SĐT & Email"
+                                  >
+                                    {updatingUsers[user.id!] ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Save className="w-4 h-4" />
+                                    )}
+                                    Lưu
+                                  </button>
                                   <button
                                     onClick={() => handleStartCall(user)}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
                                     style={{
                                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                     }}
                                   >
                                     <Bot className="w-4 h-4" />
-                                    Gọi AI tư vấn
+                                    Gọi AI
+                                  </button>
+                                  <button
+                                    onClick={() => handleSendEmail(user)}
+                                    disabled={sendingEmails[user.id!] === true}
+                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                                    style={{
+                                      background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                                    }}
+                                  >
+                                    {sendingEmails[user.id!] ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Mail className="w-4 h-4" />
+                                    )}
+                                    Gửi Mail
                                   </button>
                                 </div>
                               </td>
