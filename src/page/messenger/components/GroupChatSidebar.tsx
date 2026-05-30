@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import {
-  User, Bell, Search as SearchIcon,
+  Bell, Search as SearchIcon,
   Trash2, UserPlus, Crown, Shield,
   MessageSquareLock, UserCheck, X, Check, Users, Link2, Copy, Bot, Image as ImageIcon, Loader2
 } from 'lucide-react';

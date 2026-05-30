@@ -132,7 +132,6 @@ export default function AdminAIConsultation() {
     try {
       // Use current input values if available
       const currentEmail = emailInputs[user.id!] ?? user.email;
-      const currentPhone = phoneInputs[user.id!] ?? user.phoneNumber;
       
       // If user modified phone/email in UI but hasn't saved, let's warn them or save temporarily
       const res = await aiConsultationApi.sendEmailLink({ userId: user.id });
