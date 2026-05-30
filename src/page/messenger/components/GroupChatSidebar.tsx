@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Search as SearchIcon,
   Trash2, UserPlus, Crown, Shield,
@@ -154,7 +153,6 @@ export default function GroupChatSidebar({
   onViewProfile,
 }: ChatInfoSidebarProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [transferOwnerId, setTransferOwnerId] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteSearch, setInviteSearch] = useState('');
@@ -292,14 +290,12 @@ export default function GroupChatSidebar({
             <img
               src={conversationRaw.groupAvatar}
               alt={conversation.name}
-              className="w-16 h-16 rounded-full border-4 border-white object-cover shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => navigate(`/profile/${conversation.id}`)}
+              className="w-16 h-16 rounded-full border-4 border-white object-cover shadow-lg"
             />
           ) : (
             <div
-              className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center text-white text-xl font-bold shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center text-white text-xl font-bold shadow-lg"
               style={{ backgroundColor: conversation.color }}
-              onClick={() => navigate(`/profile/${conversation.id}`)}
             >
               {conversation.avatar}
             </div>
@@ -322,15 +318,6 @@ export default function GroupChatSidebar({
 
       {/* Quick Action Buttons */}
       <div className="flex justify-center gap-4 px-4 pb-4">
-        <button
-          onClick={() => navigate(`/profile/${conversation.id}`)}
-          className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group"
-        >
-          <div className="w-11 h-11 rounded-full bg-gray-50 group-hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-100">
-            <User className="w-5 h-5 text-blue-600" />
-          </div>
-          <span className="text-[12px] text-gray-700 font-medium leading-tight text-center">Trang cá<br/>nhân</span>
-        </button>
         <button className="flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity group">
           <div className="w-11 h-11 rounded-full bg-gray-50 group-hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-100">
             <Bell className="w-5 h-5 text-gray-600" />

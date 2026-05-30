@@ -22,7 +22,7 @@ interface ChatMessagesProps {
   voting?: string | null;
   onJoinAppointment?: (messageId: string) => void;
   joiningAppointment?: string | null;
-  onViewProfile?: (userId: string, userName: string) => void;
+  onViewProfile?: (userId: string, userName: string, userAvatar?: string) => void;
   userId: string;
   participantNames?: string[];
   participantIds?: string[];

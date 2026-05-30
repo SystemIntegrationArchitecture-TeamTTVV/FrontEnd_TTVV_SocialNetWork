@@ -84,7 +84,7 @@ export default function GroupChat() {
   const [forwardConversations, setForwardConversations] = useState<any[]>([]);
   const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [viewProfileTarget, setViewProfileTarget] = useState<{ userId: string, userName: string } | null>(null);
+  const [viewProfileTarget, setViewProfileTarget] = useState<{ userId: string, userName: string, userAvatar?: string } | null>(null);
 
   const conversationId = id || '';
 
@@ -1071,7 +1071,7 @@ export default function GroupChat() {
                     {!isMe && (
                       <div 
                         className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => setViewProfileTarget({ userId: msg.senderId, userName: msg.senderName })}
+                        onClick={() => setViewProfileTarget({ userId: msg.senderId, userName: msg.senderName, userAvatar: msg.senderAvatar })}
                       >
                         {msg.senderName}
                       </div>
@@ -1098,7 +1098,7 @@ export default function GroupChat() {
                         <div className="relative">
                           <div 
                             className={`px-4 py-2 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'} cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all`}
-                            onClick={() => setViewProfileTarget({ userId: msg.senderId, userName: msg.senderName })}
+                            onClick={() => setViewProfileTarget({ userId: msg.senderId, userName: msg.senderName, userAvatar: msg.senderAvatar })}
                           >
                             <div className="whitespace-pre-wrap wrap-break-word">{renderMessageContent(msg.content || '')}</div>
                             {msg.isEdited && <span className="text-[10px] opacity-60 ml-1">(Ã„â€˜ÃƒÂ£ sÃ¡Â»Â­a)</span>}
@@ -1321,6 +1321,7 @@ export default function GroupChat() {
       {viewProfileTarget && (
         <ViewProfileModal
           userName={viewProfileTarget.userName}
+          userAvatar={viewProfileTarget.userAvatar}
           onConfirm={() => {
             navigate(`/profile/${viewProfileTarget.userId}`);
             setViewProfileTarget(null);

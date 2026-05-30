@@ -60,7 +60,7 @@ interface DirectChatSidebarProps {
   onCloseRightSidebar: () => void;
   userId?: string;
   loadConversations?: () => void;
-  onViewProfile?: (userId: string, userName: string) => void;
+  onViewProfile?: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 export default function DirectChatSidebar({
@@ -470,7 +470,7 @@ export default function DirectChatSidebar({
           style={{ backgroundColor: conversation.color }}
           onClick={() => {
             if (otherUserId && onViewProfile) {
-              onViewProfile(otherUserId, localNickname || conversation.name);
+              onViewProfile(otherUserId, localNickname || conversation.name, otherUser?.avatar || conversation.imageUrl);
             } else {
               navigate(profileLink);
             }
@@ -500,7 +500,7 @@ export default function DirectChatSidebar({
         <button
           onClick={() => {
             if (otherUserId && onViewProfile) {
-              onViewProfile(otherUserId, localNickname || conversation.name);
+              onViewProfile(otherUserId, localNickname || conversation.name, otherUser?.avatar || conversation.imageUrl);
             } else {
               navigate(profileLink);
             }

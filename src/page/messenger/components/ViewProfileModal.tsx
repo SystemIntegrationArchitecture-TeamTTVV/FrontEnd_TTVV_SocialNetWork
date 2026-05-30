@@ -2,12 +2,14 @@ import { User, ExternalLink, X } from 'lucide-react';
 
 interface ViewProfileModalProps {
   userName: string;
+  userAvatar?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 export default function ViewProfileModal({
   userName,
+  userAvatar,
   onConfirm,
   onCancel,
 }: ViewProfileModalProps) {
@@ -32,8 +34,16 @@ export default function ViewProfileModal({
         <div className="px-6 pb-6 text-center">
           <div className="relative -mt-12 mb-4 inline-block">
             <div className="w-24 h-24 rounded-2xl bg-white dark:bg-[#1a1d28] p-1 shadow-xl">
-              <div className="w-full h-full rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center">
-                <User className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center overflow-hidden">
+                {userAvatar ? (
+                  <img
+                    src={userAvatar}
+                    alt={userName}
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                ) : (
+                  <User className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                )}
               </div>
             </div>
           </div>

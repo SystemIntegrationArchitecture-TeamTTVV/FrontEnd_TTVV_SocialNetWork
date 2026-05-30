@@ -30,7 +30,7 @@ export interface MessageBubbleProps {
   voting?: string | null;
   onJoinAppointment?: (messageId: string) => void;
   joiningAppointment?: string | null;
-  onViewProfile?: (userId: string, userName: string) => void;
+  onViewProfile?: (userId: string, userName: string, userAvatar?: string) => void;
   userId: string;
   participantNames?: string[];
   participantIds?: string[];
@@ -101,7 +101,7 @@ export default function MessageBubble({
               : 'cursor-pointer hover:opacity-80 transition-opacity shadow-sm border border-gray-100 dark:border-white/5'
           }`}
           style={msg.senderId !== 'ai' && !avatarUrl ? { backgroundColor: hashColor(msg.senderId || 'u') } : undefined}
-          onClick={msg.senderId === 'ai' || !onViewProfile ? undefined : () => onViewProfile(msg.senderId, msg.sender)}
+          onClick={msg.senderId === 'ai' || !onViewProfile ? undefined : () => onViewProfile(msg.senderId, msg.sender, avatarUrl)}
         >
           {msg.senderId === 'ai' ? (
             <Bot className="w-4 h-4 text-white" />
@@ -319,7 +319,7 @@ export default function MessageBubble({
                 : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
             } cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all`}
             onDoubleClick={() => onReaction(msg.id, '❤️')}
-            onClick={() => msg.senderId !== 'ai' && onViewProfile?.(msg.senderId, msg.sender)}
+            onClick={() => msg.senderId !== 'ai' && onViewProfile?.(msg.senderId, msg.sender, avatarUrl)}
           >
             <p className="whitespace-pre-line text-[14px] leading-relaxed">{highlightText(msg.content, searchKeyword)}</p>
           </div>
