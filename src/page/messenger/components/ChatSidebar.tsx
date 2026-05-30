@@ -53,7 +53,7 @@ interface ChatSidebarProps {
   // Pin conversation
   onTogglePinConversation?: (convId: string) => void;
   pinLoading?: boolean;
-  onViewProfile?: (userId: string, userName: string) => void;
+  onViewProfile?: (userId: string, userName: string, userAvatar?: string) => void;
 }
 
 export default function ChatSidebar({
@@ -309,7 +309,7 @@ export default function ChatSidebar({
                 onClick={(e) => {
                   if (conv.otherParticipantId && onViewProfile) {
                     e.stopPropagation();
-                    onViewProfile(conv.otherParticipantId, conv.name);
+                    onViewProfile(conv.otherParticipantId, conv.name, conv.imageUrl);
                   }
                 }}
               >
@@ -355,7 +355,7 @@ export default function ChatSidebar({
                   onClick={(e) => {
                     if (conv.otherParticipantId && onViewProfile) {
                       e.stopPropagation();
-                      onViewProfile(conv.otherParticipantId, conv.name);
+                      onViewProfile(conv.otherParticipantId, conv.name, conv.imageUrl);
                     }
                   }}
                 >

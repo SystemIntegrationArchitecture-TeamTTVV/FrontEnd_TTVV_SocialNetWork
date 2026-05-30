@@ -27,7 +27,7 @@ interface ChatHeaderProps {
   onToggleRightSidebar: () => void;
   onVoiceCall: () => void;
   onVideoCall: () => void;
-  onViewProfile?: (userId: string, userName: string) => void;
+  onViewProfile?: (userId: string, userName: string, userAvatar?: string) => void;
   onBackToList?: () => void;
 }
 
@@ -69,34 +69,41 @@ export default function ChatHeader({
             <img
               src={conversation.imageUrl}
               alt={conversation.name}
-              className="w-12 h-12 rounded-full object-cover shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+              className={`w-12 h-12 rounded-full object-cover shadow-sm ${
+                !isGroupChat && !isAIChat ? 'cursor-pointer hover:scale-105 active:scale-95 transition-transform' : ''
+              }`}
               onClick={() => {
-                const targetId = conversation.otherParticipantId || conversation.id;
-                if (!isGroupChat && !isAIChat && onViewProfile) {
-                  onViewProfile(targetId, conversation.name);
-                } else {
-                  navigate(`/profile/${targetId}`);
+                if (!isGroupChat && !isAIChat) {
+                  const targetId = conversation.otherParticipantId || conversation.id;
+                  if (onViewProfile) {
+                    onViewProfile(targetId, conversation.name, conversation.imageUrl);
+                  } else {
+                    navigate(`/profile/${targetId}`);
+                  }
                 }
               }}
             />
           ) : conversation.isGroup ? (
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm cursor-pointer hover:opacity-90 transition-opacity" 
+              className="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" 
               style={{ backgroundColor: conversation.color }} 
-              onClick={() => navigate(`/profile/${conversation.id}`)}
             >
               <Users className="w-6 h-6 text-white" />
             </div>
           ) : (
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+              className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm ${
+                !isGroupChat && !isAIChat ? 'cursor-pointer hover:scale-105 active:scale-95 transition-transform' : ''
+              }`}
               style={{ backgroundColor: conversation.color }}
               onClick={() => {
-                const targetId = conversation.otherParticipantId || conversation.id;
-                if (!isAIChat && onViewProfile) {
-                  onViewProfile(targetId, conversation.name);
-                } else {
-                  navigate(`/profile/${targetId}`);
+                if (!isGroupChat && !isAIChat) {
+                  const targetId = conversation.otherParticipantId || conversation.id;
+                  if (onViewProfile) {
+                    onViewProfile(targetId, conversation.name);
+                  } else {
+                    navigate(`/profile/${targetId}`);
+                  }
                 }
               }}
             >
@@ -109,13 +116,17 @@ export default function ChatHeader({
         </div>
         <div className="flex-1 min-w-0">
           <p 
-            className="font-semibold text-gray-900 text-lg truncate cursor-pointer hover:text-blue-600 transition-colors inline-block"
+            className={`font-semibold text-gray-900 text-lg truncate ${
+              !isGroupChat && !isAIChat ? 'cursor-pointer hover:text-blue-600 transition-colors inline-block' : ''
+            }`}
             onClick={() => {
-              const targetId = conversation.otherParticipantId || conversation.id;
-              if (!isGroupChat && !isAIChat && onViewProfile) {
-                onViewProfile(targetId, conversation.name);
-              } else {
-                navigate(`/profile/${targetId}`);
+              if (!isGroupChat && !isAIChat) {
+                const targetId = conversation.otherParticipantId || conversation.id;
+                if (onViewProfile) {
+                  onViewProfile(targetId, conversation.name, conversation.imageUrl);
+                } else {
+                  navigate(`/profile/${targetId}`);
+                }
               }
             }}
           >

@@ -154,7 +154,7 @@ export default function Messenger() {
   const [forwardTargetConversationId, setForwardTargetConversationId] = useState<string>('');
   const [forwardNote, setForwardNote] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [viewProfileTarget, setViewProfileTarget] = useState<{ userId: string, userName: string } | null>(null);
+  const [viewProfileTarget, setViewProfileTarget] = useState<{ userId: string, userName: string, userAvatar?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSenderId, setSearchSenderId] = useState('');
   const [searchResults, setSearchResults] = useState<ReturnType<typeof formatMessageForDisplay>[] | null>(null);
@@ -1747,7 +1747,7 @@ export default function Messenger() {
           }
         }}
         pinLoading={pinLoading}
-        onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
+        onViewProfile={(userId, userName, userAvatar) => setViewProfileTarget({ userId, userName, userAvatar })}
       />
       </div>
 
@@ -1893,7 +1893,7 @@ export default function Messenger() {
                 notify.error(t('messenger.errors.startVideoCall'));
               }
             }}
-            onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
+            onViewProfile={(userId, userName, userAvatar) => setViewProfileTarget({ userId, userName, userAvatar })}
             onBackToList={() => setActiveChat(null)}
           />
         )}
@@ -1996,7 +1996,7 @@ export default function Messenger() {
           participantIds={activeConversationRaw?.participantIds}
           onJoinAppointment={handleJoinAppointment}
           joiningAppointment={joiningAppointmentId}
-          onViewProfile={(userId, userName) => setViewProfileTarget({ userId, userName })}
+          onViewProfile={(userId, userName, userAvatar) => setViewProfileTarget({ userId, userName, userAvatar })}
           onScroll={handleScroll}
           loadingMore={loadingMore}
           messagesLoading={messagesLoading}
@@ -2233,6 +2233,7 @@ export default function Messenger() {
       {viewProfileTarget && (
         <ViewProfileModal
           userName={viewProfileTarget.userName}
+          userAvatar={viewProfileTarget.userAvatar}
           onConfirm={() => {
             navigate(`/profile/${viewProfileTarget.userId}`);
             setViewProfileTarget(null);
