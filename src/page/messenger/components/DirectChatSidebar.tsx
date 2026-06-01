@@ -77,6 +77,8 @@ export default function DirectChatSidebar({
   const navigate = useNavigate();
   const { subscribe } = useSocket();
 
+  const blockStateLockUntilRef = useRef<number>(0);
+
   const getServerBlockState = () => ({
     blocked: !!(userId && conversationRaw?.blockedByUserIds?.includes(userId)),
     messageBlocked: !!(userId && conversationRaw?.messageBlockedByUserIds?.includes(userId)),
@@ -108,7 +110,6 @@ export default function DirectChatSidebar({
   const [isMessageBlocked, setIsMessageBlocked] = useState(() => getResolvedBlockState().messageBlocked);
   const [isCallBlocked, setIsCallBlocked] = useState(() => getResolvedBlockState().callBlocked);
   const [blockActionLoading, setBlockActionLoading] = useState(false);
-  const blockStateLockUntilRef = useRef<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [onlineStatus, setOnlineStatus] = useState(conversation.online);
   const [removingBackground, setRemovingBackground] = useState(false);
