@@ -121,12 +121,12 @@ export function useMessages() {
           if (!old) return conv;
           return {
             ...conv,
-            nicknames: conv.nicknames ?? old.nicknames,
-            backgroundUrl: conv.backgroundUrl ?? old.backgroundUrl,
-            blockedByUserIds: conv.blockedByUserIds ?? old.blockedByUserIds,
-            messageBlockedByUserIds: conv.messageBlockedByUserIds ?? old.messageBlockedByUserIds,
-            callBlockedByUserIds: conv.callBlockedByUserIds ?? old.callBlockedByUserIds,
-            mutedByUserIds: conv.mutedByUserIds ?? old.mutedByUserIds,
+            nicknames: conv.nicknames !== undefined ? conv.nicknames : old.nicknames,
+            backgroundUrl: conv.backgroundUrl !== undefined ? conv.backgroundUrl : old.backgroundUrl,
+            blockedByUserIds: conv.blockedByUserIds !== undefined ? (conv.blockedByUserIds ?? []) : old.blockedByUserIds,
+            messageBlockedByUserIds: conv.messageBlockedByUserIds !== undefined ? (conv.messageBlockedByUserIds ?? []) : old.messageBlockedByUserIds,
+            callBlockedByUserIds: conv.callBlockedByUserIds !== undefined ? (conv.callBlockedByUserIds ?? []) : old.callBlockedByUserIds,
+            mutedByUserIds: conv.mutedByUserIds !== undefined ? (conv.mutedByUserIds ?? []) : old.mutedByUserIds,
           };
         });
         return sortConversationsByActivity(merged);

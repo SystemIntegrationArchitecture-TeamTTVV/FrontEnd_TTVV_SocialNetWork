@@ -86,6 +86,10 @@ export default function DirectChatSidebar({
   const getResolvedBlockState = () => {
     const server = getServerBlockState();
     if (!conversationRaw?.id) return server;
+    // Only use local override during the 1.5s lock window to give immediate feedback
+    if (Date.now() >= blockStateLockUntilRef.current) {
+      return server;
+    }
     const override = readBlockOverrides()[conversationRaw.id];
     if (!override) return server;
     return {
