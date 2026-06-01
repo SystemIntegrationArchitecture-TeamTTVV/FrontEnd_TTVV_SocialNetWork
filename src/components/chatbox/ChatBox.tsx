@@ -75,12 +75,21 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       const uploadResult = await uploadApi.uploadFile(file);
       console.log('✅ File uploaded successfully:', uploadResult);
 
-      // Send message with file info
-      const messageContent = file.type.startsWith('image/') ? t('chatBox.sentImage') :
-        file.type.startsWith('video/') ? t('chatBox.sentVideo') :
-          `📎 ${file.name}`;
+      const attachmentType = file.type.startsWith('image/') ? 'image' :
+        file.type.startsWith('video/') ? 'video' : 'file';
 
-      await sendMessage(contact.id, `${messageContent}\n${uploadResult.url}`);
+      await sendMessage(
+        contact.id,
+        '',
+        [
+          {
+            type: attachmentType,
+            url: uploadResult.url,
+            fileName: file.name,
+            fileSize: file.size,
+          },
+        ]
+      );
 
       setTimeout(() => {
         scrollToBottom();
@@ -106,8 +115,18 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
       const uploadResult = await uploadApi.uploadFile(voiceFile);
       console.log('✅ Voice message uploaded successfully:', uploadResult);
 
-      // Send message with voice file
-      await sendMessage(contact.id, `${t('chatBox.voiceMessage')}\n${uploadResult.url}`);
+      await sendMessage(
+        contact.id,
+        '',
+        [
+          {
+            type: 'audio',
+            url: uploadResult.url,
+            fileName: voiceFile.name,
+            fileSize: blob.size,
+          },
+        ]
+      );
 
       setTimeout(() => {
         scrollToBottom();
@@ -350,6 +369,11 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
                             controls
                             className="w-full h-auto rounded-xl cursor-pointer"
                           />
+                        )}
+                        {attachment.type === 'audio' && (
+                          <div className="p-1.5 bg-white dark:bg-[#1a1d28] rounded-xl border border-[#e4e6eb] dark:border-[#2b2f45] flex items-center justify-center">
+                            <audio src={attachment.url} controls className="max-w-[190px] h-8" />
+                          </div>
                         )}
                         {attachment.type === 'file' && (
                           <a

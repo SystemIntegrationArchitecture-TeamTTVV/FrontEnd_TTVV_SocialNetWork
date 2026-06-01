@@ -31,7 +31,7 @@ interface ChatBoxContextType {
   minimizedBoxes: Set<string>;
   messages: Record<string, ChatMessage[]>;
   addMessage: (contactId: string, message: ChatMessage) => void;
-  sendMessage: (contactId: string, content: string) => Promise<void>;
+  sendMessage: (contactId: string, content: string, attachments?: ChatMessage['attachments']) => Promise<void>;
 }
 
 const ChatBoxContext = createContext<ChatBoxContextType | undefined>(undefined);
@@ -277,13 +277,13 @@ export function ChatBoxProvider({ children }: { children: ReactNode }) {
     console.log('addMessage called but messages are now managed by useMessages hook');
   };
 
-  const sendMessage = useCallback(async (contactId: string, content: string) => {
+  const sendMessage = useCallback(async (contactId: string, content: string, attachments?: ChatMessage['attachments']) => {
     if (!user?.id) {
       showAuthRequiredPrompt(window.location.pathname);
       return;
     }
-    if (!content.trim()) return;
-    await sendMessageAPI(contactId, content);
+    if (!content.trim() && (!attachments || attachments.length === 0)) return;
+    await sendMessageAPI(contactId, content, attachments);
      window.dispatchEvent(new Event('refresh-conversations'));
   }, [sendMessageAPI, user?.id]);
 
