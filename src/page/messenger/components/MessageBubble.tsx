@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   MoreVertical, Reply, Forward, Copy, Pin, Star,
-  Pencil, Trash2, Check, CheckCheck, Plus, Mic, FileText, Bot,
+  Pencil, Trash2, Check, CheckCheck, Plus, Mic, FileText, Bot, MapPin, ExternalLink,
 } from 'lucide-react';
 import { REACTIONS } from '../../../components/chat/ReactionIcons';
 import type { DisplayMessage } from '../../../hooks/useMessages';
@@ -75,9 +75,17 @@ export default function MessageBubble({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const legacyContactName = msg.content.startsWith('[Contact]')
-    ? msg.content.replace('[Contact]', '').trim()
-    : '';
+  const isLocationMsg = msg.content.startsWith('[Location]');
+  let locationText = '';
+  let mapsLink = '';
+  if (isLocationMsg) {
+    const lines = msg.content.split('\n');
+    locationText = lines[0].replace('[Location]', '').trim();
+    if (lines.length > 1 && lines[1].startsWith('http')) {
+      mapsLink = lines[1].trim();
+    }
+  }
+
   const toContactUserId = (url?: string) => {
     if (!url || !url.startsWith('user:')) return null;
     const id = url.slice(5).trim();
@@ -312,17 +320,54 @@ export default function MessageBubble({
           />
         )}
         {msg.content && !legacyContactName && msg.messageType !== 'POLL' && msg.messageType !== 'APPOINTMENT' && (
-          <div
-            className={`relative inline-block px-3.5 py-2 ${
-              msg.isMe
-                ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
-                : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
-            } cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all`}
-            onDoubleClick={() => onReaction(msg.id, '❤️')}
-            onClick={() => msg.senderId !== 'ai' && onViewProfile?.(msg.senderId, msg.sender, avatarUrl)}
-          >
-            <p className="whitespace-pre-line text-[14px] leading-relaxed">{highlightText(msg.content, searchKeyword)}</p>
-          </div>
+          isLocationMsg ? (
+            <div
+              className={`relative inline-block p-4 rounded-2xl ${
+                msg.isMe
+                  ? 'bg-blue-500 text-white rounded-br-md text-left'
+                  : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-bl-md text-left'
+              } max-w-[280px] w-full shadow-sm hover:opacity-95 transition-all`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`p-2.5 rounded-xl shrink-0 ${msg.isMe ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}>
+                  <MapPin className="w-5 h-5 animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs ${msg.isMe ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
+                    {t('messenger.attachments.location')}
+                  </p>
+                  <p className="text-sm font-semibold truncate leading-tight mt-0.5">
+                    {locationText || t('messenger.attachments.locationShared')}
+                  </p>
+                  {mapsLink && (
+                    <a
+                      href={mapsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`inline-flex items-center gap-1.5 text-xs font-bold mt-2 hover:underline ${
+                        msg.isMe ? 'text-white' : 'text-blue-500 dark:text-blue-400'
+                      }`}
+                    >
+                      <span>Xem trên Google Maps</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`relative inline-block px-3.5 py-2 ${
+                msg.isMe
+                  ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
+                  : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-md'
+              } cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all`}
+              onDoubleClick={() => onReaction(msg.id, '❤️')}
+              onClick={() => msg.senderId !== 'ai' && onViewProfile?.(msg.senderId, msg.sender, avatarUrl)}
+            >
+              <p className="whitespace-pre-line text-[14px] leading-relaxed">{highlightText(msg.content, searchKeyword)}</p>
+            </div>
+          )
         )}
 
         {/* Quick Reactions - Top bar on hover */}

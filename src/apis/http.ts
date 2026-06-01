@@ -146,8 +146,12 @@ class HttpClient {
       const errorMessage =
         data?.message || data?.error || `HTTP error! status: ${response.status}`;
 
-      // Suppress toast for 429 (duplicate message dedup) — user doesn't need to see this
-      if (response.status !== 429) {
+      // Suppress toast for 429 and 503 / "temporarily unavailable" errors — prevents annoying spam toasts
+      if (
+        response.status !== 429 &&
+        response.status !== 503 &&
+        !errorMessage.includes('temporarily unavailable')
+      ) {
         notify.error(errorMessage);
       }
 

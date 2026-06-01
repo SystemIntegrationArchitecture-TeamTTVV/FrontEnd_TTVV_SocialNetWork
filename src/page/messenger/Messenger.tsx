@@ -2088,10 +2088,34 @@ export default function Messenger() {
                 showAttachmentMenu={showAttachmentMenu}
                 onToggleAttachmentMenu={() => { setShowAttachmentMenu((prev) => !prev); setShowStickerPanel(false); }}
                 onShareLocation={() => {
-                  const text = `[Location] ${t('messenger.attachments.locationShared')}`;
-                  if (activeChat && user?.id) {
-                    sendMessageAPI(activeChat, text, [], undefined).catch(() => { });
-                    setShowAttachmentMenu(false);
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        const { latitude, longitude } = position.coords;
+                        const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                        const text = `[Location] ${t('messenger.attachments.locationShared')}\n${mapsUrl}`;
+                        if (activeChat && user?.id) {
+                          sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
+                          setShowAttachmentMenu(false);
+                        }
+                      },
+                      (error) => {
+                        console.error('Geolocation error:', error);
+                        // Fallback in case of permission denied / geolocation error
+                        const text = `[Location] ${t('messenger.attachments.locationShared')} (Không lấy được tọa độ)`;
+                        if (activeChat && user?.id) {
+                          sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
+                          setShowAttachmentMenu(false);
+                        }
+                      }
+                    );
+                  } else {
+                    // Fallback if browser doesn't support geolocation
+                    const text = `[Location] ${t('messenger.attachments.locationShared')}`;
+                    if (activeChat && user?.id) {
+                      sendMessageAPI(activeChat, text, [], undefined).catch(() => {});
+                      setShowAttachmentMenu(false);
+                    }
                   }
                 }}
                 onShareContact={() => {
