@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Minimize2, Send, Phone, Video } from 'lucide-react';
+import { X, Minimize2, Send, Phone, Video, MapPin, ExternalLink } from 'lucide-react';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useCall } from '../../contexts/CallContext';
 import EmojiPicker from '../chat/EmojiPicker';
@@ -279,6 +279,17 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
             : msg.sender.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
           const senderColor = idToColor(msg.senderId);
 
+          const isLocationMsg = msg.content?.startsWith('[Location]');
+          let locationText = '';
+          let mapsLink = '';
+          if (isLocationMsg) {
+            const lines = msg.content.split('\n');
+            locationText = lines[0].replace('[Location]', '').trim();
+            if (lines.length > 1 && lines[1].startsWith('http')) {
+              mapsLink = lines[1].trim();
+            }
+          }
+
           return (
           <div
             key={msg.id}
@@ -309,39 +320,91 @@ export default function ChatBox({ contact, index }: ChatBoxProps) {
               )}
               {/* Attachments */}
               {msg.attachments && msg.attachments.length > 0 && (
-                <div className="mb-1.5 space-y-1.5">
+                <div className="mb-1.5 space-y-1.5 text-left">
                   {msg.attachments.map((attachment, idx) => (
-                    <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-[220px]">
-                      {attachment.type === 'image' && (
+                    attachment.type === 'sticker' ? (
+                      <div
+                        key={idx}
+                        className="max-w-[90px] cursor-pointer hover:scale-105 active:scale-95 transition-all duration-150 mb-1"
+                        onClick={() => window.open(attachment.url, '_blank')}
+                      >
                         <img
                           src={attachment.url}
-                          alt={attachment.fileName}
-                          className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                          alt={attachment.fileName || 'Sticker'}
+                          className="w-full h-auto"
+                          loading="lazy"
                         />
-                      )}
-                      {attachment.type === 'video' && (
-                        <video
-                          src={attachment.url}
-                          controls
-                          className="w-full h-auto rounded-xl cursor-pointer"
-                        />
-                      )}
-                      {attachment.type === 'file' && (
-                        <a
-                          href={attachment.url}
-                          download
-                          className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1a1d28] border border-[#e4e6eb] dark:border-[#2b2f45] rounded-xl hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] transition-colors text-sm"
-                        >
-                          <span>📎 {attachment.fileName}</span>
-                        </a>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div key={idx} className="rounded-xl overflow-hidden shadow-sm max-w-[220px]">
+                        {attachment.type === 'image' && (
+                          <img
+                            src={attachment.url}
+                            alt={attachment.fileName}
+                            className="w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        )}
+                        {attachment.type === 'video' && (
+                          <video
+                            src={attachment.url}
+                            controls
+                            className="w-full h-auto rounded-xl cursor-pointer"
+                          />
+                        )}
+                        {attachment.type === 'file' && (
+                          <a
+                            href={attachment.url}
+                            download
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#1a1d28] border border-[#e4e6eb] dark:border-[#2b2f45] rounded-xl hover:bg-[#f0f2f5] dark:hover:bg-[#22263a] transition-colors text-sm"
+                          >
+                            <span>📎 {attachment.fileName}</span>
+                          </a>
+                        )}
+                      </div>
+                    )
                   ))}
                 </div>
               )}
 
               {/* Message Content */}
-              {msg.content?.trim() ? (
+              {isLocationMsg ? (
+                <div
+                  onClick={() => {
+                    if (mapsLink) {
+                      window.open(mapsLink, '_blank');
+                    } else {
+                      window.open('https://www.google.com/maps', '_blank');
+                    }
+                  }}
+                  className={`rounded-2xl p-3 shadow-sm inline-block text-left cursor-pointer max-w-[240px] w-full hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all ${
+                    msg.isMe
+                      ? 'bg-[#1877F2] text-white'
+                      : 'bg-white dark:bg-[#22263a] text-[#050505] dark:text-[#edf0fa] border border-[#e4e6eb] dark:border-[#2b2f45]'
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className={`p-2 rounded-lg shrink-0 ${msg.isMe ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}>
+                      <MapPin className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[10px] ${msg.isMe ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
+                        {t('messenger.attachments.location')}
+                      </p>
+                      <p className="text-[12px] font-semibold truncate leading-tight mt-0.5">
+                        {locationText || t('messenger.attachments.locationShared')}
+                      </p>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold mt-1.5 hover:underline ${
+                          msg.isMe ? 'text-white' : 'text-blue-500 dark:text-[#1877F2]'
+                        }`}
+                      >
+                        <span>Xem trên bản đồ</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : msg.content?.trim() ? (
                 <div
                   className={`rounded-2xl px-3 py-2 shadow-sm inline-block text-left ${msg.isMe
                       ? 'bg-[#1877F2] text-white'
