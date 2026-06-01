@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Edit, Search, ChevronLeft, ChevronRight,
   Users, Bot, EyeOff, X, UserRound, Image, Video, Mic, Paperclip, CornerUpLeft,
-  MoreVertical, Pin, PinOff,
+  MoreVertical, Pin, PinOff, MapPin, Smile,
 } from 'lucide-react';
 import { parseConversationPreview } from '../../../utils/messagePreview';
 
@@ -105,10 +105,26 @@ export default function ChatSidebar({
     : formattedConversations;
 
   const renderPreview = (previewRaw: string) => {
+    if (previewRaw.startsWith('[Location]')) {
+      return (
+        <span className="flex items-center gap-1.5 min-w-0">
+          <MapPin className="w-3.5 h-3.5 shrink-0 text-red-500 animate-pulse" />
+          <span className="truncate">Vị trí</span>
+        </span>
+      );
+    }
+
     const preview = parseConversationPreview(previewRaw);
     const iconClass = 'w-3.5 h-3.5 shrink-0';
 
     switch (preview.kind) {
+      case 'sticker':
+        return (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Smile className={`${iconClass} text-yellow-500`} />
+            <span className="truncate">Sticker</span>
+          </span>
+        );
       case 'contact':
         return (
           <span className="flex items-center gap-1.5 min-w-0">

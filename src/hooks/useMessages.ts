@@ -312,6 +312,10 @@ export function useMessages() {
         return sortConversationsByActivity(updated);
       });
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('refresh-conversations'));
+      }
+
       return newMessage;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message';

@@ -7,9 +7,10 @@ const PREVIEW_PREFIX = {
   audio: '[audio]',
   file: '[file]',
   reply: '[reply]',
+  sticker: '[sticker]',
 } as const;
 
-export type ConversationPreviewKind = 'text' | 'contact' | 'image' | 'video' | 'audio' | 'file' | 'reply';
+export type ConversationPreviewKind = 'text' | 'contact' | 'image' | 'video' | 'audio' | 'file' | 'reply' | 'sticker';
 
 export interface ConversationPreviewDisplay {
   kind: ConversationPreviewKind;
@@ -36,6 +37,7 @@ export const buildConversationPreview = (message: Partial<Message>): string => {
       const name = (firstAttachment.fileName || '').trim() || 'Contact';
       return `${PREVIEW_PREFIX.contact} ${name}`;
     }
+    if (firstAttachment.type === 'sticker') return PREVIEW_PREFIX.sticker;
     if (firstAttachment.type === 'image') return PREVIEW_PREFIX.image;
     if (firstAttachment.type === 'video') return PREVIEW_PREFIX.video;
     if (firstAttachment.type === 'audio') return PREVIEW_PREFIX.audio;
@@ -56,6 +58,7 @@ export const parseConversationPreview = (preview: string): ConversationPreviewDi
   if (text.startsWith(PREVIEW_PREFIX.contact)) {
     return { kind: 'contact', text: text.slice(PREVIEW_PREFIX.contact.length).trim() || 'Contact' };
   }
+  if (text === PREVIEW_PREFIX.sticker) return { kind: 'sticker', text: 'Sticker' };
   if (text === PREVIEW_PREFIX.image) return { kind: 'image', text: 'Photo' };
   if (text === PREVIEW_PREFIX.video) return { kind: 'video', text: 'Video' };
   if (text === PREVIEW_PREFIX.audio) return { kind: 'audio', text: 'Voice message' };

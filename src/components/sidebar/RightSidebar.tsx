@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, MapPin, Smile, Image, Video, Mic, Paperclip, UserRound, CornerUpLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChatBox } from '../../contexts/ChatBoxContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +8,7 @@ import type { ChatContact } from '../../types/chat';
 import { getLocaleTag } from '../../i18n';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { usersApi } from '../../apis/users';
+import { parseConversationPreview } from '../../utils/messagePreview';
 
 type ContactWithLastMessage = ChatContact & {
   lastMessage?: string;
@@ -112,6 +113,76 @@ export default function RightSidebar({
       window.removeEventListener('refresh-conversations', handler);
     };
   }, [loadConversations]);
+
+  const renderPreview = (previewRaw: string) => {
+    if (!previewRaw) return t('rightSidebar.noLastMessage');
+    
+    if (previewRaw.startsWith('[Location]')) {
+      return (
+        <span className="flex items-center gap-1 min-w-0">
+          <MapPin className="w-3.5 h-3.5 shrink-0 text-red-500 animate-pulse" />
+          <span className="truncate">Vị trí</span>
+        </span>
+      );
+    }
+
+    const preview = parseConversationPreview(previewRaw);
+    const iconClass = 'w-3.5 h-3.5 shrink-0';
+
+    switch (preview.kind) {
+      case 'contact':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <UserRound className={`${iconClass} text-blue-500`} />
+            <span className="truncate">Contact: {preview.text}</span>
+          </span>
+        );
+      case 'sticker':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <Smile className={`${iconClass} text-yellow-500`} />
+            <span className="truncate">Sticker</span>
+          </span>
+        );
+      case 'image':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <Image className={`${iconClass} text-indigo-500`} />
+            <span className="truncate">Photo</span>
+          </span>
+        );
+      case 'video':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <Video className={`${iconClass} text-purple-500`} />
+            <span className="truncate">Video</span>
+          </span>
+        );
+      case 'audio':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <Mic className={`${iconClass} text-emerald-500`} />
+            <span className="truncate">Voice</span>
+          </span>
+        );
+      case 'file':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <Paperclip className={`${iconClass} text-gray-500`} />
+            <span className="truncate">File</span>
+          </span>
+        );
+      case 'reply':
+        return (
+          <span className="flex items-center gap-1 min-w-0">
+            <CornerUpLeft className={`${iconClass} text-amber-500`} />
+            <span className="truncate">{preview.text}</span>
+          </span>
+        );
+      default:
+        return <span className="truncate">{preview.text}</span>;
+    }
+  };
 
   useEffect(() => {
     if (!user?.id || !Array.isArray(conversations) || conversations.length === 0) return;
@@ -452,7 +523,7 @@ export default function RightSidebar({
                   </div>
 
                   <p className="text-xs text-gray-500 dark:text-[#7e89a6] truncate leading-relaxed">
-                    {contact.lastMessage || t('rightSidebar.noLastMessage')}
+                    {renderPreview(contact.lastMessage || '')}
                   </p>
                 </div>
               </div>
