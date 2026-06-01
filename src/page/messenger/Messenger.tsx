@@ -583,6 +583,8 @@ export default function Messenger() {
   const blockedByOtherAll = !!(activeOtherParticipantId && activeConversationRaw?.blockedByUserIds?.includes(activeOtherParticipantId));
   const blockedByOtherMessage = !!(activeOtherParticipantId && activeConversationRaw?.messageBlockedByUserIds?.includes(activeOtherParticipantId));
   const blockedByOtherCall = !!(activeOtherParticipantId && activeConversationRaw?.callBlockedByUserIds?.includes(activeOtherParticipantId));
+  const isSelfBlocked = !!(user?.id && activeConversationRaw?.blockedByUserIds?.includes(user.id));
+  const isSelfMessageBlocked = !!(user?.id && activeConversationRaw?.messageBlockedByUserIds?.includes(user.id));
   const isGroupChat = activeChat !== AI_CONVERSATION_ID && !!activeConversationRaw?.isGroup;
   const isAIChat = activeChat === AI_CONVERSATION_ID;
   const isOwner = !!(user?.id && activeConversationRaw?.ownerId === user.id);
@@ -2159,9 +2161,10 @@ export default function Messenger() {
                   if (isAIChat) return true;
                   const conv = activeConversationRaw;
                   if (!conv) return true;
-                  // One-way block: only blocked side is restricted.
-                  if (!conv.isGroup && blockedByOtherAll) return false;
-                  if (!conv.isGroup && blockedByOtherMessage) return false;
+                  if (!conv.isGroup) {
+                    if (blockedByOtherAll || isSelfBlocked) return false;
+                    if (blockedByOtherMessage || isSelfMessageBlocked) return false;
+                  }
                   // Group: admin-only send check
                   if (conv.onlyAdminsCanSend && !canManageGroup) return false;
                   return true;
@@ -2172,8 +2175,14 @@ export default function Messenger() {
                     if (blockedByOtherAll) {
                       return 'Bạn đã bị chặn. Không thể gửi tin nhắn.';
                     }
+                    if (isSelfBlocked) {
+                      return 'Bạn đã chặn người dùng này. Mở chặn để gửi tin nhắn.';
+                    }
                     if (blockedByOtherMessage) {
                       return 'Bạn đã bị chặn tin nhắn. Không thể gửi tin nhắn.';
+                    }
+                    if (isSelfMessageBlocked) {
+                      return 'Bạn đã chặn tin nhắn từ người dùng này. Mở chặn để gửi tin nhắn.';
                     }
                   }
                   return t('messenger.onlyAdminsCanSend');
