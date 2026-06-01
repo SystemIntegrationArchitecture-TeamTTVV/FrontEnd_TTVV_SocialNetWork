@@ -5,7 +5,7 @@ import {
   User, Bell, BellOff, Search as SearchIcon, Trash2, X,
   Palette, Lock, ShieldOff, Flag, Pencil,
   Mail, Phone, MapPin, Briefcase, GraduationCap, FileText,
-  Circle, Loader2, ImageOff, PhoneOff, MessageSquareOff,
+  Circle, Loader2, ImageOff,
 } from 'lucide-react';
 import { usersApi, type User as UserType } from '../../../apis/users';
 import { conversationsApi } from '../../../apis/conversations';
@@ -331,63 +331,6 @@ export default function DirectChatSidebar({
     }
   };
 
-  // ── Block Messages only ──
-  const handleToggleBlockMessages = async () => {
-    if (!conversationRaw?.id || !userId) return;
-    const prev = isMessageBlocked;
-    setIsMessageBlocked(!prev);
-    persistBlockOverride({
-      blocked: isBlocked,
-      messageBlocked: !prev,
-      callBlocked: isCallBlocked,
-    });
-    blockStateLockUntilRef.current = Date.now() + 1500;
-    setBlockActionLoading(true);
-    try {
-      await conversationsApi.toggleBlockMessages(conversationRaw.id, userId);
-      notify.success(isMessageBlocked ? 'Đã mở chặn tin nhắn' : 'Đã chặn tin nhắn');
-      loadConversations?.();
-    } catch {
-      setIsMessageBlocked(prev);
-      persistBlockOverride({
-        blocked: isBlocked,
-        messageBlocked: prev,
-        callBlocked: isCallBlocked,
-      });
-      notify.error('Không thể thay đổi trạng thái chặn tin nhắn');
-    } finally {
-      setBlockActionLoading(false);
-    }
-  };
-
-  // ── Block Calls only ──
-  const handleToggleBlockCalls = async () => {
-    if (!conversationRaw?.id || !userId) return;
-    const prev = isCallBlocked;
-    setIsCallBlocked(!prev);
-    persistBlockOverride({
-      blocked: isBlocked,
-      messageBlocked: isMessageBlocked,
-      callBlocked: !prev,
-    });
-    blockStateLockUntilRef.current = Date.now() + 1500;
-    setBlockActionLoading(true);
-    try {
-      await conversationsApi.toggleBlockCalls(conversationRaw.id, userId);
-      notify.success(isCallBlocked ? 'Đã mở chặn cuộc gọi' : 'Đã chặn cuộc gọi');
-      loadConversations?.();
-    } catch {
-      setIsCallBlocked(prev);
-      persistBlockOverride({
-        blocked: isBlocked,
-        messageBlocked: isMessageBlocked,
-        callBlocked: prev,
-      });
-      notify.error('Không thể thay đổi trạng thái chặn cuộc gọi');
-    } finally {
-      setBlockActionLoading(false);
-    }
-  };
 
   // ── Update Nickname (Messenger-style: set nickname FOR the other person) ──
   const handleUpdateNickname = async () => {
@@ -451,9 +394,6 @@ export default function DirectChatSidebar({
   const effectiveOtherUserId = otherUserId || conversation.otherParticipantId;
   const profileLink = effectiveOtherUserId ? `/profile/${effectiveOtherUserId}` : `/profile/${conversation.id}`;
   const blockedByOtherAll = !!(otherUserId && conversationRaw?.blockedByUserIds?.includes(otherUserId));
-  const blockedByOtherMessage = !!(otherUserId && conversationRaw?.messageBlockedByUserIds?.includes(otherUserId));
-  const blockedByOtherCall = !!(otherUserId && conversationRaw?.callBlockedByUserIds?.includes(otherUserId));
-  const hasAnyBlock = isBlocked || isMessageBlocked || isCallBlocked || blockedByOtherAll || blockedByOtherMessage || blockedByOtherCall;
 
   return (
     <div className="border-l border-gray-200/50 dark:border-white/5 bg-white overflow-y-auto transition-all duration-300 ease-in-out shrink-0 w-full h-full md:w-[320px] md:h-full lg:w-85 shadow-sm flex flex-col">
@@ -757,63 +697,19 @@ export default function DirectChatSidebar({
           </h5>
 
           {/* Block status banner */}
-          {hasAnyBlock && (
+          {(isBlocked || blockedByOtherAll) && (
             <div className="mb-2 p-2.5 rounded-xl bg-red-50 border border-red-100">
               <p className="text-[11px] font-semibold text-red-600 mb-1.5">Trạng thái chặn:</p>
               <div className="flex flex-wrap gap-1.5">
                 {isBlocked && (
                   <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-medium">🚫 Bạn chặn tất cả</span>
                 )}
-                {isMessageBlocked && !isBlocked && (
-                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-medium">💬 Bạn chặn tin nhắn</span>
-                )}
-                {isCallBlocked && !isBlocked && (
-                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 text-[10px] font-medium">📞 Bạn chặn cuộc gọi</span>
-                )}
                 {blockedByOtherAll && (
                   <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-medium">⛔ Bạn đã bị chặn tất cả</span>
-                )}
-                {blockedByOtherMessage && !blockedByOtherAll && (
-                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-medium">⛔ Bạn đã bị chặn tin nhắn</span>
-                )}
-                {blockedByOtherCall && !blockedByOtherAll && (
-                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium">⛔ Bạn đã bị chặn cuộc gọi</span>
                 )}
               </div>
             </div>
           )}
-
-          {/* Block messages */}
-          <button
-            onClick={handleToggleBlockMessages}
-            disabled={isBlocked || blockActionLoading}
-            className={`w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm font-medium flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed ${
-              isMessageBlocked ? 'text-orange-600' : 'text-gray-700'
-            }`}
-          >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-              isMessageBlocked ? 'bg-orange-50' : 'bg-gray-100'
-            }`}>
-              <MessageSquareOff className={`w-4 h-4 ${isMessageBlocked ? 'text-orange-500' : 'text-gray-500'}`} />
-            </div>
-            <span>{isMessageBlocked ? 'Mở chặn tin nhắn' : 'Chặn tin nhắn'}</span>
-          </button>
-
-          {/* Block calls */}
-          <button
-            onClick={handleToggleBlockCalls}
-            disabled={isBlocked || blockActionLoading}
-            className={`w-full p-2.5 rounded-xl hover:bg-white transition-colors text-left text-sm font-medium flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed ${
-              isCallBlocked ? 'text-purple-600' : 'text-gray-700'
-            }`}
-          >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-              isCallBlocked ? 'bg-purple-50' : 'bg-gray-100'
-            }`}>
-              <PhoneOff className={`w-4 h-4 ${isCallBlocked ? 'text-purple-500' : 'text-gray-500'}`} />
-            </div>
-            <span>{isCallBlocked ? 'Mở chặn cuộc gọi' : 'Chặn cuộc gọi'}</span>
-          </button>
 
           {/* Block all */}
           <button
