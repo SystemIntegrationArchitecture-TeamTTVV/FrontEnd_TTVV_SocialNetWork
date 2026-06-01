@@ -779,17 +779,7 @@ export default function Messenger() {
       else return date.toLocaleDateString(getLocaleTag());
     };
 
-    const aiConversation = {
-      id: AI_CONVERSATION_ID,
-      name: t('messenger.aiAssistant.name'),
-      avatar: 'AI',
-      color: '#3b82f6',
-      online: true,
-      lastMessage: aiMessages.length > 0 ? aiMessages[aiMessages.length - 1].text.substring(0, 50) : t('messenger.aiAssistant.lastMessageFallback'),
-      time: aiMessages.length > 0 ? formatTime(aiMessages[aiMessages.length - 1].timestamp.toISOString()) : '',
-      unread: 0,
-      isGroup: false,
-    };
+
 
     const regularConversations = conversations
       .filter((conv) => !conv.hiddenForCurrentUser)
@@ -866,18 +856,7 @@ export default function Messenger() {
         return b.sortTime - a.sortTime;
       });
 
-    return [{ ...aiConversation, sortTime: Infinity, pinned: false }, ...regularConversations]
-      .sort((a, b) => {
-        // AI conversation always first (sortTime Infinity handles this)
-        if (a.sortTime === Infinity && b.sortTime !== Infinity) return -1;
-        if (a.sortTime !== Infinity && b.sortTime === Infinity) return 1;
-        // Pinned conversations next
-        if (a.pinned && !b.pinned) return -1;
-        if (!a.pinned && b.pinned) return 1;
-        // Then by time
-        return b.sortTime - a.sortTime;
-      })
-      .map(({ sortTime: _s, ...item }) => item);
+    return regularConversations.map(({ sortTime: _s, ...item }) => item);
   }, [conversations, user?.id, aiMessages, t, i18n.language, presenceByUserId, unreadByConversationId, avatarsByUserId]);
 
   const activeConversation = activeChat
