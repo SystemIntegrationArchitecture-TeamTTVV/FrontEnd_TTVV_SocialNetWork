@@ -75,6 +75,9 @@ export default function MessageBubble({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const legacyContactName = msg.content.startsWith('[Contact]')
+    ? msg.content.replace('[Contact]', '').trim()
+    : '';
   const isLocationMsg = msg.content.startsWith('[Location]');
   let locationText = '';
   let mapsLink = '';
