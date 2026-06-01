@@ -325,11 +325,18 @@ export default function MessageBubble({
         {msg.content && !legacyContactName && msg.messageType !== 'POLL' && msg.messageType !== 'APPOINTMENT' && (
           isLocationMsg ? (
             <div
+              onClick={() => {
+                if (mapsLink) {
+                  window.open(mapsLink, '_blank');
+                } else {
+                  window.open('https://www.google.com/maps', '_blank');
+                }
+              }}
               className={`relative inline-block p-4 rounded-2xl ${
                 msg.isMe
-                  ? 'bg-blue-500 text-white rounded-br-md text-left'
-                  : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-bl-md text-left'
-              } max-w-[280px] w-full shadow-sm hover:opacity-95 transition-all`}
+                  ? 'bg-blue-500 text-white rounded-br-md text-left cursor-pointer'
+                  : 'bg-gray-100 dark:bg-[#2a2d3a] text-gray-800 dark:text-gray-100 rounded-bl-md text-left cursor-pointer'
+              } max-w-[280px] w-full shadow-sm hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all`}
             >
               <div className="flex items-start gap-3">
                 <div className={`p-2.5 rounded-xl shrink-0 ${msg.isMe ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}>
@@ -342,19 +349,14 @@ export default function MessageBubble({
                   <p className="text-sm font-semibold truncate leading-tight mt-0.5">
                     {locationText || t('messenger.attachments.locationShared')}
                   </p>
-                  {mapsLink && (
-                    <a
-                      href={mapsLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-1.5 text-xs font-bold mt-2 hover:underline ${
-                        msg.isMe ? 'text-white' : 'text-blue-500 dark:text-blue-400'
-                      }`}
-                    >
-                      <span>Xem trên Google Maps</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold mt-2 hover:underline ${
+                      msg.isMe ? 'text-white' : 'text-blue-500 dark:text-blue-400'
+                    }`}
+                  >
+                    <span>Xem trên Google Maps</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
             </div>
