@@ -203,6 +203,7 @@ export default function Messenger() {
   const seenRefreshTimerRef = useRef<number | null>(null);
   const realtimeReloadTimerRef = useRef<number | null>(null);
   const processedInviteTokenRef = useRef<string | null>(null);
+  const sendingRef = useRef(false);
   // Load friend list once on mount
   useEffect(() => {
     if (!user?.id) return;
@@ -1133,6 +1134,9 @@ export default function Messenger() {
   const handleSendMessage = async () => {
     if (!message.trim() && !replyTo && !filePreview && uploadedFiles.length === 0) return;
     if (!activeChat || !user?.id) return;
+    // Prevent duplicate sends from rapid clicks or keyboard repeat
+    if (sendingRef.current) return;
+    sendingRef.current = true;
 
     if (activeChat !== AI_CONVERSATION_ID && isTypingRef.current) {
       isTypingRef.current = false;
@@ -1284,6 +1288,8 @@ export default function Messenger() {
     } catch (error) {
       console.error('Failed to send message:', error);
       // Removed generic notify.error here because http.ts global interceptor already shows the specific backend error toast
+    } finally {
+      sendingRef.current = false;
     }
   };
 

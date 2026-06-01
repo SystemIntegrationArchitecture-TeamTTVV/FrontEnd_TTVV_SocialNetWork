@@ -146,8 +146,10 @@ class HttpClient {
       const errorMessage =
         data?.message || data?.error || `HTTP error! status: ${response.status}`;
 
-      // Globally show a toast error for all API failures
-      notify.error(errorMessage);
+      // Suppress toast for 429 (duplicate message dedup) — user doesn't need to see this
+      if (response.status !== 429) {
+        notify.error(errorMessage);
+      }
 
       throw new HttpError(response.status, errorMessage, data);
     }
