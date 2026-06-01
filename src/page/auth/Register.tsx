@@ -239,7 +239,28 @@ export default function Register() {
                   ))}
                 </select>
                 <select
-                  {...register('year', { required: t('auth.register.yearRequired') })}
+                  {...register('year', {
+                    required: t('auth.register.yearRequired'),
+                    validate: () => {
+                      const m = watch('month');
+                      const d = watch('day');
+                      const y = watch('year');
+                      if (!m || !d || !y) return true; // let required handle empty
+                      const dob = new Date(Number(y), Number(m) - 1, Number(d));
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      // Cannot be today or in the future
+                      if (dob >= today) {
+                        return t('auth.register.dobNotFuture', 'Ngày sinh không hợp lệ (không được là hôm nay hoặc trong tương lai)');
+                      }
+                      // Must be at least 12 years old
+                      const minDate = new Date(today.getFullYear() - 12, today.getMonth(), today.getDate());
+                      if (dob > minDate) {
+                        return t('auth.register.dobMinAge', 'Bạn phải đủ ít nhất 12 tuổi để đăng ký');
+                      }
+                      return true;
+                    },
+                  })}
                   className="h-11 px-3 rounded-xl border border-gray-200 dark:border-[#2b2f45] bg-white dark:bg-[#22263a] shadow-sm text-gray-900 dark:text-[#edf0fa] focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="">{t('auth.register.year')}</option>
