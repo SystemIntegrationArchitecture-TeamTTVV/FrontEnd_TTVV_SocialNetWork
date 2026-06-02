@@ -95,25 +95,25 @@ function StreamerVideoStage() {
   );
 }
 
-function formatElapsed(startedAt?: string): string {
-  if (!startedAt) return '0:00';
-  
-  let t = NaN;
-  const match = startedAt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+function parseICTDate(dateStr?: string): number {
+  if (!dateStr) return NaN;
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
   if (match) {
     const [, y, m, d, h, min, s] = match;
-    t = Date.UTC(
+    return Date.UTC(
       parseInt(y, 10),
       parseInt(m, 10) - 1,
       parseInt(d, 10),
       parseInt(h, 10),
       parseInt(min, 10),
       parseInt(s, 10)
-    );
-  } else {
-    t = new Date(startedAt).getTime();
+    ) - 7 * 60 * 60 * 1000;
   }
+  return new Date(dateStr).getTime();
+}
 
+function formatElapsed(startedAt?: string): string {
+  const t = parseICTDate(startedAt);
   if (Number.isNaN(t)) return '0:00';
   const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
   const m = Math.floor(sec / 60);
@@ -172,21 +172,7 @@ export default function StreamerThamKhaoLayout({
     if (!stream.maxLiveDurationMinutes || stream.maxLiveDurationMinutes <= 0) return null;
     if (!stream.startedAt) return '00:00';
     
-    let t = NaN;
-    const match = stream.startedAt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
-    if (match) {
-      const [, y, m, d, h, min, s] = match;
-      t = Date.UTC(
-        parseInt(y, 10),
-        parseInt(m, 10) - 1,
-        parseInt(d, 10),
-        parseInt(h, 10),
-        parseInt(min, 10),
-        parseInt(s, 10)
-      );
-    } else {
-      t = new Date(stream.startedAt).getTime();
-    }
+    const t = parseICTDate(stream.startedAt);
 
     if (Number.isNaN(t)) return '00:00';
     const elapsedSec = Math.max(0, Math.floor((Date.now() - t) / 1000));
@@ -207,21 +193,7 @@ export default function StreamerThamKhaoLayout({
     if (!stream.maxLiveDurationMinutes || stream.maxLiveDurationMinutes <= 0) return false;
     if (!stream.startedAt) return false;
     
-    let t = NaN;
-    const match = stream.startedAt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
-    if (match) {
-      const [, y, m, d, h, min, s] = match;
-      t = Date.UTC(
-        parseInt(y, 10),
-        parseInt(m, 10) - 1,
-        parseInt(d, 10),
-        parseInt(h, 10),
-        parseInt(min, 10),
-        parseInt(s, 10)
-      );
-    } else {
-      t = new Date(stream.startedAt).getTime();
-    }
+    const t = parseICTDate(stream.startedAt);
 
     if (Number.isNaN(t)) return false;
     const elapsedSec = Math.max(0, Math.floor((Date.now() - t) / 1000));
